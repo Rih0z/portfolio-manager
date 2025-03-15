@@ -441,7 +441,7 @@ module.exports = function(app) {
 
 ### 10.2 外部APIコール
 
-axios を使用した標準的なAPI呼び出し（更新）:
+axios を使用した標準的なAPI呼び出し（認証対策強化版）:
 
 ```javascript
 import axios from 'axios';
@@ -452,7 +452,12 @@ const fetchMarketData = async (ticker) => {
     console.log(`Attempting to fetch data for ${ticker} from Yahoo Finance`);
     const response = await axios.get(`/.netlify/functions/yahoo-finance-proxy`, {
       params: { symbols: ticker },
-      timeout: 5000 // 5秒タイムアウト
+      timeout: 15000, // 15秒タイムアウト（延長）
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
     });
     
     if (response.data && response.data.quoteResponse && response.data.quoteResponse.result && 
@@ -468,6 +473,7 @@ const fetchMarketData = async (ticker) => {
     return await fetchMarketDataFromAlternative(ticker);
   } catch (error) {
     console.error('Yahoo Finance API error:', error);
+    console.log(`Error details: ${error.response?.status || 'No status'} - ${error.message}`);
     // エラー発生時は代替ソースを試行
     return await fetchMarketDataFromAlternative(ticker);
   }
@@ -483,7 +489,12 @@ const fetchMarketDataFromAlternative = async (ticker) => {
         symbol: ticker,
         apikey: ALPHA_VANTAGE_KEY // REACT_APP_ALPHA_VANTAGE_API_KEY から取得
       },
-      timeout: 8000 // 8秒タイムアウト
+      timeout: 15000, // 15秒タイムアウト（延長）
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
     });
     
     // レスポンス検証とデータ加工
@@ -496,6 +507,7 @@ const fetchMarketDataFromAlternative = async (ticker) => {
     };
   } catch (error) {
     console.error('Alpha Vantage API error:', error);
+    console.log(`Error details: ${error.response?.status || 'No status'} - ${error.message}`);
     // すべてのソースが失敗した場合はフォールバック値を使用
     return generateFallbackData(ticker);
   }

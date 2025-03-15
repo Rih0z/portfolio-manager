@@ -316,25 +316,17 @@ src/
 
 ### 7.3 API呼び出しのフォールバック処理（更新）
 
-- **複数データソースの順次試行**:
+- **Alpha Vantage API使用とフォールバック**:
   ```javascript
-  // プライマリソースからデータ取得を試みる
+  // Alpha Vantage APIからのデータ取得を試みる
   try {
-    const result = await fetchFromPrimarySource();
+    const result = await fetchFromAlphaVantage(ticker);
     return result;
   } catch (error) {
-    console.error('Primary source error:', error);
+    console.error('Alpha Vantage API error:', error);
     
-    // セカンダリソースを試行
-    try {
-      const fallbackResult = await fetchFromSecondarySource();
-      return fallbackResult;
-    } catch (secondError) {
-      console.error('Secondary source error:', secondError);
-      
-      // 最終フォールバック
-      return generateFallbackData();
-    }
+    // APIからのデータ取得に失敗した場合はフォールバック値を使用
+    return generateFallbackData(ticker);
   }
   ```
 
@@ -343,8 +335,17 @@ src/
   // タイムアウト付きの呼び出し
   const response = await axios.get(apiUrl, {
     params: { /* パラメータ */ },
-    timeout: 5000 // 5秒タイムアウト
+    timeout: 15000 // 15秒タイムアウト
   });
+  ```
+
+- **レート制限対応**:
+  ```javascript
+  // Alpha Vantage APIのレート制限チェック
+  if (response.data && response.data.Note && response.data.Note.includes('API call frequency')) {
+    console.warn('Alpha Vantage API rate limit reached:', response.data.Note);
+    return generateFallbackData(ticker); // レート制限に達した場合はフォールバック値を使用
+  }
   ```
 
 ## 8. アクセシビリティ
@@ -441,46 +442,13 @@ module.exports = function(app) {
 
 ### 10.2 外部APIコール
 
-axios を使用した標準的なAPI呼び出し（認証対策強化版）:
+axios を使用した標準的なAPI呼び出し（Alpha Vantageプライマリ版）:
 
 ```javascript
 import axios from 'axios';
 
-// Yahoo Finance API呼び出し関数
+// Alpha Vantage API呼び出し関数（プライマリソース）
 const fetchMarketData = async (ticker) => {
-  try {
-    console.log(`Attempting to fetch data for ${ticker} from Yahoo Finance`);
-    const response = await axios.get(`/.netlify/functions/yahoo-finance-proxy`, {
-      params: { symbols: ticker },
-      timeout: 15000, // 15秒タイムアウト（延長）
-      headers: {
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      }
-    });
-    
-    if (response.data && response.data.quoteResponse && response.data.quoteResponse.result && 
-        response.data.quoteResponse.result.length > 0) {
-      return {
-        success: true,
-        data: response.data.quoteResponse.result[0],
-        source: 'Yahoo Finance'
-      };
-    }
-    
-    // Yahoo Financeから取得できなかった場合、Alpha Vantageを試行
-    return await fetchMarketDataFromAlternative(ticker);
-  } catch (error) {
-    console.error('Yahoo Finance API error:', error);
-    console.log(`Error details: ${error.response?.status || 'No status'} - ${error.message}`);
-    // エラー発生時は代替ソースを試行
-    return await fetchMarketDataFromAlternative(ticker);
-  }
-};
-
-// Alpha Vantage API呼び出し関数
-const fetchMarketDataFromAlternative = async (ticker) => {
   try {
     console.log(`Attempting to fetch data for ${ticker} from Alpha Vantage`);
     const response = await axios.get(`/.netlify/functions/alpha-vantage-proxy`, {
@@ -489,7 +457,7 @@ const fetchMarketDataFromAlternative = async (ticker) => {
         symbol: ticker,
         apikey: ALPHA_VANTAGE_KEY // REACT_APP_ALPHA_VANTAGE_API_KEY から取得
       },
-      timeout: 15000, // 15秒タイムアウト（延長）
+      timeout: 15000, // 15秒タイムアウト
       headers: {
         'Cache-Control': 'no-cache',
         'Pragma': 'no-cache',
@@ -497,20 +465,55 @@ const fetchMarketDataFromAlternative = async (ticker) => {
       }
     });
     
-    // レスポンス検証とデータ加工
-    // ...
+    // レスポンス検証
+    if (response.data && response.data['Global Quote'] && response.data['Global Quote']['05. price']) {
+      const quoteData = response.data['Global Quote'];
+      const price = parseFloat(quoteData['05. price']);
+      
+      return {
+        success: true,
+        data: {
+          id: ticker,
+          name: ticker,
+          ticker: ticker,
+          exchangeMarket: ticker.includes('.T') ? 'Japan' : 'US',
+          price: price,
+          currency: ticker.includes('.T') ? 'JPY' : 'USD',
+          source: 'Alpha Vantage'
+        }
+      };
+    }
     
-    return {
-      success: true,
-      data: processedData,
-      source: 'Alpha Vantage'
-    };
+    // データが取得できなかった場合はフォールバック値を使用
+    return generateFallbackData(ticker);
   } catch (error) {
     console.error('Alpha Vantage API error:', error);
     console.log(`Error details: ${error.response?.status || 'No status'} - ${error.message}`);
-    // すべてのソースが失敗した場合はフォールバック値を使用
+    
+    // エラー発生時はフォールバック値を使用
     return generateFallbackData(ticker);
   }
+};
+
+// フォールバックデータ生成関数
+const generateFallbackData = (ticker) => {
+  // 市場とティッカーから推測されるデフォルト値を使用
+  const isJapanese = ticker.includes('.T');
+  const defaultPrice = isJapanese ? 2500 : 150;
+  
+  return {
+    success: false,
+    data: {
+      id: ticker,
+      name: ticker,
+      ticker: ticker,
+      exchangeMarket: isJapanese ? 'Japan' : 'US',
+      price: defaultPrice,
+      currency: isJapanese ? 'JPY' : 'USD',
+      source: 'Fallback'
+    },
+    message: '最新の価格データを取得できませんでした。デフォルト値を使用しています。'
+  };
 };
 ```
 
@@ -533,3 +536,4 @@ const apiKey = process.env.ALPHA_VANTAGE_API_KEY || 'GC4EBI5YHFKOJEXY';
 | 1.0      | 2025/03/16 | 初版作成 | |
 | 1.1      | 2025/03/17 | jwt-decode対応、アクセシビリティ対応、ESLint設定更新 | |
 | 1.2      | 2025/03/18 | データ取得フォールバック機構、環境変数名統一、ログ出力強化 | |
+| 1.3      | 2025/03/18 | Alpha Vantageをプライマリソースに変更、Yahoo Finance API呼び出し無効化、401認証エラー対応 | |

@@ -12,7 +12,7 @@
 - 資金配分シミュレーション
 - データインポート/エクスポート
 - Google認証・Googleドライブ連携
-- 市場データの自動取得（複数ソース対応: Yahoo Finance → Alpha Vantage → フォールバック値）
+- 市場データの自動取得（Alpha Vantageをプライマリソース、フォールバック値をバックアップとして使用）
 - iOS風タブバーによるナビゲーション
 
 ### 1.2 技術スタック
@@ -170,21 +170,17 @@ interface SimulationResult {
 
 ## 5. API・外部連携仕様
 
-### 5.1 Yahoo Finance API連携
-- **エンドポイント**: `/v7/finance/quote` (Netlify Functions経由)
-- **設定方法**: setupProxy.jsでのプロキシ設定
-- **取得データ**: 銘柄情報、価格、為替レート
-- **タイムアウト設定**: 15秒（延長）
-- **認証対策**: Referer、Origin、User-Agentなどの本物のブラウザリクエストを模倣
-- **エラーハンドリング**: 詳細なログ出力と適切なエラーステータスコード
-- **フォールバック**: API失敗時にAlpha Vantage APIを試行
-
-### 5.2 Alpha Vantage API（代替データソース）
-- **エンドポイント**: `alpha-vantage-proxy`
-- **機能**: Yahoo Finance APIのバックアップ
+### 5.1 Alpha Vantage API連携（プライマリソース）
+- **エンドポイント**: `alpha-vantage-proxy` (Netlify Functions経由)
+- **機能**: 市場データのプライマリソース
 - **APIキー**: 環境変数 `REACT_APP_ALPHA_VANTAGE_API_KEY` (フロントエンド) と `ALPHA_VANTAGE_API_KEY` (サーバーレス関数) で設定
-- **タイムアウト設定**: 8秒
+- **タイムアウト設定**: 15秒
+- **レート制限**: 無料プランで1日25リクエストまで
 - **フォールバック**: API失敗時のデフォルト値使用
+
+### 5.2 Yahoo Finance API連携（無効化）
+- **状態**: 継続的な401 Unauthorizedエラーによりプライマリソースからは削除
+- **注意**: 将来的にYahoo Finance APIの認証問題が解決された場合に備えてコードは保持
 
 ### 5.3 Google OAuth認証
 - **認証フロー**: ブラウザ上でのOAuth
@@ -203,11 +199,10 @@ interface SimulationResult {
 ### 6.1 銘柄追加フロー
 1. ユーザーが銘柄シンボル入力 (TickerSearch)
 2. `addTicker`関数呼び出し (PortfolioContext)
-3. Yahoo Finance APIデータ取得試行 (fetchTickerData)
-4. 失敗時はAlpha Vantage APIを試行
-5. それも失敗時はデフォルト値を使用
-6. 保有資産と目標配分リストに追加
-7. UI更新と結果通知（データソースを表示）
+3. Alpha Vantage APIデータ取得試行 (fetchTickerData)
+4. 失敗時はフォールバック値を使用
+5. 保有資産と目標配分リストに追加
+6. UI更新と結果通知（データソースを表示）
 
 ### 6.2 保有数量更新フロー
 1. ユーザーが保有数量変更 (HoldingsEditor)
@@ -243,9 +238,8 @@ interface SimulationResult {
 1. ユーザーがデータ更新ボタンクリック
 2. `refreshMarketPrices`関数呼び出し（PortfolioContext）
 3. 各銘柄について順次データ取得試行:
-   - Yahoo Finance APIを最初に試行（タイムアウト: 5秒）
-   - 失敗時はAlpha Vantage APIを試行（タイムアウト: 8秒）
-   - それも失敗時はフォールバック値を使用
+   - Alpha Vantage APIを試行（タイムアウト: 15秒）
+   - 失敗時はフォールバック値を使用
 4. 各銘柄のデータソースを記録（source属性）
 5. UI更新と結果通知（取得状況をサマリーで表示）
 
@@ -258,7 +252,6 @@ interface SimulationResult {
 - **背景**: 白/グレー系 (#FFFFFF, #F5F5F5, etc.)
 - **テキスト**: 黒/グレー系 (#333333, #666666, etc.)
 - **データソース表示用** (追加):
-  - Yahoo Finance: 青系 (#1E88E5)
   - Alpha Vantage: 緑系 (#4CAF50)
   - Fallback: 赤系 (#F44336)
 
@@ -520,15 +513,15 @@ App
 ## 付録C: データフローダイアグラム（更新）
 
 ```
-+------------------+     +------------------+     +------------------+
-| Yahoo Finance API |     | Alpha Vantage API|     | フォールバック値   |
-+------------------+     +------------------+     +------------------+
-         │                       │                       │
-         v                       v                       v
-+------------------+     +------------------+     +------------------+
-|  Netlify Functions|     | Netlify Functions|     |  クライアント内    |
-+------------------+     +------------------+     +------------------+
-         │                       │                       │
++------------------+     +------------------+
+| Alpha Vantage API|     | フォールバック値   |
++------------------+     +------------------+
+         │                       │
+         v                       v
++------------------+     +------------------+
+|  Netlify Functions|     |  クライアント内    |
++------------------+     +------------------+
+         │                       │
          └───────────────┬───────────────────┘
                          │
                          v
@@ -549,3 +542,4 @@ App
 | 1.0 | 2025/03/12 | 初版作成 |  |
 | 2.0 | 2025/03/17 | jwt-decode対応、アクセシビリティ対応、プロキシ設定更新 |  |
 | 3.0 | 2025/03/18 | Alpha Vantage API連携強化、環境変数名統一、マルチソースデータ取得フロー実装 |  |
+| 4.0 | 2025/03/18 | Yahoo Finance API無効化、Alpha Vantageをプライマリソースに変更、401認証エラー問題対応 |  |

@@ -10,7 +10,7 @@
 - 資金配分シミュレーション
 - データインポート/エクスポート
 - Google認証・Googleドライブ連携
-- 市場データの自動取得（複数ソース対応: Yahoo Finance -> Alpha Vantage -> フォールバック値）
+- 市場データの自動取得（Alpha Vantageをプライマリソース、フォールバック値をバックアップとして使用）
 - iOS風タブバーによるナビゲーション
 
 ### 1.2 技術スタック
@@ -218,30 +218,23 @@ app.use(
 
 ### 4.4 市場データの複数ソース対応（更新）
 市場データの取得において、以下の順で複数ソースを試行するフォールバック機構を実装しました：
-1. Yahoo Finance API（プライマリソース）
-2. Alpha Vantage API（セカンダリソース）
-3. デフォルト値の使用（最終フォールバック）
+1. Alpha Vantage API（プライマリソース）
+2. デフォルト値の使用（フォールバック）
 
-各APIリクエストにはタイムアウト設定を追加し、応答が遅い場合に次のデータソースに迅速に切り替わるようにしています：
+Yahoo Finance APIからの継続的な401 Unauthorized エラーを回避するため、Alpha Vantage APIを直接プライマリソースとして使用するように変更しました。APIリクエストにはタイムアウト設定を追加し、応答が遅い場合に迅速にフォールバック値に切り替わるようにしています：
 ```javascript
-// Yahoo Finance: 5秒タイムアウト
-await axios.get(YAHOO_API_URL, {
-  params: { symbols: ticker },
-  timeout: 5000
-});
-
-// Alpha Vantage: 8秒タイムアウト
+// Alpha Vantage: 15秒タイムアウト
 await axios.get(ALPHA_VANTAGE_URL, {
   params: {
     function: 'GLOBAL_QUOTE',
     symbol: ticker,
     apikey: ALPHA_VANTAGE_KEY
   },
-  timeout: 8000
+  timeout: 15000
 });
 ```
 
-詳細なログを出力することでデバッグを容易にし、API取得の失敗原因を特定できるようにしています。
+詳細なログを出力することでデバッグを容易にし、API取得の失敗原因を特定できるようにしています。なお、Alpha Vantage APIには無料プランで1日25リクエストの制限があるため、フォールバック値の使用は重要な役割を果たします。
 
 ## 5. 実装上の注意点
 
@@ -305,7 +298,7 @@ await axios.get(ALPHA_VANTAGE_URL, {
 - 複数デバイス間でのリアルタイムデータ同期
 - 証券会社APIとの連携によるデータ自動更新
 - モバイル専用アプリの開発（React Native）
-- データソースの追加（IEX Cloud、Finnhub.io等）
+- より信頼性の高い代替市場データAPIの検討
 
 ---
 
@@ -316,3 +309,4 @@ await axios.get(ALPHA_VANTAGE_URL, {
 | 2.0 | 2025/03/16 | 環境設定と依存関係の更新 |  |
 | 3.0 | 2025/03/17 | jwt-decode対応・プロキシ設定・ESLint設定の改訂 |  |
 | 4.0 | 2025/03/18 | Alpha Vantage API連携強化・環境変数名統一・データフォールバック機構拡充 |  |
+| 5.0 | 2025/03/18 | Yahoo Finance API無効化、Alpha Vantageをプライマリソースに変更、401認証エラー対応 |  |

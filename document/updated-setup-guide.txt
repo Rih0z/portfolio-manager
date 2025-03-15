@@ -477,7 +477,7 @@ function extractExchangeRatesFromHTML(html) {
 
 ## 4. 市場データサービスの実装
 
-Yahoo Finance API -> Alpha Vantage API -> フォールバック値という順序でデータ取得を試みるサービスを実装します。
+Alpha Vantage APIをプライマリソースとして使用し、取得に失敗した場合はフォールバック値を使用するサービスを実装します。
 
 ### 4.1 marketDataService.js
 ```javascript
@@ -485,14 +485,24 @@ Yahoo Finance API -> Alpha Vantage API -> フォールバック値という順�
 
 import axios from 'axios';
 
-// 環境に応じたYahoo Finance APIエンドポイント
-const YAHOO_API_URL = process.env.NODE_ENV === 'development' 
-  ? '/v7/finance/quote'  // プロキシ経由
-  : '/.netlify/functions/yahoo-finance-proxy'; // 本番環境
+// 環境に応じたベースURL設定
+const isLocalhost = 
+  window.location.hostname === 'localhost' || 
+  window.location.hostname === '127.0.0.1';
 
-// Alpha Vantage APIエンドポイント（代替データソース）
-const ALPHA_VANTAGE_URL = '/.netlify/functions/alpha-vantage-proxy';
-// 環境変数名を統一（Reactフロントエンドなので REACT_APP_ プレフィックスは必要）
+// 本番環境のURLは環境変数から取得、未設定の場合は現在のオリジンを使用
+const PROD_BASE_URL = process.env.REACT_APP_API_BASE_URL || 
+                      (!isLocalhost ? window.location.origin : 'https://delicate-malasada-1fb747.netlify.app');
+
+// API エンドポイントの設定
+const BASE_URL = isLocalhost ? '' : PROD_BASE_URL;
+
+// Alpha Vantage APIエンドポイント（プライマリデータソース）
+const ALPHA_VANTAGE_URL = isLocalhost
+  ? '/.netlify/functions/alpha-vantage-proxy' // ローカル環境
+  : `${BASE_URL}/.netlify/functions/alpha-vantage-proxy`; // 本番環境
+
+// 環境変数または固定値からAPIキーを取得
 const ALPHA_VANTAGE_KEY = process.env.REACT_APP_ALPHA_VANTAGE_API_KEY || 'GC4EBI5YHFKOJEXY';
 
 // 為替レートのデフォルト値（最終手段）
@@ -504,64 +514,11 @@ const DEFAULT_EXCHANGE_RATES = {
 };
 
 /**
- * Yahoo Financeから銘柄データを取得
+ * 銘柄データを取得 - Alpha Vantageをプライマリソースとして使用
  * @param {string} ticker - ティッカーシンボル
  * @returns {Promise<Object>} - 銘柄データとステータス
  */
 export async function fetchTickerData(ticker) {
-  try {
-    // Yahoo Finance APIからデータ取得を試みる
-    console.log(`Attempting to fetch data for ${ticker} from Yahoo Finance`);
-    const response = await axios.get(YAHOO_API_URL, {
-      params: { symbols: ticker },
-      timeout: 5000 // 5秒タイムアウト設定
-    });
-    
-    // レスポンスの検証
-    if (response.data && 
-        response.data.quoteResponse && 
-        response.data.quoteResponse.result && 
-        response.data.quoteResponse.result.length > 0) {
-      
-      const data = response.data.quoteResponse.result[0];
-      
-      return {
-        success: true,
-        data: {
-          id: data.symbol,
-          name: data.shortName || data.longName || ticker,
-          ticker: data.symbol,
-          exchangeMarket: data.fullExchangeName?.includes('Tokyo') ? 'Japan' : 'US',
-          price: data.regularMarketPrice,
-          currency: data.currency,
-          holdings: 0,
-          annualFee: 0.3,
-          lastUpdated: new Date().toISOString(),
-          source: 'Yahoo Finance'
-        },
-        message: '正常に取得しました'
-      };
-    }
-    
-    console.log(`No valid data found for ${ticker} from Yahoo Finance, trying Alpha Vantage`);
-    // データが見つからない場合は代替ソースを試す
-    return await fetchTickerDataFromAlternative(ticker);
-    
-  } catch (error) {
-    console.error('Yahoo Finance API error:', error);
-    console.log(`Error fetching ${ticker} from Yahoo Finance, trying Alpha Vantage`);
-    
-    // エラーが発生した場合は代替ソースを試す
-    return await fetchTickerDataFromAlternative(ticker);
-  }
-}
-
-/**
- * Alpha Vantageから銘柄データを取得（代替ソース）
- * @param {string} ticker - ティッカーシンボル
- * @returns {Promise<Object>} - 銘柄データとステータス
- */
-async function fetchTickerDataFromAlternative(ticker) {
   try {
     // Alpha Vantage APIからデータ取得を試みる
     console.log(`Attempting to fetch data for ${ticker} from Alpha Vantage`);
@@ -571,15 +528,13 @@ async function fetchTickerDataFromAlternative(ticker) {
         symbol: ticker,
         apikey: ALPHA_VANTAGE_KEY
       },
-      timeout: 8000 // 8秒タイムアウト設定
+      timeout: 15000 // 15秒タイムアウト設定
     });
     
     // レスポンスの検証
     if (response.data && response.data['Global Quote'] && response.data['Global Quote']['05. price']) {
       const quoteData = response.data['Global Quote'];
       const price = parseFloat(quoteData['05. price']);
-      
-      console.log(`Successfully fetched data for ${ticker} from Alpha Vantage`);
       
       // 通貨判定（簡易的な判定、実際にはより詳細な判定が必要）
       const currency = ticker.includes('.T') ? 'JPY' : 'USD';
@@ -598,53 +553,22 @@ async function fetchTickerDataFromAlternative(ticker) {
           lastUpdated: new Date().toISOString(),
           source: 'Alpha Vantage'
         },
-        message: '代替ソースから取得しました'
+        message: '正常に取得しました'
       };
     }
     
-    console.log(`No valid data found for ${ticker} from Alpha Vantage, using fallback`);
     // 全ての取得方法が失敗した場合はフォールバック値を使用
     return generateFallbackTickerData(ticker);
     
   } catch (error) {
-    console.error('Alternative API error:', error);
-    console.log(`Error fetching ${ticker} from Alpha Vantage, using fallback`);
+    console.error('Alpha Vantage API error:', error);
     
     // フォールバック値を返す
     return generateFallbackTickerData(ticker);
   }
 }
 
-/**
- * 全ての取得方法が失敗した場合のフォールバックデータ生成
- * @param {string} ticker - ティッカーシンボル
- * @returns {Object} - フォールバック銘柄データとステータス
- */
-function generateFallbackTickerData(ticker) {
-  // 市場とティッカーから推測されるデフォルト値を使用
-  const isJapanese = ticker.includes('.T');
-  const defaultPrice = isJapanese ? 2500 : 150;
-  
-  return {
-    success: false,
-    data: {
-      id: ticker,
-      name: ticker,
-      ticker: ticker,
-      exchangeMarket: isJapanese ? 'Japan' : 'US',
-      price: defaultPrice,
-      currency: isJapanese ? 'JPY' : 'USD',
-      holdings: 0,
-      annualFee: 0.3,
-      lastUpdated: new Date().toISOString(),
-      source: 'Fallback'
-    },
-    message: '最新の価格データを取得できませんでした。前回の価格または推定値を使用しています。',
-    error: true
-  };
-}
-
-// ... 他のメソッド（fetchExchangeRate, fetchMultipleTickerData など）も同様に実装 ...
+// ...その他のメソッド（generateFallbackTickerData, fetchExchangeRate など）も同様に実装
 ```
 
 ## 5. 開発環境の起動
@@ -694,14 +618,13 @@ netlify deploy --prod
 
 ### 7.1 Yahoo Finance APIが動作しない
 
-Yahoo Finance APIは公式のAPIではなく、非公式のエンドポイントを使用しているため、変更や制限が入る可能性があります。対処方法:
+Yahoo Finance APIは公式のAPIではなく、継続的な401 Unauthorized エラーのため、現在はAlpha Vantage APIを直接プライマリデータソースとして使用するように変更しました。
 
-1. コンソールログで詳細なエラーを確認
-2. 401 Unauthorized エラーの場合:
-   - netlify.toml の設定を確認（CORSヘッダー、リダイレクト設定）
-   - yahoo-finance-proxy.js にRefererとOriginヘッダーが追加されているか確認
-3. Alpha Vantage APIが自動的に使用されていることを確認（ログやデータソース表示で確認可能）
-4. タイムアウト値を調整（現在は15秒に設定）
+対処方法:
+1. ブラウザのコンソールログで詳細なエラーを確認
+2. Alpha Vantage APIのレート制限（無料プランで1日25リクエスト）に注意
+3. レート制限に達した場合はフォールバック値が自動的に使用される
+4. 本番環境ではNetlify環境変数に `ALPHA_VANTAGE_API_KEY` が設定されていることを確認
 
 ### 7.2 Alpha Vantage APIのレート制限
 
@@ -725,9 +648,11 @@ Alpha Vantage APIには呼び出し回数の制限があります:
 
 ### 8.1 最新アップデート
 
-- Alpha Vantage API連携強化
+- Yahoo Finance API呼び出しを廃止（401 Unauthorized エラー対応）
+- Alpha Vantage APIをプライマリソースとして直接使用
+- Alpha Vantage無料プランの1日25リクエスト制限に対応したフォールバック機構
 - 環境変数名の統一 (`REACT_APP_ALPHA_VANTAGE_API_KEY` と `ALPHA_VANTAGE_API_KEY`)
-- マルチソースデータ取得フローの実装
+- マルチソースデータ取得フローの簡素化
 - ログ出力の拡充とエラーハンドリングの改善
 
 ### 8.2 今後の開発計画
@@ -747,3 +672,4 @@ Alpha Vantage APIには呼び出し回数の制限があります:
 |---|---|---|---|
 | 1.0 | 2025/03/17 | 初版作成 |  |
 | 1.1 | 2025/03/18 | Alpha Vantage API連携強化・環境変数名統一・トラブルシューティング追加 |  |
+| 1.2 | 2025/03/18 | Yahoo Finance API無効化、Alpha Vantageをプライマリソースに変更、401認証エラー対応 |  |

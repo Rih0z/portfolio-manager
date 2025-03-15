@@ -174,7 +174,9 @@ interface SimulationResult {
 - **エンドポイント**: `/v7/finance/quote` (Netlify Functions経由)
 - **設定方法**: setupProxy.jsでのプロキシ設定
 - **取得データ**: 銘柄情報、価格、為替レート
-- **タイムアウト設定**: 5秒
+- **タイムアウト設定**: 15秒（延長）
+- **認証対策**: Referer、Origin、User-Agentなどの本物のブラウザリクエストを模倣
+- **エラーハンドリング**: 詳細なログ出力と適切なエラーステータスコード
 - **フォールバック**: API失敗時にAlpha Vantage APIを試行
 
 ### 5.2 Alpha Vantage API（代替データソース）
@@ -371,7 +373,7 @@ module.exports = function(app) {
    - `ALPHA_VANTAGE_API_KEY` (Functions用)
 
 ### 10.4 ビルド設定（Netlify）
-netlify.toml 設定ファイル:
+netlify.toml 設定ファイル（強化版）:
 ```toml
 [build]
   command = "CI= npm run build"
@@ -385,6 +387,21 @@ netlify.toml 設定ファイル:
   publish = "build"
   functionsPort = 9000
 
+# Functions へのアクセス許可設定
+[[headers]]
+  for = "/.netlify/functions/*"
+    [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Headers = "Content-Type, Authorization"
+    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
+
+# Functions への直接アクセス用リダイレクト
+[[redirects]]
+  from = "/.netlify/functions/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+  force = true
+
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
@@ -394,6 +411,12 @@ netlify.toml 設定ファイル:
   from = "/*"
   to = "/index.html"
   status = 200
+
+# Functions 設定
+[functions]
+  directory = "functions"
+  node_bundler = "esbuild"
+  included_files = ["functions/**"]
 ```
 
 ## 11. 既知の問題と解決策
