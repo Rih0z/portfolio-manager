@@ -149,21 +149,6 @@ module.exports = {
   publish = "build"
   functionsPort = 9000
 
-# Functions へのアクセス許可設定
-[[headers]]
-  for = "/.netlify/functions/*"
-    [headers.values]
-    Access-Control-Allow-Origin = "*"
-    Access-Control-Allow-Headers = "Content-Type, Authorization"
-    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
-
-# Functions への直接アクセス用リダイレクト
-[[redirects]]
-  from = "/.netlify/functions/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
-  force = true
-
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
@@ -173,12 +158,6 @@ module.exports = {
   from = "/*"
   to = "/index.html"
   status = 200
-
-# Functions 設定
-[functions]
-  directory = "functions"
-  node_bundler = "esbuild"
-  included_files = ["functions/**"]
 ```
 
 #### src/setupProxy.js
@@ -697,11 +676,8 @@ netlify deploy --prod
 Yahoo Finance APIは公式のAPIではなく、非公式のエンドポイントを使用しているため、変更や制限が入る可能性があります。対処方法:
 
 1. コンソールログで詳細なエラーを確認
-2. 401 Unauthorized エラーの場合:
-   - netlify.toml の設定を確認（CORSヘッダー、リダイレクト設定）
-   - yahoo-finance-proxy.js にRefererとOriginヘッダーが追加されているか確認
-3. Alpha Vantage APIが自動的に使用されていることを確認（ログやデータソース表示で確認可能）
-4. タイムアウト値を調整（現在は15秒に設定）
+2. Alpha Vantage APIが自動的に使用されていることを確認（ログやデータソース表示で確認可能）
+3. 必要に応じてタイムアウト値を調整（短くしてより早くAlpha Vantageに切り替わるようにする）
 
 ### 7.2 Alpha Vantage APIのレート制限
 
