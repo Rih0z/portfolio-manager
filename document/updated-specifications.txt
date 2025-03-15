@@ -1,0 +1,252 @@
+# ポートフォリオマネージャー 仕様書（更新版）
+
+## 1. プロジェクト概要
+
+「ポートフォリオマネージャー」は、資産管理を支援するWebアプリケーションです。ユーザーが保有資産と理想のポートフォリオ配分を比較・管理し、最適な資金配分のシミュレーションを実施できる環境を提供します。GoogleログインとGoogleドライブ連携機能を備え、複数デバイス間でのデータ共有をサポートします。
+
+### 1.1 主要機能
+- 資産管理（保有数の小数点以下4桁対応）
+- 理想ポートフォリオ配分設定
+- 資金配分シミュレーション
+- データインポート/エクスポート
+- Google認証・Googleドライブ連携
+- 市場データの自動取得（複数ソース対応）
+- iOS風タブバーによるナビゲーション
+
+### 1.2 技術スタック
+- **フロントエンド**: React.js 18.x
+- **認証**: Google OAuth 2.0 (@react-oauth/google 0.11.0)
+- **スタイリング**: Tailwind CSS 3.x
+- **ステート管理**: React Context API
+- **ルーティング**: React Router 6.x
+- **データ可視化**: Recharts 2.x
+- **API通信**: Axios 1.x
+- **ユーティリティ**: Lodash 4.x, Day.js 1.x, jwt-decode 3.x
+- **データ処理**: PapaParse 5.x (CSV処理)
+- **UI拡張**: @headlessui/react 1.x
+- **サーバーレス関数**: Netlify Functions
+- **デプロイ**: Netlify
+
+## 2. 環境設定
+
+### 2.1 必要なファイル
+- **package.json**: 依存関係とスクリプト定義
+- **tailwind.config.js**: Tailwind CSSの設定
+- **postcss.config.js**: PostCSSの設定
+- **netlify.toml**: Netlifyデプロイとサーバーレス関数の設定
+- **.env.local**: 環境変数設定（ローカル開発用）
+- **src/setupProxy.js**: プロキシ設定（API連携用）
+
+### 2.2 環境変数
+```
+# Google OAuth認証用クライアントID
+REACT_APP_GOOGLE_CLIENT_ID=あなたのGoogleクライアントID
+
+# Alpha Vantage API
+REACT_APP_ALPHA_VANTAGE_KEY=あなたのAlphaVantageAPIキー
+
+# Netlify Functions用環境変数
+ALPHA_VANTAGE_API_KEY=あなたのAlphaVantageAPIキー
+```
+
+### 2.3 Netlify Functions設定
+netlify.toml（更新版）:
+```toml
+[build]
+  command = "CI= npm run build"
+  publish = "build"
+  functions = "functions"
+
+[dev]
+  command = "npm start"
+  port = 3000
+  targetPort = 3000
+  publish = "build"
+  functionsPort = 9000
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+```
+
+## 3. アプリケーションの構造
+
+### 3.1 ディレクトリ構造（更新版）
+```
+portfolio-manager/
+├── public/
+│   ├── index.html
+│   └── favicon.ico
+├── src/
+│   ├── components/
+│   │   ├── layout/
+│   │   │   ├── Header.jsx
+│   │   │   ├── TabNavigation.jsx
+│   │   │   └── DataStatusBar.jsx
+│   │   ├── auth/
+│   │   │   ├── LoginButton.jsx
+│   │   │   └── UserProfile.jsx
+│   │   ├── dashboard/
+│   │   │   ├── PortfolioSummary.jsx
+│   │   │   ├── PortfolioCharts.jsx
+│   │   │   ├── DifferenceChart.jsx
+│   │   │   └── AssetsTable.jsx
+│   │   ├── settings/
+│   │   │   ├── TickerSearch.jsx
+│   │   │   ├── PopularTickers.jsx
+│   │   │   ├── HoldingsEditor.jsx
+│   │   │   └── AllocationEditor.jsx
+│   │   ├── simulation/
+│   │   │   ├── BudgetInput.jsx
+│   │   │   └── SimulationResult.jsx
+│   │   ├── data/
+│   │   │   ├── ExportOptions.jsx
+│   │   │   ├── ImportOptions.jsx
+│   │   │   └── GoogleDriveIntegration.jsx
+│   │   └── common/
+│   │       ├── CurrencyFormat.jsx
+│   │       ├── NumberInput.jsx
+│   │       ├── Modal.jsx
+│   │       ├── ToastNotification.jsx
+│   │       ├── DataSourceBadge.jsx
+│   │       └── ErrorBoundary.jsx
+│   ├── pages/
+│   │   ├── Dashboard.jsx
+│   │   ├── Settings.jsx
+│   │   ├── Simulation.jsx
+│   │   └── DataIntegration.jsx
+│   ├── context/
+│   │   ├── AuthContext.js
+│   │   └── PortfolioContext.js
+│   ├── hooks/
+│   │   ├── useAuth.js
+│   │   └── usePortfolioContext.js
+│   ├── services/
+│   │   ├── api.js
+│   │   └── marketDataService.js
+│   ├── utils/
+│   │   └── formatters.js
+│   ├── App.jsx
+│   ├── index.js
+│   ├── setupProxy.js
+│   └── index.css
+├── functions/
+│   ├── yahoo-finance-proxy.js
+│   ├── alpha-vantage-proxy.js
+│   └── mof-exchange-rate-proxy.js
+├── package.json
+├── tailwind.config.js
+├── postcss.config.js
+├── netlify.toml
+└── .env.local
+```
+
+### 3.2 主要ファイルの役割
+- **App.jsx**: アプリケーションのルートコンポーネント、認証プロバイダー、ルーティング設定
+- **context/AuthContext.js**: Google認証管理（jwt-decode 3.x対応済み）
+- **context/PortfolioContext.js**: ポートフォリオ状態・ロジック管理
+- **hooks/useAuth.js**: 認証状態管理フック
+- **hooks/usePortfolioContext.js**: ポートフォリオコンテキスト使用フック
+- **setupProxy.js**: 開発環境用APIプロキシ設定
+- **index.css**: Tailwind CSSとiOS風インターフェース用スタイリング
+
+## 4. 特記事項と解決済み技術課題
+
+### 4.1 jwt-decode対応
+jwt-decodeライブラリのバージョン4との互換性問題を解決するため、以下の方法でインポートを行います：
+```javascript
+// 旧バージョン
+import { jwtDecode } from 'jwt-decode';
+
+// 新バージョン（現在の実装）
+import jwtDecode from 'jwt-decode';
+```
+
+### 4.2 プロキシ設定
+React Scriptsでは、複雑なプロキシ設定はpackage.jsonで直接指定できません。以下の方法で解決しています：
+1. package.jsonでは単純な設定: `"proxy": "http://localhost:9000"`
+2. http-proxy-middlewareを使った詳細設定（setupProxy.js）:
+```javascript
+app.use(
+  '/.netlify/functions/',
+  createProxyMiddleware({
+    target: 'http://localhost:9000',
+    pathRewrite: {
+      '^/\\.netlify/functions': ''
+    },
+    changeOrigin: true
+  })
+);
+```
+
+### 4.3 アクセシビリティ対応
+以下のようなアクセシビリティ問題に対処しています：
+- ラベルとフォームコントロールの関連付け（htmlFor, id使用）
+- ARIAロール属性の適切な使用
+- 色のコントラスト比の確保
+
+## 5. 実装上の注意点
+
+### 5.1 Netlifyデプロイ時の考慮事項
+- CI環境での警告を無視するビルドコマンド: `CI= npm run build`
+- 正確なバージョン指定による依存関係の安定化
+- すべての環境変数のNetlify管理コンソールでの設定
+
+### 5.2 サーバーレス関数
+- 関数はNetlify Functionsとして実装
+- `.netlify/functions/`パスでアクセス可能
+- CORS対応済み（プリフライトリクエスト処理含む）
+
+### 5.3 タイポグラフィ・スタイリング
+- システムフォント（sans-serif）の優先使用
+- モバイルフレンドリーなレスポンシブデザイン
+- iPhone用セーフエリア対応（ノッチやホームバーなど）
+
+## 6. コードスタイルとベストプラクティス
+
+### 6.1 ESLint設定
+```json
+{
+  "extends": [
+    "react-app",
+    "react-app/jest"
+  ],
+  "rules": {
+    "no-console": ["warn", { "allow": ["warn", "error"] }],
+    "no-unused-vars": "warn",
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": "warn",
+    "jsx-a11y/label-has-associated-control": "off"
+  }
+}
+```
+
+### 6.2 React関連ベストプラクティス
+- 関数コンポーネントの使用
+- useCallbackとuseMemoによるパフォーマンス最適化
+- アクセシビリティに配慮したUI実装
+- 条件付きレンダリングのクリーンな実装
+
+## 7. 今後の拡張計画
+
+- ローカルストレージによるデータ永続化
+- Netlify Functionsを使用したGoogleドライブAPI完全連携
+- 複数ポートフォリオのクラウド保存と管理
+- 複数デバイス間でのリアルタイムデータ同期
+- 証券会社APIとの連携によるデータ自動更新
+- モバイル専用アプリの開発（React Native）
+
+---
+
+## 改訂履歴
+| バージョン | 日付 | 内容 | 担当者 |
+|---|---|---|---|
+| 1.0 | 2025/03/12 | 初版作成 |  |
+| 2.0 | 2025/03/16 | 環境設定と依存関係の更新 |  |
+| 3.0 | 2025/03/17 | jwt-decode対応・プロキシ設定・ESLint設定の改訂 |  |

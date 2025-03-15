@@ -1,0 +1,417 @@
+# ポートフォリオマネージャー コード規約書（更新版）
+
+**バージョン:** 1.1  
+**最終更新日:** 2025/03/17
+
+## 1. 概要
+
+このドキュメントは、ポートフォリオマネージャーアプリケーションの開発に関する一貫したコーディング規約を定義します。すべての貢献者は、コードの品質、一貫性、保守性を確保するためにこれらの規約に従うものとします。
+
+## 2. ファイル構造とプロジェクト編成
+
+### 2.1 ディレクトリ構造
+
+```
+src/
+├── components/      # UIコンポーネント
+│   ├── auth/        # 認証関連コンポーネント 
+│   ├── common/      # 共通UIコンポーネント
+│   ├── dashboard/   # ダッシュボード画面コンポーネント
+│   ├── data/        # データ連携コンポーネント
+│   ├── layout/      # レイアウト関連コンポーネント
+│   ├── settings/    # 設定画面コンポーネント
+│   └── simulation/  # シミュレーション画面コンポーネント
+├── context/         # React Context定義
+├── hooks/           # カスタムReact Hooks
+├── pages/           # ページコンポーネント
+├── services/        # APIサービスとデータ処理
+├── utils/           # ユーティリティ関数
+└── App.jsx          # アプリケーションルート
+```
+
+### 2.2 ファイル命名規則
+
+- **コンポーネントファイル**: PascalCase を使用（例: `PortfolioSummary.jsx`）
+- **ユーティリティファイル**: camelCase を使用（例: `formatters.js`）
+- **テストファイル**: `.test.js` または `.spec.js` を追加（例: `PortfolioSummary.test.jsx`）
+- **CSS/SCSS**: コンポーネントと同じ名前で `.module.css` サフィックス（例: `Button.module.css`）
+
+## 3. 命名規則
+
+### 3.1 JSX コンポーネント
+
+- **コンポーネント名**: PascalCase を使用
+  ```jsx
+  // 良い例
+  function UserProfile() {...}
+  const PortfolioChart = () => {...}
+  
+  // 悪い例
+  function userProfile() {...}
+  const portfolioChart = () => {...}
+  ```
+
+### 3.2 変数・関数名
+
+- **変数・関数名**: camelCase を使用
+  ```javascript
+  // 良い例
+  const userData = {...}
+  function calculateTotal() {...}
+  
+  // 悪い例
+  const UserData = {...}
+  function CalculateTotal() {...}
+  ```
+
+- **boolean変数**: `is`, `has`, `should` などのプレフィックスを使用
+  ```javascript
+  // 良い例
+  const isLoading = true;
+  const hasError = false;
+  const shouldRefresh = true;
+  ```
+
+### 3.3 定数
+
+- **定数**: 大文字のSNAKE_CASEを使用
+  ```javascript
+  // 良い例
+  const MAX_RETRY_COUNT = 3;
+  const DEFAULT_CURRENCY = 'JPY';
+  ```
+
+### 3.4 コンテキストとフック
+
+- **コンテキスト**: `XxxContext` の形式を使用し、デフォルトエクスポート
+  ```javascript
+  // 良い例
+  const AuthContext = createContext();
+  export default AuthContext;
+  export const AuthProvider = ({ children }) => {...};
+  ```
+
+- **カスタムフック**: `use` プレフィックスを使用し、両方のエクスポート形式を提供
+  ```javascript
+  // 良い例 - 両方のエクスポート形式
+  export const useAuth = () => {...}
+  export default useAuth;
+  ```
+
+### 3.5 イベントハンドラ
+
+- **イベントハンドラ関数**: `handle` プレフィックスを使用
+  ```javascript
+  // 良い例
+  const handleSubmit = () => {...}
+  const handleInputChange = (e) => {...}
+  ```
+
+## 4. コードフォーマット
+
+### 4.1 基本ルール
+
+- **インデント**: 2スペースを使用
+- **行の長さ**: 最大100文字（例外：URLs、長い文字列）
+- **セミコロン**: すべての文の末尾にセミコロンを使用
+- **括弧のスタイル**: 開始括弧は同じ行に配置
+
+### 4.2 JSX フォーマット
+
+- **要素の属性が多い場合**: 複数行に分割
+  ```jsx
+  // 良い例 (少数の属性)
+  <Button type="primary" onClick={handleClick}>提出</Button>
+  
+  // 良い例 (多数の属性)
+  <Button
+    type="button"
+    className={`px-4 py-2 rounded-md ${
+      importFormat === 'json' ? 'bg-primary text-white' : 'bg-gray-200'
+    }`}
+    onClick={() => setImportFormat('json')}
+    role="radio"
+    aria-checked={importFormat === 'json'}
+  >
+    JSON
+  </Button>
+  ```
+
+- **アクセシビリティ属性**:
+  ```jsx
+  // ラベルとコントロールの関連付け
+  <label htmlFor="budget-input">追加予算</label>
+  <input id="budget-input" type="number" />
+  
+  // ラジオグループ
+  <div role="radiogroup" aria-labelledby="format-label">
+    <span id="format-label">形式:</span>
+    <button role="radio" aria-checked={true}>JSON</button>
+    <button role="radio" aria-checked={false}>CSV</button>
+  </div>
+  ```
+
+### 4.3 インポート文の整理
+
+- **インポートの順序**:
+  1. React関連（React, React Router）
+  2. サードパーティライブラリ
+  3. プロジェクト内モジュール（相対パス）
+  4. スタイル・アセット
+
+  ```javascript
+  // 良い例
+  import React, { useState, useCallback } from 'react';
+  import { useNavigate } from 'react-router-dom';
+  
+  import jwtDecode from 'jwt-decode';  // 注意: 最新形式でのインポート
+  import { formatCurrency } from 'accounting';
+  
+  import { usePortfolioContext } from '../../hooks/usePortfolioContext';
+  import Header from '../layout/Header';
+  
+  import './styles.css';
+  ```
+
+## 5. React固有の規則
+
+### 5.1 コンポーネント定義
+
+- **関数コンポーネント**: アロー関数よりも関数宣言を優先
+  ```jsx
+  // 推奨
+  function MyComponent() {
+    return <div>...</div>;
+  }
+  ```
+
+- **Props分割代入**: コンポーネント内で使用
+  ```jsx
+  // 良い例
+  function UserCard({ name, email, avatar }) {
+    return (
+      <div>
+        <img src={avatar} alt={name} />
+        <h2>{name}</h2>
+        <p>{email}</p>
+      </div>
+    );
+  }
+  ```
+
+### 5.2 Hooks の使用
+
+- **useCallback, useMemo**: 適切に依存配列を定義
+  ```jsx
+  // 良い例
+  const handleSubmit = useCallback(() => {
+    submitData(formData);
+  }, [formData, submitData]);
+  ```
+
+- **カスタムフックの命名**: 明確な目的を表す名前を使用
+  ```jsx
+  // 良い例
+  export const usePortfolioContext = () => {...}
+  export const useAuth = () => {...}
+  ```
+
+### 5.3 環境依存のライブラリ対応
+
+- **jwt-decode v4の対応**: デフォルトインポートを使用
+  ```javascript
+  // jwt-decode v3/v4対応
+  import jwtDecode from 'jwt-decode';
+  
+  // 使用例
+  const decodedToken = jwtDecode(token);
+  ```
+
+## 6. 状態管理
+
+### 6.1 Context API の使用
+
+- **コンテキスト分離**: 関連する状態ごとに別々のコンテキストを使用
+  - AuthContext: 認証関連
+  - PortfolioContext: ポートフォリオデータ関連
+
+- **Provider のカプセル化**: 専用のProviderコンポーネントを作成
+  ```jsx
+  export const AuthProvider = ({ children }) => {
+    // 状態と関数の定義
+    return (
+      <AuthContext.Provider value={...}>
+        {children}
+      </AuthContext.Provider>
+    );
+  };
+  ```
+
+### 6.2 状態更新関数
+
+- **イミュータブルな更新**: 常に新しいオブジェクトを返す
+  ```javascript
+  // 良い例
+  setCurrentAssets(prev => 
+    prev.map(item => 
+      item.id === id 
+      ? { ...item, holdings: parseFloat(parseFloat(holdings).toFixed(4)) || 0 } 
+      : item
+    )
+  );
+  ```
+
+- **小数点位置の処理**: 数値の精度を保つために適切な方法を使用
+  ```javascript
+  // 小数点以下4桁まで保存するケース
+  const value = parseFloat(parseFloat(rawValue).toFixed(4));
+  ```
+
+## 7. エラー処理
+
+### 7.1 エラーキャッチと表示
+
+- **try/catch**: 非同期処理では常に使用
+  ```javascript
+  try {
+    const data = await fetchData();
+    processData(data);
+  } catch (error) {
+    console.error('データ取得エラー:', error);
+    setError('データの取得に失敗しました');
+  }
+  ```
+
+### 7.2 入力バリデーション
+
+- **早期リターン**: エラーケースを最初に処理
+  ```javascript
+  const submitForm = (data) => {
+    if (!data.email) {
+      setError('メールアドレスは必須です');
+      return;
+    }
+    
+    // 正常処理を続行
+  };
+  ```
+
+## 8. アクセシビリティ
+
+### 8.1 基本原則
+
+- **意味的なHTML**: 適切なHTML要素や属性を使用
+  ```jsx
+  // 良い例
+  <button 
+    type="button"
+    onClick={handleClick}
+    aria-label="閉じる"
+  >
+    <Icon name="close" />
+  </button>
+  ```
+
+### 8.2 フォームアクセシビリティ
+
+- **ラベル関連付け**: フォーム要素にはlabelを関連付け
+  ```jsx
+  // 良い例
+  <div>
+    <label htmlFor="email">メールアドレス</label>
+    <input id="email" type="email" />
+  </div>
+  ```
+
+- **グループ化と関連付け**: ラジオボタンなどのグループは適切に構造化
+  ```jsx
+  <div role="radiogroup" aria-labelledby="format-label">
+    <span id="format-label">フォーマット:</span>
+    <button role="radio" aria-checked={format === 'json'}>JSON</button>
+    <button role="radio" aria-checked={format === 'csv'}>CSV</button>
+  </div>
+  ```
+
+## 9. ESLint設定と解析ツール
+
+### 9.1 ESLint設定（更新版）
+
+```json
+{
+  "extends": [
+    "react-app",
+    "react-app/jest"
+  ],
+  "rules": {
+    "no-console": ["warn", { "allow": ["warn", "error"] }],
+    "no-unused-vars": "warn",
+    "react-hooks/rules-of-hooks": "error",
+    "react-hooks/exhaustive-deps": "warn",
+    "jsx-a11y/label-has-associated-control": "off"
+  }
+}
+```
+
+### 9.2 選択的アクセシビリティルールの無効化
+
+特定のコンポーネントやファイルで特定のルールだけを無効にする場合:
+
+```javascript
+// 特定の行でESLintルールを無効化
+// eslint-disable-next-line jsx-a11y/label-has-associated-control
+<label className="...">ラベルテキスト</label>
+
+// ファイル全体でルールを無効化
+/* eslint-disable jsx-a11y/label-has-associated-control */
+```
+
+## 10. APIとサービス連携
+
+### 10.1 プロキシ設定
+
+setupProxy.js での効果的なプロキシ設定:
+
+```javascript
+const { createProxyMiddleware } = require('http-proxy-middleware');
+
+module.exports = function(app) {
+  app.use(
+    '/.netlify/functions/',
+    createProxyMiddleware({
+      target: 'http://localhost:9000',
+      pathRewrite: {
+        '^/\\.netlify/functions': ''
+      },
+      changeOrigin: true
+    })
+  );
+};
+```
+
+### 10.2 外部APIコール
+
+axios を使用した標準的なAPI呼び出し:
+
+```javascript
+import axios from 'axios';
+
+// API呼び出し関数
+const fetchMarketData = async (ticker) => {
+  try {
+    const response = await axios.get(`/.netlify/functions/yahoo-finance-proxy`, {
+      params: { symbols: ticker }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('市場データ取得エラー:', error);
+    throw new Error('市場データの取得に失敗しました');
+  }
+};
+```
+
+## 改訂履歴
+
+| バージョン | 日付 | 変更内容 | 担当者 |
+|----------|-----|---------|-------|
+| 1.0      | 2025/03/16 | 初版作成 | |
+| 1.1      | 2025/03/17 | jwt-decode対応、アクセシビリティ対応、ESLint設定更新 | |
