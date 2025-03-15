@@ -1,7 +1,7 @@
 # ポートフォリオマネージャー コード規約書（更新版）
 
-**バージョン:** 1.2  
-**最終更新日:** 2025/03/18
+**バージョン:** 1.1  
+**最終更新日:** 2025/03/17
 
 ## 1. 概要
 
@@ -35,7 +35,6 @@ src/
 - **ユーティリティファイル**: camelCase を使用（例: `formatters.js`）
 - **テストファイル**: `.test.js` または `.spec.js` を追加（例: `PortfolioSummary.test.jsx`）
 - **CSS/SCSS**: コンポーネントと同じ名前で `.module.css` サフィックス（例: `Button.module.css`）
-- **サーバーレス関数**: camelCase を使用し、機能を表す名前（例: `yahoo-finance-proxy.js`, `alpha-vantage-proxy.js`）
 
 ## 3. 命名規則
 
@@ -80,7 +79,6 @@ src/
   // 良い例
   const MAX_RETRY_COUNT = 3;
   const DEFAULT_CURRENCY = 'JPY';
-  const ALPHA_VANTAGE_URL = '/.netlify/functions/alpha-vantage-proxy';
   ```
 
 ### 3.4 コンテキストとフック
@@ -284,22 +282,6 @@ src/
   }
   ```
 
-- **ログ出力の強化**: デバッグ情報を十分に提供（更新）
-  ```javascript
-  try {
-    console.log(`Attempting to fetch data for ${ticker} from Yahoo Finance`);
-    const response = await axios.get(YAHOO_API_URL, {
-      params: { symbols: ticker },
-      timeout: 5000 // タイムアウト設定
-    });
-    // 処理
-  } catch (error) {
-    console.error(`Error fetching ${ticker} from Yahoo Finance:`, error);
-    console.log(`Trying alternate data source for ${ticker}`);
-    // 代替処理
-  }
-  ```
-
 ### 7.2 入力バリデーション
 
 - **早期リターン**: エラーケースを最初に処理
@@ -312,39 +294,6 @@ src/
     
     // 正常処理を続行
   };
-  ```
-
-### 7.3 API呼び出しのフォールバック処理（更新）
-
-- **複数データソースの順次試行**:
-  ```javascript
-  // プライマリソースからデータ取得を試みる
-  try {
-    const result = await fetchFromPrimarySource();
-    return result;
-  } catch (error) {
-    console.error('Primary source error:', error);
-    
-    // セカンダリソースを試行
-    try {
-      const fallbackResult = await fetchFromSecondarySource();
-      return fallbackResult;
-    } catch (secondError) {
-      console.error('Secondary source error:', secondError);
-      
-      // 最終フォールバック
-      return generateFallbackData();
-    }
-  }
-  ```
-
-- **タイムアウト設定**:
-  ```javascript
-  // タイムアウト付きの呼び出し
-  const response = await axios.get(apiUrl, {
-    params: { /* パラメータ */ },
-    timeout: 5000 // 5秒タイムアウト
-  });
   ```
 
 ## 8. アクセシビリティ
@@ -394,7 +343,7 @@ src/
     "react-app/jest"
   ],
   "rules": {
-    "no-console": ["warn", { "allow": ["warn", "error", "log"] }],
+    "no-console": ["warn", { "allow": ["warn", "error"] }],
     "no-unused-vars": "warn",
     "react-hooks/rules-of-hooks": "error",
     "react-hooks/exhaustive-deps": "warn",
@@ -441,77 +390,23 @@ module.exports = function(app) {
 
 ### 10.2 外部APIコール
 
-axios を使用した標準的なAPI呼び出し（更新）:
+axios を使用した標準的なAPI呼び出し:
 
 ```javascript
 import axios from 'axios';
 
-// Yahoo Finance API呼び出し関数
+// API呼び出し関数
 const fetchMarketData = async (ticker) => {
   try {
-    console.log(`Attempting to fetch data for ${ticker} from Yahoo Finance`);
     const response = await axios.get(`/.netlify/functions/yahoo-finance-proxy`, {
-      params: { symbols: ticker },
-      timeout: 5000 // 5秒タイムアウト
+      params: { symbols: ticker }
     });
-    
-    if (response.data && response.data.quoteResponse && response.data.quoteResponse.result && 
-        response.data.quoteResponse.result.length > 0) {
-      return {
-        success: true,
-        data: response.data.quoteResponse.result[0],
-        source: 'Yahoo Finance'
-      };
-    }
-    
-    // Yahoo Financeから取得できなかった場合、Alpha Vantageを試行
-    return await fetchMarketDataFromAlternative(ticker);
+    return response.data;
   } catch (error) {
-    console.error('Yahoo Finance API error:', error);
-    // エラー発生時は代替ソースを試行
-    return await fetchMarketDataFromAlternative(ticker);
+    console.error('市場データ取得エラー:', error);
+    throw new Error('市場データの取得に失敗しました');
   }
 };
-
-// Alpha Vantage API呼び出し関数
-const fetchMarketDataFromAlternative = async (ticker) => {
-  try {
-    console.log(`Attempting to fetch data for ${ticker} from Alpha Vantage`);
-    const response = await axios.get(`/.netlify/functions/alpha-vantage-proxy`, {
-      params: {
-        function: 'GLOBAL_QUOTE',
-        symbol: ticker,
-        apikey: ALPHA_VANTAGE_KEY // REACT_APP_ALPHA_VANTAGE_API_KEY から取得
-      },
-      timeout: 8000 // 8秒タイムアウト
-    });
-    
-    // レスポンス検証とデータ加工
-    // ...
-    
-    return {
-      success: true,
-      data: processedData,
-      source: 'Alpha Vantage'
-    };
-  } catch (error) {
-    console.error('Alpha Vantage API error:', error);
-    // すべてのソースが失敗した場合はフォールバック値を使用
-    return generateFallbackData(ticker);
-  }
-};
-```
-
-### 10.3 環境変数の利用（更新）
-
-環境変数名の統一と利用方法:
-
-```javascript
-// フロントエンド（React）での環境変数利用
-const ALPHA_VANTAGE_KEY = process.env.REACT_APP_ALPHA_VANTAGE_API_KEY || 'GC4EBI5YHFKOJEXY';
-
-// サーバーレス関数での環境変数利用
-const apiKey = process.env.ALPHA_VANTAGE_API_KEY || 'GC4EBI5YHFKOJEXY';
 ```
 
 ## 改訂履歴
@@ -520,4 +415,3 @@ const apiKey = process.env.ALPHA_VANTAGE_API_KEY || 'GC4EBI5YHFKOJEXY';
 |----------|-----|---------|-------|
 | 1.0      | 2025/03/16 | 初版作成 | |
 | 1.1      | 2025/03/17 | jwt-decode対応、アクセシビリティ対応、ESLint設定更新 | |
-| 1.2      | 2025/03/18 | データ取得フォールバック機構、環境変数名統一、ログ出力強化 | |

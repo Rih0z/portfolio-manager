@@ -10,7 +10,7 @@
 - 資金配分シミュレーション
 - データインポート/エクスポート
 - Google認証・Googleドライブ連携
-- 市場データの自動取得（複数ソース対応: Yahoo Finance -> Alpha Vantage -> フォールバック値）
+- 市場データの自動取得（複数ソース対応）
 - iOS風タブバーによるナビゲーション
 
 ### 1.2 技術スタック
@@ -42,11 +42,11 @@
 # Google OAuth認証用クライアントID
 REACT_APP_GOOGLE_CLIENT_ID=あなたのGoogleクライアントID
 
-# Alpha Vantage API（フロントエンド用）
-REACT_APP_ALPHA_VANTAGE_API_KEY=GC4EBI5YHFKOJEXY
+# Alpha Vantage API
+REACT_APP_ALPHA_VANTAGE_KEY=あなたのAlphaVantageAPIキー
 
 # Netlify Functions用環境変数
-ALPHA_VANTAGE_API_KEY=GC4EBI5YHFKOJEXY
+ALPHA_VANTAGE_API_KEY=あなたのAlphaVantageAPIキー
 ```
 
 ### 2.3 Netlify Functions設定
@@ -155,10 +155,6 @@ portfolio-manager/
 - **hooks/usePortfolioContext.js**: ポートフォリオコンテキスト使用フック
 - **setupProxy.js**: 開発環境用APIプロキシ設定
 - **index.css**: Tailwind CSSとiOS風インターフェース用スタイリング
-- **services/marketDataService.js**: 市場データ取得サービス（複数データソース対応）
-- **functions/alpha-vantage-proxy.js**: Alpha Vantage API呼び出し用のサーバーレス関数
-- **functions/yahoo-finance-proxy.js**: Yahoo Finance API呼び出し用のサーバーレス関数
-- **functions/mof-exchange-rate-proxy.js**: 財務省為替レート取得用のサーバーレス関数
 
 ## 4. 特記事項と解決済み技術課題
 
@@ -195,50 +191,17 @@ app.use(
 - ARIAロール属性の適切な使用
 - 色のコントラスト比の確保
 
-### 4.4 市場データの複数ソース対応（更新）
-市場データの取得において、以下の順で複数ソースを試行するフォールバック機構を実装しました：
-1. Yahoo Finance API（プライマリソース）
-2. Alpha Vantage API（セカンダリソース）
-3. デフォルト値の使用（最終フォールバック）
-
-各APIリクエストにはタイムアウト設定を追加し、応答が遅い場合に次のデータソースに迅速に切り替わるようにしています：
-```javascript
-// Yahoo Finance: 5秒タイムアウト
-await axios.get(YAHOO_API_URL, {
-  params: { symbols: ticker },
-  timeout: 5000
-});
-
-// Alpha Vantage: 8秒タイムアウト
-await axios.get(ALPHA_VANTAGE_URL, {
-  params: {
-    function: 'GLOBAL_QUOTE',
-    symbol: ticker,
-    apikey: ALPHA_VANTAGE_KEY
-  },
-  timeout: 8000
-});
-```
-
-詳細なログを出力することでデバッグを容易にし、API取得の失敗原因を特定できるようにしています。
-
 ## 5. 実装上の注意点
 
 ### 5.1 Netlifyデプロイ時の考慮事項
 - CI環境での警告を無視するビルドコマンド: `CI= npm run build`
 - 正確なバージョン指定による依存関係の安定化
 - すべての環境変数のNetlify管理コンソールでの設定
-  - `ALPHA_VANTAGE_API_KEY`: Alpha Vantage APIキー（サーバーレス関数用）
-  - `REACT_APP_ALPHA_VANTAGE_API_KEY`: フロントエンド用APIキー
 
 ### 5.2 サーバーレス関数
 - 関数はNetlify Functionsとして実装
 - `.netlify/functions/`パスでアクセス可能
 - CORS対応済み（プリフライトリクエスト処理含む）
-- 主要な関数：
-  - **yahoo-finance-proxy.js**: Yahoo Finance APIの呼び出し
-  - **alpha-vantage-proxy.js**: Alpha Vantage APIの呼び出し
-  - **mof-exchange-rate-proxy.js**: 財務省為替レートの取得
 
 ### 5.3 タイポグラフィ・スタイリング
 - システムフォント（sans-serif）の優先使用
@@ -270,12 +233,6 @@ await axios.get(ALPHA_VANTAGE_URL, {
 - アクセシビリティに配慮したUI実装
 - 条件付きレンダリングのクリーンな実装
 
-### 6.3 データ取得とエラーハンドリング（更新）
-- 複数データソースを試行するフォールバック機構
-- 詳細なエラーログ出力
-- タイムアウト設定によるレスポンス改善
-- ユーザーフレンドリーなエラーメッセージ表示
-
 ## 7. 今後の拡張計画
 
 - ローカルストレージによるデータ永続化
@@ -284,7 +241,6 @@ await axios.get(ALPHA_VANTAGE_URL, {
 - 複数デバイス間でのリアルタイムデータ同期
 - 証券会社APIとの連携によるデータ自動更新
 - モバイル専用アプリの開発（React Native）
-- データソースの追加（IEX Cloud、Finnhub.io等）
 
 ---
 
@@ -294,4 +250,3 @@ await axios.get(ALPHA_VANTAGE_URL, {
 | 1.0 | 2025/03/12 | 初版作成 |  |
 | 2.0 | 2025/03/16 | 環境設定と依存関係の更新 |  |
 | 3.0 | 2025/03/17 | jwt-decode対応・プロキシ設定・ESLint設定の改訂 |  |
-| 4.0 | 2025/03/18 | Alpha Vantage API連携強化・環境変数名統一・データフォールバック機構拡充 |  |

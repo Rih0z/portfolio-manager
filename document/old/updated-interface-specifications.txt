@@ -12,7 +12,7 @@
 - 資金配分シミュレーション
 - データインポート/エクスポート
 - Google認証・Googleドライブ連携
-- 市場データの自動取得（複数ソース対応: Yahoo Finance → Alpha Vantage → フォールバック値）
+- 市場データの自動取得（複数ソース対応）
 - iOS風タブバーによるナビゲーション
 
 ### 1.2 技術スタック
@@ -92,7 +92,7 @@ interface Asset {
   holdings: number; // 小数点以下4桁対応
   annualFee: number;
   lastUpdated?: string;
-  source?: string; // 'Yahoo Finance' | 'Alpha Vantage' | 'Fallback'
+  source?: string;
 }
 ```
 
@@ -131,7 +131,6 @@ interface SimulationResult {
 - **PortfolioCharts**: 理想配分と現在配分の円グラフ
 - **DifferenceChart**: 理想と現状の差分バーチャート
 - **AssetsTable**: 保有資産の詳細テーブル
-  - データソースの表示（Yahoo Finance / Alpha Vantage / Fallback）
 - **DataStatusBar**: データ更新状態と最終更新時刻の表示
 
 ### 4.2 設定画面コンポーネント
@@ -164,9 +163,6 @@ interface SimulationResult {
 - **LoginButton**: Googleログインボタン
 - **UserProfile**: ユーザープロフィール表示
 - **ToastNotification**: 通知メッセージ表示
-- **DataSourceBadge**: データソース表示バッジ（更新）
-  - 各データソースに応じた表示（Yahoo Finance/Alpha Vantage/Fallback）
-  - ソースに応じた色分け（青: Yahoo, 緑: Alpha Vantage, 赤: Fallback）
 
 ## 5. API・外部連携仕様
 
@@ -174,15 +170,12 @@ interface SimulationResult {
 - **エンドポイント**: `/v7/finance/quote` (Netlify Functions経由)
 - **設定方法**: setupProxy.jsでのプロキシ設定
 - **取得データ**: 銘柄情報、価格、為替レート
-- **タイムアウト設定**: 5秒
-- **フォールバック**: API失敗時にAlpha Vantage APIを試行
+- **フォールバック**: API失敗時のデフォルト値使用
 
 ### 5.2 Alpha Vantage API（代替データソース）
 - **エンドポイント**: `alpha-vantage-proxy`
 - **機能**: Yahoo Finance APIのバックアップ
-- **APIキー**: 環境変数 `REACT_APP_ALPHA_VANTAGE_API_KEY` (フロントエンド) と `ALPHA_VANTAGE_API_KEY` (サーバーレス関数) で設定
-- **タイムアウト設定**: 8秒
-- **フォールバック**: API失敗時のデフォルト値使用
+- **APIキー**: 環境変数 `REACT_APP_ALPHA_VANTAGE_KEY` で設定
 
 ### 5.3 Google OAuth認証
 - **認証フロー**: ブラウザ上でのOAuth
@@ -201,11 +194,9 @@ interface SimulationResult {
 ### 6.1 銘柄追加フロー
 1. ユーザーが銘柄シンボル入力 (TickerSearch)
 2. `addTicker`関数呼び出し (PortfolioContext)
-3. Yahoo Finance APIデータ取得試行 (fetchTickerData)
-4. 失敗時はAlpha Vantage APIを試行
-5. それも失敗時はデフォルト値を使用
-6. 保有資産と目標配分リストに追加
-7. UI更新と結果通知（データソースを表示）
+3. Yahoo Finance APIデータ取得 (fetchTickerData)
+4. 保有資産と目標配分リストに追加
+5. UI更新と結果通知
 
 ### 6.2 保有数量更新フロー
 1. ユーザーが保有数量変更 (HoldingsEditor)
@@ -237,16 +228,6 @@ interface SimulationResult {
    ```
 5. UIの更新と結果通知
 
-### 6.5 市場データ更新フロー（更新）
-1. ユーザーがデータ更新ボタンクリック
-2. `refreshMarketPrices`関数呼び出し（PortfolioContext）
-3. 各銘柄について順次データ取得試行:
-   - Yahoo Finance APIを最初に試行（タイムアウト: 5秒）
-   - 失敗時はAlpha Vantage APIを試行（タイムアウト: 8秒）
-   - それも失敗時はフォールバック値を使用
-4. 各銘柄のデータソースを記録（source属性）
-5. UI更新と結果通知（取得状況をサマリーで表示）
-
 ## 7. スタイリング規則
 
 ### 7.1 カラーパレット
@@ -255,10 +236,6 @@ interface SimulationResult {
 - **警告**: 赤系 (#FF0000, #F44336, etc.)
 - **背景**: 白/グレー系 (#FFFFFF, #F5F5F5, etc.)
 - **テキスト**: 黒/グレー系 (#333333, #666666, etc.)
-- **データソース表示用** (追加):
-  - Yahoo Finance: 青系 (#1E88E5)
-  - Alpha Vantage: 緑系 (#4CAF50)
-  - Fallback: 赤系 (#F44336)
 
 ### 7.2 タイポグラフィ
 - **フォント**: システムフォント（sans-serif）
@@ -271,7 +248,6 @@ interface SimulationResult {
 - **ボタン**: 背景色付き、丸角、ホバーエフェクト
 - **入力フィールド**: 境界線付き、フォーカス時強調
 - **テーブル**: 行の区切り線、隔行カラー、レスポンシブ
-- **データソースバッジ**: 小さい丸型または角丸ラベル、ソースに応じた色
 
 ### 7.4 レスポンシブデザイン
 - **モバイル優先**: 基本はモバイル表示に最適化
@@ -301,13 +277,6 @@ interface SimulationResult {
 - **エラー通知**: 赤色背景、手動消去可能
 - **情報通知**: 青色背景、自動消去（5秒）
 
-### 8.3 API障害対応（更新）
-- 複数データソースの使用によるフォールバック機構
-- タイムアウト設定による応答遅延の処理
-- 詳細なエラーログによるデバッグ容易化
-- ユーザーフレンドリーなエラーメッセージ表示
-- データソースの表示によるユーザー通知
-
 ## 9. 開発環境設定
 
 ### 9.1 ローカル開発環境
@@ -316,14 +285,14 @@ interface SimulationResult {
 3. 環境変数設定: `.env.local` 作成
    ```
    REACT_APP_GOOGLE_CLIENT_ID=あなたのGoogleクライアントID
-   REACT_APP_ALPHA_VANTAGE_API_KEY=GC4EBI5YHFKOJEXY
+   REACT_APP_ALPHA_VANTAGE_KEY=あなたのAlphaVantageAPIキー
    ```
 4. 開発サーバー起動: `npm start`
 5. ブラウザでアクセス: `http://localhost:3000`
 
 ### 9.2 必要な環境変数
 - `REACT_APP_GOOGLE_CLIENT_ID`: Google OAuthクライアントID
-- `REACT_APP_ALPHA_VANTAGE_API_KEY`: Alpha Vantage APIキー（フロントエンド用）
+- `REACT_APP_ALPHA_VANTAGE_KEY`: Alpha Vantage APIキー（任意）
 
 ### 9.3 プロキシ設定
 setupProxy.js を使用したAPI連携設定:
@@ -367,7 +336,7 @@ module.exports = function(app) {
 2. 「Build & deploy」→「Environment」
 3. 以下の環境変数を追加:
    - `REACT_APP_GOOGLE_CLIENT_ID`
-   - `REACT_APP_ALPHA_VANTAGE_API_KEY`
+   - `REACT_APP_ALPHA_VANTAGE_KEY`
    - `ALPHA_VANTAGE_API_KEY` (Functions用)
 
 ### 10.4 ビルド設定（Netlify）
@@ -419,11 +388,10 @@ netlify.toml 設定ファイル:
    }
    ```
 
-3. **API制限回避** (更新): 
+3. **API制限回避**: 
    - フォールバック値の使用
-   - 複数データソース順次試行（Yahoo Finance → Alpha Vantage → フォールバック）
-   - タイムアウト設定による応答遅延対策
-   - エラーリトライ処理の実装
+   - 複数データソース対応
+   - リトライ処理の実装
 
 4. **プロキシ設定**: 
    - package.jsonで基本設定: `"proxy": "http://localhost:9000"`
@@ -494,29 +462,14 @@ App
         └── インポートされた状態
 ```
 
-## 付録C: データフローダイアグラム（更新）
+## 付録C: データフローダイアグラム
 
 ```
-+------------------+     +------------------+     +------------------+
-| Yahoo Finance API |     | Alpha Vantage API|     | フォールバック値   |
-+------------------+     +------------------+     +------------------+
-         │                       │                       │
-         v                       v                       v
-+------------------+     +------------------+     +------------------+
-|  Netlify Functions|     | Netlify Functions|     |  クライアント内    |
-+------------------+     +------------------+     +------------------+
-         │                       │                       │
-         └───────────────┬───────────────────┘
-                         │
-                         v
-                +------------------+           +------------------+
-                |   Context State  | <-------> |  UI Components  |
-                +------------------+           +------------------+
-                         ^                            │
-                         │                            v
-                         └────────────────┐    +------------------+
-                                          └--> |   ユーザー表示    |
-                                               +------------------+
+Netlify Functions ──┐
+                    │
+外部API ────────────┼──> Context State ──> UI Components ──> ユーザー表示
+                    │
+ユーザー入力 ────────┘
 ```
 
 ## 改訂履歴
@@ -525,4 +478,3 @@ App
 |---|---|---|---|
 | 1.0 | 2025/03/12 | 初版作成 |  |
 | 2.0 | 2025/03/17 | jwt-decode対応、アクセシビリティ対応、プロキシ設定更新 |  |
-| 3.0 | 2025/03/18 | Alpha Vantage API連携強化、環境変数名統一、マルチソースデータ取得フロー実装 |  |
