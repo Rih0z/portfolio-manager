@@ -2,15 +2,43 @@
 
 import axios from 'axios';
 
-// 環境に応じたYahoo Finance APIエンドポイント
-const YAHOO_API_URL = process.env.NODE_ENV === 'development' 
-  ? '/v7/finance/quote'  // プロキシ経由
-  : '/.netlify/functions/yahoo-finance-proxy'; // 本番環境
+// 環境に応じたベースURL設定
+const isLocalhost = 
+  window.location.hostname === 'localhost' || 
+  window.location.hostname === '127.0.0.1';
+
+// 本番環境のURLは環境変数から取得、未設定の場合は現在のオリジンを使用
+// 以下の優先順位でURLを決定:
+// 1. REACT_APP_API_BASE_URL 環境変数
+// 2. ローカルでない場合は現在のウィンドウの origin
+// 3. 明示的なフォールバックURL
+const PROD_BASE_URL = process.env.REACT_APP_API_BASE_URL || 
+                      (!isLocalhost ? window.location.origin : 'https://delicate-malasada-1fb747.netlify.app');
+
+// API エンドポイントの設定
+const BASE_URL = isLocalhost ? '' : PROD_BASE_URL;
+
+// Yahoo Finance APIエンドポイント
+const YAHOO_API_URL = isLocalhost
+  ? '/v7/finance/quote' // ローカル環境ではsetupProxy.jsのプロキシ経由
+  : `${BASE_URL}/.netlify/functions/yahoo-finance-proxy`; // 本番環境
 
 // Alpha Vantage APIエンドポイント（代替データソース）
-const ALPHA_VANTAGE_URL = '/.netlify/functions/alpha-vantage-proxy';
-// 環境変数名を統一（Reactフロントエンドなので REACT_APP_ プレフィックスは必要）
+const ALPHA_VANTAGE_URL = isLocalhost
+  ? '/.netlify/functions/alpha-vantage-proxy' // ローカル環境
+  : `${BASE_URL}/.netlify/functions/alpha-vantage-proxy`; // 本番環境
+
+// 環境変数または固定値からAPIキーを取得
 const ALPHA_VANTAGE_KEY = process.env.REACT_APP_ALPHA_VANTAGE_API_KEY || 'GC4EBI5YHFKOJEXY';
+
+// 設定情報をログ出力（開発時の確認用）
+console.log(`API Configuration:
+- Environment: ${isLocalhost ? 'Local development' : 'Production'}
+- Base URL: ${BASE_URL || '(using proxy)'}
+- Yahoo Finance API: ${YAHOO_API_URL}
+- Alpha Vantage API: ${ALPHA_VANTAGE_URL}
+- Alpha Vantage Key: ${ALPHA_VANTAGE_KEY.substring(0, 4)}...
+`);
 
 // 為替レートのデフォルト値（最終手段）
 const DEFAULT_EXCHANGE_RATES = {
@@ -28,10 +56,15 @@ const DEFAULT_EXCHANGE_RATES = {
 export async function fetchTickerData(ticker) {
   try {
     // Yahoo Finance APIからデータ取得を試みる
-    console.log(`Attempting to fetch data for ${ticker} from Yahoo Finance`);
+    console.log(`Attempting to fetch data for ${ticker} from Yahoo Finance at: ${YAHOO_API_URL}`);
     const response = await axios.get(YAHOO_API_URL, {
       params: { symbols: ticker },
-      timeout: 5000 // 5秒タイムアウト設定
+      timeout: 5000, // 5秒タイムアウト設定
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      }
     });
     
     // レスポンスの検証
@@ -41,6 +74,7 @@ export async function fetchTickerData(ticker) {
         response.data.quoteResponse.result.length > 0) {
       
       const data = response.data.quoteResponse.result[0];
+      console.log(`Successfully fetched data for ${ticker} from Yahoo Finance`);
       
       return {
         success: true,
@@ -81,14 +115,19 @@ export async function fetchTickerData(ticker) {
 async function fetchTickerDataFromAlternative(ticker) {
   try {
     // Alpha Vantage APIからデータ取得を試みる
-    console.log(`Attempting to fetch data for ${ticker} from Alpha Vantage`);
+    console.log(`Attempting to fetch data for ${ticker} from Alpha Vantage at: ${ALPHA_VANTAGE_URL}`);
     const response = await axios.get(ALPHA_VANTAGE_URL, {
       params: {
         function: 'GLOBAL_QUOTE',
         symbol: ticker,
         apikey: ALPHA_VANTAGE_KEY
       },
-      timeout: 8000 // 8秒タイムアウト設定
+      timeout: 8000, // 8秒タイムアウト設定
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      }
     });
     
     // レスポンスの検証
@@ -96,7 +135,7 @@ async function fetchTickerDataFromAlternative(ticker) {
       const quoteData = response.data['Global Quote'];
       const price = parseFloat(quoteData['05. price']);
       
-      console.log(`Successfully fetched data for ${ticker} from Alpha Vantage`);
+      console.log(`Successfully fetched data for ${ticker} from Alpha Vantage:`, response.data);
       
       // 通貨判定（簡易的な判定、実際にはより詳細な判定が必要）
       const currency = ticker.includes('.T') ? 'JPY' : 'USD';
