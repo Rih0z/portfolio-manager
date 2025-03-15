@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* iPhone用の安全領域（ノッチやホームバー）への対応 */
+.h-safe-bottom {
+  height: env(safe-area-inset-bottom, 0);
+}
+
+/* iOS風のタブバースタイル */
+.tab-nav-ios {
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+  background-color: rgba(255, 255, 255, 0.8);
+}
+
+/* コンテンツがタブバーの下に隠れないようにするためのマージン */
+.ios-content-margin {
+  margin-bottom: calc(4rem + env(safe-area-inset-bottom, 0));
+}
+
+/* iOS風のアニメーション */
+.ios-animation {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* アクティブタブのインジケーター */
+.ios-active-indicator {
+  position: relative;
+}
+
+.ios-active-indicator::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: currentColor;
+}
