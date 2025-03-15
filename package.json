@@ -2,44 +2,52 @@
   "name": "portfolio-manager",
   "version": "1.0.0",
   "private": true,
-  "proxy": "https://query1.finance.yahoo.com",
-  "description": "資産管理を支援するWeb/モバイルアプリケーション「ポートフォリオマネージャー」",
   "dependencies": {
-    "@react-oauth/google": "^0.11.1",
-    "@testing-library/jest-dom": "^5.17.0",
-    "@testing-library/react": "^13.4.0",
-    "@testing-library/user-event": "^13.5.0",
-    "axios": "^1.8.3",
-    "dayjs": "^1.11.13",
-    "jwt-decode": "^4.0.0",
-    "lodash": "^4.17.21",
-    "papaparse": "^5.5.2",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-router-dom": "^6.30.0",
+    "@headlessui/react": "1.7.15",
+    "@react-oauth/google": "0.11.0",
+    "@testing-library/jest-dom": "5.16.5",
+    "@testing-library/react": "13.4.0",
+    "@testing-library/user-event": "13.5.0",
+    "axios": "1.3.5",
+    "dayjs": "1.11.7",
+    "jwt-decode": "3.1.2",
+    "lodash": "4.17.21",
+    "papaparse": "5.4.1",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-router-dom": "6.10.0",
     "react-scripts": "5.0.1",
-    "recharts": "^2.15.1",
-    "web-vitals": "^2.1.4"
-  },
-  "devDependencies": {
-    "autoprefixer": "^10.4.21",
-    "postcss": "^8.5.3",
-    "tailwindcss": "^3.4.17"
+    "recharts": "2.5.0",
+    "tailwindcss": "3.3.1",
+    "web-vitals": "2.1.4"
   },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "deploy": "netlify deploy --prod",
-    "deploy:dev": "netlify deploy",
-    "functions:serve": "netlify functions:serve"
+    "dev": "netlify dev"
   },
   "eslintConfig": {
     "extends": [
       "react-app",
       "react-app/jest"
-    ]
+    ],
+    "rules": {
+      "no-console": [
+        "warn",
+        {
+          "allow": [
+            "warn",
+            "error"
+          ]
+        }
+      ],
+      "no-unused-vars": "warn",
+      "react-hooks/rules-of-hooks": "error",
+      "react-hooks/exhaustive-deps": "warn",
+      "jsx-a11y/label-has-associated-control": "off"
+    }
   },
   "browserslist": {
     "production": [
@@ -53,14 +61,12 @@
       "last 1 safari version"
     ]
   },
-  "engines": {
-    "node": ">=14.0.0",
-    "npm": ">=6.0.0"
+  "devDependencies": {
+    "autoprefixer": "^10.4.14",
+    "eslint-plugin-jsx-a11y": "^6.7.1",
+    "netlify-cli": "^15.0.0",
+    "postcss": "^8.4.21",
+    "prettier": "^2.8.7"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/Rih0z/portfolio-manager.git"
-  },
-  "author": "",
-  "license": "MIT"
+  "proxy": "http://localhost:9000"
 }

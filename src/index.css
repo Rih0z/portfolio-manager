@@ -1,7 +1,5 @@
 @tailwind base;
 @tailwind components;
-@tailwind utilities;@tailwind base;
-@tailwind components;
 @tailwind utilities;
 
 /* iPhone用の安全領域（ノッチやホームバー）への対応 */

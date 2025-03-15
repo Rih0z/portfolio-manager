@@ -1,275 +1,308 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useCallback } from 'react';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 import Papa from 'papaparse';
 
 const ImportOptions = () => {
-  const { importData } = usePortfolioContext();
+  const { importPortfolioData } = usePortfolioContext();
   const [importFormat, setImportFormat] = useState('json');
   const [importMethod, setImportMethod] = useState('file');
-  const [inputText, setInputText] = useState('');
-  const [statusMessage, setStatusMessage] = useState('');
-  const [statusType, setStatusType] = useState(''); // 'success' or 'error'
-  const fileInputRef = useRef(null);
+  const [importText, setImportText] = useState('');
+  const [importStatus, setImportStatus] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // CSVデータを解析して構造化
+  const parseCSV = useCallback((csvContent) => {
+    // CSVの各セクションを分割
+    const sections = csvContent.split(/^#\s*(.+)$/gm).filter(Boolean);
+    let assetsData = [];
+    let targetData = [];
+    let configData = {};
+    
+    for (let i = 0; i < sections.length; i += 2) {
+      const sectionName = sections[i].trim();
+      const sectionContent = sections[i + 1]?.trim() || '';
+      
+      if (sectionContent) {
+        const result = Papa.parse(sectionContent, { header: true, skipEmptyLines: true });
+        
+        if (sectionName.includes('保有資産')) {
+          assetsData = result.data.map(asset => ({
+            ...asset,
+            price: parseFloat(asset.price),
+            holdings: parseFloat(asset.holdings),
+            annualFee: parseFloat(asset.annualFee || 0)
+          }));
+        } else if (sectionName.includes('目標配分')) {
+          targetData = result.data.map(target => ({
+            ...target,
+            targetPercentage: parseFloat(target.targetPercentage)
+          }));
+        } else if (sectionName.includes('設定')) {
+          // 設定を連想配列に変換
+          result.data.forEach(row => {
+            if (row.key && row.value) {
+              configData[row.key] = row.value;
+            }
+          });
+        }
+      }
+    }
+    
+    return {
+      baseCurrency: configData.baseCurrency || 'JPY',
+      exchangeRate: {
+        rate: parseFloat(configData.exchangeRate || 1),
+        source: configData.exchangeRateSource || '',
+        lastUpdated: configData.lastUpdated || new Date().toISOString()
+      },
+      currentAssets: assetsData,
+      targetPortfolio: targetData
+    };
+  }, []);
 
   // ファイルからのインポート
-  const handleFileImport = (event) => {
-    const file = event.target.files[0];
+  const handleFileChange = useCallback((e) => {
+    const file = e.target.files?.[0];
     if (!file) return;
-
+    
+    setIsLoading(true);
+    setImportStatus(null);
+    
     const reader = new FileReader();
     
-    reader.onload = (e) => {
+    reader.onload = async (event) => {
       try {
-        const content = e.target.result;
-        processImportData(content);
+        const content = event.target.result;
+        
+        let data;
+        if (importFormat === 'json') {
+          data = JSON.parse(content);
+        } else {
+          data = parseCSV(content);
+        }
+        
+        await importPortfolioData(data);
+        setImportStatus({ type: 'success', message: 'データを正常にインポートしました' });
       } catch (error) {
-        console.error('File import error:', error);
-        showStatus('ファイルの読み込み中にエラーが発生しました', 'error');
+        console.error('インポートエラー:', error);
+        setImportStatus({ type: 'error', message: `インポートに失敗しました: ${error.message}` });
+      } finally {
+        setIsLoading(false);
       }
     };
     
     reader.onerror = () => {
-      showStatus('ファイルの読み込みに失敗しました', 'error');
+      setImportStatus({ type: 'error', message: 'ファイルの読み込みに失敗しました' });
+      setIsLoading(false);
     };
     
     if (importFormat === 'json') {
       reader.readAsText(file);
-    } else if (importFormat === 'csv') {
+    } else {
       reader.readAsText(file);
     }
-  };
+  }, [importFormat, importPortfolioData, parseCSV]);
 
   // クリップボードからのインポート
-  const handlePasteFromClipboard = async () => {
+  const handlePaste = useCallback(async () => {
     try {
+      setIsLoading(true);
+      setImportStatus(null);
+      
       const clipboardText = await navigator.clipboard.readText();
-      processImportData(clipboardText);
+      
+      if (!clipboardText) {
+        throw new Error('クリップボードが空です');
+      }
+      
+      let data;
+      if (importFormat === 'json') {
+        data = JSON.parse(clipboardText);
+      } else {
+        data = parseCSV(clipboardText);
+      }
+      
+      await importPortfolioData(data);
+      setImportStatus({ type: 'success', message: 'データを正常にインポートしました' });
     } catch (error) {
-      console.error('Clipboard import error:', error);
-      showStatus('クリップボードからの読み込みに失敗しました', 'error');
+      console.error('クリップボードインポートエラー:', error);
+      setImportStatus({ type: 'error', message: `インポートに失敗しました: ${error.message}` });
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, [importFormat, importPortfolioData, parseCSV]);
 
   // テキスト入力からのインポート
-  const handleTextImport = () => {
-    if (!inputText.trim()) {
-      showStatus('テキストが入力されていません', 'error');
+  const handleTextImport = useCallback(async () => {
+    if (!importText.trim()) {
+      setImportStatus({ type: 'error', message: 'インポートするデータを入力してください' });
       return;
     }
     
-    processImportData(inputText);
-  };
-
-  // インポートデータの処理
-  const processImportData = (content) => {
     try {
-      let parsedData;
+      setIsLoading(true);
+      setImportStatus(null);
       
+      let data;
       if (importFormat === 'json') {
-        parsedData = JSON.parse(content);
-      } else if (importFormat === 'csv') {
-        // CSVからJSONへの変換（簡易的な実装）
-        const results = Papa.parse(content, {
-          header: true,
-          dynamicTyping: true,
-          skipEmptyLines: true
-        });
-        
-        if (results.errors.length > 0) {
-          throw new Error('CSV parsing error: ' + results.errors[0].message);
-        }
-        
-        // 変換されたデータを構造化
-        const currentAssets = [];
-        const targetPortfolio = [];
-        
-        results.data.forEach(row => {
-          if (row.ticker) {
-            // 資産データの作成
-            const asset = {
-              id: row.id || row.ticker,
-              name: row.name || row.ticker,
-              ticker: row.ticker,
-              price: parseFloat(row.price) || 0,
-              holdings: parseInt(row.holdings) || 0,
-              currency: row.currency || 'JPY',
-              annualFee: parseFloat(row.annualFee) || 0.3
-            };
-            
-            currentAssets.push(asset);
-            
-            // 目標配分の作成
-            const targetPercentage = parseFloat(row.targetPercentage) || 0;
-            targetPortfolio.push({
-              ...asset,
-              targetPercentage
-            });
-          }
-        });
-        
-        parsedData = {
-          baseCurrency: 'JPY',
-          currentAssets,
-          targetPortfolio
-        };
-      }
-      
-      const result = importData(parsedData);
-      
-      if (result.success) {
-        showStatus('データを正常にインポートしました', 'success');
-        setInputText('');
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
-        }
+        data = JSON.parse(importText);
       } else {
-        showStatus(result.message || 'インポートに失敗しました', 'error');
+        data = parseCSV(importText);
       }
       
+      await importPortfolioData(data);
+      setImportStatus({ type: 'success', message: 'データを正常にインポートしました' });
+      setImportText(''); // 入力フィールドをクリア
     } catch (error) {
-      console.error('Data processing error:', error);
-      showStatus('データの処理中にエラーが発生しました', 'error');
+      console.error('テキストインポートエラー:', error);
+      setImportStatus({ type: 'error', message: `インポートに失敗しました: ${error.message}` });
+    } finally {
+      setIsLoading(false);
     }
-  };
-
-  // ステータスメッセージの表示
-  const showStatus = (message, type) => {
-    setStatusMessage(message);
-    setStatusType(type);
-    setTimeout(() => {
-      setStatusMessage('');
-      setStatusType('');
-    }, 5000);
-  };
+  }, [importText, importFormat, importPortfolioData, parseCSV]);
 
   return (
-    <div>
+    <div className="bg-white rounded-lg shadow p-4 mb-6">
+      <h2 className="text-lg font-semibold mb-4">データインポート</h2>
+      
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label id="import-format-label" className="block text-sm font-medium text-gray-700 mb-1">
           インポート形式
         </label>
-        <div className="flex space-x-4">
-          <label className="inline-flex items-center">
-            <input
-              type="radio"
-              className="form-radio"
-              name="importFormat"
-              value="json"
-              checked={importFormat === 'json'}
-              onChange={() => setImportFormat('json')}
-            />
-            <span className="ml-2">JSON</span>
-          </label>
-          <label className="inline-flex items-center">
-            <input
-              type="radio"
-              className="form-radio"
-              name="importFormat"
-              value="csv"
-              checked={importFormat === 'csv'}
-              onChange={() => setImportFormat('csv')}
-            />
-            <span className="ml-2">CSV</span>
-          </label>
+        <div className="flex space-x-4" role="radiogroup" aria-labelledby="import-format-label">
+          <button
+            type="button"
+            className={`px-4 py-2 rounded-md ${
+              importFormat === 'json' ? 'bg-primary text-white' : 'bg-gray-200'
+            }`}
+            onClick={() => setImportFormat('json')}
+            role="radio"
+            aria-checked={importFormat === 'json'}
+          >
+            JSON
+          </button>
+          <button
+            type="button"
+            className={`px-4 py-2 rounded-md ${
+              importFormat === 'csv' ? 'bg-primary text-white' : 'bg-gray-200'
+            }`}
+            onClick={() => setImportFormat('csv')}
+            role="radio"
+            aria-checked={importFormat === 'csv'}
+          >
+            CSV
+          </button>
         </div>
       </div>
       
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label id="import-method-label" className="block text-sm font-medium text-gray-700 mb-1">
           インポート方法
         </label>
-        <div className="flex space-x-4">
-          <label className="inline-flex items-center">
-            <input
-              type="radio"
-              className="form-radio"
-              name="importMethod"
-              value="file"
-              checked={importMethod === 'file'}
-              onChange={() => setImportMethod('file')}
-            />
-            <span className="ml-2">ファイル</span>
-          </label>
-          <label className="inline-flex items-center">
-            <input
-              type="radio"
-              className="form-radio"
-              name="importMethod"
-              value="clipboard"
-              checked={importMethod === 'clipboard'}
-              onChange={() => setImportMethod('clipboard')}
-            />
-            <span className="ml-2">クリップボード</span>
-          </label>
-          <label className="inline-flex items-center">
-            <input
-              type="radio"
-              className="form-radio"
-              name="importMethod"
-              value="text"
-              checked={importMethod === 'text'}
-              onChange={() => setImportMethod('text')}
-            />
-            <span className="ml-2">テキスト入力</span>
-          </label>
+        <div className="flex space-x-4" role="radiogroup" aria-labelledby="import-method-label">
+          <button
+            type="button"
+            className={`px-4 py-2 rounded-md ${
+              importMethod === 'file' ? 'bg-primary text-white' : 'bg-gray-200'
+            }`}
+            onClick={() => setImportMethod('file')}
+            role="radio"
+            aria-checked={importMethod === 'file'}
+          >
+            ファイル
+          </button>
+          <button
+            type="button"
+            className={`px-4 py-2 rounded-md ${
+              importMethod === 'clipboard' ? 'bg-primary text-white' : 'bg-gray-200'
+            }`}
+            onClick={() => setImportMethod('clipboard')}
+            role="radio"
+            aria-checked={importMethod === 'clipboard'}
+          >
+            クリップボード
+          </button>
+          <button
+            type="button"
+            className={`px-4 py-2 rounded-md ${
+              importMethod === 'text' ? 'bg-primary text-white' : 'bg-gray-200'
+            }`}
+            onClick={() => setImportMethod('text')}
+            role="radio"
+            aria-checked={importMethod === 'text'}
+          >
+            テキスト入力
+          </button>
         </div>
       </div>
       
-      {/* インポート方法に応じたUIの表示 */}
-      <div className="mb-4">
-        {importMethod === 'file' && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              ファイルを選択
-            </label>
-            <input
-              type="file"
-              accept={importFormat === 'json' ? '.json' : '.csv'}
-              onChange={handleFileImport}
-              ref={fileInputRef}
-              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-            />
-          </div>
-        )}
-        
-        {importMethod === 'clipboard' && (
-          <div>
-            <button
-              onClick={handlePasteFromClipboard}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
-            >
-              クリップボードから貼り付け
-            </button>
-          </div>
-        )}
-        
-        {importMethod === 'text' && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              データを入力
-            </label>
-            <textarea
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              className="w-full h-32 p-2 border rounded"
-              placeholder={`${importFormat === 'json' ? 'JSONデータ' : 'CSVデータ'}を入力してください`}
-            ></textarea>
-            <button
-              onClick={handleTextImport}
-              className="mt-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
-            >
-              インポート
-            </button>
-          </div>
-        )}
-      </div>
+      {importMethod === 'file' && (
+        <div className="mb-4">
+          <label htmlFor="file-upload" className="block text-sm font-medium text-gray-700 mb-1">
+            ファイルをアップロード
+          </label>
+          <input
+            id="file-upload"
+            type="file"
+            accept={importFormat === 'json' ? '.json' : '.csv'}
+            onChange={handleFileChange}
+            className="block w-full text-sm text-gray-500
+              file:mr-4 file:py-2 file:px-4
+              file:rounded-md file:border-0
+              file:text-sm file:font-semibold
+              file:bg-primary file:text-white
+              hover:file:bg-primary-dark"
+          />
+        </div>
+      )}
       
-      {/* ステータスメッセージの表示 */}
-      {statusMessage && (
-        <div className={`mt-3 text-sm ${
-          statusType === 'success' ? 'text-green-600' : 'text-red-600'
-        }`}>
-          {statusMessage}
+      {importMethod === 'clipboard' && (
+        <div className="mb-4">
+          <button
+            type="button"
+            className="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary-dark"
+            onClick={handlePaste}
+            disabled={isLoading}
+          >
+            {isLoading ? '処理中...' : 'クリップボードから貼り付け'}
+          </button>
+          <p className="text-sm text-gray-500 mt-1">
+            クリップボードからのデータを読み込み、インポートします。
+          </p>
+        </div>
+      )}
+      
+      {importMethod === 'text' && (
+        <div className="mb-4">
+          <label htmlFor="import-text" className="block text-sm font-medium text-gray-700 mb-1">
+            データを貼り付け
+          </label>
+          <textarea
+            id="import-text"
+            className="w-full h-40 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+            value={importText}
+            onChange={(e) => setImportText(e.target.value)}
+            placeholder={importFormat === 'json' ? '{"currentAssets": [...], "targetPortfolio": [...]}' : '# 保有資産\nid,name,ticker,...'}
+          ></textarea>
+          
+          <button
+            type="button"
+            className="mt-2 bg-primary text-white px-4 py-2 rounded-md hover:bg-primary-dark"
+            onClick={handleTextImport}
+            disabled={isLoading || !importText.trim()}
+          >
+            {isLoading ? '処理中...' : 'インポート'}
+          </button>
+        </div>
+      )}
+      
+      {importStatus && (
+        <div
+          className={`mt-4 p-2 rounded-md ${
+            importStatus.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+          }`}
+        >
+          {importStatus.message}
         </div>
       )}
     </div>

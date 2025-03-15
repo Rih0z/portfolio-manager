@@ -1,134 +1,115 @@
 import React, { createContext, useState, useEffect, useCallback } from 'react';
-import { jwtDecode } from 'jwt-decode';
+import jwtDecode from 'jwt-decode'; // 修正: 正しいインポート方法
 
-export const AuthContext = createContext();
+const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [googleToken, setGoogleToken] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // ローカルストレージからトークンを取得して検証
+  // 初期化時に保存されたトークンがあれば読み込む
   useEffect(() => {
-    const token = localStorage.getItem('google_token');
-    if (token) {
+    const loadStoredAuth = () => {
       try {
-        const decodedToken = jwtDecode(token);
-        // トークンの有効期限チェック
-        const currentTime = Date.now() / 1000;
-        if (decodedToken.exp > currentTime) {
-          setUser(decodedToken);
-          setIsAuthenticated(true);
-        } else {
-          // 期限切れの場合はクリア
-          localStorage.removeItem('google_token');
+        const storedToken = localStorage.getItem('googleToken');
+        
+        if (storedToken) {
+          const decodedToken = jwtDecode(storedToken); // 修正: 正しい関数呼び出し
+          const currentTime = Date.now() / 1000;
+          
+          if (decodedToken.exp > currentTime) {
+            setGoogleToken(storedToken);
+            setUser({
+              name: decodedToken.name,
+              email: decodedToken.email,
+              picture: decodedToken.picture
+            });
+            setIsAuthenticated(true);
+          } else {
+            // トークンの有効期限切れ
+            localStorage.removeItem('googleToken');
+          }
         }
       } catch (error) {
-        localStorage.removeItem('google_token');
-        console.error('トークンの検証に失敗しました', error);
+        console.error('認証情報の読み込みエラー:', error);
+        localStorage.removeItem('googleToken');
+      } finally {
+        setLoading(false);
       }
-    }
-    setIsLoading(false);
+    };
+
+    loadStoredAuth();
   }, []);
 
-  // ログイン処理
-  const handleLogin = useCallback((response) => {
+  // Googleログイン成功時の処理
+  const handleLogin = useCallback((credentialResponse) => {
     try {
-      const decodedUser = jwtDecode(response.credential);
-      setUser(decodedUser);
+      const decodedToken = jwtDecode(credentialResponse.credential); // 修正: 正しい関数呼び出し
+      setGoogleToken(credentialResponse.credential);
+      setUser({
+        name: decodedToken.name,
+        email: decodedToken.email,
+        picture: decodedToken.picture
+      });
       setIsAuthenticated(true);
-      localStorage.setItem('google_token', response.credential);
+      
+      // トークンをローカルストレージに保存
+      localStorage.setItem('googleToken', credentialResponse.credential);
     } catch (error) {
-      console.error('ログイン処理に失敗しました', error);
+      console.error('ログインエラー:', error);
     }
   }, []);
 
   // ログアウト処理
   const handleLogout = useCallback(() => {
-    localStorage.removeItem('google_token');
+    setGoogleToken(null);
     setUser(null);
     setIsAuthenticated(false);
+    localStorage.removeItem('googleToken');
   }, []);
 
-  // Googleドライブに保存
-  const saveToGoogleDrive = useCallback(async (data) => {
-    if (!isAuthenticated || !user) {
-      throw new Error('認証が必要です');
+  // Googleドライブ保存機能（基本実装）
+  const saveToDrive = useCallback(async (data, filename = 'portfolio_data.json') => {
+    if (!isAuthenticated || !googleToken) {
+      throw new Error('ログインが必要です');
     }
+    
+    // 実際には、ここでGoogleドライブAPIを呼び出す処理を実装
+    // このサンプルでは成功したことにする
+    console.log('データをGoogleドライブに保存:', { data, filename });
+    return { success: true, message: `${filename}をGoogleドライブに保存しました` };
+  }, [isAuthenticated, googleToken]);
 
-    try {
-      // Google Drive APIを使用してファイルを保存
-      const token = localStorage.getItem('google_token');
-      // ここでGoogle Drive APIを呼び出す実装
-      // 実際の実装では、Google Drive APIクライアントライブラリを使用します
-      
-      // モックの実装（実際には非同期処理が必要）
-      console.log('Googleドライブに保存:', data);
-      
-      return { success: true, message: 'Googleドライブに保存しました' };
-    } catch (error) {
-      console.error('Googleドライブへの保存に失敗しました', error);
-      return { success: false, message: 'Googleドライブへの保存に失敗しました' };
+  // Googleドライブから読み込み機能（基本実装）
+  const loadFromDrive = useCallback(async (filename = 'portfolio_data.json') => {
+    if (!isAuthenticated || !googleToken) {
+      throw new Error('ログインが必要です');
     }
-  }, [isAuthenticated, user]);
-
-  // Googleドライブから読み込み
-  const loadFromGoogleDrive = useCallback(async () => {
-    if (!isAuthenticated || !user) {
-      throw new Error('認証が必要です');
-    }
-
-    try {
-      // Google Drive APIを使用してファイルを読み込む
-      const token = localStorage.getItem('google_token');
-      // ここでGoogle Drive APIを呼び出す実装
-      // 実際の実装では、Google Drive APIクライアントライブラリを使用します
-      
-      // モックデータを返す（実際の実装では読み込んだデータを返す）
-      return { 
-        success: true, 
-        data: {
-          baseCurrency: 'JPY',
-          currentAssets: [
-            {
-              id: 'AAPL',
-              name: 'Apple Inc.',
-              ticker: 'AAPL',
-              price: 150.0,
-              holdings: 10,
-              currency: 'USD',
-              annualFee: 0.3
-            }
-          ],
-          targetPortfolio: [
-            {
-              id: 'AAPL',
-              name: 'Apple Inc.',
-              ticker: 'AAPL',
-              targetPercentage: 50
-            }
-          ]
-        }
-      };
-    } catch (error) {
-      console.error('Googleドライブからの読み込みに失敗しました', error);
-      return { success: false, message: 'Googleドライブからの読み込みに失敗しました' };
-    }
-  }, [isAuthenticated, user]);
+    
+    // 実際には、ここでGoogleドライブAPIを呼び出す処理を実装
+    // このサンプルではダミーデータを返す
+    console.log('Googleドライブからデータを読み込み:', filename);
+    return { success: true, data: { message: 'サンプルデータが読み込まれました' } };
+  }, [isAuthenticated, googleToken]);
 
   return (
-    <AuthContext.Provider value={{
-      isAuthenticated,
-      user,
-      isLoading,
-      handleLogin,
-      handleLogout,
-      saveToGoogleDrive,
-      loadFromGoogleDrive
-    }}>
+    <AuthContext.Provider
+      value={{
+        isAuthenticated,
+        user,
+        googleToken,
+        loading,
+        handleLogin,
+        handleLogout,
+        saveToDrive,
+        loadFromDrive
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
 };
 
-export default AuthProvider;
+export default AuthContext;

@@ -1,147 +1,153 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 
 const ExportOptions = () => {
-  const { exportData } = usePortfolioContext();
+  const { currentAssets, targetPortfolio, baseCurrency, exchangeRate } = usePortfolioContext();
   const [exportFormat, setExportFormat] = useState('json');
-  const [exportMessage, setExportMessage] = useState('');
+  const [exportStatus, setExportStatus] = useState(null);
 
-  // データをエクスポートする関数
-  const handleExport = () => {
+  // JSONへの変換
+  const convertToJson = useCallback(() => {
+    const portfolioData = {
+      baseCurrency,
+      exchangeRate,
+      lastUpdated: new Date().toISOString(),
+      currentAssets,
+      targetPortfolio
+    };
+    
+    return JSON.stringify(portfolioData, null, 2);
+  }, [baseCurrency, exchangeRate, currentAssets, targetPortfolio]);
+
+  // CSVへの変換
+  const convertToCsv = useCallback(() => {
+    // 保有資産のCSV
+    const assetsHeader = 'id,name,ticker,exchangeMarket,price,currency,holdings,annualFee,lastUpdated,source';
+    const assetsRows = currentAssets.map(asset => {
+      return `${asset.id},"${asset.name}",${asset.ticker},${asset.exchangeMarket},${asset.price},${asset.currency},${asset.holdings},${asset.annualFee || 0},"${asset.lastUpdated || ''}","${asset.source || ''}"`;
+    });
+    
+    // 目標配分のCSV
+    const targetHeader = 'id,name,ticker,targetPercentage';
+    const targetRows = targetPortfolio.map(target => {
+      return `${target.id},"${target.name}",${target.ticker},${target.targetPercentage}`;
+    });
+    
+    // 設定情報のCSV
+    const configHeader = 'key,value';
+    const configRows = [
+      `baseCurrency,${baseCurrency}`,
+      `exchangeRate,${exchangeRate?.rate || 1}`,
+      `exchangeRateSource,"${exchangeRate?.source || ''}"`,
+      `lastUpdated,"${exchangeRate?.lastUpdated || new Date().toISOString()}"`
+    ];
+    
+    return `# 保有資産\n${assetsHeader}\n${assetsRows.join('\n')}\n\n# 目標配分\n${targetHeader}\n${targetRows.join('\n')}\n\n# 設定\n${configHeader}\n${configRows.join('\n')}`;
+  }, [baseCurrency, exchangeRate, currentAssets, targetPortfolio]);
+
+  // ファイルダウンロード
+  const handleDownload = useCallback(() => {
     try {
-      // ポートフォリオデータの取得
-      const data = exportData();
-      
-      // 形式に応じてフォーマット
-      let formattedData;
-      let fileName;
-      let mimeType;
-      
-      if (exportFormat === 'json') {
-        formattedData = JSON.stringify(data, null, 2);
-        fileName = 'portfolio-data.json';
-        mimeType = 'application/json';
-      } else if (exportFormat === 'csv') {
-        // 簡易的なCSV変換（実際にはより堅牢な実装が必要）
-        const headers = ['id', 'name', 'ticker', 'holdings', 'price', 'currency', 'targetPercentage'];
-        const rows = [headers];
-        
-        // 各資産のデータを行として追加
-        data.currentAssets.forEach(asset => {
-          const targetItem = data.targetPortfolio.find(item => item.id === asset.id);
-          const targetPercentage = targetItem ? targetItem.targetPercentage : 0;
-          
-          rows.push([
-            asset.id,
-            asset.name,
-            asset.ticker,
-            asset.holdings,
-            asset.price,
-            asset.currency,
-            targetPercentage
-          ]);
-        });
-        
-        // 行をCSV形式に変換
-        formattedData = rows.map(row => row.join(',')).join('\n');
-        fileName = 'portfolio-data.csv';
-        mimeType = 'text/csv';
-      }
-      
-      // ファイルのダウンロード
-      const blob = new Blob([formattedData], { type: mimeType });
+      const data = exportFormat === 'json' ? convertToJson() : convertToCsv();
+      const blob = new Blob([data], { type: exportFormat === 'json' ? 'application/json' : 'text/csv' });
       const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = exportFormat === 'json' ? 'portfolio_data.json' : 'portfolio_data.csv';
+      document.body.appendChild(a);
+      a.click();
+      URL.revokeObjectURL(url);
+      document.body.removeChild(a);
       
-      setExportMessage('データを正常にエクスポートしました');
-      setTimeout(() => setExportMessage(''), 3000);
+      setExportStatus({ type: 'success', message: `データを${exportFormat.toUpperCase()}形式でダウンロードしました` });
       
+      // 3秒後にステータスをクリア
+      setTimeout(() => setExportStatus(null), 3000);
     } catch (error) {
-      console.error('Export error:', error);
-      setExportMessage('エクスポート中にエラーが発生しました');
-      setTimeout(() => setExportMessage(''), 3000);
+      console.error('エクスポートエラー:', error);
+      setExportStatus({ type: 'error', message: 'エクスポートに失敗しました' });
     }
-  };
+  }, [exportFormat, convertToJson, convertToCsv]);
 
-  // クリップボードにコピーする関数
-  const handleCopyToClipboard = () => {
+  // クリップボードにコピー
+  const handleCopy = useCallback(() => {
     try {
-      const data = exportData();
-      const formattedData = JSON.stringify(data, null, 2);
-      
-      navigator.clipboard.writeText(formattedData).then(
+      const data = exportFormat === 'json' ? convertToJson() : convertToCsv();
+      navigator.clipboard.writeText(data).then(
         () => {
-          setExportMessage('データをクリップボードにコピーしました');
-          setTimeout(() => setExportMessage(''), 3000);
+          setExportStatus({ type: 'success', message: 'クリップボードにコピーしました' });
+          // 3秒後にステータスをクリア
+          setTimeout(() => setExportStatus(null), 3000);
         },
         (err) => {
-          console.error('クリップボードへのコピーに失敗しました', err);
-          setExportMessage('クリップボードへのコピーに失敗しました');
-          setTimeout(() => setExportMessage(''), 3000);
+          console.error('クリップボードコピーエラー:', err);
+          setExportStatus({ type: 'error', message: 'クリップボードへのコピーに失敗しました' });
         }
       );
     } catch (error) {
-      console.error('Copy to clipboard error:', error);
-      setExportMessage('データのコピー中にエラーが発生しました');
-      setTimeout(() => setExportMessage(''), 3000);
+      console.error('エクスポートエラー:', error);
+      setExportStatus({ type: 'error', message: 'データの生成に失敗しました' });
     }
-  };
+  }, [exportFormat, convertToJson, convertToCsv]);
 
   return (
-    <div>
+    <div className="bg-white rounded-lg shadow p-4 mb-6">
+      <h2 className="text-lg font-semibold mb-4">データエクスポート</h2>
+      
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label id="export-format-label" className="block text-sm font-medium text-gray-700 mb-1">
           エクスポート形式
         </label>
-        <div className="flex space-x-4">
-          <label className="inline-flex items-center">
-            <input
-              type="radio"
-              className="form-radio"
-              name="exportFormat"
-              value="json"
-              checked={exportFormat === 'json'}
-              onChange={() => setExportFormat('json')}
-            />
-            <span className="ml-2">JSON</span>
-          </label>
-          <label className="inline-flex items-center">
-            <input
-              type="radio"
-              className="form-radio"
-              name="exportFormat"
-              value="csv"
-              checked={exportFormat === 'csv'}
-              onChange={() => setExportFormat('csv')}
-            />
-            <span className="ml-2">CSV</span>
-          </label>
+        <div className="flex space-x-4" role="radiogroup" aria-labelledby="export-format-label">
+          <button
+            type="button"
+            className={`px-4 py-2 rounded-md ${
+              exportFormat === 'json' ? 'bg-primary text-white' : 'bg-gray-200'
+            }`}
+            onClick={() => setExportFormat('json')}
+            role="radio"
+            aria-checked={exportFormat === 'json'}
+          >
+            JSON
+          </button>
+          <button
+            type="button"
+            className={`px-4 py-2 rounded-md ${
+              exportFormat === 'csv' ? 'bg-primary text-white' : 'bg-gray-200'
+            }`}
+            onClick={() => setExportFormat('csv')}
+            role="radio"
+            aria-checked={exportFormat === 'csv'}
+          >
+            CSV
+          </button>
         </div>
       </div>
       
       <div className="flex space-x-4">
         <button
-          onClick={handleExport}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+          type="button"
+          className="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary-dark"
+          onClick={handleDownload}
         >
-          ファイルとしてエクスポート
+          ダウンロード
         </button>
         <button
-          onClick={handleCopyToClipboard}
-          className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded"
+          type="button"
+          className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300"
+          onClick={handleCopy}
         >
           クリップボードにコピー
         </button>
       </div>
       
-      {exportMessage && (
-        <div className="mt-3 text-sm text-green-600">
-          {exportMessage}
+      {exportStatus && (
+        <div
+          className={`mt-4 p-2 rounded-md ${
+            exportStatus.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+          }`}
+        >
+          {exportStatus.message}
         </div>
       )}
     </div>
