@@ -9,7 +9,8 @@ const YAHOO_API_URL = process.env.NODE_ENV === 'development'
 
 // Alpha Vantage APIエンドポイント（代替データソース）
 const ALPHA_VANTAGE_URL = '/.netlify/functions/alpha-vantage-proxy';
-const ALPHA_VANTAGE_KEY = process.env.REACT_APP_ALPHA_VANTAGE_KEY || 'demo';
+// 環境変数名を統一（Reactフロントエンドなので REACT_APP_ プレフィックスは必要）
+const ALPHA_VANTAGE_KEY = process.env.REACT_APP_ALPHA_VANTAGE_API_KEY || 'GC4EBI5YHFKOJEXY';
 
 // 為替レートのデフォルト値（最終手段）
 const DEFAULT_EXCHANGE_RATES = {
@@ -26,9 +27,11 @@ const DEFAULT_EXCHANGE_RATES = {
  */
 export async function fetchTickerData(ticker) {
   try {
-    // Yahoo Finance APIからデータ取得
+    // Yahoo Finance APIからデータ取得を試みる
+    console.log(`Attempting to fetch data for ${ticker} from Yahoo Finance`);
     const response = await axios.get(YAHOO_API_URL, {
-      params: { symbols: ticker }
+      params: { symbols: ticker },
+      timeout: 5000 // 5秒タイムアウト設定
     });
     
     // レスポンスの検証
@@ -57,11 +60,13 @@ export async function fetchTickerData(ticker) {
       };
     }
     
+    console.log(`No valid data found for ${ticker} from Yahoo Finance, trying Alpha Vantage`);
     // データが見つからない場合は代替ソースを試す
     return await fetchTickerDataFromAlternative(ticker);
     
   } catch (error) {
     console.error('Yahoo Finance API error:', error);
+    console.log(`Error fetching ${ticker} from Yahoo Finance, trying Alpha Vantage`);
     
     // エラーが発生した場合は代替ソースを試す
     return await fetchTickerDataFromAlternative(ticker);
@@ -76,18 +81,22 @@ export async function fetchTickerData(ticker) {
 async function fetchTickerDataFromAlternative(ticker) {
   try {
     // Alpha Vantage APIからデータ取得を試みる
+    console.log(`Attempting to fetch data for ${ticker} from Alpha Vantage`);
     const response = await axios.get(ALPHA_VANTAGE_URL, {
       params: {
         function: 'GLOBAL_QUOTE',
         symbol: ticker,
         apikey: ALPHA_VANTAGE_KEY
-      }
+      },
+      timeout: 8000 // 8秒タイムアウト設定
     });
     
     // レスポンスの検証
     if (response.data && response.data['Global Quote'] && response.data['Global Quote']['05. price']) {
       const quoteData = response.data['Global Quote'];
       const price = parseFloat(quoteData['05. price']);
+      
+      console.log(`Successfully fetched data for ${ticker} from Alpha Vantage`);
       
       // 通貨判定（簡易的な判定、実際にはより詳細な判定が必要）
       const currency = ticker.includes('.T') ? 'JPY' : 'USD';
@@ -110,11 +119,13 @@ async function fetchTickerDataFromAlternative(ticker) {
       };
     }
     
+    console.log(`No valid data found for ${ticker} from Alpha Vantage, using fallback`);
     // 全ての取得方法が失敗した場合はフォールバック値を使用
     return generateFallbackTickerData(ticker);
     
   } catch (error) {
     console.error('Alternative API error:', error);
+    console.log(`Error fetching ${ticker} from Alpha Vantage, using fallback`);
     
     // フォールバック値を返す
     return generateFallbackTickerData(ticker);
@@ -172,9 +183,12 @@ export async function fetchExchangeRate(fromCurrency, toCurrency) {
     // 為替ペアを構築
     const pair = `${fromCurrency}${toCurrency}=X`;
     
+    console.log(`Attempting to fetch exchange rate for ${pair} from Yahoo Finance`);
+    
     // Yahoo Finance APIから為替データ取得
     const response = await axios.get(YAHOO_API_URL, {
-      params: { symbols: pair }
+      params: { symbols: pair },
+      timeout: 5000 // 5秒タイムアウト設定
     });
     
     if (response.data && 
@@ -185,6 +199,7 @@ export async function fetchExchangeRate(fromCurrency, toCurrency) {
       const data = response.data.quoteResponse.result[0];
       
       if (data.regularMarketPrice) {
+        console.log(`Successfully fetched exchange rate for ${pair}: ${data.regularMarketPrice}`);
         return {
           success: true,
           rate: data.regularMarketPrice,
@@ -195,11 +210,13 @@ export async function fetchExchangeRate(fromCurrency, toCurrency) {
       }
     }
     
+    console.log(`No valid exchange rate data for ${pair} from Yahoo Finance, trying Alpha Vantage`);
     // Yahoo Financeから取得できなかった場合は代替ソースを試す
     return await fetchExchangeRateFromAlternative(fromCurrency, toCurrency);
     
   } catch (error) {
     console.error('Exchange rate fetch error:', error);
+    console.log(`Error fetching exchange rate for ${fromCurrency}/${toCurrency}, trying alternative`);
     
     // エラーが発生した場合は代替ソースを試す
     return await fetchExchangeRateFromAlternative(fromCurrency, toCurrency);
@@ -214,6 +231,8 @@ export async function fetchExchangeRate(fromCurrency, toCurrency) {
  */
 async function fetchExchangeRateFromAlternative(fromCurrency, toCurrency) {
   try {
+    console.log(`Attempting to fetch exchange rate for ${fromCurrency}/${toCurrency} from Alpha Vantage`);
+    
     // Alpha Vantage APIから為替データ取得を試みる
     const response = await axios.get(ALPHA_VANTAGE_URL, {
       params: {
@@ -221,7 +240,8 @@ async function fetchExchangeRateFromAlternative(fromCurrency, toCurrency) {
         from_currency: fromCurrency,
         to_currency: toCurrency,
         apikey: ALPHA_VANTAGE_KEY
-      }
+      },
+      timeout: 8000 // 8秒タイムアウト設定
     });
     
     if (response.data && 
@@ -229,6 +249,8 @@ async function fetchExchangeRateFromAlternative(fromCurrency, toCurrency) {
         response.data['Realtime Currency Exchange Rate']['5. Exchange Rate']) {
       
       const rate = parseFloat(response.data['Realtime Currency Exchange Rate']['5. Exchange Rate']);
+      
+      console.log(`Successfully fetched exchange rate for ${fromCurrency}/${toCurrency} from Alpha Vantage: ${rate}`);
       
       return {
         success: true,
@@ -239,11 +261,13 @@ async function fetchExchangeRateFromAlternative(fromCurrency, toCurrency) {
       };
     }
     
+    console.log(`No valid exchange rate data for ${fromCurrency}/${toCurrency} from Alpha Vantage, using fallback`);
     // すべての取得方法が失敗した場合はデフォルト値を使用
     return generateFallbackExchangeRate(fromCurrency, toCurrency);
     
   } catch (error) {
     console.error('Alternative exchange rate fetch error:', error);
+    console.log(`Error fetching exchange rate for ${fromCurrency}/${toCurrency} from Alpha Vantage, using fallback`);
     
     // フォールバック値を返す
     return generateFallbackExchangeRate(fromCurrency, toCurrency);
@@ -272,6 +296,8 @@ function generateFallbackExchangeRate(fromCurrency, toCurrency) {
     rate = 1;
   }
   
+  console.log(`Using fallback exchange rate for ${fromCurrency}/${toCurrency}: ${rate}`);
+  
   return {
     success: false,
     rate: rate,
@@ -297,6 +323,8 @@ export async function fetchMultipleTickerData(tickers) {
     };
   }
   
+  console.log(`Fetching data for ${tickers.length} tickers: ${tickers.join(', ')}`);
+  
   // 各ティッカーを並行して取得
   const results = await Promise.all(
     tickers.map(async (ticker) => {
@@ -311,6 +339,9 @@ export async function fetchMultipleTickerData(tickers) {
   // 全体の成功・失敗を判定
   const hasError = results.some(result => !result.success);
   const allSuccess = results.every(result => result.success);
+  
+  // 結果のサマリーをログ
+  console.log(`Fetch summary: ${results.filter(r => r.success).length} succeeded, ${results.filter(r => !r.success).length} failed`);
   
   return {
     success: allSuccess,
