@@ -115,11 +115,12 @@ export const PortfolioProvider = ({ children }) => {
         return newItems;
       });
 
-      // 保有資産に追加
+      // 保有資産に追加（初期値として手数料率0%を設定）
       setCurrentAssets(prev => {
         const newItems = [...prev, {
           ...tickerData,
-          holdings: 0
+          holdings: 0,
+          annualFee: 0 // デフォルトの年間手数料率
         }];
         return newItems;
       });
@@ -146,6 +147,15 @@ export const PortfolioProvider = ({ children }) => {
     setCurrentAssets(prev => 
       prev.map(item => 
         item.id === id ? { ...item, holdings: parseFloat(parseFloat(holdings).toFixed(4)) || 0 } : item
+      )
+    );
+  }, []);
+
+  // 年間手数料率更新（新規追加）
+  const updateAnnualFee = useCallback((id, fee) => {
+    setCurrentAssets(prev => 
+      prev.map(item => 
+        item.id === id ? { ...item, annualFee: parseFloat(parseFloat(fee).toFixed(2)) || 0 } : item
       )
     );
   }, []);
@@ -357,7 +367,8 @@ export const PortfolioProvider = ({ children }) => {
     refreshMarketPrices, 
     addTicker,
     updateTargetAllocation, 
-    updateHoldings, 
+    updateHoldings,
+    updateAnnualFee, // 新規追加
     removeTicker,
     setAdditionalBudget, 
     calculateSimulation,
