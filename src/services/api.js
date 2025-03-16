@@ -1,6 +1,7 @@
 // src/services/api.js
 
 import axios from 'axios';
+import { estimateAnnualFee, guessFundType, extractFundInfo } from '../utils/fundUtils';
 
 /**
  * 強制的にYahoo Finance API利用を無効化し、Alpha Vantageのみを使用するバージョン
@@ -65,6 +66,16 @@ export async function fetchTickerData(ticker) {
       const quoteData = response.data['Global Quote'];
       const price = parseFloat(quoteData['05. price']);
       
+      // ティッカー情報から銘柄名を推定
+      let name = ticker;
+      
+      // ファンド情報の取得（種類と手数料率の推定）
+      const fundInfo = extractFundInfo(ticker, name);
+      const feeInfo = estimateAnnualFee(ticker, name);
+      const fundType = guessFundType(ticker, name);
+      
+      console.log(`[API] Estimated fund type for ${ticker}: ${fundType} with fee ${feeInfo.fee}%`);
+      
       // 基本情報を返す
       return {
         id: ticker,
@@ -74,7 +85,11 @@ export async function fetchTickerData(ticker) {
         price: price,
         currency: ticker.includes('.T') ? 'JPY' : 'USD',
         holdings: 0,
-        annualFee: 0.3,
+        annualFee: feeInfo.fee,
+        fundType: fundType,
+        feeSource: feeInfo.source,
+        feeIsEstimated: feeInfo.isEstimated,
+        region: fundInfo.region,
         lastUpdated: new Date().toISOString(),
         source: 'Alpha Vantage'
       };
@@ -102,6 +117,11 @@ function generateFallbackData(ticker) {
   const isJapanese = ticker.includes('.T');
   const defaultPrice = isJapanese ? 2500 : 150;
   
+  // ファンド情報の取得（種類と手数料率の推定）
+  const fundInfo = extractFundInfo(ticker);
+  const feeInfo = estimateAnnualFee(ticker);
+  const fundType = guessFundType(ticker);
+  
   return {
     id: ticker,
     name: ticker,
@@ -110,7 +130,11 @@ function generateFallbackData(ticker) {
     price: defaultPrice,
     currency: isJapanese ? 'JPY' : 'USD',
     holdings: 0,
-    annualFee: 0.3,
+    annualFee: feeInfo.fee,
+    fundType: fundType,
+    feeSource: feeInfo.source,
+    feeIsEstimated: feeInfo.isEstimated,
+    region: fundInfo.region,
     lastUpdated: new Date().toISOString(),
     source: 'Fallback'
   };
@@ -199,4 +223,48 @@ function getFallbackExchangeRate(fromCurrency, toCurrency) {
     source: 'Fallback',
     lastUpdated: new Date().toISOString()
   };
+}
+
+/**
+ * ファンド情報を取得する
+ * @param {string} ticker - ティッカーシンボル
+ * @returns {Promise<Object>} ファンド情報
+ */
+export async function fetchFundInfo(ticker) {
+  console.log(`[API] Fetching fund info for ${ticker}`);
+  
+  try {
+    // まずはティッカーシンボルから基本情報を推定
+    const fundInfo = extractFundInfo(ticker);
+    const feeInfo = estimateAnnualFee(ticker);
+    const fundType = guessFundType(ticker);
+    
+    return {
+      success: true,
+      ticker: ticker,
+      fundType: fundType,
+      annualFee: feeInfo.fee,
+      feeSource: feeInfo.source,
+      feeIsEstimated: feeInfo.isEstimated,
+      region: fundInfo.region,
+      lastUpdated: new Date().toISOString(),
+      source: 'Estimated'
+    };
+  } 
+  catch (error) {
+    console.error('[API] Fund info error:', error.message);
+    
+    // エラーが発生した場合もデフォルト値を返す
+    return {
+      success: false,
+      ticker: ticker,
+      fundType: 'unknown',
+      annualFee: 0.5, // デフォルト値
+      feeSource: 'Default',
+      feeIsEstimated: true,
+      region: 'unknown',
+      lastUpdated: new Date().toISOString(),
+      source: 'Fallback'
+    };
+  }
 }
