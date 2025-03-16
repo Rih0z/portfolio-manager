@@ -1,127 +1,202 @@
+// src/services/api.js
+
 import axios from 'axios';
 
-// 環境に応じたAPIエンドポイント
-const API_BASE_URL = process.env.NODE_ENV === 'development' 
-  ? '/v7/finance/quote'  // プロキシ経由
-  : '/.netlify/functions/yahoo-finance-proxy'; // 本番環境（Netlify Functions経由）
+/**
+ * 強制的にYahoo Finance API利用を無効化し、Alpha Vantageのみを使用するバージョン
+ * 401エラーの完全な解決のため
+ */
+
+// 環境に応じたベースURL設定
+const isLocalhost = 
+  window.location.hostname === 'localhost' || 
+  window.location.hostname === '127.0.0.1';
+
+// 本番環境のURLは環境変数から取得、未設定の場合は現在のオリジンを使用
+const PROD_BASE_URL = process.env.REACT_APP_API_BASE_URL || 
+                     (!isLocalhost ? window.location.origin : 'https://delicate-malasada-1fb747.netlify.app');
+
+// Alpha Vantage APIエンドポイント（プライマリデータソース）
+const ALPHA_VANTAGE_URL = isLocalhost
+  ? '/.netlify/functions/alpha-vantage-proxy' // ローカル環境
+  : `${PROD_BASE_URL}/.netlify/functions/alpha-vantage-proxy`; // 本番環境
+
+// 環境変数または固定値からAPIキーを取得
+const ALPHA_VANTAGE_KEY = process.env.REACT_APP_ALPHA_VANTAGE_API_KEY || 'GC4EBI5YHFKOJEXY';
+
+// デバッグ用：初期起動時に設定を表示
+console.log(`API Configuration (FORCED ALPHA VANTAGE MODE):
+- Environment: ${isLocalhost ? 'Local development' : 'Production'}
+- Alpha Vantage URL: ${ALPHA_VANTAGE_URL}
+- Alpha Vantage Key: ${ALPHA_VANTAGE_KEY.substring(0, 4)}...`);
 
 /**
- * Yahoo FinanceからティッカーシンボルのデータFetch
+ * 銘柄データを取得する（Alpha Vantageのみを使用）
  * @param {string} ticker - ティッカーシンボル
- * @returns {Promise} - 銘柄情報
+ * @returns {Promise<Object>} 銘柄データ
  */
 export async function fetchTickerData(ticker) {
+  console.log(`[API] Fetching ticker data for ${ticker} using Alpha Vantage only`);
+  
   try {
-    // Yahoo Finance APIへリクエスト
-    const response = await axios.get(API_BASE_URL, {
+    const response = await axios.get(ALPHA_VANTAGE_URL, {
       params: {
-        symbols: ticker
+        function: 'GLOBAL_QUOTE',
+        symbol: ticker,
+        apikey: ALPHA_VANTAGE_KEY
+      },
+      timeout: 15000,
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
       }
     });
     
-    if (response.data && 
-        response.data.quoteResponse && 
-        response.data.quoteResponse.result && 
-        response.data.quoteResponse.result.length > 0) {
+    console.log(`[API] Alpha Vantage response for ${ticker}:`, response.data);
+    
+    // Alpha Vantageのレート制限チェック
+    if (response.data && response.data.Note && response.data.Note.includes('API call frequency')) {
+      console.warn('[API] Alpha Vantage rate limit reached');
+      return generateFallbackData(ticker);
+    }
+    
+    // データチェック
+    if (response.data && response.data['Global Quote'] && response.data['Global Quote']['05. price']) {
+      const quoteData = response.data['Global Quote'];
+      const price = parseFloat(quoteData['05. price']);
       
-      const data = response.data.quoteResponse.result[0];
-      
+      // 基本情報を返す
       return {
-        id: data.symbol,
-        name: data.shortName || data.longName || ticker,
-        ticker: data.symbol,
-        exchangeMarket: data.fullExchangeName?.includes('Tokyo') ? 'Japan' : 'US',
-        price: data.regularMarketPrice,
-        currency: data.currency,
-        holdings: 0,  // デフォルトは0
-        annualFee: 0.3  // デフォルトの手数料率
+        id: ticker,
+        name: ticker, // Alpha Vantageは銘柄名を提供しないのでティッカーを使用
+        ticker: ticker,
+        exchangeMarket: ticker.includes('.T') ? 'Japan' : 'US',
+        price: price,
+        currency: ticker.includes('.T') ? 'JPY' : 'USD',
+        holdings: 0,
+        annualFee: 0.3,
+        lastUpdated: new Date().toISOString(),
+        source: 'Alpha Vantage'
       };
     }
     
-    throw new Error('銘柄情報が見つかりませんでした');
-  } catch (error) {
-    console.error('Yahoo Finance API error:', error);
-    
-    // エラー時のフォールバック（ダミーデータ）
-    return {
-      id: ticker,
-      name: ticker,
-      ticker: ticker,
-      exchangeMarket: ticker.includes('.T') ? 'Japan' : 'US',
-      price: Math.floor(Math.random() * 1000) + 100,  // 100〜1100のランダム価格
-      currency: ticker.includes('.T') ? 'JPY' : 'USD',
-      holdings: 0,
-      annualFee: 0.3
-    };
+    // データが見つからない場合はフォールバック
+    console.warn(`[API] No valid data found for ${ticker}`);
+    return generateFallbackData(ticker);
+  } 
+  catch (error) {
+    console.error('[API] Alpha Vantage error:', error.message);
+    return generateFallbackData(ticker);
   }
+}
+
+/**
+ * フォールバックデータを生成
+ * @param {string} ticker - ティッカーシンボル
+ * @returns {Object} - 生成されたフォールバックデータ
+ */
+function generateFallbackData(ticker) {
+  console.log(`[API] Using fallback data for ${ticker}`);
+  
+  // 市場を簡易判定
+  const isJapanese = ticker.includes('.T');
+  const defaultPrice = isJapanese ? 2500 : 150;
+  
+  return {
+    id: ticker,
+    name: ticker,
+    ticker: ticker,
+    exchangeMarket: isJapanese ? 'Japan' : 'US',
+    price: defaultPrice,
+    currency: isJapanese ? 'JPY' : 'USD',
+    holdings: 0,
+    annualFee: 0.3,
+    lastUpdated: new Date().toISOString(),
+    source: 'Fallback'
+  };
 }
 
 /**
  * 為替レートを取得する
  * @param {string} fromCurrency - 元の通貨
  * @param {string} toCurrency - 変換先通貨
- * @returns {Promise} - 為替レート
+ * @returns {Promise<Object>} - 為替レートデータ
  */
 export async function fetchExchangeRate(fromCurrency, toCurrency) {
-  try {
-    // 同一通貨の場合は1を返す
-    if (fromCurrency === toCurrency) {
-      return {
-        rate: 1,
-        source: 'Direct'
-      };
-    }
-    
-    // 為替ペアを構築
-    const pair = `${fromCurrency}${toCurrency}=X`;
-    
-    // Yahoo Finance APIから為替データ取得
-    const response = await axios.get(API_BASE_URL, {
-      params: {
-        symbols: pair
-      }
-    });
-    
-    if (response.data && 
-        response.data.quoteResponse && 
-        response.data.quoteResponse.result && 
-        response.data.quoteResponse.result.length > 0) {
-      
-      const data = response.data.quoteResponse.result[0];
-      
-      if (data.regularMarketPrice) {
-        return {
-          rate: data.regularMarketPrice,
-          source: 'Yahoo Finance'
-        };
-      }
-    }
-    
-    // データが取得できない場合はデフォルト値を返す
-    throw new Error('為替レートの取得に失敗しました');
-  } catch (error) {
-    console.error('Exchange rate fetch error:', error);
-    
-    // USD/JPYのデフォルト値
-    if (fromCurrency === 'USD' && toCurrency === 'JPY') {
-      return {
-        rate: 150.0,
-        source: 'Default'
-      };
-    }
-    
-    // JPY/USDのデフォルト値
-    if (fromCurrency === 'JPY' && toCurrency === 'USD') {
-      return {
-        rate: 1/150.0,
-        source: 'Default'
-      };
-    }
-    
-    // その他の通貨ペアの場合は1を返す
+  console.log(`[API] Fetching exchange rate ${fromCurrency}/${toCurrency}`);
+  
+  // 同一通貨の場合は1を返す
+  if (fromCurrency === toCurrency) {
     return {
       rate: 1,
-      source: 'Default'
+      source: 'Direct',
+      lastUpdated: new Date().toISOString()
     };
   }
+  
+  try {
+    // Alpha Vantage APIから為替レートを取得
+    const response = await axios.get(ALPHA_VANTAGE_URL, {
+      params: {
+        function: 'CURRENCY_EXCHANGE_RATE',
+        from_currency: fromCurrency,
+        to_currency: toCurrency,
+        apikey: ALPHA_VANTAGE_KEY
+      },
+      timeout: 15000
+    });
+    
+    // レスポンスを確認
+    if (response.data && 
+        response.data['Realtime Currency Exchange Rate'] && 
+        response.data['Realtime Currency Exchange Rate']['5. Exchange Rate']) {
+      
+      const rate = parseFloat(response.data['Realtime Currency Exchange Rate']['5. Exchange Rate']);
+      
+      return {
+        rate: rate,
+        source: 'Alpha Vantage',
+        lastUpdated: new Date().toISOString()
+      };
+    }
+    
+    // データが見つからない場合はフォールバック
+    return getFallbackExchangeRate(fromCurrency, toCurrency);
+  } 
+  catch (error) {
+    console.error('[API] Exchange rate error:', error.message);
+    return getFallbackExchangeRate(fromCurrency, toCurrency);
+  }
+}
+
+/**
+ * フォールバックの為替レートを取得
+ * @param {string} fromCurrency - 元の通貨
+ * @param {string} toCurrency - 変換先通貨
+ * @returns {Object} - フォールバックの為替レート
+ */
+function getFallbackExchangeRate(fromCurrency, toCurrency) {
+  console.log(`[API] Using fallback exchange rate for ${fromCurrency}/${toCurrency}`);
+  
+  let rate = 1;
+  
+  // 主要な通貨ペアのデフォルト値
+  if (fromCurrency === 'USD' && toCurrency === 'JPY') {
+    rate = 150.0;
+  } 
+  else if (fromCurrency === 'JPY' && toCurrency === 'USD') {
+    rate = 1 / 150.0;
+  }
+  else if (fromCurrency === 'EUR' && toCurrency === 'USD') {
+    rate = 1.1;
+  }
+  else if (fromCurrency === 'EUR' && toCurrency === 'JPY') {
+    rate = 160.0;
+  }
+  
+  return {
+    rate: rate,
+    source: 'Fallback',
+    lastUpdated: new Date().toISOString()
+  };
 }
