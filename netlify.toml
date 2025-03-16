@@ -10,7 +10,7 @@
   publish = "build"
   functionsPort = 9000
 
-# 追加: Functions へのアクセス許可設定
+# Functions へのアクセス許可設定
 [[headers]]
   for = "/.netlify/functions/*"
     [headers.values]
@@ -18,7 +18,7 @@
     Access-Control-Allow-Headers = "Content-Type, Authorization"
     Access-Control-Allow-Methods = "GET, POST, OPTIONS"
 
-# 追加: Functions への直接アクセス用リダイレクト
+# Functions への直接アクセス用リダイレクト
 [[redirects]]
   from = "/.netlify/functions/*"
   to = "/.netlify/functions/:splat"
@@ -35,7 +35,7 @@
   to = "/index.html"
   status = 200
 
-# 追加: Functions 設定
+# Functions 設定
 [functions]
   directory = "functions"
   node_bundler = "esbuild"
