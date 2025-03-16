@@ -1,4 +1,4 @@
-# ポートフォリオマネージャー 仕様書（最終更新版）
+# ポートフォリオマネージャー 仕様書（更新版）
 
 ## 1. プロジェクト概要
 
@@ -26,7 +26,6 @@
 - **UI拡張**: @headlessui/react 1.x
 - **サーバーレス関数**: Netlify Functions
 - **デプロイ**: Netlify
-- **市場データAPI**: Alpha Vantage (GC4EBI5YHFKOJEXY)
 
 ## 2. 環境設定
 
@@ -48,13 +47,10 @@ REACT_APP_ALPHA_VANTAGE_API_KEY=GC4EBI5YHFKOJEXY
 
 # Netlify Functions用環境変数
 ALPHA_VANTAGE_API_KEY=GC4EBI5YHFKOJEXY
-
-# APIベースURL（本番環境用、未設定の場合はwindow.location.originを使用）
-REACT_APP_API_BASE_URL=https://delicate-malasada-1fb747.netlify.app
 ```
 
 ### 2.3 Netlify Functions設定
-netlify.toml（最終版）:
+netlify.toml（更新版）:
 ```toml
 [build]
   command = "CI= npm run build"
@@ -102,7 +98,7 @@ netlify.toml（最終版）:
 
 ## 3. アプリケーションの構造
 
-### 3.1 ディレクトリ構造（最終版）
+### 3.1 ディレクトリ構造（更新版）
 ```
 portfolio-manager/
 ├── public/
@@ -154,7 +150,7 @@ portfolio-manager/
 │   │   └── usePortfolioContext.js
 │   ├── services/
 │   │   ├── api.js
-│   │   └── marketDataService.js (廃止・統合)
+│   │   └── marketDataService.js
 │   ├── utils/
 │   │   └── formatters.js
 │   ├── App.jsx
@@ -162,6 +158,7 @@ portfolio-manager/
 │   ├── setupProxy.js
 │   └── index.css
 ├── functions/
+│   ├── yahoo-finance-proxy.js
 │   ├── alpha-vantage-proxy.js
 │   └── mof-exchange-rate-proxy.js
 ├── package.json
@@ -174,13 +171,15 @@ portfolio-manager/
 ### 3.2 主要ファイルの役割
 - **App.jsx**: アプリケーションのルートコンポーネント、認証プロバイダー、ルーティング設定
 - **context/AuthContext.js**: Google認証管理（jwt-decode 3.x対応済み）
-- **context/PortfolioContext.js**: ポートフォリオ状態・ロジック管理、API機能の利用
+- **context/PortfolioContext.js**: ポートフォリオ状態・ロジック管理
 - **hooks/useAuth.js**: 認証状態管理フック
 - **hooks/usePortfolioContext.js**: ポートフォリオコンテキスト使用フック
-- **services/api.js**: Alpha Vantage APIとの通信機能を統合したシンプルなAPI層
 - **setupProxy.js**: 開発環境用APIプロキシ設定
+- **index.css**: Tailwind CSSとiOS風インターフェース用スタイリング
+- **services/marketDataService.js**: 市場データ取得サービス（複数データソース対応）
 - **functions/alpha-vantage-proxy.js**: Alpha Vantage API呼び出し用のサーバーレス関数
-- **functions/mof-exchange-rate-proxy.js**: 財務省為替レート取得用のサーバーレス関数（現在は使用していない）
+- **functions/yahoo-finance-proxy.js**: Yahoo Finance API呼び出し用のサーバーレス関数
+- **functions/mof-exchange-rate-proxy.js**: 財務省為替レート取得用のサーバーレス関数
 
 ## 4. 特記事項と解決済み技術課題
 
@@ -217,26 +216,25 @@ app.use(
 - ARIAロール属性の適切な使用
 - 色のコントラスト比の確保
 
-### 4.4 市場データのAPI切り替え（重要な更新）
-Yahoo Finance APIとの接続で401 Unauthorized エラーが継続的に発生していたため、以下の対応を行いました：
+### 4.4 市場データの複数ソース対応（更新）
+市場データの取得において、以下の順で複数ソースを試行するフォールバック機構を実装しました：
+1. Alpha Vantage API（プライマリソース）
+2. デフォルト値の使用（フォールバック）
 
-1. **Yahoo Finance API廃止**:
-   - Yahoo Finance APIへの依存を完全に排除
-   - Yahoo Finance関連のコードを削除
+Yahoo Finance APIからの継続的な401 Unauthorized エラーを回避するため、Alpha Vantage APIを直接プライマリソースとして使用するように変更しました。APIリクエストにはタイムアウト設定を追加し、応答が遅い場合に迅速にフォールバック値に切り替わるようにしています：
+```javascript
+// Alpha Vantage: 15秒タイムアウト
+await axios.get(ALPHA_VANTAGE_URL, {
+  params: {
+    function: 'GLOBAL_QUOTE',
+    symbol: ticker,
+    apikey: ALPHA_VANTAGE_KEY
+  },
+  timeout: 15000
+});
+```
 
-2. **Alpha Vantage APIへの完全移行**:
-   - Alpha Vantage APIをプライマリソースとして使用
-   - api.jsを簡素化しより強固なエラーハンドリングを実装
-
-3. **レート制限対応**:
-   - Alpha Vantage APIの無料プランには1日25リクエストの制限あり
-   - レート制限検出とフォールバック値使用機能を実装
-
-4. **エラーハンドリング強化**:
-   - 詳細なデバッグログ出力
-   - タイムアウト設定を15秒に延長
-   - レート制限時の429ステータスコード返却
-   - キャッシュ無効化ヘッダーの追加
+詳細なログを出力することでデバッグを容易にし、API取得の失敗原因を特定できるようにしています。なお、Alpha Vantage APIには無料プランで1日25リクエストの制限があるため、フォールバック値の使用は重要な役割を果たします。
 
 ## 5. 実装上の注意点
 
@@ -252,7 +250,9 @@ Yahoo Finance APIとの接続で401 Unauthorized エラーが継続的に発生�
 - `.netlify/functions/`パスでアクセス可能
 - CORS対応済み（プリフライトリクエスト処理含む）
 - 主要な関数：
-  - **alpha-vantage-proxy.js**: Alpha Vantage APIの呼び出し（詳細なログ出力強化済み）
+  - **yahoo-finance-proxy.js**: Yahoo Finance APIの呼び出し
+  - **alpha-vantage-proxy.js**: Alpha Vantage APIの呼び出し
+  - **mof-exchange-rate-proxy.js**: 財務省為替レートの取得
 
 ### 5.3 タイポグラフィ・スタイリング
 - システムフォント（sans-serif）の優先使用
@@ -269,7 +269,7 @@ Yahoo Finance APIとの接続で401 Unauthorized エラーが継続的に発生�
     "react-app/jest"
   ],
   "rules": {
-    "no-console": ["warn", { "allow": ["warn", "error", "log"] }],
+    "no-console": ["warn", { "allow": ["warn", "error"] }],
     "no-unused-vars": "warn",
     "react-hooks/rules-of-hooks": "error",
     "react-hooks/exhaustive-deps": "warn",
@@ -284,12 +284,11 @@ Yahoo Finance APIとの接続で401 Unauthorized エラーが継続的に発生�
 - アクセシビリティに配慮したUI実装
 - 条件付きレンダリングのクリーンな実装
 
-### 6.3 データ取得とエラーハンドリング（最終更新）
-- シンプルなAPI層実装（src/services/api.js）
-- フォールバック機構の強化（レート制限時の自動フォールバック対応）
-- 詳細なデバッグログ出力とエラー情報収集
-- タイムアウト設定の最適化（15秒）
-- ユーザーフレンドリーなエラーメッセージ表示とデータソース情報の通知
+### 6.3 データ取得とエラーハンドリング（更新）
+- 複数データソースを試行するフォールバック機構
+- 詳細なエラーログ出力
+- タイムアウト設定によるレスポンス改善
+- ユーザーフレンドリーなエラーメッセージ表示
 
 ## 7. 今後の拡張計画
 
@@ -299,7 +298,7 @@ Yahoo Finance APIとの接続で401 Unauthorized エラーが継続的に発生�
 - 複数デバイス間でのリアルタイムデータ同期
 - 証券会社APIとの連携によるデータ自動更新
 - モバイル専用アプリの開発（React Native）
-- 有料APIプランの検討（レート制限の解消）
+- より信頼性の高い代替市場データAPIの検討
 
 ---
 
@@ -311,4 +310,3 @@ Yahoo Finance APIとの接続で401 Unauthorized エラーが継続的に発生�
 | 3.0 | 2025/03/17 | jwt-decode対応・プロキシ設定・ESLint設定の改訂 |  |
 | 4.0 | 2025/03/18 | Alpha Vantage API連携強化・環境変数名統一・データフォールバック機構拡充 |  |
 | 5.0 | 2025/03/18 | Yahoo Finance API無効化、Alpha Vantageをプライマリソースに変更、401認証エラー対応 |  |
-| 6.0 | 2025/03/19 | 実装確認後の仕様書最終更新、API完全切り替え対応 |  |
