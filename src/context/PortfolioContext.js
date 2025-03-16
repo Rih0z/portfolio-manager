@@ -1,5 +1,5 @@
 import React, { createContext, useState, useCallback, useEffect } from 'react';
-import { fetchTickerData } from '../services/api';
+import { fetchTickerData, fetchExchangeRate } from '../services/api';
 
 export const PortfolioContext = createContext();
 
@@ -39,14 +39,19 @@ export const PortfolioProvider = ({ children }) => {
   const refreshMarketPrices = useCallback(async () => {
     setIsLoading(true);
     try {
+      console.log('Refreshing market prices for all assets...');
       // 全ての保有銘柄の最新価格を取得
       const updatedAssets = await Promise.all(
         currentAssets.map(async (asset) => {
           try {
+            // Alpha Vantageから直接データ取得
             const updatedData = await fetchTickerData(asset.ticker);
+            console.log(`Updated data for ${asset.ticker}:`, updatedData);
             return {
               ...asset,
-              price: updatedData.price
+              price: updatedData.price,
+              source: updatedData.source,
+              lastUpdated: updatedData.lastUpdated
             };
           } catch (error) {
             console.error(`銘柄 ${asset.ticker} の更新に失敗しました`, error);
@@ -58,7 +63,24 @@ export const PortfolioProvider = ({ children }) => {
       setCurrentAssets(updatedAssets);
       setLastUpdated(new Date().toISOString());
       
-      return { success: true, message: '市場データを更新しました' };
+      // データソースの統計を計算
+      const sourceCounts = updatedAssets.reduce((acc, asset) => {
+        acc[asset.source] = (acc[asset.source] || 0) + 1;
+        return acc;
+      }, {});
+      
+      // 通知メッセージを作成
+      let message = '市場データを更新しました';
+      if (sourceCounts['Alpha Vantage']) {
+        message += ` (Alpha Vantage: ${sourceCounts['Alpha Vantage']}件`;
+      }
+      if (sourceCounts['Fallback']) {
+        message += `, フォールバック: ${sourceCounts['Fallback']}件`;
+      }
+      message += ')';
+      
+      addNotification(message, 'success');
+      return { success: true, message };
     } catch (error) {
       console.error('市場データの更新に失敗しました', error);
       addNotification('市場データの更新に失敗しました', 'error');
@@ -80,8 +102,9 @@ export const PortfolioProvider = ({ children }) => {
         return { success: false, message: '既に追加されている銘柄です' };
       }
 
-      // Yahoo Financeから銘柄データ取得
+      // Alpha Vantageから銘柄データ取得
       const tickerData = await fetchTickerData(ticker);
+      console.log('Fetched ticker data:', tickerData);
 
       // 目標配分に追加
       setTargetPortfolio(prev => {
@@ -257,6 +280,35 @@ export const PortfolioProvider = ({ children }) => {
       targetPortfolio
     };
   }, [baseCurrency, exchangeRate, lastUpdated, currentAssets, targetPortfolio]);
+
+  // 為替レートの更新
+  const updateExchangeRate = useCallback(async () => {
+    try {
+      if (baseCurrency === 'JPY') {
+        const result = await fetchExchangeRate('USD', 'JPY');
+        setExchangeRate({
+          rate: result.rate,
+          source: result.source,
+          lastUpdated: result.lastUpdated
+        });
+      } else {
+        const result = await fetchExchangeRate('JPY', 'USD');
+        setExchangeRate({
+          rate: result.rate,
+          source: result.source,
+          lastUpdated: result.lastUpdated
+        });
+      }
+    } catch (error) {
+      console.error('為替レートの更新に失敗しました', error);
+      // 更新失敗時は既存のレートを維持
+    }
+  }, [baseCurrency]);
+
+  // 通貨切替時に為替レートを更新
+  useEffect(() => {
+    updateExchangeRate();
+  }, [baseCurrency, updateExchangeRate]);
 
   // 総資産額の計算
   const totalAssets = currentAssets.reduce((sum, asset) => {
