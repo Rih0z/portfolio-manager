@@ -1,5 +1,5 @@
 import React, { createContext, useState, useCallback, useEffect } from 'react';
-import { fetchTickerData, fetchExchangeRate } from '../services/api';
+import { fetchTickerData, fetchExchangeRate, fetchFundInfo } from '../services/api';
 
 export const PortfolioContext = createContext();
 
@@ -47,11 +47,20 @@ export const PortfolioProvider = ({ children }) => {
             // Alpha Vantageから直接データ取得
             const updatedData = await fetchTickerData(asset.ticker);
             console.log(`Updated data for ${asset.ticker}:`, updatedData);
+            
+            // 手数料情報も合わせて更新（ユーザーが手動で設定した場合は上書きしない）
+            const preserveUserFee = asset.hasOwnProperty('userSetFee') && asset.userSetFee === true;
+            
             return {
               ...asset,
               price: updatedData.price,
               source: updatedData.source,
-              lastUpdated: updatedData.lastUpdated
+              lastUpdated: updatedData.lastUpdated,
+              annualFee: preserveUserFee ? asset.annualFee : updatedData.annualFee,
+              fundType: updatedData.fundType || asset.fundType,
+              feeSource: preserveUserFee ? 'ユーザー設定' : updatedData.feeSource,
+              feeIsEstimated: preserveUserFee ? false : updatedData.feeIsEstimated,
+              region: updatedData.region || asset.region
             };
           } catch (error) {
             console.error(`銘柄 ${asset.ticker} の更新に失敗しました`, error);
@@ -106,6 +115,17 @@ export const PortfolioProvider = ({ children }) => {
       const tickerData = await fetchTickerData(ticker);
       console.log('Fetched ticker data:', tickerData);
 
+      // ファンド情報を取得（手数料率など）
+      const fundInfoResult = await fetchFundInfo(ticker);
+      console.log('Fetched fund info:', fundInfoResult);
+      
+      // 自動取得した手数料情報のメッセージを作成
+      let feeMessage = '';
+      if (fundInfoResult.success) {
+        const { fundType, annualFee, feeIsEstimated } = fundInfoResult;
+        feeMessage = `${fundType} ファンドとして判定し、年間手数料率${annualFee}%を${feeIsEstimated ? '推定' : '設定'}しました`;
+      }
+
       // 目標配分に追加
       setTargetPortfolio(prev => {
         const newItems = [...prev, {
@@ -115,15 +135,24 @@ export const PortfolioProvider = ({ children }) => {
         return newItems;
       });
 
-      // 保有資産に追加（初期値として手数料率0%を設定）
+      // 保有資産に追加（ファンド情報を含む）
       setCurrentAssets(prev => {
         const newItems = [...prev, {
           ...tickerData,
           holdings: 0,
-          annualFee: 0 // デフォルトの年間手数料率
+          annualFee: tickerData.annualFee || 0, // 取得した手数料情報を使用
+          fundType: tickerData.fundType || 'unknown',
+          feeSource: tickerData.feeSource || 'Estimated',
+          feeIsEstimated: tickerData.feeIsEstimated || true,
+          region: tickerData.region || 'unknown'
         }];
         return newItems;
       });
+
+      // 手数料情報の通知を追加
+      if (feeMessage) {
+        addNotification(feeMessage, 'info');
+      }
 
       return { success: true, message: '銘柄を追加しました' };
     } catch (error) {
@@ -155,7 +184,13 @@ export const PortfolioProvider = ({ children }) => {
   const updateAnnualFee = useCallback((id, fee) => {
     setCurrentAssets(prev => 
       prev.map(item => 
-        item.id === id ? { ...item, annualFee: parseFloat(parseFloat(fee).toFixed(2)) || 0 } : item
+        item.id === id ? { 
+          ...item, 
+          annualFee: parseFloat(parseFloat(fee).toFixed(2)) || 0,
+          userSetFee: true, // ユーザーが手動で設定したことを記録
+          feeSource: 'ユーザー設定',
+          feeIsEstimated: false
+        } : item
       )
     );
   }, []);
