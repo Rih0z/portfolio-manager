@@ -164,6 +164,11 @@ const HoldingsEditor = () => {
                       <div className="text-xs text-gray-500">
                         {asset.ticker}
                       </div>
+                      {asset.fundType && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          {asset.fundType}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </td>
@@ -252,29 +257,44 @@ const HoldingsEditor = () => {
                       </button>
                     </div>
                   ) : (
-                    <div className="flex items-center">
-                      <button
-                        onClick={() => handleIncrementFee(asset, -0.01)}
-                        className="p-1 bg-red-100 text-red-700 rounded text-xs"
-                        disabled={(asset.annualFee || 0) <= 0}
-                      >
-                        -
-                      </button>
-                      <span className="mx-2 text-sm">
-                        {formatPercent(asset.annualFee || 0, 2)}
-                      </span>
-                      <button
-                        onClick={() => handleIncrementFee(asset, 0.01)}
-                        className="p-1 bg-green-100 text-green-700 rounded text-xs"
-                      >
-                        +
-                      </button>
-                      <button
-                        onClick={() => startEditing(asset.id, asset.annualFee || 0, 'annualFee')}
-                        className="ml-2 text-blue-600 text-xs"
-                      >
-                        編集
-                      </button>
+                    <div className="flex flex-col">
+                      <div className="flex items-center">
+                        <button
+                          onClick={() => handleIncrementFee(asset, -0.01)}
+                          className="p-1 bg-red-100 text-red-700 rounded text-xs"
+                          disabled={(asset.annualFee || 0) <= 0}
+                        >
+                          -
+                        </button>
+                        <span className="mx-2 text-sm">
+                          {formatPercent(asset.annualFee || 0, 2)}
+                        </span>
+                        <button
+                          onClick={() => handleIncrementFee(asset, 0.01)}
+                          className="p-1 bg-green-100 text-green-700 rounded text-xs"
+                        >
+                          +
+                        </button>
+                        <button
+                          onClick={() => startEditing(asset.id, asset.annualFee || 0, 'annualFee')}
+                          className="ml-2 text-blue-600 text-xs"
+                        >
+                          編集
+                        </button>
+                      </div>
+                      {asset.feeSource && (
+                        <div className="mt-1">
+                          <span className={`text-xs px-1.5 py-0.5 rounded ${
+                            asset.feeSource === 'ユーザー設定' 
+                              ? 'bg-purple-100 text-purple-800' 
+                              : asset.feeIsEstimated 
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-green-100 text-green-800'
+                          }`}>
+                            {asset.feeSource}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   )}
                 </td>
@@ -300,6 +320,18 @@ const HoldingsEditor = () => {
             ))}
           </tbody>
         </table>
+      </div>
+      
+      <div className="mt-4 bg-gray-50 p-4 rounded-md">
+        <h3 className="text-sm font-medium text-gray-700 mb-2">ファンド手数料について</h3>
+        <p className="text-xs text-gray-600">
+          年間手数料はファンドの種類から自動的に推定されています。より正確なデータが必要な場合は、各ファンドの最新の目論見書などを参照して手動で編集してください。
+          <span className="block mt-1">
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 mr-1">推定値</span>
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 mr-1">ティッカー固有の情報</span>
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">ユーザー設定</span>
+          </span>
+        </p>
       </div>
       
       {message && (
