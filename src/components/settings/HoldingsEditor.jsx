@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
-import { formatCurrency } from '../../utils/formatters';
+import { formatCurrency, formatPercent } from '../../utils/formatters';
 
 const HoldingsEditor = () => {
   const { 
     currentAssets,
     updateHoldings,
+    updateAnnualFee,
     removeTicker,
     baseCurrency,
     exchangeRate
@@ -13,17 +14,19 @@ const HoldingsEditor = () => {
   
   const [editingId, setEditingId] = useState(null);
   const [editValue, setEditValue] = useState('');
+  const [editField, setEditField] = useState(null); // 追加: 編集中のフィールドを追跡
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState('');
 
-  // 保有数量の編集を開始
-  const startEditing = (id, holdings) => {
+  // 編集を開始
+  const startEditing = (id, value, field) => {
     setEditingId(id);
-    setEditValue(holdings.toString());
+    setEditValue(value.toString());
+    setEditField(field);
   };
 
   // 保有数量の更新
-  const handleUpdateHoldings = (id) => {
+  const handleUpdate = (id) => {
     // 入力値をチェック
     const value = parseFloat(editValue);
     if (isNaN(value) || value < 0) {
@@ -31,10 +34,18 @@ const HoldingsEditor = () => {
       return;
     }
     
-    // 保有数量の更新（小数点以下4桁まで対応）
-    updateHoldings(id, parseFloat(value.toFixed(4)));
+    if (editField === 'holdings') {
+      // 保有数量の更新（小数点以下4桁まで対応）
+      updateHoldings(id, parseFloat(value.toFixed(4)));
+      showMessage('保有数量を更新しました', 'success');
+    } else if (editField === 'annualFee') {
+      // 年間手数料率の更新（小数点以下2桁まで対応）
+      updateAnnualFee(id, parseFloat(value.toFixed(2)));
+      showMessage('年間手数料率を更新しました', 'success');
+    }
+    
     setEditingId(null);
-    showMessage('保有数量を更新しました', 'success');
+    setEditField(null);
   };
 
   // 資産の評価額を計算
@@ -53,6 +64,22 @@ const HoldingsEditor = () => {
     return value;
   };
 
+  // 年間手数料を計算
+  const calculateAnnualFee = (asset) => {
+    let assetValue = asset.price * asset.holdings;
+    
+    // 通貨換算
+    if (asset.currency !== baseCurrency) {
+      if (baseCurrency === 'JPY' && asset.currency === 'USD') {
+        assetValue *= exchangeRate.rate || 150;
+      } else if (baseCurrency === 'USD' && asset.currency === 'JPY') {
+        assetValue /= exchangeRate.rate || 150;
+      }
+    }
+    
+    return assetValue * (asset.annualFee || 0) / 100;
+  };
+
   // 銘柄の削除
   const handleRemoveTicker = (id, name) => {
     if (window.confirm(`${name}を削除してもよろしいですか？`)) {
@@ -66,6 +93,13 @@ const HoldingsEditor = () => {
     // 0以上の値に制限
     const newValue = Math.max(0, asset.holdings + amount);
     updateHoldings(asset.id, parseFloat(newValue.toFixed(4)));
+  };
+
+  // 手数料率の増減
+  const handleIncrementFee = (asset, amount) => {
+    // 0以上の値に制限
+    const newValue = Math.max(0, (asset.annualFee || 0) + amount);
+    updateAnnualFee(asset.id, parseFloat(newValue.toFixed(2)));
   };
 
   // メッセージの表示
@@ -105,7 +139,13 @@ const HoldingsEditor = () => {
                 保有数
               </th>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                年間手数料率(%)
+              </th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 評価額
+              </th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                年間手数料
               </th>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 操作
@@ -133,7 +173,7 @@ const HoldingsEditor = () => {
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  {editingId === asset.id ? (
+                  {editingId === asset.id && editField === 'holdings' ? (
                     <div className="flex items-center">
                       <input
                         type="number"
@@ -144,13 +184,16 @@ const HoldingsEditor = () => {
                         step="0.0001" // 小数点以下4桁まで対応
                       />
                       <button
-                        onClick={() => handleUpdateHoldings(asset.id)}
+                        onClick={() => handleUpdate(asset.id)}
                         className="ml-2 p-1 bg-green-600 text-white rounded text-xs"
                       >
                         保存
                       </button>
                       <button
-                        onClick={() => setEditingId(null)}
+                        onClick={() => {
+                          setEditingId(null);
+                          setEditField(null);
+                        }}
                         className="ml-1 p-1 bg-gray-500 text-white rounded text-xs"
                       >
                         キャンセル
@@ -173,7 +216,61 @@ const HoldingsEditor = () => {
                         +
                       </button>
                       <button
-                        onClick={() => startEditing(asset.id, asset.holdings)}
+                        onClick={() => startEditing(asset.id, asset.holdings, 'holdings')}
+                        className="ml-2 text-blue-600 text-xs"
+                      >
+                        編集
+                      </button>
+                    </div>
+                  )}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {editingId === asset.id && editField === 'annualFee' ? (
+                    <div className="flex items-center">
+                      <input
+                        type="number"
+                        value={editValue}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        className="w-24 p-1 border rounded text-sm"
+                        min="0"
+                        step="0.01" // 小数点以下2桁まで対応
+                      />
+                      <button
+                        onClick={() => handleUpdate(asset.id)}
+                        className="ml-2 p-1 bg-green-600 text-white rounded text-xs"
+                      >
+                        保存
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditingId(null);
+                          setEditField(null);
+                        }}
+                        className="ml-1 p-1 bg-gray-500 text-white rounded text-xs"
+                      >
+                        キャンセル
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center">
+                      <button
+                        onClick={() => handleIncrementFee(asset, -0.01)}
+                        className="p-1 bg-red-100 text-red-700 rounded text-xs"
+                        disabled={(asset.annualFee || 0) <= 0}
+                      >
+                        -
+                      </button>
+                      <span className="mx-2 text-sm">
+                        {formatPercent(asset.annualFee || 0, 2)}
+                      </span>
+                      <button
+                        onClick={() => handleIncrementFee(asset, 0.01)}
+                        className="p-1 bg-green-100 text-green-700 rounded text-xs"
+                      >
+                        +
+                      </button>
+                      <button
+                        onClick={() => startEditing(asset.id, asset.annualFee || 0, 'annualFee')}
                         className="ml-2 text-blue-600 text-xs"
                       >
                         編集
@@ -184,6 +281,11 @@ const HoldingsEditor = () => {
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900">
                     {formatCurrency(calculateAssetValue(asset), baseCurrency)}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-red-600">
+                    {formatCurrency(calculateAnnualFee(asset), baseCurrency)}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
