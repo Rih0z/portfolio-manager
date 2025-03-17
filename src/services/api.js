@@ -299,7 +299,7 @@ export async function fetchFundInfo(ticker) {
   }
 }
 
-// ここからGoogleドライブAPI連携のコード（シンプル版）
+// ここからGoogleドライブAPI連携のコード（修正版）
 
 // アクセストークンの保存用変数
 let accessToken = null;
@@ -333,7 +333,47 @@ export function setGoogleAccessToken(token) {
 }
 
 /**
- * シンプル化されたGoogleドライブへのデータ保存
+ * Google Driveにアクセスするためのトークンを取得する（改良版）
+ * @returns {Promise<string|null>} アクセストークンまたはnull
+ */
+async function getGoogleAccessToken() {
+  return new Promise((resolve, reject) => {
+    try {
+      // 認証をチェック
+      if (window.google && window.google.accounts && window.google.accounts.oauth2) {
+        const tokenClient = window.google.accounts.oauth2.initTokenClient({
+          client_id: GOOGLE_CLIENT_ID,
+          scope: 'https://www.googleapis.com/auth/drive.file',
+          callback: (tokenResponse) => {
+            if (tokenResponse && tokenResponse.access_token) {
+              console.log('[API] New access token acquired');
+              resolve(tokenResponse.access_token);
+            } else {
+              console.warn('[API] No access token in response');
+              resolve(null);
+            }
+          },
+          error_callback: (error) => {
+            console.error('[API] Error getting token:', error);
+            reject(error);
+          }
+        });
+        
+        // トークンをリクエスト
+        tokenClient.requestAccessToken({ prompt: '' });
+      } else {
+        console.warn('[API] Google OAuth API not available');
+        resolve(null);
+      }
+    } catch (error) {
+      console.error('[API] Error in getGoogleAccessToken:', error);
+      reject(error);
+    }
+  });
+}
+
+/**
+ * シンプル化されたGoogleドライブへのデータ保存（改良版）
  * @param {Object} data - 保存するデータ
  * @param {Object} userData - ユーザー情報
  * @param {string} filename - ファイル名
@@ -348,11 +388,11 @@ export async function saveToGoogleDrive(data, userData, filename = 'portfolio_da
   }
   
   try {
-    // トークンを取得
-    const token = accessToken || localStorage.getItem('googleToken');
-    if (!token) {
-      console.error('[API] No access token available for Google Drive operations');
-      return { success: false, message: 'アクセストークンがありません。再度ログインしてください。' };
+    // 新しいアクセストークンを取得
+    const newToken = await getGoogleAccessToken();
+    if (!newToken) {
+      console.error('[API] Failed to get access token');
+      return { success: false, message: 'アクセストークンの取得に失敗しました。再度ログインしてください。' };
     }
     
     // メタデータとファイル内容の準備
@@ -376,7 +416,7 @@ export async function saveToGoogleDrive(data, userData, filename = 'portfolio_da
       {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${newToken}`
         },
         body: formData
       }
@@ -408,7 +448,7 @@ export async function saveToGoogleDrive(data, userData, filename = 'portfolio_da
 }
 
 /**
- * シンプル化されたGoogleドライブからのデータ読み込み
+ * シンプル化されたGoogleドライブからのデータ読み込み（改良版）
  * @param {Object} userData - ユーザー情報
  * @param {string} filename - ファイル名
  * @returns {Promise<Object>} 読み込み結果
@@ -422,11 +462,11 @@ export async function loadFromGoogleDrive(userData, filename = 'portfolio_data.j
   }
   
   try {
-    // トークンを取得
-    const token = accessToken || localStorage.getItem('googleToken');
-    if (!token) {
-      console.error('[API] No access token available for Google Drive operations');
-      return { success: false, message: 'アクセストークンがありません。再度ログインしてください。' };
+    // 新しいアクセストークンを取得
+    const newToken = await getGoogleAccessToken();
+    if (!newToken) {
+      console.error('[API] Failed to get access token');
+      return { success: false, message: 'アクセストークンの取得に失敗しました。再度ログインしてください。' };
     }
     
     // ファイルを検索するクエリを構築
@@ -437,7 +477,7 @@ export async function loadFromGoogleDrive(userData, filename = 'portfolio_data.j
       `https://www.googleapis.com/drive/v3/files?q=${query}`,
       {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${newToken}`
         }
       }
     );
@@ -465,7 +505,7 @@ export async function loadFromGoogleDrive(userData, filename = 'portfolio_data.j
       `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
       {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${newToken}`
         }
       }
     );
@@ -497,7 +537,7 @@ export async function loadFromGoogleDrive(userData, filename = 'portfolio_data.j
 }
 
 /**
- * シンプル化されたGoogleドライブのファイル削除
+ * シンプル化されたGoogleドライブのファイル削除（改良版）
  * @param {string} fileId - 削除するファイルのID
  * @param {Object} userData - ユーザー情報
  * @returns {Promise<Object>} - 削除結果
@@ -515,11 +555,11 @@ export async function deleteFileFromGoogleDrive(fileId, userData) {
   }
   
   try {
-    // トークンを取得
-    const token = accessToken || localStorage.getItem('googleToken');
-    if (!token) {
-      console.error('[API] No access token available for Google Drive operations');
-      return { success: false, message: 'アクセストークンがありません' };
+    // 新しいアクセストークンを取得
+    const newToken = await getGoogleAccessToken();
+    if (!newToken) {
+      console.error('[API] Failed to get access token');
+      return { success: false, message: 'アクセストークンの取得に失敗しました。再度ログインしてください。' };
     }
     
     // ファイルを削除
@@ -528,7 +568,7 @@ export async function deleteFileFromGoogleDrive(fileId, userData) {
       {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${newToken}`
         }
       }
     );
