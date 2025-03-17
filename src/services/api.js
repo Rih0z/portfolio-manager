@@ -299,10 +299,26 @@ export async function fetchFundInfo(ticker) {
   }
 }
 
-// ここからGoogleドライブAPI連携のコード（単純化版）
+// ここからGoogleドライブAPI連携のコード（シンプル版）
 
 // アクセストークンの保存用変数
 let accessToken = null;
+
+/**
+ * GoogleドライブAPIの初期化（シンプル版）
+ * @returns {Promise<boolean>} 初期化が成功したかどうか
+ */
+export async function initGoogleDriveAPI() {
+  console.log('[API] Initializing Google Drive API (simplified version)');
+  
+  try {
+    // スタブ実装 - 常に成功を返します
+    return true;
+  } catch (error) {
+    console.error('[API] Error initializing Google Drive API:', error);
+    return false;
+  }
+}
 
 /**
  * アクセストークンを設定する
@@ -477,5 +493,59 @@ export async function loadFromGoogleDrive(userData, filename = 'portfolio_data.j
       success: false, 
       message: `Googleドライブからの読み込みに失敗しました: ${error.message}` 
     };
+  }
+}
+
+/**
+ * シンプル化されたGoogleドライブのファイル削除
+ * @param {string} fileId - 削除するファイルのID
+ * @param {Object} userData - ユーザー情報
+ * @returns {Promise<Object>} - 削除結果
+ */
+export async function deleteFileFromGoogleDrive(fileId, userData) {
+  console.log(`[API] Deleting file from Google Drive: ${fileId}`);
+  
+  if (!userData || !userData.email) {
+    console.error('[API] User data is required for Google Drive operations');
+    return { success: false, message: 'ユーザー情報がありません' };
+  }
+  
+  if (!fileId) {
+    return { success: false, message: 'ファイルIDが指定されていません' };
+  }
+  
+  try {
+    // トークンを取得
+    const token = accessToken || localStorage.getItem('googleToken');
+    if (!token) {
+      console.error('[API] No access token available for Google Drive operations');
+      return { success: false, message: 'アクセストークンがありません' };
+    }
+    
+    // ファイルを削除
+    const response = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${fileId}`,
+      {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }
+    );
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error ${response.status}: ${await response.text()}`);
+    }
+    
+    console.log(`[API] File deleted from Google Drive: ${fileId}`);
+    
+    return {
+      success: true,
+      message: 'ファイルを削除しました',
+      fileId: fileId
+    };
+  } catch (error) {
+    console.error('[API] Error deleting file from Google Drive:', error);
+    return { success: false, message: `ファイルの削除に失敗しました: ${error.message}` };
   }
 }
