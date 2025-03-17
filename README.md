@@ -1,70 +1,223 @@
-# Getting Started with Create React App
+# ポートフォリオマネージャー
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+資産管理を支援するWebアプリケーション。保有資産と理想のポートフォリオ配分を比較・管理し、最適な資金配分のシミュレーションを実施できる環境を提供します。ブラウザのローカルストレージとGoogleドライブを活用したデータ永続化機能を備え、複数デバイス間でのデータ共有をサポートします。
 
-## Available Scripts
+![ポートフォリオマネージャースクリーンショット]
 
-In the project directory, you can run:
+## 主要機能
 
-### `npm start`
+- **資産管理**：保有数の小数点以下4桁対応
+- **銘柄タイプ自動判定**：個別株、ETF、インデックスファンドなど
+- **年間手数料率の自動推定と計算**：個別株は0%固定
+- **理想ポートフォリオ配分設定**
+- **資金配分シミュレーション**
+- **データインポート/エクスポート**
+- **ローカルストレージによるデータ永続化**
+- **Google認証・Googleドライブ連携**
+- **市場データの自動取得**：Alpha Vantageをプライマリソース、フォールバック値をバックアップとして使用
+- **iOS風タブバーによるナビゲーション**
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## スクリーンショット
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+（スクリーンショットを追加）
 
-### `npm test`
+## デモ
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+[デモサイト](https://delicate-malasada-1fb747.netlify.app/)で機能を試すことができます。
 
-### `npm run build`
+## 技術スタック
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+- **フロントエンド**: React.js 18.x
+- **認証**: Google OAuth 2.0 (@react-oauth/google 0.11.0)
+- **スタイリング**: Tailwind CSS 3.x
+- **ステート管理**: React Context API
+- **ルーティング**: React Router 6.x
+- **データ可視化**: Recharts 2.x
+- **API通信**: Axios 1.x
+- **ユーティリティ**: Lodash 4.x, Day.js 1.x, jwt-decode 3.x
+- **データ処理**: PapaParse 5.x (CSV処理)
+- **UI拡張**: @headlessui/react 1.x
+- **サーバーレス関数**: Netlify Functions
+- **デプロイ**: Netlify
+- **データ永続化**: ローカルストレージ（Base64暗号化）
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## インストールと実行方法
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### 前提条件
 
-### `npm run eject`
+- Node.js v16.x以上
+- npm v8.x以上
+- Git
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### ローカル環境でのセットアップ
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+1. **リポジトリのクローン**
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+```bash
+git clone https://github.com/Rih0z/portfolio-manager.git
+cd portfolio-manager
+```
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+2. **依存パッケージのインストール**
 
-## Learn More
+```bash
+npm install
+```
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+3. **環境変数の設定**
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+プロジェクトのルートディレクトリに `.env.local` ファイルを作成し、必要な環境変数を設定します。
 
-### Code Splitting
+```
+REACT_APP_GOOGLE_CLIENT_ID=あなたのGoogleクライアントID
+REACT_APP_ALPHA_VANTAGE_API_KEY=あなたのAlpha Vantage APIキー
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+4. **開発サーバーの起動**
 
-### Analyzing the Bundle Size
+```bash
+npm start
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+ブラウザが自動的に開き、`http://localhost:3000` でアプリケーションにアクセスできます。
 
-### Making a Progressive Web App
+5. **Netlify Functionsをローカルで実行**
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+```bash
+# Netlify CLIをインストール（初回のみ）
+npm install -g netlify-cli
 
-### Advanced Configuration
+# Netlify開発サーバーを起動
+netlify dev
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+これにより、アプリケーションとFunctionsの両方が起動され、`http://localhost:8888` でアクセスできます。
 
-### Deployment
+### 本番ビルド
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+```bash
+npm run build
+```
 
-### `npm run build` fails to minify
+## デプロイ方法
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+### Netlifyへのデプロイ
+
+#### Netlify CLIを使用する方法
+
+```bash
+# Netlify CLIをインストール（まだの場合）
+npm install -g netlify-cli
+
+# Netlifyにログイン
+netlify login
+
+# プロジェクトの初期化（初回のみ）
+netlify init
+
+# 本番環境へのデプロイ
+netlify deploy --prod
+```
+
+#### Netlifyダッシュボードを使用する方法
+
+1. [Netlify](https://app.netlify.com/)にログイン
+2. 「Add new site」→「Import an existing project」をクリック
+3. GitHubなどのリポジトリプロバイダを選択し、リポジトリを選択
+4. 以下のビルド設定を行う：
+   - Build command: `CI= npm run build`
+   - Publish directory: `build`
+   - Functions directory: `functions`
+5. 「Show advanced」をクリックし、環境変数を設定：
+   - `REACT_APP_GOOGLE_CLIENT_ID`: Google OAuthクライアントID
+   - `REACT_APP_ALPHA_VANTAGE_API_KEY`: Alpha Vantage API用キー（フロントエンド用）
+   - `ALPHA_VANTAGE_API_KEY`: Alpha Vantage API用キー（サーバーレス関数用）
+6. 「Deploy site」をクリック
+
+## 使用方法
+
+### ダッシュボード画面
+
+ダッシュボード画面では、総資産、銘柄数、年間手数料の概要を確認できます。円グラフで理想配分と現在配分の比較、バーチャートで理想と現状の差分を視覚的に表示します。テーブルでは保有資産の詳細を確認できます。
+
+### 設定画面
+
+設定画面では以下の操作が可能です：
+- 銘柄検索と追加
+- 人気銘柄のワンクリック追加
+- 保有資産の編集（保有数量や手数料率）
+- 目標配分の編集
+
+### シミュレーション画面
+
+シミュレーション画面では、追加予算を入力し、最適な購入プランをシミュレーションできます。予算プリセットボタンで素早く金額を設定できます。
+
+### データ連携画面
+
+データ連携画面では以下の操作が可能です：
+- JSON/CSV形式でのデータエクスポート
+- ファイル/クリップボード/テキスト入力によるデータインポート
+- Googleドライブ連携によるクラウド保存/読み込み
+- データ同期
+
+## 特徴
+
+### 銘柄タイプと手数料率の自動判定
+
+ティッカーシンボルや名前からファンドタイプを自動判定し、適切な手数料率を推定します：
+- 個別株は常に手数料率0%として扱われます
+- ETF、インデックスファンド、REITなどは典型的な手数料率が自動設定されます
+- 特定の人気銘柄は正確な手数料情報がデータベースから取得されます
+
+### データ永続化と同期
+
+- **ローカルストレージ**: ブラウザのローカルストレージを使用してデータをBase64エンコーディングで暗号化して保存
+- **Google認証**: Googleアカウントを使用して認証
+- **Googleドライブ連携**: 認証後にクラウドストレージとしてGoogleドライブを使用可能
+- **データ同期**: タイムスタンプに基づいて最新データを特定し同期
+
+### 市場データ取得
+
+- **Alpha Vantage API**: 最新の市場データをプライマリソースとして使用
+- **フォールバック機構**: API制限に達した場合や取得失敗時に代替値を使用
+- **為替レート**: 通貨換算のための為替レートを自動取得
+
+## トラブルシューティング
+
+### Alpha Vantage APIのレート制限
+
+Alpha Vantage APIには無料プランで1日当たり25回までのリクエスト制限があります。制限に達した場合は、自動的にフォールバック値が使用されます。
+
+### ローカルストレージの問題
+
+ローカルストレージに関する問題が発生した場合：
+1. ブラウザのデベロッパーツールで「Application」→「Local Storage」を確認
+2. 問題が続く場合は「Clear Site Data」でデータをクリアして再試行
+
+### その他の問題
+
+詳細なトラブルシューティングはセットアップガイドを参照してください。
+
+## 貢献方法
+
+1. このリポジトリをフォーク
+2. フィーチャーブランチを作成 (`git checkout -b feature/amazing-feature`)
+3. 変更をコミット (`git commit -m 'Add some amazing feature'`)
+4. ブランチにプッシュ (`git push origin feature/amazing-feature`)
+5. Pull Requestを作成
+
+## ライセンス
+
+このプロジェクトは[MITライセンス](LICENSE)の下で公開されています。
+
+## 参考資料
+
+- [コード規約書](document/code-conventions.md)
+- [インターフェース仕様書](document/interface-specifications.md)
+- [セットアップガイド](document/setup-guide.md)
+
+## コンタクト
+
+プロジェクト責任者 - [@Rih0z](https://github.com/Rih0z)
+
+プロジェクトリンク: [https://delicate-malasada-1fb747.netlify.app/settings](https://delicate-malasada-1fb747.netlify.app/settings)
