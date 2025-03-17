@@ -1,7 +1,7 @@
 # ポートフォリオマネージャー コード規約書（更新版）
 
-**バージョン:** 1.2  
-**最終更新日:** 2025/03/18
+**バージョン:** 1.3  
+**最終更新日:** 2025/03/20
 
 ## 1. 概要
 
@@ -32,10 +32,10 @@ src/
 ### 2.2 ファイル命名規則
 
 - **コンポーネントファイル**: PascalCase を使用（例: `PortfolioSummary.jsx`）
-- **ユーティリティファイル**: camelCase を使用（例: `formatters.js`）
+- **ユーティリティファイル**: camelCase を使用（例: `formatters.js`, `fundUtils.js`）
 - **テストファイル**: `.test.js` または `.spec.js` を追加（例: `PortfolioSummary.test.jsx`）
 - **CSS/SCSS**: コンポーネントと同じ名前で `.module.css` サフィックス（例: `Button.module.css`）
-- **サーバーレス関数**: camelCase を使用し、機能を表す名前（例: `yahoo-finance-proxy.js`, `alpha-vantage-proxy.js`）
+- **サーバーレス関数**: camelCase を使用し、機能を表す名前（例: `alpha-vantage-proxy.js`, `mof-exchange-rate-proxy.js`）
 
 ## 3. 命名規則
 
@@ -71,6 +71,7 @@ src/
   const isLoading = true;
   const hasError = false;
   const shouldRefresh = true;
+  const isStock = true; // 個別株かどうかのフラグ
   ```
 
 ### 3.3 定数
@@ -81,6 +82,11 @@ src/
   const MAX_RETRY_COUNT = 3;
   const DEFAULT_CURRENCY = 'JPY';
   const ALPHA_VANTAGE_URL = '/.netlify/functions/alpha-vantage-proxy';
+  const FUND_TYPES = {
+    STOCK: '個別株',
+    ETF_JP: 'ETF（日本）',
+    ETF_US: 'ETF（米国）'
+  };
   ```
 
 ### 3.4 コンテキストとフック
@@ -107,6 +113,17 @@ src/
   // 良い例
   const handleSubmit = () => {...}
   const handleInputChange = (e) => {...}
+  const handleIncrementFee = (asset, amount) => {...}
+  ```
+
+### 3.6 ユーティリティ関数
+
+- **ユーティリティ関数**: 目的が明確な名前を使用
+  ```javascript
+  // 良い例
+  const formatCurrency = (amount, currency) => {...}
+  const estimateAnnualFee = (ticker, name) => {...}
+  const guessFundType = (ticker, name) => {...}
   ```
 
 ## 4. コードフォーマット
@@ -134,9 +151,35 @@ src/
     onClick={() => setImportFormat('json')}
     role="radio"
     aria-checked={importFormat === 'json'}
+    disabled={isStock} // 個別株の場合は無効化
   >
     JSON
   </Button>
+  ```
+
+- **バッジコンポーネント**（追加）:
+  ```jsx
+  // ファンドタイプバッジ
+  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+    asset.fundType === FUND_TYPES.STOCK
+      ? 'bg-gray-100 text-gray-800'
+      : 'bg-blue-100 text-blue-800'
+  }`}>
+    {asset.fundType}
+  </span>
+  
+  // 手数料情報バッジ
+  <span className={`text-xs px-1.5 py-0.5 rounded ${
+    asset.feeSource === '個別株'
+      ? 'bg-gray-100 text-gray-800'
+      : asset.feeSource === 'ユーザー設定' 
+        ? 'bg-purple-100 text-purple-800' 
+        : asset.feeIsEstimated 
+          ? 'bg-yellow-100 text-yellow-800'
+          : 'bg-green-100 text-green-800'
+  }`}>
+    {asset.feeSource}
+  </span>
   ```
 
 - **アクセシビリティ属性**:
@@ -159,7 +202,8 @@ src/
   1. React関連（React, React Router）
   2. サードパーティライブラリ
   3. プロジェクト内モジュール（相対パス）
-  4. スタイル・アセット
+  4. ユーティリティとタイプ（新規）
+  5. スタイル・アセット
 
   ```javascript
   // 良い例
@@ -171,6 +215,8 @@ src/
   
   import { usePortfolioContext } from '../../hooks/usePortfolioContext';
   import Header from '../layout/Header';
+  
+  import { FUND_TYPES } from '../../utils/fundUtils'; // ユーティリティ関数からのタイプ
   
   import './styles.css';
   ```
@@ -190,12 +236,13 @@ src/
 - **Props分割代入**: コンポーネント内で使用
   ```jsx
   // 良い例
-  function UserCard({ name, email, avatar }) {
+  function UserCard({ name, email, avatar, isStock }) {
     return (
       <div>
         <img src={avatar} alt={name} />
         <h2>{name}</h2>
         <p>{email}</p>
+        {isStock && <span className="badge">個別株</span>}
       </div>
     );
   }
@@ -216,6 +263,7 @@ src/
   // 良い例
   export const usePortfolioContext = () => {...}
   export const useAuth = () => {...}
+  export const useFundUtils = () => {...} // 新規: ファンドユーティリティフック
   ```
 
 ### 5.3 環境依存のライブラリ対応
@@ -267,6 +315,39 @@ src/
   ```javascript
   // 小数点以下4桁まで保存するケース
   const value = parseFloat(parseFloat(rawValue).toFixed(4));
+  
+  // 小数点以下2桁まで保存するケース（手数料率など）
+  const fee = parseFloat(parseFloat(rawValue).toFixed(2));
+  ```
+
+- **条件付き状態更新**（新規）: 条件に基づいて異なる更新を行う
+  ```javascript
+  // 個別株判定に基づく状態更新
+  setCurrentAssets(prev => 
+    prev.map(item => {
+      if (item.id === id) {
+        if (item.fundType === FUND_TYPES.STOCK || item.isStock) {
+          // 個別株の場合は手数料を強制的に0に設定
+          return {
+            ...item,
+            annualFee: 0,
+            feeSource: '個別株',
+            feeIsEstimated: false
+          };
+        } else {
+          // その他のファンドの場合はユーザー指定の値を使用
+          return {
+            ...item,
+            annualFee: parseFloat(parseFloat(fee).toFixed(2)) || 0,
+            userSetFee: true,
+            feeSource: 'ユーザー設定',
+            feeIsEstimated: false
+          };
+        }
+      }
+      return item;
+    })
+  );
   ```
 
 ## 7. エラー処理
@@ -284,18 +365,18 @@ src/
   }
   ```
 
-- **ログ出力の強化**: デバッグ情報を十分に提供（更新）
+- **ログ出力の強化**: デバッグ情報を十分に提供
   ```javascript
   try {
-    console.log(`Attempting to fetch data for ${ticker} from Yahoo Finance`);
-    const response = await axios.get(YAHOO_API_URL, {
+    console.log(`Attempting to fetch data for ${ticker} from Alpha Vantage`);
+    const response = await axios.get(ALPHA_VANTAGE_URL, {
       params: { symbols: ticker },
       timeout: 5000 // タイムアウト設定
     });
     // 処理
   } catch (error) {
-    console.error(`Error fetching ${ticker} from Yahoo Finance:`, error);
-    console.log(`Trying alternate data source for ${ticker}`);
+    console.error(`Error fetching ${ticker} from Alpha Vantage:`, error);
+    console.log(`Trying fallback for ${ticker}`);
     // 代替処理
   }
   ```
@@ -314,7 +395,23 @@ src/
   };
   ```
 
-### 7.3 API呼び出しのフォールバック処理（更新）
+- **特殊条件のチェック**（新規）:
+  ```javascript
+  // 個別株の手数料編集防止
+  const handleIncrementFee = (asset, amount) => {
+    // 個別株は手数料の変更不可
+    if (asset.fundType === FUND_TYPES.STOCK || asset.isStock) {
+      showMessage('個別株の手数料率は変更できません（常に0%）', 'warning');
+      return;
+    }
+    
+    // 通常の処理を続行
+    const newValue = Math.max(0, (asset.annualFee || 0) + amount);
+    updateAnnualFee(asset.id, parseFloat(newValue.toFixed(2)));
+  };
+  ```
+
+### 7.3 API呼び出しのフォールバック処理
 
 - **Alpha Vantage API使用とフォールバック**:
   ```javascript
@@ -359,6 +456,7 @@ src/
     type="button"
     onClick={handleClick}
     aria-label="閉じる"
+    disabled={isDisabled}
   >
     <Icon name="close" />
   </button>
@@ -382,6 +480,23 @@ src/
     <button role="radio" aria-checked={format === 'json'}>JSON</button>
     <button role="radio" aria-checked={format === 'csv'}>CSV</button>
   </div>
+  ```
+
+- **状態の視覚的表現**（新規）: 
+  ```jsx
+  // 個別株の場合は編集不可と視覚的に表現
+  <button
+    onClick={() => handleIncrementFee(asset, 0.01)}
+    className="p-1 bg-green-100 text-green-700 rounded text-xs"
+    disabled={asset.fundType === FUND_TYPES.STOCK || asset.isStock}
+  >
+    +
+  </button>
+  
+  // 非活性要素のスタイリング
+  <tr className={asset.isStock || asset.fundType === FUND_TYPES.STOCK ? 'bg-gray-50' : ''}>
+    {/* 行の内容 */}
+  </tr>
   ```
 
 ## 9. ESLint設定と解析ツール
@@ -470,6 +585,12 @@ const fetchMarketData = async (ticker) => {
       const quoteData = response.data['Global Quote'];
       const price = parseFloat(quoteData['05. price']);
       
+      // ファンド情報の取得・判定
+      const fundType = guessFundType(ticker);
+      const feeInfo = estimateAnnualFee(ticker);
+      const isStock = fundType === FUND_TYPES.STOCK;
+      
+      // レスポンスの構築
       return {
         success: true,
         data: {
@@ -479,6 +600,11 @@ const fetchMarketData = async (ticker) => {
           exchangeMarket: ticker.includes('.T') ? 'Japan' : 'US',
           price: price,
           currency: ticker.includes('.T') ? 'JPY' : 'USD',
+          annualFee: isStock ? 0 : feeInfo.fee, // 個別株は常に0%
+          fundType: fundType,
+          isStock: isStock,
+          feeSource: isStock ? '個別株' : feeInfo.source,
+          feeIsEstimated: isStock ? false : feeInfo.isEstimated,
           source: 'Alpha Vantage'
         }
       };
@@ -494,30 +620,9 @@ const fetchMarketData = async (ticker) => {
     return generateFallbackData(ticker);
   }
 };
-
-// フォールバックデータ生成関数
-const generateFallbackData = (ticker) => {
-  // 市場とティッカーから推測されるデフォルト値を使用
-  const isJapanese = ticker.includes('.T');
-  const defaultPrice = isJapanese ? 2500 : 150;
-  
-  return {
-    success: false,
-    data: {
-      id: ticker,
-      name: ticker,
-      ticker: ticker,
-      exchangeMarket: isJapanese ? 'Japan' : 'US',
-      price: defaultPrice,
-      currency: isJapanese ? 'JPY' : 'USD',
-      source: 'Fallback'
-    },
-    message: '最新の価格データを取得できませんでした。デフォルト値を使用しています。'
-  };
-};
 ```
 
-### 10.3 環境変数の利用（更新）
+### 10.3 環境変数の利用
 
 環境変数名の統一と利用方法:
 
@@ -529,6 +634,133 @@ const ALPHA_VANTAGE_KEY = process.env.REACT_APP_ALPHA_VANTAGE_API_KEY || 'GC4EBI
 const apiKey = process.env.ALPHA_VANTAGE_API_KEY || 'GC4EBI5YHFKOJEXY';
 ```
 
+### 10.4 ファンドタイプと手数料の判定（新規）
+
+```javascript
+// ファンドタイプ判定
+export function guessFundType(ticker, name = '') {
+  ticker = ticker.toUpperCase();
+  name = name.toLowerCase();
+  
+  // 日本市場のティッカー判定
+  const isJapanese = ticker.includes('.T');
+  
+  // 個別株の判定ロジック
+  const isJapaneseStock = isJapanese && !(/^[1-9]\d{3}\.T$/.test(ticker));
+  
+  // ETFの判定ロジック
+  const isETF = (isJapanese && /^[1-9]\d{3}\.T$/.test(ticker)) || /* その他の条件 */;
+  
+  // 判定結果の返却
+  if (isJapaneseStock || /* その他の個別株判定条件 */) {
+    return FUND_TYPES.STOCK;
+  } else if (isETF) {
+    return isJapanese ? FUND_TYPES.ETF_JP : FUND_TYPES.ETF_US;
+  } else {
+    // 他のファンドタイプの判定
+  }
+}
+
+// 手数料率推定
+export function estimateAnnualFee(ticker, name = '') {
+  ticker = ticker.toUpperCase();
+  
+  // 特定ティッカーの既知の手数料
+  if (TICKER_SPECIFIC_FEES[ticker]) {
+    return {
+      fee: TICKER_SPECIFIC_FEES[ticker],
+      source: 'ティッカー固有の情報',
+      isEstimated: false
+    };
+  }
+  
+  // ファンドタイプから手数料を推定
+  const fundType = guessFundType(ticker, name);
+  
+  // 個別株の場合は必ず0を返す
+  if (fundType === FUND_TYPES.STOCK) {
+    return {
+      fee: 0,
+      fundType: FUND_TYPES.STOCK,
+      source: '個別株',
+      isEstimated: false
+    };
+  }
+  
+  const fee = FUND_TYPE_FEES[fundType] || FUND_TYPE_FEES[FUND_TYPES.UNKNOWN];
+  
+  return {
+    fee,
+    fundType,
+    source: 'ファンドタイプからの推定',
+    isEstimated: true
+  };
+}
+```
+
+## 11. データバリデーションと検証（新規）
+
+### 11.1 データインポート時の検証
+
+```javascript
+// インポートデータの検証
+const importData = (data) => {
+  if (!data) return { success: false, message: 'データが無効です' };
+  
+  try {
+    // 必須フィールドの検証
+    if (data.baseCurrency) setBaseCurrency(data.baseCurrency);
+    if (data.exchangeRate) setExchangeRate(data.exchangeRate);
+    
+    // データのインポート前に個別株の手数料率を0に確実に設定
+    if (Array.isArray(data.currentAssets)) {
+      const fixedAssets = data.currentAssets.map(asset => {
+        const isStock = asset.fundType === FUND_TYPES.STOCK || asset.isStock;
+        if (isStock) {
+          return {
+            ...asset,
+            annualFee: 0,
+            feeSource: '個別株',
+            feeIsEstimated: false,
+            isStock: true
+          };
+        }
+        return asset;
+      });
+      setCurrentAssets(fixedAssets);
+    }
+    
+    if (Array.isArray(data.targetPortfolio)) setTargetPortfolio(data.targetPortfolio);
+    
+    return { success: true, message: 'データをインポートしました' };
+  } catch (error) {
+    console.error('データのインポートに失敗しました', error);
+    return { success: false, message: 'データのインポートに失敗しました' };
+  }
+};
+```
+
+### 11.2 銘柄タイプの整合性確保
+
+```javascript
+// 初期化時に個別株の手数料を確実に0に設定
+useEffect(() => {
+  setCurrentAssets(prev => prev.map(asset => {
+    const isStock = asset.fundType === FUND_TYPES.STOCK || asset.isStock;
+    if (isStock && asset.annualFee !== 0) {
+      return {
+        ...asset,
+        annualFee: 0,
+        feeSource: '個別株',
+        feeIsEstimated: false,
+        isStock: true
+      };
+    }
+    return asset;
+  }));
+}, []);
+```
+
 ## 改訂履歴
 
 | バージョン | 日付 | 変更内容 | 担当者 |
@@ -536,4 +768,4 @@ const apiKey = process.env.ALPHA_VANTAGE_API_KEY || 'GC4EBI5YHFKOJEXY';
 | 1.0      | 2025/03/16 | 初版作成 | |
 | 1.1      | 2025/03/17 | jwt-decode対応、アクセシビリティ対応、ESLint設定更新 | |
 | 1.2      | 2025/03/18 | データ取得フォールバック機構、環境変数名統一、ログ出力強化 | |
-| 1.3      | 2025/03/18 | Alpha Vantageをプライマリソースに変更、Yahoo Finance API呼び出し無効化、401認証エラー対応 | |
+| 1.3      | 2025/03/20 | ファンドタイプ判定と年間手数料計算に関する規約追加、個別株の取り扱い追加 | |
