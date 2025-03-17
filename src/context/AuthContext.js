@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useState, useEffect, useCallback, useRef } from 'react';
 import jwtDecode from 'jwt-decode'; // 修正: 正しいインポート方法
 
 // コンテキスト作成
@@ -10,25 +10,9 @@ export const AuthProvider = ({ children }) => {
   const [googleToken, setGoogleToken] = useState(null);
   const [loading, setLoading] = useState(true);
   
-  // PortfolioContextから認証状態変更ハンドラーを取得
-  // Note: 循環参照を避けるためにuseEffectで取得
-  const portfolioContextRef = React.useRef(null);
+  // PortfolioContextの参照を保持するためのRef
+  const portfolioContextRef = useRef(null);
 
-  // ポートフォリオコンテキストへの参照を取得
-  useEffect(() => {
-    const getPortfolioContext = async () => {
-      try {
-        const { usePortfolioContext } = await import('../hooks/usePortfolioContext');
-        const portfolioContext = usePortfolioContext();
-        portfolioContextRef.current = portfolioContext;
-      } catch (error) {
-        console.error('PortfolioContextの取得に失敗しました', error);
-      }
-    };
-    
-    getPortfolioContext();
-  }, []);
-  
   // 初期化時に保存されたトークンがあれば読み込む
   useEffect(() => {
     const loadStoredAuth = () => {
@@ -36,7 +20,7 @@ export const AuthProvider = ({ children }) => {
         const storedToken = localStorage.getItem('googleToken');
         
         if (storedToken) {
-          const decodedToken = jwtDecode(storedToken); // 修正: 正しい関数呼び出し
+          const decodedToken = jwtDecode(storedToken);
           const currentTime = Date.now() / 1000;
           
           if (decodedToken.exp > currentTime) {
@@ -49,10 +33,7 @@ export const AuthProvider = ({ children }) => {
             setUser(userData);
             setIsAuthenticated(true);
             
-            // PortfolioContextに認証状態を通知
-            if (portfolioContextRef.current && portfolioContextRef.current.handleAuthStateChange) {
-              portfolioContextRef.current.handleAuthStateChange(true, userData);
-            }
+            // 認証状態の通知はポートフォリオコンテキストが利用可能になった時に行う
           } else {
             // トークンの有効期限切れ
             localStorage.removeItem('googleToken');
@@ -69,10 +50,18 @@ export const AuthProvider = ({ children }) => {
     loadStoredAuth();
   }, []);
 
+  // PortfolioContextへの参照を通知するための簡単なメソッド
+  const notifyAuthStateToPortfolio = useCallback(() => {
+    // PortfolioContextが利用可能な場合に認証状態を通知
+    if (portfolioContextRef.current?.handleAuthStateChange && isAuthenticated) {
+      portfolioContextRef.current.handleAuthStateChange(isAuthenticated, user);
+    }
+  }, [isAuthenticated, user]);
+
   // Googleログイン成功時の処理
   const handleLogin = useCallback((credentialResponse) => {
     try {
-      const decodedToken = jwtDecode(credentialResponse.credential); // 修正: 正しい関数呼び出し
+      const decodedToken = jwtDecode(credentialResponse.credential);
       setGoogleToken(credentialResponse.credential);
       const userData = {
         name: decodedToken.name,
@@ -85,13 +74,13 @@ export const AuthProvider = ({ children }) => {
       // トークンをローカルストレージに保存
       localStorage.setItem('googleToken', credentialResponse.credential);
       
-      // PortfolioContextに認証状態を通知
-      if (portfolioContextRef.current && portfolioContextRef.current.handleAuthStateChange) {
+      // PortfolioContextが利用可能な場合、認証状態を通知
+      if (portfolioContextRef.current?.handleAuthStateChange) {
         portfolioContextRef.current.handleAuthStateChange(true, userData);
       }
       
-      // クラウドからデータを同期
-      if (portfolioContextRef.current && portfolioContextRef.current.loadFromGoogleDrive) {
+      // PortfolioContextが利用可能な場合、クラウドからデータを読み込み
+      if (portfolioContextRef.current?.loadFromGoogleDrive) {
         portfolioContextRef.current.loadFromGoogleDrive(userData);
       }
     } catch (error) {
@@ -106,31 +95,26 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(false);
     localStorage.removeItem('googleToken');
     
-    // PortfolioContextに認証状態を通知
-    if (portfolioContextRef.current && portfolioContextRef.current.handleAuthStateChange) {
+    // PortfolioContextが利用可能な場合、認証状態を通知
+    if (portfolioContextRef.current?.handleAuthStateChange) {
       portfolioContextRef.current.handleAuthStateChange(false, null);
     }
   }, []);
 
-  // Googleドライブ保存機能（強化版）
+  // Googleドライブ保存機能
   const saveToDrive = useCallback(async (data, filename = 'portfolio_data.json') => {
     if (!isAuthenticated || !googleToken) {
       throw new Error('ログインが必要です');
     }
     
     try {
-      // GoogleドライブAPIのスコープを確認
-      // 注: 実際のアプリではGoogleドライブAPIの適切なスコープが必要
-      
-      // 実際には、ここでGoogleドライブAPIを呼び出す処理を実装
-      // このサンプルでは成功したことにする
-      console.log('データをGoogleドライブに保存:', { data, filename });
-      
-      // PortfolioContextのクラウド保存機能を使用
-      if (portfolioContextRef.current && portfolioContextRef.current.saveToGoogleDrive) {
+      // PortfolioContextが利用可能な場合
+      if (portfolioContextRef.current?.saveToGoogleDrive) {
         return await portfolioContextRef.current.saveToGoogleDrive(user);
       }
       
+      // フォールバック処理（シミュレーション）
+      console.log('データをGoogleドライブに保存:', { data, filename });
       return { success: true, message: `${filename}をGoogleドライブに保存しました` };
     } catch (error) {
       console.error('Googleドライブへの保存エラー:', error);
@@ -138,24 +122,20 @@ export const AuthProvider = ({ children }) => {
     }
   }, [isAuthenticated, googleToken, user]);
 
-  // Googleドライブから読み込み機能（強化版）
+  // Googleドライブから読み込み機能
   const loadFromDrive = useCallback(async (filename = 'portfolio_data.json') => {
     if (!isAuthenticated || !googleToken) {
       throw new Error('ログインが必要です');
     }
     
     try {
-      // GoogleドライブAPIのスコープを確認
-      // 注: 実際のアプリではGoogleドライブAPIの適切なスコープが必要
-      
-      // 実際には、ここでGoogleドライブAPIを呼び出す処理を実装
-      console.log('Googleドライブからデータを読み込み:', filename);
-      
-      // PortfolioContextのクラウド読み込み機能を使用
-      if (portfolioContextRef.current && portfolioContextRef.current.loadFromGoogleDrive) {
+      // PortfolioContextが利用可能な場合
+      if (portfolioContextRef.current?.loadFromGoogleDrive) {
         return await portfolioContextRef.current.loadFromGoogleDrive(user);
       }
       
+      // フォールバック処理（シミュレーション）
+      console.log('Googleドライブからデータを読み込み:', filename);
       return { success: true, data: { message: 'サンプルデータが読み込まれました' } };
     } catch (error) {
       console.error('Googleドライブからの読み込みエラー:', error);
@@ -170,8 +150,8 @@ export const AuthProvider = ({ children }) => {
     }
     
     try {
-      // PortfolioContextのデータ同期機能を使用
-      if (portfolioContextRef.current && portfolioContextRef.current.loadFromGoogleDrive) {
+      // PortfolioContextが利用可能な場合
+      if (portfolioContextRef.current?.loadFromGoogleDrive) {
         return await portfolioContextRef.current.loadFromGoogleDrive(user);
       }
       
@@ -181,6 +161,13 @@ export const AuthProvider = ({ children }) => {
       return { success: false, message: 'データ同期に失敗しました' };
     }
   }, [isAuthenticated, user]);
+
+  // PortfolioContextへの参照を設定するためのメソッド
+  // 循環参照を解決するため、外部からこのメソッドを呼び出す
+  const setPortfolioContextRef = useCallback((context) => {
+    portfolioContextRef.current = context;
+    notifyAuthStateToPortfolio();
+  }, [notifyAuthStateToPortfolio]);
 
   return (
     <AuthContext.Provider
@@ -193,7 +180,8 @@ export const AuthProvider = ({ children }) => {
         handleLogout,
         saveToDrive,
         loadFromDrive,
-        synchronizeData
+        synchronizeData,
+        setPortfolioContextRef
       }}
     >
       {children}
@@ -201,5 +189,5 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// 重要: デフォルトエクスポートとして AuthContext も公開する
+// デフォルトエクスポートとして AuthContext も公開
 export default AuthContext;
