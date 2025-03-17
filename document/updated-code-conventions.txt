@@ -1,7 +1,7 @@
 # ポートフォリオマネージャー コード規約書（更新版）
 
-**バージョン:** 1.3  
-**最終更新日:** 2025/03/20
+**バージョン:** 1.4  
+**最終更新日:** 2025/03/25
 
 ## 1. 概要
 
@@ -72,6 +72,7 @@ src/
   const hasError = false;
   const shouldRefresh = true;
   const isStock = true; // 個別株かどうかのフラグ
+  const isInitialized = true; // 初期化完了フラグ
   ```
 
 ### 3.3 定数
@@ -81,7 +82,7 @@ src/
   // 良い例
   const MAX_RETRY_COUNT = 3;
   const DEFAULT_CURRENCY = 'JPY';
-  const ALPHA_VANTAGE_URL = '/.netlify/functions/alpha-vantage-proxy';
+  const ALPHA_VANTAGE_URL = '/api/alpha-vantage-proxy';
   const FUND_TYPES = {
     STOCK: '個別株',
     ETF_JP: 'ETF（日本）',
@@ -114,6 +115,7 @@ src/
   const handleSubmit = () => {...}
   const handleInputChange = (e) => {...}
   const handleIncrementFee = (asset, amount) => {...}
+  const handleSaveToLocalStorage = () => {...} // 新規: ローカルストレージ保存ハンドラ
   ```
 
 ### 3.6 ユーティリティ関数
@@ -124,6 +126,8 @@ src/
   const formatCurrency = (amount, currency) => {...}
   const estimateAnnualFee = (ticker, name) => {...}
   const guessFundType = (ticker, name) => {...}
+  const encryptData = (data) => {...} // 新規: データ暗号化関数
+  const decryptData = (encrypted) => {...} // 新規: データ復号化関数
   ```
 
 ## 4. コードフォーマット
@@ -157,7 +161,7 @@ src/
   </Button>
   ```
 
-- **バッジコンポーネント**（追加）:
+- **バッジコンポーネント**:
   ```jsx
   // ファンドタイプバッジ
   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -179,6 +183,15 @@ src/
           : 'bg-green-100 text-green-800'
   }`}>
     {asset.feeSource}
+  </span>
+  
+  // データソースバッジ（新規）
+  <span className={`text-xs px-1.5 py-0.5 rounded ${
+    dataSource === 'cloud'
+      ? 'bg-blue-100 text-blue-800'
+      : 'bg-amber-100 text-amber-800'
+  }`}>
+    {dataSource === 'cloud' ? 'クラウド' : 'ローカル'}
   </span>
   ```
 
@@ -202,21 +215,21 @@ src/
   1. React関連（React, React Router）
   2. サードパーティライブラリ
   3. プロジェクト内モジュール（相対パス）
-  4. ユーティリティとタイプ（新規）
+  4. ユーティリティとタイプ
   5. スタイル・アセット
 
   ```javascript
   // 良い例
-  import React, { useState, useCallback } from 'react';
+  import React, { useState, useCallback, useRef } from 'react';
   import { useNavigate } from 'react-router-dom';
   
-  import jwtDecode from 'jwt-decode';  // 注意: 最新形式でのインポート
+  import jwtDecode from 'jwt-decode';
   import { formatCurrency } from 'accounting';
   
   import { usePortfolioContext } from '../../hooks/usePortfolioContext';
   import Header from '../layout/Header';
   
-  import { FUND_TYPES } from '../../utils/fundUtils'; // ユーティリティ関数からのタイプ
+  import { FUND_TYPES } from '../../utils/fundUtils';
   
   import './styles.css';
   ```
@@ -256,6 +269,13 @@ src/
   const handleSubmit = useCallback(() => {
     submitData(formData);
   }, [formData, submitData]);
+  
+  // 良い例 - 初期化完了後のみ実行
+  useEffect(() => {
+    if (initialized) {
+      updateExchangeRate();
+    }
+  }, [initialized, updateExchangeRate]);
   ```
 
 - **カスタムフックの命名**: 明確な目的を表す名前を使用
@@ -263,7 +283,8 @@ src/
   // 良い例
   export const usePortfolioContext = () => {...}
   export const useAuth = () => {...}
-  export const useFundUtils = () => {...} // 新規: ファンドユーティリティフック
+  export const useFundUtils = () => {...}
+  export const useLocalStorage = () => {...} // 新規: ローカルストレージ操作フック
   ```
 
 ### 5.3 環境依存のライブラリ対応
@@ -275,6 +296,41 @@ src/
   
   // 使用例
   const decodedToken = jwtDecode(token);
+  ```
+
+### 5.4 コンテキスト間の連携（新規）
+
+- **循環参照の回避**: useRefを使用して一方向参照を実装
+  ```javascript
+  // 良い例
+  const portfolioContextRef = useRef(null);
+  
+  // 参照設定関数
+  const setPortfolioContextRef = useCallback((context) => {
+    portfolioContextRef.current = context;
+  }, []);
+  
+  // 参照使用
+  if (portfolioContextRef.current?.handleAuthStateChange) {
+    portfolioContextRef.current.handleAuthStateChange(true, user);
+  }
+  ```
+
+- **専用コネクタコンポーネント**: App.jsxに配置して両方のコンテキストを接続
+  ```javascript
+  // 良い例
+  const ContextConnector = () => {
+    const auth = useAuth();
+    const portfolio = usePortfolioContext();
+    
+    useEffect(() => {
+      if (auth?.setPortfolioContextRef && portfolio) {
+        auth.setPortfolioContextRef(portfolio);
+      }
+    }, [auth, portfolio]);
+    
+    return null;
+  };
   ```
 
 ## 6. 状態管理
@@ -320,7 +376,7 @@ src/
   const fee = parseFloat(parseFloat(rawValue).toFixed(2));
   ```
 
-- **条件付き状態更新**（新規）: 条件に基づいて異なる更新を行う
+- **条件付き状態更新**: 条件に基づいて異なる更新を行う
   ```javascript
   // 個別株判定に基づく状態更新
   setCurrentAssets(prev => 
@@ -349,68 +405,80 @@ src/
     })
   );
   ```
-6.3 手数料情報の管理（更新）
 
-ユーザーによる直接編集の制限:
-javascriptコピー// 手数料情報はPortfolioContext内でのみ更新可能
-// 市場データ更新時に手数料情報も更新
-const refreshMarketPrices = useCallback(async () => {
-  setIsLoading(true);
-  try {
-    // 手数料変更検出用
-    let feeChangesCount = 0;
-    const feeChangeDetails = [];
-    
-    const updatedAssets = await Promise.all(
-      currentAssets.map(async (asset) => {
-        try {
-          // 市場データ取得
-          const updatedData = await fetchTickerData(asset.ticker);
-          
-          // 手数料情報の変更を検出
-          const hasFeeChanged = asset.annualFee !== updatedData.annualFee;
-          
-          // 手数料変更があれば記録
-          if (hasFeeChanged && !asset.isStock) {
-            feeChangesCount++;
-            feeChangeDetails.push({
-              ticker: asset.ticker,
-              name: asset.name,
-              oldFee: asset.annualFee,
-              newFee: updatedData.annualFee
-            });
-          }
-          
-          // 更新情報を返す（個別株は常に手数料0%）
-          return {
-            ...asset,
-            price: updatedData.price,
-            source: updatedData.source,
-            lastUpdated: updatedData.lastUpdated,
-            annualFee: asset.isStock ? 0 : updatedData.annualFee,
-            fundType: updatedData.fundType || asset.fundType,
-            feeSource: asset.isStock ? '個別株' : updatedData.feeSource,
-            feeIsEstimated: asset.isStock ? false : updatedData.feeIsEstimated,
-            region: updatedData.region || asset.region
-          };
-        } catch (error) {
-          return asset;
-        }
-      })
+- **状態更新後の処理**: setTimeout を使用して順序を確保
+  ```javascript
+  // 良い例
+  setTargetPortfolio(prev => {
+    const updated = prev.map(item => 
+      item.id === id ? { ...item, targetPercentage: parseFloat(percentage) } : item
     );
+    // 変更後に自動保存
+    setTimeout(() => saveToLocalStorage(), 100);
+    return updated;
+  });
+  ```
+
+### 6.3 ローカルストレージとの連携（新規）
+
+- **データの暗号化**: Base64エンコーディングによる簡易暗号化
+  ```javascript
+  // 良い例
+  const encryptData = (data) => {
+    const jsonString = JSON.stringify(data);
+    return btoa(jsonString); // Base64エンコード
+  };
+  
+  const decryptData = (encryptedData) => {
+    const jsonString = atob(encryptedData); // Base64デコード
+    return JSON.parse(jsonString);
+  };
+  ```
+
+- **保存・読み込み関数**: useCallbackを使用して依存関係を管理
+  ```javascript
+  // 良い例
+  const saveToLocalStorage = useCallback(() => {
+    if (!initialized) return false; // 初期化前は保存しない
     
-    // 手数料変更の通知
-    if (feeChangesCount > 0) {
-      addNotification(`${feeChangesCount}件のファンドで手数料情報が更新されました`, 'info');
+    try {
+      const portfolioData = {
+        // 保存するデータ
+      };
+      
+      const encryptedData = encryptData(portfolioData);
+      localStorage.setItem('portfolioData', encryptedData);
+      
+      return true;
+    } catch (error) {
+      console.error('ローカルストレージへの保存に失敗しました', error);
+      return false;
     }
+  }, [initialized, /* 依存する状態変数 */]);
+  ```
+
+- **初期化ロジック**: useEffectを使用して初期化時にデータを読み込む
+  ```javascript
+  // 良い例
+  useEffect(() => {
+    const initializeData = () => {
+      const localData = loadFromLocalStorage();
+      if (localData) {
+        // 各状態を更新
+        setBaseCurrency(localData.baseCurrency);
+        // その他のデータを適用
+        
+        addNotification('前回のデータを読み込みました', 'info');
+      }
+      
+      // 初期化完了をマーク
+      setInitialized(true);
+    };
     
-    // 状態更新
-    setCurrentAssets(updatedAssets);
-    // ...
-  } finally {
-    setIsLoading(false);
-  }
-}, [currentAssets, addNotification]);
+    initializeData();
+  }, [loadFromLocalStorage, addNotification]);
+  ```
+
 ## 7. エラー処理
 
 ### 7.1 エラーキャッチと表示
@@ -456,7 +524,7 @@ const refreshMarketPrices = useCallback(async () => {
   };
   ```
 
-- **特殊条件のチェック**（新規）:
+- **特殊条件のチェック**:
   ```javascript
   // 個別株の手数料編集防止
   const handleIncrementFee = (asset, amount) => {
@@ -470,6 +538,16 @@ const refreshMarketPrices = useCallback(async () => {
     const newValue = Math.max(0, (asset.annualFee || 0) + amount);
     updateAnnualFee(asset.id, parseFloat(newValue.toFixed(2)));
   };
+  ```
+
+- **初期化状態のチェック**（新規）:
+  ```javascript
+  // 良い例 - 初期化前は保存しない
+  const saveToLocalStorage = useCallback(() => {
+    if (!initialized) return false;
+    
+    // 保存処理を続行
+  }, [initialized, /* その他の依存関係 */]);
   ```
 
 ### 7.3 API呼び出しのフォールバック処理
@@ -504,6 +582,47 @@ const refreshMarketPrices = useCallback(async () => {
     console.warn('Alpha Vantage API rate limit reached:', response.data.Note);
     return generateFallbackData(ticker); // レート制限に達した場合はフォールバック値を使用
   }
+  ```
+
+### 7.4 データ永続化エラー処理（新規）
+
+- **暗号化/復号化エラー**:
+  ```javascript
+  // データの復号化
+  const decryptData = (encryptedData) => {
+    try {
+      const jsonString = atob(encryptedData); // Base64デコード
+      return JSON.parse(jsonString);
+    } catch (error) {
+      console.error('データの復号化に失敗しました', error);
+      return null; // エラー時はnullを返す
+    }
+  };
+  ```
+
+- **ストレージアクセスエラー**:
+  ```javascript
+  // ローカルストレージからデータを読み込み
+  const loadFromLocalStorage = useCallback(() => {
+    try {
+      const encryptedData = localStorage.getItem('portfolioData');
+      if (!encryptedData) {
+        console.log('ローカルストレージにデータがありません');
+        return null;
+      }
+      
+      const decryptedData = decryptData(encryptedData);
+      if (!decryptedData) {
+        console.log('データの復号化に失敗しました');
+        return null;
+      }
+      
+      return decryptedData;
+    } catch (error) {
+      console.error('ローカルストレージからの読み込みに失敗しました', error);
+      return null;
+    }
+  }, []);
   ```
 
 ## 8. アクセシビリティ
@@ -543,7 +662,7 @@ const refreshMarketPrices = useCallback(async () => {
   </div>
   ```
 
-- **状態の視覚的表現**（新規）: 
+- **状態の視覚的表現**: 
   ```jsx
   // 個別株の場合は編集不可と視覚的に表現
   <button
@@ -558,6 +677,9 @@ const refreshMarketPrices = useCallback(async () => {
   <tr className={asset.isStock || asset.fundType === FUND_TYPES.STOCK ? 'bg-gray-50' : ''}>
     {/* 行の内容 */}
   </tr>
+  
+  // データソース状態の視覚表現（新規）
+  <span className="inline-block w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
   ```
 
 ## 9. ESLint設定と解析ツール
@@ -593,6 +715,24 @@ const refreshMarketPrices = useCallback(async () => {
 /* eslint-disable jsx-a11y/label-has-associated-control */
 ```
 
+### 9.3 React Hooksルールの順守（新規）
+
+```javascript
+// 良い例 - useEffectの依存配列に関連する変数を含める
+useEffect(() => {
+  if (isAuthenticated && user) {
+    loadUserData(user.id);
+  }
+}, [isAuthenticated, user, loadUserData]);
+
+// 悪い例 - 空の依存配列
+useEffect(() => {
+  if (isAuthenticated && user) {
+    loadUserData(user.id);
+  }
+}, []); // 依存関係が欠けている
+```
+
 ## 10. APIとサービス連携
 
 ### 10.1 プロキシ設定
@@ -604,11 +744,11 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 
 module.exports = function(app) {
   app.use(
-    '/.netlify/functions/',
+    '/api',
     createProxyMiddleware({
       target: 'http://localhost:9000',
       pathRewrite: {
-        '^/\\.netlify/functions': ''
+        '^/api': '/.netlify/functions'
       },
       changeOrigin: true
     })
@@ -627,11 +767,11 @@ import axios from 'axios';
 const fetchMarketData = async (ticker) => {
   try {
     console.log(`Attempting to fetch data for ${ticker} from Alpha Vantage`);
-    const response = await axios.get(`/.netlify/functions/alpha-vantage-proxy`, {
+    const response = await axios.get(`/api/alpha-vantage-proxy`, {
       params: {
         function: 'GLOBAL_QUOTE',
         symbol: ticker,
-        apikey: ALPHA_VANTAGE_KEY // REACT_APP_ALPHA_VANTAGE_API_KEY から取得
+        apikey: process.env.REACT_APP_ALPHA_VANTAGE_API_KEY
       },
       timeout: 15000, // 15秒タイムアウト
       headers: {
@@ -689,77 +829,54 @@ const fetchMarketData = async (ticker) => {
 
 ```javascript
 // フロントエンド（React）での環境変数利用
-const ALPHA_VANTAGE_KEY = process.env.REACT_APP_ALPHA_VANTAGE_API_KEY || 'GC4EBI5YHFKOJEXY';
+const ALPHA_VANTAGE_KEY = process.env.REACT_APP_ALPHA_VANTAGE_API_KEY;
 
 // サーバーレス関数での環境変数利用
-const apiKey = process.env.ALPHA_VANTAGE_API_KEY || 'GC4EBI5YHFKOJEXY';
+const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
 ```
 
-### 10.4 ファンドタイプと手数料の判定（新規）
+### 10.4 ローカルストレージ操作（新規）
 
 ```javascript
-// ファンドタイプ判定
-export function guessFundType(ticker, name = '') {
-  ticker = ticker.toUpperCase();
-  name = name.toLowerCase();
-  
-  // 日本市場のティッカー判定
-  const isJapanese = ticker.includes('.T');
-  
-  // 個別株の判定ロジック
-  const isJapaneseStock = isJapanese && !(/^[1-9]\d{3}\.T$/.test(ticker));
-  
-  // ETFの判定ロジック
-  const isETF = (isJapanese && /^[1-9]\d{3}\.T$/.test(ticker)) || /* その他の条件 */;
-  
-  // 判定結果の返却
-  if (isJapaneseStock || /* その他の個別株判定条件 */) {
-    return FUND_TYPES.STOCK;
-  } else if (isETF) {
-    return isJapanese ? FUND_TYPES.ETF_JP : FUND_TYPES.ETF_US;
-  } else {
-    // 他のファンドタイプの判定
+// ローカルストレージへのデータ保存
+const saveDataToLocalStorage = () => {
+  try {
+    const portfolioData = {
+      baseCurrency,
+      exchangeRate,
+      lastUpdated,
+      currentAssets,
+      targetPortfolio,
+      additionalBudget,
+      version: '1.0.0',
+      timestamp: new Date().toISOString()
+    };
+    
+    const encryptedData = encryptData(portfolioData);
+    localStorage.setItem('portfolioData', encryptedData);
+    
+    return true;
+  } catch (error) {
+    console.error('ローカルストレージへの保存に失敗しました', error);
+    return false;
   }
-}
+};
 
-// 手数料率推定
-export function estimateAnnualFee(ticker, name = '') {
-  ticker = ticker.toUpperCase();
-  
-  // 特定ティッカーの既知の手数料
-  if (TICKER_SPECIFIC_FEES[ticker]) {
-    return {
-      fee: TICKER_SPECIFIC_FEES[ticker],
-      source: 'ティッカー固有の情報',
-      isEstimated: false
-    };
+// ローカルストレージからのデータ読み込み
+const loadDataFromLocalStorage = () => {
+  try {
+    const encryptedData = localStorage.getItem('portfolioData');
+    if (!encryptedData) return null;
+    
+    return decryptData(encryptedData);
+  } catch (error) {
+    console.error('ローカルストレージからの読み込みに失敗しました', error);
+    return null;
   }
-  
-  // ファンドタイプから手数料を推定
-  const fundType = guessFundType(ticker, name);
-  
-  // 個別株の場合は必ず0を返す
-  if (fundType === FUND_TYPES.STOCK) {
-    return {
-      fee: 0,
-      fundType: FUND_TYPES.STOCK,
-      source: '個別株',
-      isEstimated: false
-    };
-  }
-  
-  const fee = FUND_TYPE_FEES[fundType] || FUND_TYPE_FEES[FUND_TYPES.UNKNOWN];
-  
-  return {
-    fee,
-    fundType,
-    source: 'ファンドタイプからの推定',
-    isEstimated: true
-  };
-}
+};
 ```
 
-## 11. データバリデーションと検証（新規）
+## 11. データバリデーションと検証
 
 ### 11.1 データインポート時の検証
 
@@ -793,6 +910,9 @@ const importData = (data) => {
     
     if (Array.isArray(data.targetPortfolio)) setTargetPortfolio(data.targetPortfolio);
     
+    // インポート後に自動保存
+    setTimeout(() => saveToLocalStorage(), 100);
+    
     return { success: true, message: 'データをインポートしました' };
   } catch (error) {
     console.error('データのインポートに失敗しました', error);
@@ -822,6 +942,40 @@ useEffect(() => {
 }, []);
 ```
 
+### 11.3 データ復号化のバリデーション（新規）
+
+```javascript
+// ローカルストレージからデータを読み込み
+const loadFromLocalStorage = useCallback(() => {
+  try {
+    const encryptedData = localStorage.getItem('portfolioData');
+    
+    if (!encryptedData) {
+      console.log('ローカルストレージにデータがありません');
+      return null;
+    }
+    
+    // データの復号化
+    try {
+      const decryptedData = decryptData(encryptedData);
+      
+      // バージョン検証
+      if (!decryptedData.version) {
+        console.warn('データバージョンが不明です');
+      }
+      
+      return decryptedData;
+    } catch (decryptError) {
+      console.error('データの復号化に失敗しました', decryptError);
+      return null;
+    }
+  } catch (error) {
+    console.error('ローカルストレージからの読み込みに失敗しました', error);
+    return null;
+  }
+}, []);
+```
+
 ## 改訂履歴
 
 | バージョン | 日付 | 変更内容 | 担当者 |
@@ -830,3 +984,4 @@ useEffect(() => {
 | 1.1      | 2025/03/17 | jwt-decode対応、アクセシビリティ対応、ESLint設定更新 | |
 | 1.2      | 2025/03/18 | データ取得フォールバック機構、環境変数名統一、ログ出力強化 | |
 | 1.3      | 2025/03/20 | ファンドタイプ判定と年間手数料計算に関する規約追加、個別株の取り扱い追加 | |
+| 1.4      | 2025/03/25 | ローカルストレージによるデータ永続化、コンテキスト間連携、React Hooksルール強化 | |
