@@ -347,4 +347,239 @@ export async function initGoogleDriveAPI() {
     // アクセストークンを使用して認証
     if (window.google && window.google.accounts && window.google.accounts.oauth2) {
       const tokenClient = window.google.accounts.oauth2.initTokenClient({
-        clien
+        client_id: GOOGLE_CLIENT_ID,
+        scope: 'https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file',
+        callback: (tokenResponse) => {
+          if (tokenResponse && tokenResponse.access_token) {
+            accessToken = tokenResponse.access_token;
+            console.log('[API] Access token acquired successfully');
+          }
+        }
+      });
+      
+      // トークンリクエストを実行
+      if (!accessToken) {
+        tokenClient.requestAccessToken({ prompt: '' });
+      }
+    } else {
+      console.error('[API] Google accounts oauth2 not found. Make sure the Google Identity Services script is loaded in index.html');
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('[API] Error initializing Google Drive API:', error);
+    return false;
+  }
+}
+
+/**
+ * アクセストークンを設定する
+ * @param {string} token - GoogleOAuthから取得したトークン
+ */
+export function setGoogleAccessToken(token) {
+  console.log('[API] Setting Google access token');
+  accessToken = token;
+  
+  if (token) {
+    // トークンをAuthorizationヘッダーに設定
+    window.gapi.client.setToken({
+      access_token: token
+    });
+  }
+}
+
+/**
+ * シンプル化されたGoogleドライブへのデータ保存
+ * @param {Object} data - 保存するデータ
+ * @param {Object} userData - ユーザー情報
+ * @param {string} filename - ファイル名
+ * @returns {Promise<Object>} 保存結果
+ */
+export async function saveToGoogleDrive(data, userData, filename = 'portfolio_data.json') {
+  console.log('[API] Saving data to Google Drive:', { userData, filename });
+  
+  if (!userData || !userData.email) {
+    console.error('[API] User data is required for Google Drive operations');
+    return { success: false, message: 'ユーザー情報がありません' };
+  }
+  
+  try {
+    // トークンを取得
+    const token = accessToken || localStorage.getItem('googleToken');
+    if (!token) {
+      console.error('[API] No access token available for Google Drive operations');
+      return { success: false, message: 'アクセストークンがありません。再度ログインしてください。' };
+    }
+    
+    // JSONデータに変換
+    const jsonContent = JSON.stringify(data);
+    const blob = new Blob([jsonContent], { type: 'application/json' });
+    
+    // 直接Fetch APIを使用してファイルを作成/更新
+    const formData = new FormData();
+    formData.append('metadata', new Blob([JSON.stringify({
+      name: filename,
+      mimeType: 'application/json',
+      parents: ['appDataFolder']
+    })], { type: 'application/json' }));
+    formData.append('file', blob);
+    
+    // メディアアップロードを使用
+    const response = await fetch(
+      'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      }
+    );
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error ${response.status}: ${await response.text()}`);
+    }
+    
+    const result = await response.json();
+    console.log('[API] File saved to Google Drive:', result);
+    
+    return {
+      success: true,
+      message: 'データを保存しました',
+      fileId: result.id,
+      fileName: result.name
+    };
+  } catch (error) {
+    console.error('[API] Error saving to Google Drive:', error);
+    return { success: false, message: `Googleドライブへの保存に失敗しました: ${error.message}` };
+  }
+}
+
+/**
+ * シンプル化されたGoogleドライブからのデータ読み込み
+ * @param {Object} userData - ユーザー情報
+ * @param {string} filename - ファイル名
+ * @returns {Promise<Object>} 読み込み結果
+ */
+export async function loadFromGoogleDrive(userData, filename = 'portfolio_data.json') {
+  console.log('[API] Loading data from Google Drive:', { userData, filename });
+  
+  if (!userData || !userData.email) {
+    console.error('[API] User data is required for Google Drive operations');
+    return { success: false, message: 'ユーザー情報がありません' };
+  }
+  
+  try {
+    // トークンを取得
+    const token = accessToken || localStorage.getItem('googleToken');
+    if (!token) {
+      console.error('[API] No access token available for Google Drive operations');
+      return { success: false, message: 'アクセストークンがありません。再度ログインしてください。' };
+    }
+    
+    // ファイルを検索
+    const searchResponse = await fetch(
+      `https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='${filename}'`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }
+    );
+    
+    if (!searchResponse.ok) {
+      throw new Error(`HTTP error ${searchResponse.status}: ${await searchResponse.text()}`);
+    }
+    
+    const searchResult = await searchResponse.json();
+    console.log('[API] Search results:', searchResult);
+    
+    if (!searchResult.files || searchResult.files.length === 0) {
+      console.log(`[API] No file found with name: ${filename}`);
+      return { success: false, message: 'ファイルが見つかりません' };
+    }
+    
+    // 最新のファイルを取得
+    const fileId = searchResult.files[0].id;
+    const fileResponse = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }
+    );
+    
+    if (!fileResponse.ok) {
+      throw new Error(`HTTP error ${fileResponse.status}: ${await fileResponse.text()}`);
+    }
+    
+    const data = await fileResponse.json();
+    console.log('[API] File content retrieved from Google Drive');
+    
+    return {
+      success: true,
+      message: 'データを読み込みました',
+      data: data,
+      fileId: fileId,
+      fileName: filename
+    };
+  } catch (error) {
+    console.error('[API] Error loading from Google Drive:', error);
+    return { success: false, message: `Googleドライブからの読み込みに失敗しました: ${error.message}` };
+  }
+}
+
+/**
+ * シンプル化されたGoogleドライブのファイル削除
+ * @param {string} fileId - 削除するファイルのID
+ * @param {Object} userData - ユーザー情報
+ * @returns {Promise<Object>} - 削除結果
+ */
+export async function deleteFileFromGoogleDrive(fileId, userData) {
+  console.log(`[API] Deleting file from Google Drive: ${fileId}`);
+  
+  if (!userData || !userData.email) {
+    console.error('[API] User data is required for Google Drive operations');
+    return { success: false, message: 'ユーザー情報がありません' };
+  }
+  
+  if (!fileId) {
+    return { success: false, message: 'ファイルIDが指定されていません' };
+  }
+  
+  try {
+    // トークンを取得
+    const token = accessToken || localStorage.getItem('googleToken');
+    if (!token) {
+      console.error('[API] No access token available for Google Drive operations');
+      return { success: false, message: 'アクセストークンがありません' };
+    }
+    
+    // ファイルを削除
+    const response = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${fileId}`,
+      {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }
+    );
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error ${response.status}: ${await response.text()}`);
+    }
+    
+    console.log(`[API] File deleted from Google Drive: ${fileId}`);
+    
+    return {
+      success: true,
+      message: 'ファイルを削除しました',
+      fileId: fileId
+    };
+  } catch (error) {
+    console.error('[API] Error deleting file from Google Drive:', error);
+    return { success: false, message: `ファイルの削除に失敗しました: ${error.message}` };
+  }
+}
