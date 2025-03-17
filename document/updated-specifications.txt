@@ -1,9 +1,8 @@
-1. ポートフォリオマネージャー 仕様書
-markdownコピー# ポートフォリオマネージャー 仕様書（更新版）
+# ポートフォリオマネージャー 仕様書（更新版）
 
 ## 1. プロジェクト概要
 
-「ポートフォリオマネージャー」は、資産管理を支援するWebアプリケーションです。ユーザーが保有資産と理想のポートフォリオ配分を比較・管理し、最適な資金配分のシミュレーションを実施できる環境を提供します。GoogleログインとGoogleドライブ連携機能を備え、複数デバイス間でのデータ共有をサポートします。
+「ポートフォリオマネージャー」は、資産管理を支援するWebアプリケーションです。ユーザーが保有資産と理想のポートフォリオ配分を比較・管理し、最適な資金配分のシミュレーションを実施できる環境を提供します。GoogleログインとGoogleドライブ連携機能を備え、複数デバイス間でのデータ共有をサポートします。また、ブラウザのローカルストレージを活用したデータ永続化により、アプリ利用時の利便性を向上させています。
 
 ### 1.1 主要機能
 - 資産管理（保有数の小数点以下4桁対応）
@@ -12,6 +11,7 @@ markdownコピー# ポートフォリオマネージャー 仕様書（更新版
 - 理想ポートフォリオ配分設定
 - 資金配分シミュレーション
 - データインポート/エクスポート
+- ブラウザローカルストレージによるデータ保持
 - Google認証・Googleドライブ連携
 - 市場データの自動取得（Alpha Vantageをプライマリソース、フォールバック値をバックアップとして使用）
 - iOS風タブバーによるナビゲーション
@@ -29,6 +29,7 @@ markdownコピー# ポートフォリオマネージャー 仕様書（更新版
 - **UI拡張**: @headlessui/react 1.x
 - **サーバーレス関数**: Netlify Functions
 - **デプロイ**: Netlify
+- **データ永続化**: ローカルストレージ（暗号化対応）
 
 ## 2. 環境設定
 
@@ -42,15 +43,19 @@ markdownコピー# ポートフォリオマネージャー 仕様書（更新版
 - **src/utils/fundUtils.js**: ファンドタイプと手数料情報のユーティリティ関数
 
 ### 2.2 環境変数
-Google OAuth認証用クライアントID
+```
+# Google OAuth認証用クライアントID
 REACT_APP_GOOGLE_CLIENT_ID=<YOUR_GOOGLE_CLIENT_ID>
-Alpha Vantage API（フロントエンド用）
+
+# Alpha Vantage API（フロントエンド用）
 REACT_APP_ALPHA_VANTAGE_API_KEY=<YOUR_API_KEY>
-Netlify Functions用環境変数
+
+# Netlify Functions用環境変数
 ALPHA_VANTAGE_API_KEY=<YOUR_API_KEY>
-コピー
+```
+
 ### 2.3 Netlify Functions設定
-netlify.toml（更新版）:
+netlify.toml（最新版）:
 ```toml
 [build]
   command = "CI= npm run build"
@@ -66,24 +71,20 @@ netlify.toml（更新版）:
 
 # Functions へのアクセス許可設定
 [[headers]]
-  for = "/.netlify/functions/*"
+  for = "/api/*"
     [headers.values]
     Access-Control-Allow-Origin = "*"
     Access-Control-Allow-Headers = "Content-Type, Authorization"
     Access-Control-Allow-Methods = "GET, POST, OPTIONS"
 
-# Functions への直接アクセス用リダイレクト
-[[redirects]]
-  from = "/.netlify/functions/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
-  force = true
-
+# API経由でFunctionsにアクセス
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
   status = 200
+  force = true
 
+# SPAのためのリダイレクト
 [[redirects]]
   from = "/*"
   to = "/index.html"
@@ -94,9 +95,13 @@ netlify.toml（更新版）:
   directory = "functions"
   node_bundler = "esbuild"
   included_files = ["functions/**"]
-3. アプリケーションの構造
-3.1 ディレクトリ構造（更新版）
-コピーportfolio-manager/
+```
+
+## 3. アプリケーションの構造
+
+### 3.1 ディレクトリ構造（更新版）
+```
+portfolio-manager/
 ├── public/
 │   ├── index.html
 │   └── favicon.ico
@@ -133,17 +138,17 @@ netlify.toml（更新版）:
 │   │       ├── ToastNotification.jsx
 │   │       ├── DataSourceBadge.jsx
 │   │       └── ErrorBoundary.jsx
-│   ├── pages/
-│   │   ├── Dashboard.jsx
-│   │   ├── Settings.jsx
-│   │   ├── Simulation.jsx
-│   │   └── DataIntegration.jsx
 │   ├── context/
 │   │   ├── AuthContext.js
 │   │   └── PortfolioContext.js
 │   ├── hooks/
 │   │   ├── useAuth.js
 │   │   └── usePortfolioContext.js
+│   ├── pages/
+│   │   ├── Dashboard.jsx
+│   │   ├── Settings.jsx
+│   │   ├── Simulation.jsx
+│   │   └── DataIntegration.jsx
 │   ├── services/
 │   │   ├── api.js
 │   │   └── marketDataService.js
@@ -156,29 +161,32 @@ netlify.toml（更新版）:
 │   └── index.css
 ├── functions/
 │   ├── alpha-vantage-proxy.js
-│   ├── yahoo-finance-proxy.js
 │   └── mof-exchange-rate-proxy.js
 ├── package.json
 ├── tailwind.config.js
 ├── postcss.config.js
 ├── netlify.toml
 └── .env.local
-3.2 主要ファイルの役割
+```
 
-App.jsx: アプリケーションのルートコンポーネント、認証プロバイダー、ルーティング設定
-context/AuthContext.js: Google認証管理（jwt-decode 3.x対応済み）
-context/PortfolioContext.js: ポートフォリオ状態・ロジック管理、手数料計算
-hooks/useAuth.js: 認証状態管理フック
-hooks/usePortfolioContext.js: ポートフォリオコンテキスト使用フック
-utils/fundUtils.js: ファンドタイプ判定と手数料率推定のユーティリティ関数
-setupProxy.js: 開発環境用APIプロキシ設定
-index.css: Tailwind CSSとiOS風インターフェース用スタイリング
-services/api.js: 市場データ取得サービス（複数データソース対応）
-functions/alpha-vantage-proxy.js: Alpha Vantage API呼び出し用のサーバーレス関数
+### 3.2 主要ファイルの役割
 
-4. データモデル（更新版）
-4.1 Asset（保有資産）
-typescriptコピーinterface Asset {
+- **App.jsx**: アプリケーションのルートコンポーネント、認証プロバイダー、ルーティング設定、Context間の連携
+- **context/AuthContext.js**: Google認証管理、PortfolioContextとの連携
+- **context/PortfolioContext.js**: ポートフォリオ状態・ロジック管理、手数料計算、ローカルストレージ保存・読み込み
+- **hooks/useAuth.js**: 認証状態管理フック
+- **hooks/usePortfolioContext.js**: ポートフォリオコンテキスト使用フック
+- **utils/fundUtils.js**: ファンドタイプ判定と手数料率推定のユーティリティ関数
+- **setupProxy.js**: 開発環境用APIプロキシ設定
+- **index.css**: Tailwind CSSとiOS風インターフェース用スタイリング
+- **services/api.js**: 市場データ取得サービス（複数データソース対応）
+- **functions/alpha-vantage-proxy.js**: Alpha Vantage API呼び出し用のサーバーレス関数
+
+## 4. データモデル（更新版）
+
+### 4.1 Asset（保有資産）
+```typescript
+interface Asset {
   id: string;
   name: string;
   ticker: string;
@@ -195,15 +203,21 @@ typescriptコピーinterface Asset {
   lastUpdated?: string; // 最終更新日時
   source?: string; // データソース ('Alpha Vantage', 'Fallback')
 }
-4.2 TargetAllocation（目標配分）
-typescriptコピーinterface TargetAllocation {
+```
+
+### 4.2 TargetAllocation（目標配分）
+```typescript
+interface TargetAllocation {
   id: string;
   name: string;
   ticker: string;
   targetPercentage: number;
 }
-4.3 SimulationResult（シミュレーション結果）
-typescriptコピーinterface SimulationResult {
+```
+
+### 4.3 SimulationResult（シミュレーション結果）
+```typescript
+interface SimulationResult {
   id: string;
   name: string;
   ticker: string;
@@ -217,8 +231,11 @@ typescriptコピーinterface SimulationResult {
   purchaseAmount: number;
   remark?: string;
 }
-4.4 FundTypes（ファンドタイプ）
-typescriptコピーenum FundTypes {
+```
+
+### 4.4 FundTypes（ファンドタイプ）
+```typescript
+enum FundTypes {
   INDEX_JP = 'インデックス（日本）',
   INDEX_US = 'インデックス（米国）',
   INDEX_GLOBAL = 'インデックス（グローバル）',
@@ -234,60 +251,126 @@ typescriptコピーenum FundTypes {
   STOCK = '個別株',
   UNKNOWN = '不明'
 }
-5. 手数料計算と銘柄判定（更新版）
-5.1 銘柄タイプ判定ロジック
+```
+
+### 4.5 ローカルストレージデータ形式（新規）
+```typescript
+interface PortfolioData {
+  baseCurrency: string;
+  exchangeRate: object;
+  lastUpdated: string;
+  currentAssets: Asset[];
+  targetPortfolio: TargetAllocation[];
+  additionalBudget: number;
+  version: string; // データバージョン管理用
+  timestamp: string; // 保存日時
+}
+```
+
+## 5. データ永続化と認証連携（新規）
+
+### 5.1 ローカルストレージによるデータ保持
+- **データ暗号化**: Base64エンコーディングによる簡易暗号化
+- **保存タイミング**: 
+  - ユーザーアクションによるデータ変更時（自動保存）
+  - 明示的な保存操作時
+  - Google Driveとの同期時
+- **読み込みタイミング**:
+  - アプリケーション初期化時
+  - ユーザーによる明示的な読み込み操作時
+
+```javascript
+// データの暗号化
+const encryptData = (data) => {
+  const jsonString = JSON.stringify(data);
+  return btoa(jsonString); // Base64エンコード
+};
+
+// データの復号化
+const decryptData = (encryptedData) => {
+  const jsonString = atob(encryptedData); // Base64デコード
+  return JSON.parse(jsonString);
+};
+```
+
+### 5.2 Google認証とデータ同期
+- **認証フロー**: OAuth 2.0による認証
+- **認証情報の保存**: ローカルストレージにJWTトークンを保存
+- **有効期限チェック**: トークン有効期限の確認と自動ログアウト
+- **コンテキスト連携**: AuthContextとPortfolioContextの相互参照
+- **データソース管理**:
+  - ログイン時: クラウドデータを優先
+  - ログアウト時: ローカルデータを使用
+  - データ競合時: 最新のタイムスタンプを持つデータを優先
+
+```javascript
+// ContextConnectorコンポーネント（コンテキスト間の連携）
+const ContextConnector = () => {
+  const auth = useAuth();
+  const portfolio = usePortfolioContext();
+  
+  useEffect(() => {
+    if (auth && auth.setPortfolioContextRef && portfolio) {
+      auth.setPortfolioContextRef(portfolio);
+    }
+  }, [auth, portfolio]);
+  
+  return null;
+};
+```
+
+## 6. 手数料計算と銘柄判定（更新版）
+
+### 6.1 銘柄タイプ判定ロジック
 銘柄のティッカーシンボルや名前からファンドタイプを判定する機能を実装しています：
 
-個別株の判定:
+- **個別株の判定**:
+  - 日本株: 4桁+.T形式でないもの
+  - 米国株: 1-5文字のティッカーで、既知のETFやファンドに該当しないもの
+  - ETF、インデックスファンド、REIT、債券ファンド、暗号資産などに該当しないもの
 
-日本株: 4桁+.T形式でないもの
-米国株: 1-5文字のティッカーで、既知のETFやファンドに該当しないもの
-ETF、インデックスファンド、REIT、債券ファンド、暗号資産などに該当しないもの
+- **ETFの判定**:
+  - 日本ETF: 1から始まる4桁の数字 + .T形式（例: 1306.T）
+  - 米国ETF: 既知のETFリストに含まれる、または名前にETFを含む
 
+- **インデックスファンドの判定**:
+  - 名前に「index」「インデックス」「日経」「topix」「S&P」などを含む
 
-ETFの判定:
+- **REITの判定**:
+  - 名前に「REIT」「リート」「不動産投資」などを含む
 
-日本ETF: 1から始まる4桁の数字 + .T形式（例: 1306.T）
-米国ETF: 既知のETFリストに含まれる、または名前にETFを含む
-
-
-インデックスファンドの判定:
-
-名前に「index」「インデックス」「日経」「topix」「S&P」などを含む
-
-
-REITの判定:
-
-名前に「REIT」「リート」「不動産投資」などを含む
-
-
-
-5.2 手数料率推定ロジック
+### 6.2 手数料率推定ロジック
 銘柄タイプに基づいて年間手数料率を推定します：
 
-個別株: 常に0%（ユーザーによる変更不可）
-インデックスファンド（日本）: 0.3%
-インデックスファンド（米国）: 0.15%
-インデックスファンド（グローバル）: 0.25%
-アクティブファンド（日本）: 1.5%
-アクティブファンド（米国）: 0.75%
-アクティブファンド（グローバル）: 1.0%
-ETF（日本）: 0.22%
-ETF（米国）: 0.12%
-REIT: 0.5-0.6%
-その他: 0.5%（デフォルト値）
+- 個別株: 常に0%（ユーザーによる変更不可）
+- インデックスファンド（日本）: 0.3%
+- インデックスファンド（米国）: 0.15%
+- インデックスファンド（グローバル）: 0.25%
+- アクティブファンド（日本）: 1.5%
+- アクティブファンド（米国）: 0.75%
+- アクティブファンド（グローバル）: 1.0%
+- ETF（日本）: 0.22%
+- ETF（米国）: 0.12%
+- REIT: 0.5-0.6%
+- その他: 0.5%（デフォルト値）
 
-5.3 特定銘柄の手数料情報データベース
+### 6.3 特定銘柄の手数料情報データベース
 人気のETFやファンドについては、より正確な手数料情報をアプリケーション内のデータベースから取得します：
-javascriptコピー// 主要ETFの例
+
+```javascript
+// 主要ETFの例
 'SPY': 0.09,  // SPDR S&P 500 ETF
 'VOO': 0.03,  // Vanguard S&P 500 ETF
 'VTI': 0.03,  // Vanguard Total Stock Market ETF
 '1306.T': 0.11, // TOPIX ETF
 '1320.T': 0.16, // 日経225 ETF
-5.4 年間手数料の計算
+```
+
+### 6.4 年間手数料の計算
 保有資産ごとの年間手数料を計算し、合計します：
-javascriptコピー// 年間手数料の計算
+
+```javascript
+// 年間手数料の計算
 const annualFees = currentAssets.reduce((sum, asset) => {
   // 個別株は手数料を0にする
   if (asset.fundType === FUND_TYPES.STOCK || asset.isStock) {
@@ -307,51 +390,61 @@ const annualFees = currentAssets.reduce((sum, asset) => {
   
   return sum + (assetValue * (asset.annualFee || 0) / 100);
 }, 0);
-6. 主要コンポーネントの実装詳細
-6.1 HoldingsEditor（保有資産編集）
+```
 
-保有資産の編集UIを提供
-保有数量の編集（小数点以下4桁対応）
+## 7. 主要コンポーネントの実装詳細
 
-直接入力：小数点以下4桁まで入力可能
-スピンボタン操作：整数単位のみ（1以上の整数）での増減
+### 7.1 新しい人気銘柄リスト
+```javascript
+// インデックスファンド・ETF
+const POPULAR_FUNDS = [
+  { ticker: '2533106', name: 'eMAXIS Slim 全世界株式（オール・カントリー）' },
+  { ticker: '2531108', name: 'eMAXIS Slim 米国株式（S&P500）' },
+  { ticker: 'VOO', name: 'Vanguard S&P 500 ETF' },
+  { ticker: 'VXUS', name: 'Vanguard Total International Stock ETF' },
+  { ticker: 'GLD', name: 'SPDR Gold Shares' },
+  { ticker: 'LQD', name: 'iShares iBoxx $ Investment Grade Corporate Bond ETF' }
+];
 
+// 個別株
+const POPULAR_STOCKS = [
+  { ticker: 'AAPL', name: 'アップル' },
+  { ticker: 'NVDA', name: 'エヌビディア' },
+  { ticker: 'MSFT', name: 'マイクロソフト' }
+];
+```
 
-手数料編集は不可（読み取り専用で表示）
-銘柄タイプの表示
-手数料情報の出所を表示（個別株、推定値、固有情報）
-銘柄タイプに応じたUIの切り替え（個別株は灰色背景）
+### 7.2 HoldingsEditor（保有資産編集）
+- 保有資産の編集UIを提供
+- 保有数量の編集（小数点以下4桁対応）
+- 手数料編集は不可（読み取り専用で表示）
+- 銘柄タイプの表示
+- 手数料情報の出所を表示（個別株、推定値、固有情報）
+- 銘柄タイプに応じたUIの切り替え（個別株は灰色背景）
 
-6.2 PortfolioSummary（ポートフォリオサマリー）
+### 7.3 DataSyncStatus（新規）
+- データ同期状況の表示
+- データソース（ローカル/クラウド）の表示
+- 最終同期時刻の表示
+- 同期ボタンの提供
+- クラウド保存/読み込みボタンの提供
 
-総資産額を表示
-銘柄数を表示
-年間手数料の合計と割合を表示
-最も高い/低い手数料率の銘柄を表示
-ファンドタイプ別の手数料統計を表示
+### 7.4 GoogleDriveIntegration（更新）
+- Googleアカウント連携UI
+- クラウドへのデータ保存機能
+- クラウドからのデータ読み込み機能
+- データ同期機能（ローカルとクラウドの統合）
+- 認証状態に応じたUI切り替え
 
-6.3 AssetsTable（保有資産一覧）
+## 8. APIとデータ取得
 
-保有資産を表形式で表示
-銘柄、価格、保有数、評価額などを表示
-銘柄ごとの年間手数料を表示
-個別株は手数料0%で表示
+### 8.1 市場データ取得
+- Alpha Vantage APIを使用して最新価格を取得
+- 銘柄データ取得時に銘柄タイプと手数料情報も自動推定
+- 個別株は手数料率0%として扱う
 
-6.4 FundUtils（ファンドユーティリティ）
-
-銘柄タイプ判定関数（guessFundType）
-手数料率推定関数（estimateAnnualFee）
-特定銘柄の手数料情報データベース
-ファンド情報の抽出関数（extractFundInfo）
-
-7. APIとデータ取得
-7.1 市場データ取得
-
-Alpha Vantage APIを使用して最新価格を取得
-銘柄データ取得時に銘柄タイプと手数料情報も自動推定
-個別株は手数料率0%として扱う
-
-javascriptコピー// 銘柄データの取得と手数料情報の推定
+```javascript
+// 銘柄データの取得と手数料情報の推定
 export async function fetchTickerData(ticker) {
   // Alpha Vantageから価格データを取得
   
@@ -370,105 +463,64 @@ export async function fetchTickerData(ticker) {
     // 銘柄データと手数料情報
   };
 }
-7.2 手数料情報の自動更新
+```
 
-銘柄追加時に手数料情報を自動取得・推定
-市場データ更新時に手数料情報も更新
-手数料情報に変更があった場合は通知で表示
+### 8.2 手数料情報の自動更新
+- 銘柄追加時に手数料情報を自動取得・推定
+- 市場データ更新時に手数料情報も更新
+- 手数料情報に変更があった場合は通知で表示
 
-8. UI操作フロー
-8.1 銘柄追加フロー
+## 9. UI操作フロー
 
-ユーザーが銘柄シンボルを入力
-addTicker関数を呼び出し
-Alpha Vantage APIからデータ取得
-銘柄タイプを判定し、手数料情報を推定
-個別株の場合は手数料を0%に設定
-保有資産と目標配分リストに追加
-手数料情報の通知を表示
+### 9.1 初期化フロー（新規）
+1. アプリケーション起動時にローカルストレージからデータ読み込み
+2. 既存データがあればUIに適用
+3. 認証状態の確認と復元
+4. コンテキスト間の連携を確立
 
-8.2 保有数量編集フロー（更新）
+### 9.2 銘柄追加フロー
+1. ユーザーが銘柄シンボルを入力
+2. addTicker関数を呼び出し
+3. Alpha Vantage APIからデータ取得
+4. 銘柄タイプを判定し、手数料情報を推定
+5. 個別株の場合は手数料を0%に設定
+6. 保有資産と目標配分リストに追加
+7. データをローカルストレージに自動保存
+8. 手数料情報の通知を表示
 
-ユーザーが保有数量の編集を選択
-直接入力の場合：
+### 9.3 保有数量編集フロー（更新）
+1. ユーザーが保有数量の編集を選択
+2. 直接入力の場合：任意の数値（小数点以下4桁まで）を入力可能
+3. スピンボタン操作の場合：整数単位（1以上）での増減のみ可能
+4. updateHoldings関数を呼び出し
+5. データをローカルストレージに自動保存
+6. UI更新と結果通知
 
-任意の数値（小数点以下4桁まで）を入力可能
+### 9.4 データ同期フロー（新規）
+1. ユーザーが同期ボタンをクリック
+2. ローカルストレージとクラウドのデータを比較
+3. タイムスタンプに基づいて最新データを特定
+4. 最新データを適用
+5. ローカルストレージとクラウド両方にデータを保存
+6. 同期状態表示の更新
+7. 結果通知の表示
 
+## 10. エラー処理と制約
 
-スピンボタン操作の場合：
+### 10.1 個別株の手数料制約
+- 個別株の年間手数料率は常に0%
+- 手数料率はすべてのファンドタイプで編集不可（読み取り専用）
+- 手数料情報は市場データ更新時に自動的に確認・更新
 
-整数単位（1以上）での増減のみ可能
-減少ボタンは現在値が1未満の場合は無効
+### 10.2 データインポート時の処理
+- インポートしたデータ内の個別株の手数料率を0%に修正
+- 銘柄タイプと手数料情報が欠けている場合は自動推定
+- インポート後にローカルストレージに自動保存
 
-
-updateHoldings関数を呼び出し
-UI更新と結果通知
-
-8.3 市場データ更新フロー（更新）
-
-ユーザーがデータ更新ボタンをクリック
-refreshMarketPrices関数を呼び出し
-各銘柄について順次データ取得試行:
-
-Alpha Vantage APIを試行
-銘柄タイプと手数料情報を確認・更新
-個別株はどのような場合も手数料率0%を維持
-手数料情報の変更を検出した場合は記録
-失敗時はフォールバック値を使用
-
-
-各銘柄のデータソースを記録
-手数料変更があった銘柄の情報を通知
-UI更新と結果通知
-
-8.4 年間手数料計算フロー
-
-各保有資産について：
-a. 個別株の場合はスキップ（常に0円）
-b. 評価額を基準通貨に換算
-c. 評価額に年間手数料率を掛けて計算
-すべての銘柄の手数料を合計
-総資産に対する手数料率を計算
-
-9. エラー処理と制約
-9.1 個別株の手数料制約
-
-個別株の年間手数料率は常に0%
-手数料率はすべてのファンドタイプで編集不可（読み取り専用）
-手数料情報は市場データ更新時に自動的に確認・更新
-
-9.2 データインポート時の処理
-
-インポートしたデータ内の個別株の手数料率を0%に修正
-銘柄タイプと手数料情報が欠けている場合は自動推定
-
-9.3 データ更新時の処理
-
-個別株判定された銘柄の手数料は強制的に0%にする
-手数料情報の変更があった場合は通知で表示
-データソースごとの更新件数を表示
-
-10. 実装上の注意点
-10.1 個別株とファンドの区別
-
-UI上で個別株とファンドを視覚的に区別（灰色背景、バッジなど）
-個別株の手数料は常に0%と表示
-
-10.2 手数料情報の視覚的表示
-
-手数料情報の出所をバッジで表示
-
-個別株: 灰色バッジ
-推定値: 黄色バッジ
-ティッカー固有の情報: 緑色バッジ
-
-
-
-10.3 手数料統計の表示
-
-最高/最低手数料率の銘柄
-ファンドタイプ別の手数料合計
-総資産に対する手数料率
+### 10.3 データ同期時の処理
+- 認証失敗時にエラー通知と適切なフォールバック
+- データ競合時にタイムスタンプベースの解決
+- 同期失敗時にエラー情報の詳細表示
 
 ## 改訂履歴
 | バージョン | 日付 | 内容 | 担当者 |
@@ -477,6 +529,7 @@ UI上で個別株とファンドを視覚的に区別（灰色背景、バッジ
 | 2.0 | 2025/03/16 | 環境設定と依存関係の更新 |  |
 | 3.0 | 2025/03/17 | jwt-decode対応・プロキシ設定・ESLint設定の改訂 |  |
 | 4.0 | 2025/03/18 | Alpha Vantage API連携強化・環境変数名統一・データフォールバック機構拡充 |  |
-| 5.0 | 2025/03/18 | Yahoo Finance API無効化、Alpha Vantageをプライマリソースに変更、401認証エラー対応 |  |
-| 6.0 | 2025/03/19 | 銘柄タイプ自動判定と年間手数料の自動推定機能追加 |  |
-| 7.0 | 2025/03/20 | 個別株の手数料固定（0%）とファンド手数料計算ロジックの修正 |  |
+| 5.0 | 2025/03/19 | 銘柄タイプ自動判定と年間手数料の自動推定機能追加 |  |
+| 6.0 | 2025/03/20 | 個別株の手数料固定（0%）とファンド手数料計算ロジックの修正 |  |
+| 7.0 | 2025/03/21 | 人気銘柄リストの更新 |  |
+| 8.0 | 2025/03/25 | ローカルストレージによるデータ保持機能とGoogle認証連携強化 |  |
