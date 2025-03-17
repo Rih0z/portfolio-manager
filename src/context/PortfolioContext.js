@@ -25,6 +25,9 @@ const decryptData = (encryptedData) => {
 export const PortfolioContext = createContext();
 
 export const PortfolioProvider = ({ children }) => {
+  // 初期化完了フラグ
+  const [initialized, setInitialized] = useState(false);
+  
   // 状態管理
   const [baseCurrency, setBaseCurrency] = useState('JPY');
   const [exchangeRate, setExchangeRate] = useState({
@@ -57,6 +60,8 @@ export const PortfolioProvider = ({ children }) => {
 
   // ローカルストレージにデータを保存
   const saveToLocalStorage = useCallback(() => {
+    if (!initialized) return false; // 初期化前は保存しない
+    
     try {
       const portfolioData = {
         baseCurrency,
@@ -74,25 +79,33 @@ export const PortfolioProvider = ({ children }) => {
       
       // ローカルストレージに保存
       localStorage.setItem('portfolioData', encryptedData);
+      console.log('ローカルストレージにデータを保存しました', portfolioData);
       
       return true;
     } catch (error) {
       console.error('ローカルストレージへの保存に失敗しました', error);
       return false;
     }
-  }, [baseCurrency, exchangeRate, lastUpdated, currentAssets, targetPortfolio, additionalBudget]);
+  }, [initialized, baseCurrency, exchangeRate, lastUpdated, currentAssets, targetPortfolio, additionalBudget]);
 
   // ローカルストレージからデータを読み込み
   const loadFromLocalStorage = useCallback(() => {
     try {
       // ローカルストレージからデータを取得
       const encryptedData = localStorage.getItem('portfolioData');
-      if (!encryptedData) return null;
+      if (!encryptedData) {
+        console.log('ローカルストレージにデータがありません');
+        return null;
+      }
       
       // データの復号化
       const decryptedData = decryptData(encryptedData);
-      if (!decryptedData) return null;
+      if (!decryptedData) {
+        console.log('データの復号化に失敗しました');
+        return null;
+      }
       
+      console.log('ローカルストレージからデータを読み込みました', decryptedData);
       return decryptedData;
     } catch (error) {
       console.error('ローカルストレージからの読み込みに失敗しました', error);
@@ -264,7 +277,7 @@ export const PortfolioProvider = ({ children }) => {
       }
       
       // データを自動保存
-      saveToLocalStorage();
+      setTimeout(() => saveToLocalStorage(), 100);
 
       return { success: true, message: '銘柄を追加しました' };
     } catch (error) {
@@ -281,7 +294,7 @@ export const PortfolioProvider = ({ children }) => {
         item.id === id ? { ...item, targetPercentage: parseFloat(percentage) } : item
       );
       // 変更後に自動保存
-      setTimeout(() => saveToLocalStorage(), 0);
+      setTimeout(() => saveToLocalStorage(), 100);
       return updated;
     });
   }, [saveToLocalStorage]);
@@ -293,7 +306,7 @@ export const PortfolioProvider = ({ children }) => {
         item.id === id ? { ...item, holdings: parseFloat(parseFloat(holdings).toFixed(4)) || 0 } : item
       );
       // 変更後に自動保存
-      setTimeout(() => saveToLocalStorage(), 0);
+      setTimeout(() => saveToLocalStorage(), 100);
       return updated;
     });
   }, [saveToLocalStorage]);
@@ -304,7 +317,7 @@ export const PortfolioProvider = ({ children }) => {
     setCurrentAssets(prev => {
       const updated = prev.filter(item => item.id !== id);
       // 変更後に自動保存
-      setTimeout(() => saveToLocalStorage(), 0);
+      setTimeout(() => saveToLocalStorage(), 100);
       return updated;
     });
   }, [saveToLocalStorage]);
@@ -394,7 +407,7 @@ export const PortfolioProvider = ({ children }) => {
           : asset
       );
       // 変更後に自動保存
-      setTimeout(() => saveToLocalStorage(), 0);
+      setTimeout(() => saveToLocalStorage(), 100);
       return updated;
     });
   }, [saveToLocalStorage]);
@@ -440,7 +453,7 @@ export const PortfolioProvider = ({ children }) => {
       if (Array.isArray(data.targetPortfolio)) setTargetPortfolio(data.targetPortfolio);
       
       // インポート後に自動保存
-      setTimeout(() => saveToLocalStorage(), 0);
+      setTimeout(() => saveToLocalStorage(), 100);
       
       return { success: true, message: 'データをインポートしました' };
     } catch (error) {
@@ -480,7 +493,7 @@ export const PortfolioProvider = ({ children }) => {
       }
       
       // 為替レート更新後に自動保存
-      setTimeout(() => saveToLocalStorage(), 0);
+      setTimeout(() => saveToLocalStorage(), 100);
     } catch (error) {
       console.error('為替レートの更新に失敗しました', error);
       // 更新失敗時は既存のレートを維持
@@ -583,7 +596,7 @@ export const PortfolioProvider = ({ children }) => {
         addNotification('クラウドからデータを読み込みました', 'success');
         
         // ローカルストレージにも同期保存
-        setTimeout(() => saveToLocalStorage(), 0);
+        setTimeout(() => saveToLocalStorage(), 100);
         
         return { success: true, message: 'クラウドからデータを読み込みました' };
       } else {
@@ -597,19 +610,39 @@ export const PortfolioProvider = ({ children }) => {
     }
   }, [baseCurrency, addNotification, saveToLocalStorage]);
 
-  // 初期化時にローカルストレージからデータを読み込み
-  useEffect(() => {
-    const initializeData = () => {
+  // データの初期化処理（ローカルストレージからデータを読み込む）
+  const initializeData = useCallback(() => {
+    try {
+      console.log('データの初期化を開始...');
       const localData = loadFromLocalStorage();
+      
       if (localData) {
+        console.log('ローカルストレージからデータを読み込みました:', localData);
+        
         // 各状態を更新
-        if (localData.baseCurrency) setBaseCurrency(localData.baseCurrency);
-        if (localData.exchangeRate) setExchangeRate(localData.exchangeRate);
-        if (localData.lastUpdated) setLastUpdated(localData.lastUpdated);
-        if (localData.additionalBudget) setAdditionalBudget(localData.additionalBudget);
+        if (localData.baseCurrency) {
+          console.log('基準通貨を設定:', localData.baseCurrency);
+          setBaseCurrency(localData.baseCurrency);
+        }
+        
+        if (localData.exchangeRate) {
+          console.log('為替レートを設定:', localData.exchangeRate);
+          setExchangeRate(localData.exchangeRate);
+        }
+        
+        if (localData.lastUpdated) {
+          console.log('最終更新日時を設定:', localData.lastUpdated);
+          setLastUpdated(localData.lastUpdated);
+        }
+        
+        if (localData.additionalBudget !== undefined) {
+          console.log('追加予算を設定:', localData.additionalBudget);
+          setAdditionalBudget(localData.additionalBudget);
+        }
         
         // アセットデータのインポート（個別株の手数料を0%に確保）
         if (Array.isArray(localData.currentAssets)) {
+          console.log('保有資産データを設定:', localData.currentAssets.length, '件');
           const validatedAssets = localData.currentAssets.map(asset => {
             if (asset.isStock || asset.fundType === 'STOCK' || asset.fundType === '個別株') {
               return {
@@ -625,19 +658,35 @@ export const PortfolioProvider = ({ children }) => {
           setCurrentAssets(validatedAssets);
         }
         
-        if (Array.isArray(localData.targetPortfolio)) setTargetPortfolio(localData.targetPortfolio);
+        if (Array.isArray(localData.targetPortfolio)) {
+          console.log('目標配分データを設定:', localData.targetPortfolio.length, '件');
+          setTargetPortfolio(localData.targetPortfolio);
+        }
         
         addNotification('前回のデータを読み込みました', 'info');
+      } else {
+        console.log('ローカルストレージにデータがありませんでした。初期状態を使用します。');
       }
-    };
-    
-    initializeData();
+      
+      // 初期化完了をマーク
+      setInitialized(true);
+    } catch (error) {
+      console.error('データの初期化中にエラーが発生しました:', error);
+      setInitialized(true); // エラーが発生しても初期化完了とマークする
+    }
   }, [loadFromLocalStorage, addNotification]);
 
-  // 通貨切替時に為替レートを更新
+  // コンポーネントマウント時にローカルストレージからデータを読み込む
   useEffect(() => {
-    updateExchangeRate();
-  }, [baseCurrency, updateExchangeRate]);
+    initializeData();
+  }, [initializeData]);
+
+  // 通貨切替時に為替レートを更新（初期化後のみ実行）
+  useEffect(() => {
+    if (initialized) {
+      updateExchangeRate();
+    }
+  }, [baseCurrency, updateExchangeRate, initialized]);
 
   // 総資産額の計算
   const totalAssets = currentAssets.reduce((sum, asset) => {
