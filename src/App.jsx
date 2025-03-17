@@ -11,11 +11,12 @@ import Simulation from './pages/Simulation';
 import DataIntegration from './pages/DataIntegration';
 import { useAuth } from './hooks/useAuth';
 import { usePortfolioContext } from './hooks/usePortfolioContext';
+import { setGoogleAccessToken } from './services/api';
 
 // Google認証クライアントID
 const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID || '243939385276-0gga06ocrn3vumf7lasubcpdqjk49j3n.apps.googleusercontent.com';
 
-// コンテキスト接続コンポーネント
+// コンテキスト接続コンポーネント（拡張版）
 const ContextConnector = () => {
   const auth = useAuth();
   const portfolio = usePortfolioContext();
@@ -24,8 +25,20 @@ const ContextConnector = () => {
   useEffect(() => {
     if (auth && auth.setPortfolioContextRef && portfolio) {
       auth.setPortfolioContextRef(portfolio);
+      
+      // 既存の認証情報があればAPI層にも通知
+      if (auth.googleToken) {
+        setGoogleAccessToken(auth.googleToken);
+      }
     }
   }, [auth, portfolio]);
+  
+  // 認証状態が変わったときにAPI層に通知
+  useEffect(() => {
+    if (auth && auth.googleToken) {
+      setGoogleAccessToken(auth.googleToken);
+    }
+  }, [auth?.googleToken]);
   
   return null;
 };
