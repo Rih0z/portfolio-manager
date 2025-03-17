@@ -1,20 +1,25 @@
 import React, { useState } from 'react';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 
-// 人気銘柄のリスト
-const POPULAR_US_TICKERS = [
-  { ticker: 'AAPL', name: 'アップル' },
-  { ticker: 'MSFT', name: 'マイクロソフト' },
-  { ticker: 'GOOG', name: 'アルファベット (Google)' },
-  { ticker: 'AMZN', name: 'アマゾン' },
-  { ticker: 'TSLA', name: 'テスラ' },
-  { ticker: 'META', name: 'メタ (Facebook)' },
-  { ticker: 'NVDA', name: 'エヌビディア' },
-  { ticker: 'BRK-B', name: 'バークシャー・ハサウェイ' },
-  { ticker: 'JPM', name: 'JPモルガン・チェース' },
-  { ticker: 'JNJ', name: 'ジョンソン・エンド・ジョンソン' }
+// 人気銘柄のリスト（更新版）
+// インデックスファンド・ETF
+const POPULAR_FUNDS = [
+  { ticker: '2533106', name: 'eMAXIS Slim 全世界株式（オール・カントリー）' },
+  { ticker: '2531108', name: 'eMAXIS Slim 米国株式（S&P500）' },
+  { ticker: 'VOO', name: 'Vanguard S&P 500 ETF' },
+  { ticker: 'VXUS', name: 'Vanguard Total International Stock ETF' },
+  { ticker: 'GLD', name: 'SPDR Gold Shares' },
+  { ticker: 'LQD', name: 'iShares iBoxx $ Investment Grade Corporate Bond ETF' }
 ];
 
+// 個別株
+const POPULAR_STOCKS = [
+  { ticker: 'AAPL', name: 'アップル' },
+  { ticker: 'NVDA', name: 'エヌビディア' },
+  { ticker: 'MSFT', name: 'マイクロソフト' }
+];
+
+// 日本市場の人気銘柄（現状維持）
 const POPULAR_JP_TICKERS = [
   { ticker: '7203.T', name: 'トヨタ自動車' },
   { ticker: '9984.T', name: 'ソフトバンクグループ' },
@@ -30,7 +35,7 @@ const POPULAR_JP_TICKERS = [
 
 const PopularTickers = () => {
   const { addTicker } = usePortfolioContext();
-  const [market, setMarket] = useState('us'); // 'us' or 'jp'
+  const [category, setCategory] = useState('funds'); // 'funds', 'stocks', 'jp'
   const [isLoading, setIsLoading] = useState(false);
   const [addedTickers, setAddedTickers] = useState({});
   const [message, setMessage] = useState('');
@@ -75,25 +80,48 @@ const PopularTickers = () => {
   };
 
   // 表示する銘柄リスト
-  const tickerList = market === 'us' ? POPULAR_US_TICKERS : POPULAR_JP_TICKERS;
+  let tickerList;
+  switch (category) {
+    case 'funds':
+      tickerList = POPULAR_FUNDS;
+      break;
+    case 'stocks':
+      tickerList = POPULAR_STOCKS;
+      break;
+    case 'jp':
+      tickerList = POPULAR_JP_TICKERS;
+      break;
+    default:
+      tickerList = POPULAR_FUNDS;
+  }
 
   return (
     <div>
-      <div className="flex space-x-4 mb-4">
+      <div className="flex space-x-2 mb-4">
         <button
-          onClick={() => setMarket('us')}
-          className={`px-4 py-2 rounded ${
-            market === 'us'
+          onClick={() => setCategory('funds')}
+          className={`px-3 py-2 rounded text-sm ${
+            category === 'funds'
               ? 'bg-blue-600 text-white'
               : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
           }`}
         >
-          米国市場
+          インデックス・ETF
         </button>
         <button
-          onClick={() => setMarket('jp')}
-          className={`px-4 py-2 rounded ${
-            market === 'jp'
+          onClick={() => setCategory('stocks')}
+          className={`px-3 py-2 rounded text-sm ${
+            category === 'stocks'
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+          }`}
+        >
+          人気個別株
+        </button>
+        <button
+          onClick={() => setCategory('jp')}
+          className={`px-3 py-2 rounded text-sm ${
+            category === 'jp'
               ? 'bg-blue-600 text-white'
               : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
           }`}
