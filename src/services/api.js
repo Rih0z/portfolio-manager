@@ -25,11 +25,16 @@ const ALPHA_VANTAGE_URL = isLocalhost
 // 環境変数または固定値からAPIキーを取得
 const ALPHA_VANTAGE_KEY = process.env.REACT_APP_ALPHA_VANTAGE_API_KEY || 'GC4EBI5YHFKOJEXY';
 
+// Google関連の設定
+const GOOGLE_API_KEY = process.env.REACT_APP_GOOGLE_API_KEY || '';
+const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID || '243939385276-0gga06ocrn3vumf7lasubcpdqjk49j3n.apps.googleusercontent.com';
+
 // デバッグ用：初期起動時に設定を表示
-console.log(`API Configuration (FORCED ALPHA VANTAGE MODE):
+console.log(`API Configuration:
 - Environment: ${isLocalhost ? 'Local development' : 'Production'}
 - Alpha Vantage URL: ${ALPHA_VANTAGE_URL}
-- Alpha Vantage Key: ${ALPHA_VANTAGE_KEY.substring(0, 4)}...`);
+- Alpha Vantage Key: ${ALPHA_VANTAGE_KEY.substring(0, 4)}...
+- Google Client ID: ${GOOGLE_CLIENT_ID.substring(0, 10)}...`);
 
 /**
  * 銘柄データを取得する（Alpha Vantageのみを使用）
@@ -291,318 +296,55 @@ export async function fetchFundInfo(ticker) {
   }
 }
 
-// ここからGoogleドライブAPI連携のコードを追加
+// ここからGoogleドライブAPI連携のコード（修正版）
 
 // GoogleドライブAPIの初期化フラグ
 let isGapiInitialized = false;
 let isGapiLoaded = false;
+let accessToken = null;
 
 /**
- * GoogleドライブAPIの初期化
+ * GoogleドライブAPIの初期化（修正版）
  * @returns {Promise<boolean>} 初期化が成功したかどうか
  */
 export async function initGoogleDriveAPI() {
   console.log('[API] Initializing Google Drive API');
   
   if (!window.gapi) {
-    console.error('[API] Google API client (gapi) not found');
+    console.error('[API] Google API client (gapi) not found. Make sure the script is loaded in index.html');
     return false;
   }
   
-  // 既に初期化済みの場合は何もしない
-  if (isGapiInitialized) {
-    console.log('[API] Google Drive API already initialized');
+  // アクセストークンが既に取得されている場合
+  if (accessToken) {
+    console.log('[API] Access token already available');
     return true;
   }
   
   try {
-    return new Promise((resolve, reject) => {
-      // gapiのロード
-      if (!isGapiLoaded) {
-        window.gapi.load('client:auth2', () => {
-          isGapiLoaded = true;
-          console.log('[API] Google API client loaded');
-          
-          // クライアント初期化
-          window.gapi.client.init({
-            apiKey: process.env.REACT_APP_GOOGLE_API_KEY,
-            clientId: process.env.REACT_APP_GOOGLE_CLIENT_ID,
-            discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
-            scope: 'https://www.googleapis.com/auth/drive.file'
-          }).then(() => {
-            isGapiInitialized = true;
-            console.log('[API] Google Drive API initialized successfully');
-            resolve(true);
-          }).catch(error => {
-            console.error('[API] Error initializing Google Drive API:', error);
-            reject(error);
-          });
-        }, error => {
-          console.error('[API] Error loading Google API client:', error);
-          reject(error);
+    // gapi.clientが既に存在するか確認
+    if (!window.gapi.client) {
+      // gapiクライアントライブラリを読み込む
+      await new Promise((resolve, reject) => {
+        window.gapi.load('client', {
+          callback: resolve,
+          onerror: reject,
+          timeout: 5000,
+          ontimeout: reject
         });
-      } else {
-        // 既にロード済み、初期化のみ行う
-        window.gapi.client.init({
-          apiKey: process.env.REACT_APP_GOOGLE_API_KEY,
-          clientId: process.env.REACT_APP_GOOGLE_CLIENT_ID,
-          discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest'],
-          scope: 'https://www.googleapis.com/auth/drive.file'
-        }).then(() => {
-          isGapiInitialized = true;
-          console.log('[API] Google Drive API initialized successfully');
-          resolve(true);
-        }).catch(error => {
-          console.error('[API] Error initializing Google Drive API:', error);
-          reject(error);
-        });
-      }
-    });
-  } catch (error) {
-    console.error('[API] Error in Google Drive API initialization:', error);
-    return false;
-  }
-}
-
-/**
- * Googleドライブにデータを保存する
- * @param {Object} data - 保存するデータ
- * @param {Object} userData - ユーザー情報
- * @param {string} filename - ファイル名
- * @returns {Promise<Object>} 保存結果
- */
-export async function saveToGoogleDrive(data, userData, filename = 'portfolio_data.json') {
-  console.log('[API] Saving data to Google Drive:', { data, userData, filename });
-  
-  if (!userData || !userData.email) {
-    console.error('[API] User data is required for Google Drive operations');
-    return { success: false, message: 'ユーザー情報がありません' };
-  }
-  
-  try {
-    // APIが初期化されていることを確認
-    if (!isGapiInitialized) {
-      await initGoogleDriveAPI();
-    }
-    
-    // JSONデータに変換
-    const jsonContent = JSON.stringify(data);
-    const fileMetadata = {
-      name: filename,
-      mimeType: 'application/json',
-      parents: ['appDataFolder'] // アプリ専用フォルダに保存
-    };
-    
-    // 既存のファイルを確認
-    const existingFiles = await findFileInGoogleDrive(filename);
-    
-    if (existingFiles && existingFiles.length > 0) {
-      // 既存ファイルの更新
-      const fileId = existingFiles[0].id;
-      console.log(`[API] Updating existing file in Google Drive: ${fileId}`);
-      
-      const response = await window.gapi.client.drive.files.update({
-        fileId: fileId,
-        resource: fileMetadata,
-        media: {
-          mimeType: 'application/json',
-          body: jsonContent
-        },
-        fields: 'id,name,modifiedTime'
       });
-      
-      console.log('[API] File updated in Google Drive:', response.result);
-      return { 
-        success: true, 
-        message: 'データを更新しました',
-        fileId: response.result.id,
-        fileName: response.result.name,
-        modifiedTime: response.result.modifiedTime
-      };
-    } else {
-      // 新規ファイルの作成
-      console.log('[API] Creating new file in Google Drive');
-      
-      const response = await window.gapi.client.drive.files.create({
-        resource: fileMetadata,
-        media: {
-          mimeType: 'application/json',
-          body: jsonContent
-        },
-        fields: 'id,name,modifiedTime'
-      });
-      
-      console.log('[API] File created in Google Drive:', response.result);
-      return { 
-        success: true, 
-        message: 'データを保存しました',
-        fileId: response.result.id,
-        fileName: response.result.name,
-        modifiedTime: response.result.modifiedTime
-      };
-    }
-  } catch (error) {
-    console.error('[API] Error saving to Google Drive:', error);
-    return { success: false, message: `Googleドライブへの保存に失敗しました: ${error.message}` };
-  }
-}
-
-/**
- * Googleドライブからデータを読み込む
- * @param {Object} userData - ユーザー情報
- * @param {string} filename - ファイル名
- * @returns {Promise<Object>} 読み込み結果
- */
-export async function loadFromGoogleDrive(userData, filename = 'portfolio_data.json') {
-  console.log('[API] Loading data from Google Drive:', { userData, filename });
-  
-  if (!userData || !userData.email) {
-    console.error('[API] User data is required for Google Drive operations');
-    return { success: false, message: 'ユーザー情報がありません' };
-  }
-  
-  try {
-    // APIが初期化されていることを確認
-    if (!isGapiInitialized) {
-      await initGoogleDriveAPI();
     }
     
-    // ファイルを検索
-    const files = await findFileInGoogleDrive(filename);
-    
-    if (!files || files.length === 0) {
-      console.log(`[API] No file found with name: ${filename}`);
-      return { success: false, message: 'ファイルが見つかりません' };
-    }
-    
-    // 最新のファイルを使用
-    const fileId = files[0].id;
-    console.log(`[API] Found file in Google Drive: ${fileId}`);
-    
-    // ファイルの内容を取得
-    const response = await window.gapi.client.drive.files.get({
-      fileId: fileId,
-      alt: 'media'
+    // Google Drive APIを初期化
+    await window.gapi.client.init({
+      apiKey: GOOGLE_API_KEY,
+      discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/drive/v3/rest']
     });
     
-    console.log('[API] File content retrieved from Google Drive');
+    console.log('[API] Google Drive API initialized successfully');
+    isGapiInitialized = true;
     
-    // レスポンスをJSONとしてパース
-    const data = JSON.parse(response.body);
-    
-    return { 
-      success: true, 
-      message: 'データを読み込みました',
-      data: data,
-      fileId: fileId,
-      fileName: filename,
-      modifiedTime: files[0].modifiedTime
-    };
-  } catch (error) {
-    console.error('[API] Error loading from Google Drive:', error);
-    return { success: false, message: `Googleドライブからの読み込みに失敗しました: ${error.message}` };
-  }
-}
-
-/**
- * Googleドライブ上のファイルを検索する
- * @param {string} filename - 検索するファイル名
- * @returns {Promise<Array>} - 見つかったファイルの配列
- */
-async function findFileInGoogleDrive(filename) {
-  try {
-    console.log(`[API] Searching for file: ${filename}`);
-    
-    const response = await window.gapi.client.drive.files.list({
-      spaces: 'appDataFolder',
-      q: `name='${filename}' and trashed=false`,
-      fields: 'files(id, name, modifiedTime)',
-      orderBy: 'modifiedTime desc'
-    });
-    
-    console.log('[API] Files found in Google Drive:', response.result.files);
-    return response.result.files;
-  } catch (error) {
-    console.error('[API] Error finding files in Google Drive:', error);
-    throw error;
-  }
-}
-
-/**
- * Googleドライブ上のポートフォリオデータファイルを一覧表示する
- * @param {Object} userData - ユーザー情報
- * @returns {Promise<Object>} - ファイル一覧の結果
- */
-export async function listPortfolioFilesInGoogleDrive(userData) {
-  console.log('[API] Listing portfolio files in Google Drive');
-  
-  if (!userData || !userData.email) {
-    console.error('[API] User data is required for Google Drive operations');
-    return { success: false, message: 'ユーザー情報がありません' };
-  }
-  
-  try {
-    // APIが初期化されていることを確認
-    if (!isGapiInitialized) {
-      await initGoogleDriveAPI();
-    }
-    
-    const response = await window.gapi.client.drive.files.list({
-      spaces: 'appDataFolder',
-      q: "name contains 'portfolio' and mimeType='application/json' and trashed=false",
-      fields: 'files(id, name, modifiedTime)',
-      orderBy: 'modifiedTime desc'
-    });
-    
-    console.log('[API] Portfolio files found in Google Drive:', response.result.files);
-    
-    return { 
-      success: true, 
-      files: response.result.files
-    };
-  } catch (error) {
-    console.error('[API] Error listing files in Google Drive:', error);
-    return { success: false, message: `Googleドライブのファイル一覧取得に失敗しました: ${error.message}` };
-  }
-}
-
-/**
- * Googleドライブ上のファイルを削除する
- * @param {string} fileId - 削除するファイルのID
- * @param {Object} userData - ユーザー情報
- * @returns {Promise<Object>} - 削除結果
- */
-export async function deleteFileFromGoogleDrive(fileId, userData) {
-  console.log(`[API] Deleting file from Google Drive: ${fileId}`);
-  
-  if (!userData || !userData.email) {
-    console.error('[API] User data is required for Google Drive operations');
-    return { success: false, message: 'ユーザー情報がありません' };
-  }
-  
-  if (!fileId) {
-    return { success: false, message: 'ファイルIDが指定されていません' };
-  }
-  
-  try {
-    // APIが初期化されていることを確認
-    if (!isGapiInitialized) {
-      await initGoogleDriveAPI();
-    }
-    
-    await window.gapi.client.drive.files.delete({
-      fileId: fileId
-    });
-    
-    console.log(`[API] File deleted from Google Drive: ${fileId}`);
-    
-    return { 
-      success: true, 
-      message: 'ファイルを削除しました',
-      fileId: fileId 
-    };
-  } catch (error) {
-    console.error('[API] Error deleting file from Google Drive:', error);
-    return { success: false, message: `ファイルの削除に失敗しました: ${error.message}` };
-  }
-}
+    // アクセストークンを使用して認証
+    if (window.google && window.google.accounts && window.google.accounts.oauth2) {
+      const tokenClient = window.google.accounts.oauth2.initTokenClient({
+        clien
