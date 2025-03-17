@@ -81,7 +81,10 @@ class ErrorBoundary extends React.Component {
 function App() {
   return (
     <ErrorBoundary>
-      <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <GoogleOAuthProvider 
+        clientId={GOOGLE_CLIENT_ID}
+        onScriptLoadError={(err) => console.error('Google OAuth script load error:', err)}
+      >
         <AuthProvider>
           <PortfolioProvider>
             {/* コンテキスト間の接続を処理するコンポーネント */}
