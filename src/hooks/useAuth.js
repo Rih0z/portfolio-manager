@@ -1,10 +1,7 @@
 import { useContext } from 'react';
-import AuthContext from '../context/AuthContext';
+import { AuthContext } from '../context/AuthContext';
 
-/**
- * 認証コンテキストを使用するためのカスタムフック
- * @returns {Object} 認証関連の状態と関数
- */
+// AuthContextから値を取得するカスタムフック
 export const useAuth = () => {
   const context = useContext(AuthContext);
   
@@ -15,4 +12,5 @@ export const useAuth = () => {
   return context;
 };
 
+// デフォルトエクスポートも提供
 export default useAuth;
