@@ -16,60 +16,97 @@ import { setGoogleAccessToken } from './services/api';
 // Google認証クライアントID
 const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID || '243939385276-0gga06ocrn3vumf7lasubcpdqjk49j3n.apps.googleusercontent.com';
 
-// コンテキスト接続コンポーネント（拡張版）
+// コンテキスト接続コンポーネント（安全版）
 const ContextConnector = () => {
   const auth = useAuth();
   const portfolio = usePortfolioContext();
   
   // マウント時にAuthContextにPortfolioContextへの参照を渡す
   useEffect(() => {
-    if (auth && auth.setPortfolioContextRef && portfolio) {
-      auth.setPortfolioContextRef(portfolio);
-      
-      // 既存の認証情報があればAPI層にも通知
-      if (auth.googleToken) {
-        setGoogleAccessToken(auth.googleToken);
+    try {
+      if (auth && auth.setPortfolioContextRef && portfolio) {
+        auth.setPortfolioContextRef(portfolio);
+        
+        // 既存の認証情報があればAPI層にも通知
+        if (auth.googleToken) {
+          setGoogleAccessToken(auth.googleToken);
+        }
       }
+    } catch (err) {
+      console.error('コンテキスト接続中にエラーが発生しました:', err);
     }
   }, [auth, portfolio]);
-  
-  // 認証状態が変わったときにAPI層に通知
-  useEffect(() => {
-    if (auth && auth.googleToken) {
-      setGoogleAccessToken(auth.googleToken);
-    }
-  }, [auth?.googleToken]);
   
   return null;
 };
 
+// エラー境界コンポーネント
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('アプリケーションエラー:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-100">
+          <div className="bg-white p-6 rounded-lg shadow-md max-w-md">
+            <h2 className="text-red-600 text-xl mb-4">エラーが発生しました</h2>
+            <p className="mb-2">申し訳ありませんが、アプリケーションにエラーが発生しました。</p>
+            <p className="text-gray-700 mb-4">詳細: {this.state.error?.message || '不明なエラー'}</p>
+            <button
+              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+              onClick={() => window.location.reload()}
+            >
+              リロードする
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children; 
+  }
+}
+
 function App() {
   return (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      <AuthProvider>
-        <PortfolioProvider>
-          {/* コンテキスト間の接続を処理するコンポーネント */}
-          <ContextConnector />
-          
-          <Router>
-            <div className="min-h-screen bg-gray-100">
-              <Header />
-              {/* iOS用のパディング調整したメインコンテンツ */}
-              <main className="container mx-auto px-4 py-6 ios-content-margin">
-                <Routes>
-                  <Route path="/" element={<Dashboard />} />
-                  <Route path="/settings" element={<Settings />} />
-                  <Route path="/simulation" element={<Simulation />} />
-                  <Route path="/data" element={<DataIntegration />} />
-                </Routes>
-              </main>
-              {/* iOS風のタブバー */}
-              <TabNavigation />
-            </div>
-          </Router>
-        </PortfolioProvider>
-      </AuthProvider>
-    </GoogleOAuthProvider>
+    <ErrorBoundary>
+      <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+        <AuthProvider>
+          <PortfolioProvider>
+            {/* コンテキスト間の接続を処理するコンポーネント */}
+            <ContextConnector />
+            
+            <Router>
+              <div className="min-h-screen bg-gray-100">
+                <Header />
+                {/* iOS用のパディング調整したメインコンテンツ */}
+                <main className="container mx-auto px-4 py-6 ios-content-margin">
+                  <Routes>
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/settings" element={<Settings />} />
+                    <Route path="/simulation" element={<Simulation />} />
+                    <Route path="/data" element={<DataIntegration />} />
+                  </Routes>
+                </main>
+                {/* iOS風のタブバー */}
+                <TabNavigation />
+              </div>
+            </Router>
+          </PortfolioProvider>
+        </AuthProvider>
+      </GoogleOAuthProvider>
+    </ErrorBoundary>
   );
 }
 
