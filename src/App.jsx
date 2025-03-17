@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from './context/AuthContext';
@@ -9,15 +9,35 @@ import Dashboard from './pages/Dashboard';
 import Settings from './pages/Settings';
 import Simulation from './pages/Simulation';
 import DataIntegration from './pages/DataIntegration';
+import { useAuth } from './hooks/useAuth';
+import { usePortfolioContext } from './hooks/usePortfolioContext';
 
 // Google認証クライアントID
 const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID || '243939385276-0gga06ocrn3vumf7lasubcpdqjk49j3n.apps.googleusercontent.com';
+
+// コンテキスト接続コンポーネント
+const ContextConnector = () => {
+  const auth = useAuth();
+  const portfolio = usePortfolioContext();
+  
+  // マウント時にAuthContextにPortfolioContextへの参照を渡す
+  useEffect(() => {
+    if (auth && auth.setPortfolioContextRef && portfolio) {
+      auth.setPortfolioContextRef(portfolio);
+    }
+  }, [auth, portfolio]);
+  
+  return null;
+};
 
 function App() {
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
       <AuthProvider>
         <PortfolioProvider>
+          {/* コンテキスト間の接続を処理するコンポーネント */}
+          <ContextConnector />
+          
           <Router>
             <div className="min-h-screen bg-gray-100">
               <Header />
