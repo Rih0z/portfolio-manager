@@ -1,5 +1,5 @@
 [build]
-  command = "CI=npm run build"
+  command = "CI= npm run build"
   publish = "build"
   functions = "functions"
 
@@ -12,24 +12,20 @@
 
 # Functions へのアクセス許可設定
 [[headers]]
-  for = "/.netlify/functions/*"
+  for = "/api/*"
     [headers.values]
     Access-Control-Allow-Origin = "*"
     Access-Control-Allow-Headers = "Content-Type, Authorization"
     Access-Control-Allow-Methods = "GET, POST, OPTIONS"
 
-# Functions への直接アクセス用リダイレクト
-[[redirects]]
-  from = "/.netlify/functions/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
-  force = true
-
+# API経由でFunctionsにアクセス
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
   status = 200
+  force = true
 
+# SPAのためのリダイレクト
 [[redirects]]
   from = "/*"
   to = "/index.html"
