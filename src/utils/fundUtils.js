@@ -79,10 +79,17 @@ export function guessFundType(ticker, name = '') {
   // 日本市場のティッカー判定
   const isJapanese = ticker.includes('.T');
   
+  // 個別株の判定
+  // 日本株の判定（4桁+.T形式で、かつETFでない）
+  const isJapaneseStock = isJapanese && !(/^[1-9]\d{3}\.T$/.test(ticker));
+  
+  // 米国の有名ETFかどうかの判定
+  const isKnownETF = Object.keys(TICKER_SPECIFIC_FEES).includes(ticker);
+  
   // ETFの判定
   const isETF = (
-    isJapanese && /^\d{4}\.T$/.test(ticker) // 日本のETFは通常4桁の数字
-    || (!isJapanese && ticker.length <= 4) // 米国のETFは通常3-4文字
+    (isJapanese && /^[1-9]\d{3}\.T$/.test(ticker)) // 日本のETFは通常4桁の数字で1から始まる
+    || isKnownETF
     || name.includes('etf')
     || name.includes('連動型')
     || name.includes('上場投信')
@@ -148,11 +155,8 @@ export function guessFundType(ticker, name = '') {
     || name.includes('世界')
   );
   
-  // 個別株の判定（ETFやファンドではない）
-  const isStock = !(isETF || isIndex || isREIT || isBond || isCrypto || isActive);
-  
-  // ファンドタイプの決定
-  if (isStock) {
+  // 明らかに個別株の場合
+  if (isJapaneseStock || (!isETF && !isIndex && !isREIT && !isBond && !isCrypto && !isActive)) {
     return FUND_TYPES.STOCK;
   } else if (isCrypto) {
     return FUND_TYPES.CRYPTO;
@@ -176,6 +180,13 @@ export function guessFundType(ticker, name = '') {
     }
   }
   
+  // 個別株と判断する基準を強化
+  // 日本株で.T形式のものや、米国の通常の2-5文字ティッカーで
+  // かつ特殊ファンドと判定されていないものは個別株とみなす
+  if ((isJapanese && /\.\w+$/.test(ticker)) || (ticker.length >= 1 && ticker.length <= 5)) {
+    return FUND_TYPES.STOCK;
+  }
+  
   // デフォルト
   return FUND_TYPES.UNKNOWN;
 }
@@ -195,6 +206,17 @@ export function estimateAnnualFee(ticker, name = '') {
   
   // ファンドタイプから手数料を推定
   const fundType = guessFundType(ticker, name);
+  
+  // 個別株の場合は必ず0を返す
+  if (fundType === FUND_TYPES.STOCK) {
+    return {
+      fee: 0,
+      fundType: FUND_TYPES.STOCK,
+      source: '個別株',
+      isEstimated: false
+    };
+  }
+  
   const fee = FUND_TYPE_FEES[fundType] || FUND_TYPE_FEES[FUND_TYPES.UNKNOWN];
   
   return {
