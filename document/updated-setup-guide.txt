@@ -1,675 +1,177 @@
-# ポートフォリオマネージャー セットアップガイド
+# ポートフォリオマネージャー セットアップガイド（更新版）
 
-**バージョン:** 1.1  
-**最終更新日:** 2025/03/18
+**バージョン:** 1.3  
+**最終更新日:** 2025/03/25
 
-このガイドでは、ポートフォリオマネージャーアプリケーションの環境構築から実行までの手順を解説します。
+このガイドでは、ポートフォリオマネージャーアプリケーションを実行するための手順を解説します。GitHubリポジトリからのクローン、ローカル環境でのセットアップ、およびNetlifyへのデプロイについて説明します。
 
 ## 1. 前提条件
 
 - Node.js v16.x以上
 - npm v8.x以上
-- Git（コード管理用）
+- Git
 
-## 2. プロジェクトのセットアップ
+## 2. ローカル環境でのセットアップ
 
-### 2.1 リポジトリのクローン（または新規作成）
+### 2.1 リポジトリのクローン
 
 ```bash
-# リポジトリが存在する場合
-git clone <repository-url> portfolio-manager
-cd portfolio-manager
-
-# または新規プロジェクトの場合
-mkdir portfolio-manager
+# リポジトリをクローン
+git clone https://github.com/your-organization/portfolio-manager.git
 cd portfolio-manager
 ```
 
-### 2.2 必要なファイルの作成
+### 2.2 依存パッケージのインストール
 
-#### package.json
-```json
-{
-  "name": "portfolio-manager",
-  "version": "1.0.0",
-  "private": true,
-  "dependencies": {
-    "@headlessui/react": "1.7.15",
-    "@react-oauth/google": "0.11.0",
-    "@testing-library/jest-dom": "5.16.5",
-    "@testing-library/react": "13.4.0",
-    "@testing-library/user-event": "13.5.0",
-    "axios": "1.3.5",
-    "dayjs": "1.11.7",
-    "jwt-decode": "3.1.2",
-    "lodash": "4.17.21",
-    "papaparse": "5.4.1",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "react-router-dom": "6.10.0",
-    "react-scripts": "5.0.1",
-    "recharts": "2.5.0",
-    "tailwindcss": "3.3.1",
-    "web-vitals": "2.1.4"
-  },
-  "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ],
-    "rules": {
-      "no-console": [
-        "warn",
-        {
-          "allow": [
-            "warn",
-            "error",
-            "log"
-          ]
-        }
-      ],
-      "no-unused-vars": "warn",
-      "react-hooks/rules-of-hooks": "error",
-      "react-hooks/exhaustive-deps": "warn",
-      "jsx-a11y/label-has-associated-control": "off"
-    }
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
-  },
-  "devDependencies": {
-    "autoprefixer": "10.4.14",
-    "http-proxy-middleware": "2.0.6",
-    "postcss": "8.4.21",
-    "tailwindcss": "3.3.1"
-  },
-  "proxy": "http://localhost:9000"
-}
+```bash
+npm install
 ```
 
-#### .env.local
+### 2.3 環境変数の設定
+
+プロジェクトのルートディレクトリに `.env.local` ファイルを作成し、必要な環境変数を設定します。
+
 ```
 REACT_APP_GOOGLE_CLIENT_ID=あなたのGoogleクライアントID
-REACT_APP_ALPHA_VANTAGE_API_KEY=GC4EBI5YHFKOJEXY
+REACT_APP_ALPHA_VANTAGE_API_KEY=あなたのAlpha Vantage APIキー
 ```
 
-#### tailwind.config.js
-```javascript
-module.exports = {
-  content: ["./src/**/*.{js,jsx,ts,tsx}"],
-  theme: {
-    extend: {
-      colors: {
-        primary: "#0088FE",
-        secondary: "#00C49F",
-        warning: "#FF0000",
-      },
-    },
-  },
-  plugins: [],
-};
-```
-
-#### postcss.config.js
-```javascript
-module.exports = {
-  plugins: {
-    tailwindcss: {},
-    autoprefixer: {},
-  },
-};
-```
-
-#### Netlify Functions用の設定ファイル（netlify.toml）
-```toml
-[build]
-  command = "CI= npm run build"
-  publish = "build"
-  functions = "functions"
-
-[dev]
-  command = "npm start"
-  port = 3000
-  targetPort = 3000
-  publish = "build"
-  functionsPort = 9000
-
-# Functions へのアクセス許可設定
-[[headers]]
-  for = "/.netlify/functions/*"
-    [headers.values]
-    Access-Control-Allow-Origin = "*"
-    Access-Control-Allow-Headers = "Content-Type, Authorization"
-    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
-
-# Functions への直接アクセス用リダイレクト
-[[redirects]]
-  from = "/.netlify/functions/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
-
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-
-# Functions 設定
-[functions]
-  directory = "functions"
-  node_bundler = "esbuild"
-  included_files = ["functions/**"]
-```
-
-#### src/setupProxy.js
-```javascript
-const { createProxyMiddleware } = require("http-proxy-middleware");
-
-module.exports = function (app) {
-  app.use(
-    "/.netlify/functions/",
-    createProxyMiddleware({
-      target: "http://localhost:9000",
-      pathRewrite: {
-        "^/\\.netlify/functions": "",
-      },
-      changeOrigin: true,
-    })
-  );
-};
-```
-
-## 3. Netlify Functions のセットアップ
-
-### 3.1 Alpha Vantage API プロキシ関数
-
-Yahoo Finance APIが利用できない場合のフォールバックとして、Alpha Vantage APIを使用します。
-
-#### functions/alpha-vantage-proxy.js
-```javascript
-// functions/alpha-vantage-proxy.js
-
-/**
- * Alpha Vantage APIへのプロキシ関数
- * CORSの問題を回避し、APIキーを安全に管理するためのサーバーレス関数
- */
-const axios = require('axios');
-
-exports.handler = async function(event, context) {
-    // CORS ヘッダーを設定
-    const headers = {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
-    };
-    
-    // プリフライトリクエストをハンドリング
-    if (event.httpMethod === 'OPTIONS') {
-        return {
-            statusCode: 200,
-            headers,
-            body: JSON.stringify({ message: 'CORS preflight response' })
-        };
-    }
-    
-    // クエリパラメータを取得
-    const queryParams = event.queryStringParameters || {};
-    
-    // APIキーを環境変数から取得（または提供されたものを使用）
-    // 環境変数名を統一
-    const apiKey = process.env.ALPHA_VANTAGE_API_KEY || 'GC4EBI5YHFKOJEXY';
-    
-    // 必須パラメータ
-    const functionType = queryParams.function;
-    
-    if (!functionType) {
-        return {
-            statusCode: 400,
-            headers,
-            body: JSON.stringify({ error: 'function parameter is required' })
-        };
-    }
-    
-    try {
-        // パラメータからAPIキーを除外して新しいパラメータオブジェクトを作成
-        const params = { ...queryParams };
-        if (params.apikey) delete params.apikey;
-        
-        // APIキーを追加
-        params.apikey = apiKey;
-        
-        console.log(`Requesting Alpha Vantage API with function: ${functionType}`);
-        
-        // Alpha Vantage APIにリクエスト
-        const response = await axios.get('https://www.alphavantage.co/query', {
-            params,
-            headers: {
-                'User-Agent': 'PortfolioManager/1.0'
-            }
-        });
-        
-        return {
-            statusCode: 200,
-            headers,
-            body: JSON.stringify(response.data)
-        };
-    } catch (error) {
-        console.error('Alpha Vantage API error:', error);
-        
-        // エラーレスポンス
-        return {
-            statusCode: error.response?.status || 500,
-            headers,
-            body: JSON.stringify({
-                error: 'Failed to fetch data from Alpha Vantage API',
-                details: error.response?.data || error.message
-            })
-        };
-    }
-};
-```
-
-### 3.2 Yahoo Finance API プロキシ関数
-
-#### functions/yahoo-finance-proxy.js
-```javascript
-// functions/yahoo-finance-proxy.js
-
-/**
- * Yahoo Finance APIへのプロキシ関数
- * CORSの問題を回避し、リクエスト制限やIPブロックを軽減するためのサーバーレス関数
- */
-const axios = require('axios');
-
-exports.handler = async function(event, context) {
-  // CORS ヘッダーを設定
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
-  };
-  
-  // プリフライトリクエストをハンドリング
-  if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({ message: 'CORS preflight response' })
-    };
-  }
-  
-  try {
-    // リクエストからクエリパラメータを取得
-    const params = event.queryStringParameters || {};
-    
-    // シンボルは必須
-    if (!params.symbols) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ error: 'symbols parameter is required' })
-      };
-    }
-    
-    console.log(`Requesting Yahoo Finance API for symbols: ${params.symbols}`);
-    
-    // UA文字列の設定
-    const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36';
-    
-    // Yahoo Finance APIにリクエスト
-    const response = await axios.get(`https://query1.finance.yahoo.com/v7/finance/quote`, {
-      params,
-      headers: {
-        'User-Agent': userAgent
-      },
-      timeout: 10000 // 10秒タイムアウト
-    });
-    
-    return {
-      statusCode: 200,
-      headers: {
-        ...headers,
-        'Cache-Control': 'public, max-age=300' // 5分間キャッシュ
-      },
-      body: JSON.stringify(response.data)
-    };
-  } catch (error) {
-    console.error('Yahoo Finance API error:', error);
-    
-    // エラーレスポンス
-    return {
-      statusCode: error.response?.status || 500,
-      headers,
-      body: JSON.stringify({
-        error: 'Failed to fetch data from Yahoo Finance API',
-        details: error.response?.data || error.message
-      })
-    };
-  }
-};
-```
-
-### 3.3 為替レート取得用プロキシ関数
-
-#### functions/mof-exchange-rate-proxy.js
-```javascript
-// functions/mof-exchange-rate-proxy.js
-
-/**
- * 日本の財務省為替レートAPIへのプロキシ関数
- * 公式の為替レートを代替データソースとして使用
- */
-const axios = require('axios');
-
-exports.handler = async function(event, context) {
-    // CORS ヘッダーを設定
-    const headers = {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
-    };
-    
-    // プリフライトリクエストをハンドリング
-    if (event.httpMethod === 'OPTIONS') {
-        return {
-            statusCode: 200,
-            headers,
-            body: JSON.stringify({ message: 'CORS preflight response' })
-        };
-    }
-    
-    try {
-        // 財務省の為替レートデータを取得
-        // このエンドポイントは実際のAPIではなく、HTMLページなのでスクレイピングが必要
-        const response = await axios.get('https://www.mof.go.jp/english/policy/international_policy/reference/feio/index.htm', {
-            headers: {
-                'User-Agent': 'PortfolioManager/1.0'
-            }
-        });
-        
-        // HTMLからデータを抽出
-        const html = response.data;
-        const ratesData = extractExchangeRatesFromHTML(html);
-        
-        return {
-            statusCode: 200,
-            headers: {
-                ...headers,
-                'Cache-Control': 'public, max-age=86400' // 24時間キャッシュ
-            },
-            body: JSON.stringify(ratesData)
-        };
-    } catch (error) {
-        console.error('MOF exchange rate fetch error:', error);
-        
-        // エラーレスポンス
-        return {
-            statusCode: error.response?.status || 500,
-            headers,
-            body: JSON.stringify({
-                error: 'Failed to fetch exchange rate data from MOF',
-                details: error.message
-            })
-        };
-    }
-};
-
-/**
- * 財務省ページからの為替レートデータ抽出（簡易版）
- * 実際の実装ではより堅牢なHTMLパーサーを使用すべき
- */
-function extractExchangeRatesFromHTML(html) {
-    // 為替レートのデフォルト値（財務省データの抽出に失敗した場合のフォールバック）
-    const defaultRates = {
-        'USD/JPY': 150.0,
-        'EUR/JPY': 160.0,
-        'GBP/JPY': 190.0,
-        'AUD/JPY': 95.0,
-        'CAD/JPY': 105.0,
-        'CHF/JPY': 145.0,
-        'CNY/JPY': 20.0,
-        'KRW/JPY': 0.1
-    };
-    
-    try {
-        // HTMLからテーブルデータを抽出する実装
-        // ...実際の抽出ロジック...
-        
-        // 簡易版では財務省データの抽出は省略し、デフォルト値を返す
-        return {
-            rates: defaultRates,
-            source: 'MOF Fallback',
-            lastUpdated: new Date().toISOString(),
-            note: 'これはデフォルト値です。実際のデータ抽出に失敗しました。'
-        };
-    } catch (error) {
-        console.error('Exchange rate extraction error:', error);
-        return {
-            rates: defaultRates,
-            source: 'Default Values',
-            lastUpdated: new Date().toISOString(),
-            error: true,
-            note: 'データ抽出中にエラーが発生しました。デフォルト値を使用しています。'
-        };
-    }
-}
-```
-
-## 4. 市場データサービスの実装
-
-Alpha Vantage APIをプライマリソースとして使用し、取得に失敗した場合はフォールバック値を使用するサービスを実装します。
-
-### 4.1 marketDataService.js
-```javascript
-// src/services/marketDataService.js
-
-import axios from 'axios';
-
-// 環境に応じたベースURL設定
-const isLocalhost = 
-  window.location.hostname === 'localhost' || 
-  window.location.hostname === '127.0.0.1';
-
-// 本番環境のURLは環境変数から取得、未設定の場合は現在のオリジンを使用
-const PROD_BASE_URL = process.env.REACT_APP_API_BASE_URL || 
-                      (!isLocalhost ? window.location.origin : 'https://delicate-malasada-1fb747.netlify.app');
-
-// API エンドポイントの設定
-const BASE_URL = isLocalhost ? '' : PROD_BASE_URL;
-
-// Alpha Vantage APIエンドポイント（プライマリデータソース）
-const ALPHA_VANTAGE_URL = isLocalhost
-  ? '/.netlify/functions/alpha-vantage-proxy' // ローカル環境
-  : `${BASE_URL}/.netlify/functions/alpha-vantage-proxy`; // 本番環境
-
-// 環境変数または固定値からAPIキーを取得
-const ALPHA_VANTAGE_KEY = process.env.REACT_APP_ALPHA_VANTAGE_API_KEY || 'GC4EBI5YHFKOJEXY';
-
-// 為替レートのデフォルト値（最終手段）
-const DEFAULT_EXCHANGE_RATES = {
-  'USD/JPY': 150.0,
-  'JPY/USD': 1/150.0,
-  'EUR/JPY': 160.0,
-  'EUR/USD': 1.1,
-};
-
-/**
- * 銘柄データを取得 - Alpha Vantageをプライマリソースとして使用
- * @param {string} ticker - ティッカーシンボル
- * @returns {Promise<Object>} - 銘柄データとステータス
- */
-export async function fetchTickerData(ticker) {
-  try {
-    // Alpha Vantage APIからデータ取得を試みる
-    console.log(`Attempting to fetch data for ${ticker} from Alpha Vantage`);
-    const response = await axios.get(ALPHA_VANTAGE_URL, {
-      params: {
-        function: 'GLOBAL_QUOTE',
-        symbol: ticker,
-        apikey: ALPHA_VANTAGE_KEY
-      },
-      timeout: 15000 // 15秒タイムアウト設定
-    });
-    
-    // レスポンスの検証
-    if (response.data && response.data['Global Quote'] && response.data['Global Quote']['05. price']) {
-      const quoteData = response.data['Global Quote'];
-      const price = parseFloat(quoteData['05. price']);
-      
-      // 通貨判定（簡易的な判定、実際にはより詳細な判定が必要）
-      const currency = ticker.includes('.T') ? 'JPY' : 'USD';
-      
-      return {
-        success: true,
-        data: {
-          id: ticker,
-          name: ticker, // Alpha Vantageからは銘柄名が取得できないため、ティッカーを使用
-          ticker: ticker,
-          exchangeMarket: ticker.includes('.T') ? 'Japan' : 'US',
-          price: price,
-          currency: currency,
-          holdings: 0,
-          annualFee: 0.3,
-          lastUpdated: new Date().toISOString(),
-          source: 'Alpha Vantage'
-        },
-        message: '正常に取得しました'
-      };
-    }
-    
-    // 全ての取得方法が失敗した場合はフォールバック値を使用
-    return generateFallbackTickerData(ticker);
-    
-  } catch (error) {
-    console.error('Alpha Vantage API error:', error);
-    
-    // フォールバック値を返す
-    return generateFallbackTickerData(ticker);
-  }
-}
-
-// ...その他のメソッド（generateFallbackTickerData, fetchExchangeRate など）も同様に実装
-```
-
-## 5. 開発環境の起動
+### 2.4 開発サーバーの起動
 
 ```bash
-# 依存パッケージのインストール
-npm install
-
-# 開発サーバーの起動
 npm start
 ```
 
-## 6. Netlify へのデプロイ
+ブラウザが自動的に開き、`http://localhost:3000` でアプリケーションにアクセスできます。
 
-### 6.1 Netlify CLIを使用する方法
+### 2.5 Netlify Functions のローカル実行
+
+Netlify Functions をローカルで実行するには：
 
 ```bash
-# Netlify CLIのインストール
+# Netlify CLI をインストール（初回のみ）
+npm install -g netlify-cli
+
+# Netlify 開発サーバーを起動
+netlify dev
+```
+
+これにより、アプリケーションと Functions の両方が起動され、`http://localhost:8888` でアクセスできます。
+
+## 3. クラウド環境へのデプロイ
+
+### 3.1 Netlify へのデプロイ
+
+#### 3.1.1 Netlify CLI を使用する方法
+
+```bash
+# Netlify CLIをインストール（まだの場合）
 npm install -g netlify-cli
 
 # Netlifyにログイン
 netlify login
 
-# プロジェクトの初期化
+# プロジェクトの初期化（初回のみ）
 netlify init
 
-# デプロイ
+# 本番環境へのデプロイ
 netlify deploy --prod
 ```
 
-### 6.2 Netlify管理画面からデプロイする方法
+#### 3.1.2 Netlify ダッシュボードを使用する方法
 
-1. Netlifyのアカウントにログイン
-2. 「New site from Git」をクリック
-3. GitHubなどからリポジトリを選択（または手動でビルドしたファイルをアップロード）
-4. ビルド設定を行う:
+1. [Netlify](https://app.netlify.com/)にログイン
+2. 「Add new site」→「Import an existing project」をクリック
+3. GitHubなどのリポジトリプロバイダを選択し、リポジトリを選択
+4. 以下のビルド設定を行う：
    - Build command: `CI= npm run build`
    - Publish directory: `build`
    - Functions directory: `functions`
-5. 環境変数を設定:
+5. 「Show advanced」をクリックし、環境変数を設定：
    - `REACT_APP_GOOGLE_CLIENT_ID`: Google OAuthクライアントID
-   - `REACT_APP_ALPHA_VANTAGE_API_KEY`: Alpha Vantage API用キー
-   - `ALPHA_VANTAGE_API_KEY`: サーバーレス関数用API Key
-6. デプロイボタンをクリック
+   - `REACT_APP_ALPHA_VANTAGE_API_KEY`: Alpha Vantage API用キー（フロントエンド用）
+   - `ALPHA_VANTAGE_API_KEY`: Alpha Vantage API用キー（サーバーレス関数用）
+6. 「Deploy site」をクリック
 
-## 7. トラブルシューティング
+### 3.2 GitHubとの連携によるCI/CD
 
-### 7.1 Yahoo Finance APIが動作しない
+1. Netlify ダッシュボードの「Site settings」→「Build & deploy」→「Continuous Deployment」を開く
+2. 「Build hooks」セクションで「Add build hook」をクリック
+3. フック名を入力し、ブランチを選択（例：「main」）
+4. 生成されたURLをコピー
+5. GitHubリポジトリの「Settings」→「Webhooks」→「Add webhook」で設定
+   - Payload URL: コピーしたURL
+   - Content type: `application/json`
+   - Secret: 空白でOK
+   - 「Just the push event」を選択
+   - 「Active」にチェック
+6. 「Add webhook」をクリック
 
-Yahoo Finance APIは公式のAPIではなく、継続的な401 Unauthorized エラーのため、現在はAlpha Vantage APIを直接プライマリデータソースとして使用するように変更しました。
+これで、main ブランチへのプッシュが発生するたびに、自動的にNetlifyでのビルドとデプロイが行われます。
 
-対処方法:
-1. ブラウザのコンソールログで詳細なエラーを確認
-2. Alpha Vantage APIのレート制限（無料プランで1日25リクエスト）に注意
-3. レート制限に達した場合はフォールバック値が自動的に使用される
-4. 本番環境ではNetlify環境変数に `ALPHA_VANTAGE_API_KEY` が設定されていることを確認
+## 4. トラブルシューティング
 
-### 7.2 Alpha Vantage APIのレート制限
+### 4.1 ローカル開発時の問題
 
-Alpha Vantage APIには呼び出し回数の制限があります:
-- 無料プランでは1日当たり25回まで
-- リクエスト間隔に制限あり（約12秒）
+#### APIリクエストの問題
+- Netlify Functions へのリクエストが失敗する場合は、プロキシ設定を確認してください。
+- `setupProxy.js` が正しく設定されていることを確認します。
+- Netlify Dev を使用している場合は、`.netlify/functions/` パスが正しく機能していることを確認します。
 
-対処方法:
-1. コードのフォールバック機構を活用
-2. キャッシュを活用して呼び出し回数を減らす
-3. 必要に応じて有料プランの利用を検討
+#### 環境変数の問題
+- `.env.local` ファイルが正しく設定されていることを確認します。
+- 環境変数の変更後は、開発サーバーを再起動してください。
 
-### 7.3 環境変数の設定確認
+### 4.2 デプロイ時の問題
 
-環境変数が正しく設定されていない場合の確認方法:
+#### ビルド失敗
+- Netlify のビルドログを確認してください。
+- `CI=` フラグがビルドコマンドに含まれていることを確認します（警告をエラーとして扱わないため）。
 
-1. ローカル開発環境: `.env.local` ファイルの内容を確認
-2. Netlify: 管理画面から「Site settings」→「Build & deploy」→「Environment」を確認
+#### API連携の問題
+- Netlify環境変数が正しく設定されていることを確認します。
+- Alpha Vantage APIのレート制限（無料プランでは1日25リクエスト）に注意してください。
+- Functions のログをNetlifyダッシュボードで確認します。
 
-## 8. 更新履歴と継続開発
+#### 認証の問題
+- Google OAuth クライアントIDに正しいリダイレクトURIが設定されていることを確認します。
+- 本番環境のURLをGoogle Cloud Consoleの承認済みオリジンとリダイレクトURIに追加します。
 
-### 8.1 最新アップデート
+## 5. データの永続化と同期
 
-- Yahoo Finance API呼び出しを廃止（401 Unauthorized エラー対応）
-- Alpha Vantage APIをプライマリソースとして直接使用
-- Alpha Vantage無料プランの1日25リクエスト制限に対応したフォールバック機構
-- 環境変数名の統一 (`REACT_APP_ALPHA_VANTAGE_API_KEY` と `ALPHA_VANTAGE_API_KEY`)
-- マルチソースデータ取得フローの簡素化
-- ログ出力の拡充とエラーハンドリングの改善
+### 5.1 ローカルストレージ
 
-### 8.2 今後の開発計画
+アプリケーションはブラウザのローカルストレージを使用して、次のデータを保存します：
+- 保有資産情報
+- 目標配分設定
+- 追加予算設定
+- 通貨設定と為替レート情報
 
-- ローカルストレージによるデータ永続化
-- Googleドライブ連携の強化
-- 複数ポートフォリオの管理機能
-- モバイル対応の改善
+データはBase64エンコーディングによる簡易暗号化が施されています。
 
----
+### 5.2 Googleドライブ連携
 
-**注意**: このセットアップガイドは、プロジェクトの最新状態に基づいて作成されています。最新の更新情報は、コード規約書やインターフェース仕様書も併せてご確認ください。
+Google認証後に以下の機能が利用可能になります：
+- クラウドへのデータ保存
+- クラウドからのデータ読み込み
+- データ同期（ローカルとクラウドの最新データを同期）
 
-## 改訂履歴
+## 6. よくある質問
+
+### Q: Alpha Vantage APIのレート制限に達した場合はどうなりますか？
+A: フォールバック機構が自動的に動作し、推定値やデフォルト値を使用してアプリケーションが継続して動作します。
+
+### Q: ブラウザを変更するとデータが失われますか？
+A: ローカルストレージはブラウザごとに独立しているため、データは失われます。Google認証を行い、クラウド同期機能を使用することで、複数のブラウザ間でデータを共有できます。
+
+### Q: 個別株の手数料はどのように計算されますか？
+A: 個別株の年間手数料率は常に0%として固定されており、ユーザーによる編集はできません。
+
+## 7. 更新履歴
 
 | バージョン | 日付 | 内容 | 担当者 |
 |---|---|---|---|
 | 1.0 | 2025/03/17 | 初版作成 |  |
 | 1.1 | 2025/03/18 | Alpha Vantage API連携強化・環境変数名統一・トラブルシューティング追加 |  |
-| 1.2 | 2025/03/18 | Yahoo Finance API無効化、Alpha Vantageをプライマリソースに変更、401認証エラー対応 |  |
+| 1.2 | 2025/03/25 | ローカルストレージによるデータ永続化機能・Google認証連携・コンテキスト連携の追加 |  |
+| 1.3 | 2025/03/25 | GitHubコードの実行に特化した内容に更新 |  |
