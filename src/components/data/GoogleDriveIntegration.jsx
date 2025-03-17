@@ -3,11 +3,36 @@ import { useAuth } from '../../hooks/useAuth';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 
 const GoogleDriveIntegration = () => {
-  const { user, saveToGoogleDrive, loadFromGoogleDrive } = useAuth();
-  const { exportData, importData } = usePortfolioContext();
+  const { user, saveToDrive, loadFromDrive, synchronizeData } = useAuth();
+  const { 
+    exportData, 
+    importData, 
+    dataSource, 
+    lastSyncTime, 
+    saveToLocalStorage
+  } = usePortfolioContext();
+  
   const [statusMessage, setStatusMessage] = useState('');
   const [statusType, setStatusType] = useState(''); // 'success' or 'error'
   const [isLoading, setIsLoading] = useState(false);
+
+  // 最終同期時間のフォーマット
+  const formatSyncTime = (timeString) => {
+    if (!timeString) return 'なし';
+    
+    const date = new Date(timeString);
+    return `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+  };
+
+  // ステータスメッセージの表示
+  const showStatus = (message, type) => {
+    setStatusMessage(message);
+    setStatusType(type);
+    setTimeout(() => {
+      setStatusMessage('');
+      setStatusType('');
+    }, 5000);
+  };
 
   // Googleドライブにデータを保存
   const handleSaveToGoogleDrive = async () => {
@@ -18,7 +43,7 @@ const GoogleDriveIntegration = () => {
       const portfolioData = exportData();
       
       // Googleドライブに保存
-      const result = await saveToGoogleDrive(portfolioData);
+      const result = await saveToDrive(portfolioData);
       
       if (result.success) {
         showStatus(result.message || 'データをGoogleドライブに保存しました', 'success');
@@ -39,7 +64,7 @@ const GoogleDriveIntegration = () => {
       setIsLoading(true);
       
       // Googleドライブからデータを読み込み
-      const result = await loadFromGoogleDrive();
+      const result = await loadFromDrive();
       
       if (result.success && result.data) {
         // データをインポート
@@ -47,6 +72,9 @@ const GoogleDriveIntegration = () => {
         
         if (importResult.success) {
           showStatus('Googleドライブからデータを読み込みました', 'success');
+          
+          // ローカルストレージにも保存
+          saveToLocalStorage();
         } else {
           showStatus(importResult.message || 'データのインポートに失敗しました', 'error');
         }
@@ -60,15 +88,26 @@ const GoogleDriveIntegration = () => {
       setIsLoading(false);
     }
   };
-
-  // ステータスメッセージの表示
-  const showStatus = (message, type) => {
-    setStatusMessage(message);
-    setStatusType(type);
-    setTimeout(() => {
-      setStatusMessage('');
-      setStatusType('');
-    }, 5000);
+  
+  // データ同期の実行
+  const handleSynchronize = async () => {
+    try {
+      setIsLoading(true);
+      
+      // データ同期を実行
+      const result = await synchronizeData();
+      
+      if (result && result.success) {
+        showStatus(result.message || 'データを同期しました', 'success');
+      } else {
+        showStatus(result?.message || 'データの同期に失敗しました', 'error');
+      }
+    } catch (error) {
+      console.error('Data synchronization error:', error);
+      showStatus('データ同期中にエラーが発生しました', 'error');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (!user) {
@@ -91,6 +130,46 @@ const GoogleDriveIntegration = () => {
         />
         <p className="text-sm text-gray-700">
           {user.name} としてログイン中
+        </p>
+      </div>
+      
+      {/* データ同期ステータス */}
+      <div className="bg-gray-50 p-4 rounded mb-4">
+        <h3 className="text-md font-medium mb-2">同期ステータス</h3>
+        <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+          <div className="text-gray-600">データソース:</div>
+          <div>
+            {dataSource === 'cloud' ? (
+              <span className="text-blue-600 flex items-center">
+                <span className="inline-block w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                クラウド
+              </span>
+            ) : (
+              <span className="text-amber-600 flex items-center">
+                <span className="inline-block w-2 h-2 bg-amber-500 rounded-full mr-2"></span>
+                ローカル
+              </span>
+            )}
+          </div>
+          
+          <div className="text-gray-600">最終同期:</div>
+          <div>{formatSyncTime(lastSyncTime)}</div>
+        </div>
+        
+        <button
+          onClick={handleSynchronize}
+          disabled={isLoading}
+          className={`w-full ${
+            isLoading 
+              ? 'bg-gray-400 cursor-not-allowed' 
+              : 'bg-indigo-600 hover:bg-indigo-700'
+          } text-white px-4 py-2 rounded mb-2`}
+        >
+          {isLoading ? '同期中...' : 'クラウドとローカルのデータを同期'}
+        </button>
+        
+        <p className="text-xs text-gray-500">
+          クラウドとローカルのデータを比較し、最新のデータを反映します。
         </p>
       </div>
       
