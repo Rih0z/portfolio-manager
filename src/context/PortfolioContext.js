@@ -1,24 +1,41 @@
 import React, { createContext, useState, useCallback, useEffect } from 'react';
 import { fetchTickerData, fetchExchangeRate, fetchFundInfo } from '../services/api';
 
-// データ暗号化/復号化用の簡易関数
+// 改善された暗号化関数
 const encryptData = (data) => {
   try {
     const jsonString = JSON.stringify(data);
-    return btoa(jsonString); // Base64エンコード（簡易的な暗号化）
+    // エンコード前にURIエンコードを適用して特殊文字を処理
+    return btoa(encodeURIComponent(jsonString));
   } catch (error) {
     console.error('データの暗号化に失敗しました', error);
     return null;
   }
 };
 
+// 改善された復号化関数
 const decryptData = (encryptedData) => {
   try {
-    const jsonString = atob(encryptedData); // Base64デコード
-    return JSON.parse(jsonString);
+    // Base64デコード後にURIデコードを適用
+    const jsonString = decodeURIComponent(atob(encryptedData));
+    const data = JSON.parse(jsonString);
+    
+    // 基本的なデータ構造の検証
+    if (!data || typeof data !== 'object') {
+      throw new Error('無効なデータ形式です');
+    }
+    
+    return data;
   } catch (error) {
-    console.error('データの復号化に失敗しました', error);
-    return null;
+    console.error('データの復号化に失敗しました', error.message);
+    // 可能であれば古いフォーマットを試行
+    try {
+      const jsonString = atob(encryptedData);
+      return JSON.parse(jsonString);
+    } catch (fallbackError) {
+      console.error('フォールバック復号化も失敗しました', fallbackError);
+      return null;
+    }
   }
 };
 
@@ -76,6 +93,9 @@ export const PortfolioProvider = ({ children }) => {
       
       // データの暗号化
       const encryptedData = encryptData(portfolioData);
+      if (!encryptedData) {
+        throw new Error('データの暗号化に失敗しました');
+      }
       
       // ローカルストレージに保存
       localStorage.setItem('portfolioData', encryptedData);
@@ -84,34 +104,58 @@ export const PortfolioProvider = ({ children }) => {
       return true;
     } catch (error) {
       console.error('ローカルストレージへの保存に失敗しました', error);
+      addNotification('データの保存に失敗しました', 'error');
       return false;
     }
-  }, [initialized, baseCurrency, exchangeRate, lastUpdated, currentAssets, targetPortfolio, additionalBudget]);
+  }, [initialized, baseCurrency, exchangeRate, lastUpdated, currentAssets, targetPortfolio, additionalBudget, addNotification]);
 
-  // ローカルストレージからデータを読み込み
+  // ローカルストレージからデータを読み込み（改善版）
   const loadFromLocalStorage = useCallback(() => {
     try {
-      // ローカルストレージからデータを取得
+      console.log('ローカルストレージからのデータ読み込みを試行...');
       const encryptedData = localStorage.getItem('portfolioData');
+      
       if (!encryptedData) {
         console.log('ローカルストレージにデータがありません');
         return null;
       }
       
-      // データの復号化
+      console.log('暗号化されたデータを取得しました');
       const decryptedData = decryptData(encryptedData);
+      
       if (!decryptedData) {
         console.log('データの復号化に失敗しました');
         return null;
       }
       
-      console.log('ローカルストレージからデータを読み込みました', decryptedData);
+      // 基本的なデータ構造の検証
+      const requiredFields = ['baseCurrency', 'currentAssets', 'targetPortfolio'];
+      const missingFields = requiredFields.filter(field => !(field in decryptedData));
+      
+      if (missingFields.length > 0) {
+        console.warn(`復号化されたデータに必須フィールドがありません: ${missingFields.join(', ')}`);
+        return null;
+      }
+      
+      console.log('ローカルストレージからデータを正常に読み込みました', decryptedData);
       return decryptedData;
     } catch (error) {
       console.error('ローカルストレージからの読み込みに失敗しました', error);
       return null;
     }
   }, []);
+
+  // ローカルストレージをクリア（修復のため）
+  const clearLocalStorage = useCallback(() => {
+    try {
+      localStorage.removeItem('portfolioData');
+      addNotification('ローカルストレージをクリアしました', 'info');
+      return true;
+    } catch (error) {
+      console.error('ローカルストレージのクリアに失敗しました', error);
+      return false;
+    }
+  }, [addNotification]);
 
   // 通貨切替
   const toggleCurrency = useCallback(() => {
@@ -428,6 +472,14 @@ export const PortfolioProvider = ({ children }) => {
     if (!data) return { success: false, message: 'データが無効です' };
     
     try {
+      // 基本的なデータ構造の検証
+      const requiredFields = ['baseCurrency', 'currentAssets', 'targetPortfolio'];
+      const missingFields = requiredFields.filter(field => !(field in data));
+      
+      if (missingFields.length > 0) {
+        throw new Error(`必須フィールドがありません: ${missingFields.join(', ')}`);
+      }
+      
       // 必須フィールドの検証
       if (data.baseCurrency) setBaseCurrency(data.baseCurrency);
       if (data.exchangeRate) setExchangeRate(data.exchangeRate);
@@ -458,9 +510,10 @@ export const PortfolioProvider = ({ children }) => {
       return { success: true, message: 'データをインポートしました' };
     } catch (error) {
       console.error('データのインポートに失敗しました', error);
-      return { success: false, message: 'データのインポートに失敗しました' };
+      addNotification(`データのインポートに失敗しました: ${error.message}`, 'error');
+      return { success: false, message: `データのインポートに失敗しました: ${error.message}` };
     }
-  }, [saveToLocalStorage]);
+  }, [saveToLocalStorage, addNotification]);
 
   // データのエクスポート
   const exportData = useCallback(() => {
@@ -566,6 +619,14 @@ export const PortfolioProvider = ({ children }) => {
       
       // データが存在する場合は適用
       if (cloudData) {
+        // データの検証
+        const requiredFields = ['baseCurrency', 'currentAssets', 'targetPortfolio'];
+        const missingFields = requiredFields.filter(field => !(field in cloudData));
+        
+        if (missingFields.length > 0) {
+          throw new Error(`クラウドデータに必須フィールドがありません: ${missingFields.join(', ')}`);
+        }
+        
         // 各状態を更新
         if (cloudData.baseCurrency) setBaseCurrency(cloudData.baseCurrency);
         if (cloudData.exchangeRate) setExchangeRate(cloudData.exchangeRate);
@@ -605,8 +666,8 @@ export const PortfolioProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Googleドライブからの読み込みに失敗しました', error);
-      addNotification('クラウドからの読み込みに失敗しました', 'error');
-      return { success: false, message: 'クラウド読み込みに失敗しました' };
+      addNotification(`クラウドからの読み込みに失敗しました: ${error.message}`, 'error');
+      return { success: false, message: `クラウド読み込みに失敗しました: ${error.message}` };
     }
   }, [baseCurrency, addNotification, saveToLocalStorage]);
 
@@ -672,6 +733,7 @@ export const PortfolioProvider = ({ children }) => {
       setInitialized(true);
     } catch (error) {
       console.error('データの初期化中にエラーが発生しました:', error);
+      addNotification(`データの初期化中にエラーが発生しました: ${error.message}`, 'error');
       setInitialized(true); // エラーが発生しても初期化完了とマークする
     }
   }, [loadFromLocalStorage, addNotification]);
@@ -755,9 +817,11 @@ export const PortfolioProvider = ({ children }) => {
     // データ保存・同期関連
     saveToLocalStorage,
     loadFromLocalStorage,
+    clearLocalStorage,
     saveToGoogleDrive,
     loadFromGoogleDrive,
-    handleAuthStateChange
+    handleAuthStateChange,
+    initializeData
   };
 
   return (
