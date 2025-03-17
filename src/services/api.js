@@ -1,7 +1,7 @@
 // src/services/api.js
 
 import axios from 'axios';
-import { estimateAnnualFee, guessFundType, extractFundInfo } from '../utils/fundUtils';
+import { estimateAnnualFee, guessFundType, extractFundInfo, FUND_TYPES } from '../utils/fundUtils';
 
 /**
  * 強制的にYahoo Finance API利用を無効化し、Alpha Vantageのみを使用するバージョン
@@ -71,10 +71,16 @@ export async function fetchTickerData(ticker) {
       
       // ファンド情報の取得（種類と手数料率の推定）
       const fundInfo = extractFundInfo(ticker, name);
-      const feeInfo = estimateAnnualFee(ticker, name);
       const fundType = guessFundType(ticker, name);
+      const feeInfo = estimateAnnualFee(ticker, name);
       
-      console.log(`[API] Estimated fund type for ${ticker}: ${fundType} with fee ${feeInfo.fee}%`);
+      // 個別株かどうかを判定
+      const isStock = fundType === FUND_TYPES.STOCK;
+      
+      // 個別株の場合は手数料を必ず0に設定
+      const annualFee = isStock ? 0 : feeInfo.fee;
+      
+      console.log(`[API] Estimated fund type for ${ticker}: ${fundType} with fee ${isStock ? 0 : feeInfo.fee}%`);
       
       // 基本情報を返す
       return {
@@ -85,11 +91,12 @@ export async function fetchTickerData(ticker) {
         price: price,
         currency: ticker.includes('.T') ? 'JPY' : 'USD',
         holdings: 0,
-        annualFee: feeInfo.fee,
+        annualFee: annualFee,
         fundType: fundType,
-        feeSource: feeInfo.source,
-        feeIsEstimated: feeInfo.isEstimated,
+        feeSource: isStock ? '個別株' : feeInfo.source,
+        feeIsEstimated: isStock ? false : feeInfo.isEstimated,
         region: fundInfo.region,
+        isStock: isStock,
         lastUpdated: new Date().toISOString(),
         source: 'Alpha Vantage'
       };
@@ -119,8 +126,14 @@ function generateFallbackData(ticker) {
   
   // ファンド情報の取得（種類と手数料率の推定）
   const fundInfo = extractFundInfo(ticker);
-  const feeInfo = estimateAnnualFee(ticker);
   const fundType = guessFundType(ticker);
+  const feeInfo = estimateAnnualFee(ticker);
+  
+  // 個別株かどうかを判定
+  const isStock = fundType === FUND_TYPES.STOCK;
+  
+  // 個別株の場合は手数料を必ず0に設定
+  const annualFee = isStock ? 0 : feeInfo.fee;
   
   return {
     id: ticker,
@@ -130,11 +143,12 @@ function generateFallbackData(ticker) {
     price: defaultPrice,
     currency: isJapanese ? 'JPY' : 'USD',
     holdings: 0,
-    annualFee: feeInfo.fee,
+    annualFee: annualFee,
     fundType: fundType,
-    feeSource: feeInfo.source,
-    feeIsEstimated: feeInfo.isEstimated,
+    feeSource: isStock ? '個別株' : feeInfo.source,
+    feeIsEstimated: isStock ? false : feeInfo.isEstimated,
     region: fundInfo.region,
+    isStock: isStock,
     lastUpdated: new Date().toISOString(),
     source: 'Fallback'
   };
@@ -236,17 +250,24 @@ export async function fetchFundInfo(ticker) {
   try {
     // まずはティッカーシンボルから基本情報を推定
     const fundInfo = extractFundInfo(ticker);
-    const feeInfo = estimateAnnualFee(ticker);
     const fundType = guessFundType(ticker);
+    const feeInfo = estimateAnnualFee(ticker);
+    
+    // 個別株かどうかを判定
+    const isStock = fundType === FUND_TYPES.STOCK;
+    
+    // 個別株の場合は手数料を必ず0に設定
+    const annualFee = isStock ? 0 : feeInfo.fee;
     
     return {
       success: true,
       ticker: ticker,
       fundType: fundType,
-      annualFee: feeInfo.fee,
-      feeSource: feeInfo.source,
-      feeIsEstimated: feeInfo.isEstimated,
+      annualFee: annualFee,
+      feeSource: isStock ? '個別株' : feeInfo.source,
+      feeIsEstimated: isStock ? false : feeInfo.isEstimated,
       region: fundInfo.region,
+      isStock: isStock,
       lastUpdated: new Date().toISOString(),
       source: 'Estimated'
     };
@@ -259,10 +280,11 @@ export async function fetchFundInfo(ticker) {
       success: false,
       ticker: ticker,
       fundType: 'unknown',
-      annualFee: 0.5, // デフォルト値
+      annualFee: 0, // エラー時はデフォルトで0を返す
       feeSource: 'Default',
       feeIsEstimated: true,
       region: 'unknown',
+      isStock: false,
       lastUpdated: new Date().toISOString(),
       source: 'Fallback'
     };
