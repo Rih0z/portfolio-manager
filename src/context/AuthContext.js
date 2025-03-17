@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useCallback, useRef } from 'react';
 import jwtDecode from 'jwt-decode'; // 修正: 正しいインポート方法
+import { setGoogleAccessToken } from '../services/api';
 
 // コンテキスト作成
 export const AuthContext = createContext();
@@ -33,6 +34,9 @@ export const AuthProvider = ({ children }) => {
             setUser(userData);
             setIsAuthenticated(true);
             
+            // API層にもトークンを設定
+            setGoogleAccessToken(storedToken);
+            
             // 認証状態の通知はポートフォリオコンテキストが利用可能になった時に行う
           } else {
             // トークンの有効期限切れ
@@ -58,30 +62,42 @@ export const AuthProvider = ({ children }) => {
     }
   }, [isAuthenticated, user]);
 
-  // Googleログイン成功時の処理
+  // Googleログイン成功時の処理（修正版）
   const handleLogin = useCallback((credentialResponse) => {
     try {
+      // IDトークンをデコード
       const decodedToken = jwtDecode(credentialResponse.credential);
+      
+      // トークンを保存
       setGoogleToken(credentialResponse.credential);
+      
       const userData = {
         name: decodedToken.name,
         email: decodedToken.email,
         picture: decodedToken.picture
       };
+      
       setUser(userData);
       setIsAuthenticated(true);
       
       // トークンをローカルストレージに保存
       localStorage.setItem('googleToken', credentialResponse.credential);
       
-      // PortfolioContextが利用可能な場合、認証状態を通知
-      if (portfolioContextRef.current?.handleAuthStateChange) {
-        portfolioContextRef.current.handleAuthStateChange(true, userData);
-      }
+      // API層にもトークンを設定
+      setGoogleAccessToken(credentialResponse.credential);
       
-      // PortfolioContextが利用可能な場合、クラウドからデータを読み込み
-      if (portfolioContextRef.current?.loadFromGoogleDrive) {
-        portfolioContextRef.current.loadFromGoogleDrive(userData);
+      // ContextRef経由でも設定
+      if (portfolioContextRef.current) {
+        if (portfolioContextRef.current.handleAuthStateChange) {
+          portfolioContextRef.current.handleAuthStateChange(true, userData);
+        }
+        
+        // 少し遅延させてからデータ読み込みを試行
+        setTimeout(() => {
+          if (portfolioContextRef.current.loadFromGoogleDrive) {
+            portfolioContextRef.current.loadFromGoogleDrive(userData);
+          }
+        }, 1000);
       }
     } catch (error) {
       console.error('ログインエラー:', error);
