@@ -7,7 +7,6 @@ const HoldingsEditor = () => {
   const { 
     currentAssets,
     updateHoldings,
-    updateAnnualFee,
     removeTicker,
     baseCurrency,
     exchangeRate
@@ -15,12 +14,15 @@ const HoldingsEditor = () => {
   
   const [editingId, setEditingId] = useState(null);
   const [editValue, setEditValue] = useState('');
-  const [editField, setEditField] = useState(null); // 追加: 編集中のフィールドを追跡
+  const [editField, setEditField] = useState(null);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState('');
 
   // 編集を開始
   const startEditing = (id, value, field) => {
+    // 手数料の編集は許可しない
+    if (field === 'annualFee') return;
+    
     setEditingId(id);
     setEditValue(value.toString());
     setEditField(field);
@@ -39,10 +41,6 @@ const HoldingsEditor = () => {
       // 保有数量の更新（小数点以下4桁まで対応）
       updateHoldings(id, parseFloat(value.toFixed(4)));
       showMessage('保有数量を更新しました', 'success');
-    } else if (editField === 'annualFee') {
-      // 年間手数料率の更新（小数点以下2桁まで対応）
-      updateAnnualFee(id, parseFloat(value.toFixed(2)));
-      showMessage('年間手数料率を更新しました', 'success');
     }
     
     setEditingId(null);
@@ -94,24 +92,11 @@ const HoldingsEditor = () => {
     }
   };
 
-  // 保有数量の増減
+  // 保有数量の増減 - 整数単位のみに変更
   const handleIncrementHoldings = (asset, amount) => {
-    // 0以上の値に制限
+    // 整数単位の増減に変更し、0以上の値に制限
     const newValue = Math.max(0, asset.holdings + amount);
     updateHoldings(asset.id, parseFloat(newValue.toFixed(4)));
-  };
-
-  // 手数料率の増減
-  const handleIncrementFee = (asset, amount) => {
-    // 個別株は手数料の変更不可
-    if (asset.fundType === FUND_TYPES.STOCK || asset.isStock) {
-      showMessage('個別株の手数料率は変更できません（常に0%）', 'warning');
-      return;
-    }
-    
-    // 0以上の値に制限
-    const newValue = Math.max(0, (asset.annualFee || 0) + amount);
-    updateAnnualFee(asset.id, parseFloat(newValue.toFixed(2)));
   };
 
   // メッセージの表示
@@ -202,7 +187,7 @@ const HoldingsEditor = () => {
                         onChange={(e) => setEditValue(e.target.value)}
                         className="w-24 p-1 border rounded text-sm"
                         min="0"
-                        step="0.0001" // 小数点以下4桁まで対応
+                        step="0.0001" // 小数点以下4桁まで対応（直接入力時）
                       />
                       <button
                         onClick={() => handleUpdate(asset.id)}
@@ -223,15 +208,15 @@ const HoldingsEditor = () => {
                   ) : (
                     <div className="flex items-center">
                       <button
-                        onClick={() => handleIncrementHoldings(asset, -0.0001)}
+                        onClick={() => handleIncrementHoldings(asset, -1)}
                         className="p-1 bg-red-100 text-red-700 rounded text-xs"
-                        disabled={asset.holdings <= 0}
+                        disabled={asset.holdings < 1}
                       >
                         -
                       </button>
                       <span className="mx-2 text-sm">{asset.holdings.toFixed(4)}</span>
                       <button
-                        onClick={() => handleIncrementHoldings(asset, 0.0001)}
+                        onClick={() => handleIncrementHoldings(asset, 1)}
                         className="p-1 bg-green-100 text-green-700 rounded text-xs"
                       >
                         +
@@ -246,88 +231,28 @@ const HoldingsEditor = () => {
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  {editingId === asset.id && editField === 'annualFee' ? (
+                  <div className="flex flex-col">
                     <div className="flex items-center">
-                      <input
-                        type="number"
-                        value={editValue}
-                        onChange={(e) => setEditValue(e.target.value)}
-                        className="w-24 p-1 border rounded text-sm"
-                        min="0"
-                        step="0.01" // 小数点以下2桁まで対応
-                        disabled={asset.fundType === FUND_TYPES.STOCK || asset.isStock}
-                      />
-                      <button
-                        onClick={() => handleUpdate(asset.id)}
-                        className="ml-2 p-1 bg-green-600 text-white rounded text-xs"
-                        disabled={asset.fundType === FUND_TYPES.STOCK || asset.isStock}
-                      >
-                        保存
-                      </button>
-                      <button
-                        onClick={() => {
-                          setEditingId(null);
-                          setEditField(null);
-                        }}
-                        className="ml-1 p-1 bg-gray-500 text-white rounded text-xs"
-                      >
-                        キャンセル
-                      </button>
+                      <span className="text-sm">
+                        {formatPercent(asset.annualFee || 0, 2)}
+                      </span>
                     </div>
-                  ) : (
-                    <div className="flex flex-col">
-                      <div className="flex items-center">
-                        {asset.fundType === FUND_TYPES.STOCK || asset.isStock ? (
-                          // 個別株の場合は編集不可
-                          <span className="text-sm">
-                            {formatPercent(0, 2)}
-                          </span>
-                        ) : (
-                          <>
-                            <button
-                              onClick={() => handleIncrementFee(asset, -0.01)}
-                              className="p-1 bg-red-100 text-red-700 rounded text-xs"
-                              disabled={(asset.annualFee || 0) <= 0 || asset.fundType === FUND_TYPES.STOCK || asset.isStock}
-                            >
-                              -
-                            </button>
-                            <span className="mx-2 text-sm">
-                              {formatPercent(asset.annualFee || 0, 2)}
-                            </span>
-                            <button
-                              onClick={() => handleIncrementFee(asset, 0.01)}
-                              className="p-1 bg-green-100 text-green-700 rounded text-xs"
-                              disabled={asset.fundType === FUND_TYPES.STOCK || asset.isStock}
-                            >
-                              +
-                            </button>
-                            <button
-                              onClick={() => startEditing(asset.id, asset.annualFee || 0, 'annualFee')}
-                              className="ml-2 text-blue-600 text-xs"
-                              disabled={asset.fundType === FUND_TYPES.STOCK || asset.isStock}
-                            >
-                              編集
-                            </button>
-                          </>
-                        )}
+                    {asset.feeSource && (
+                      <div className="mt-1">
+                        <span className={`text-xs px-1.5 py-0.5 rounded ${
+                          asset.feeSource === '個別株'
+                            ? 'bg-gray-100 text-gray-800'
+                            : asset.feeSource === 'ユーザー設定' 
+                              ? 'bg-purple-100 text-purple-800' 
+                              : asset.feeIsEstimated 
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-green-100 text-green-800'
+                        }`}>
+                          {asset.feeSource}
+                        </span>
                       </div>
-                      {asset.feeSource && (
-                        <div className="mt-1">
-                          <span className={`text-xs px-1.5 py-0.5 rounded ${
-                            asset.feeSource === '個別株'
-                              ? 'bg-gray-100 text-gray-800'
-                              : asset.feeSource === 'ユーザー設定' 
-                                ? 'bg-purple-100 text-purple-800' 
-                                : asset.feeIsEstimated 
-                                  ? 'bg-yellow-100 text-yellow-800'
-                                  : 'bg-green-100 text-green-800'
-                          }`}>
-                            {asset.feeSource}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900">
@@ -359,12 +284,11 @@ const HoldingsEditor = () => {
       <div className="mt-4 bg-gray-50 p-4 rounded-md">
         <h3 className="text-sm font-medium text-gray-700 mb-2">ファンド手数料について</h3>
         <p className="text-xs text-gray-600">
-          年間手数料は銘柄タイプから自動的に判定されています。ファンドの手数料率はファンドの種類から推定されますが、個別株は運用会社が存在しないため手数料は0%となります。より正確なデータが必要な場合は、各ファンドの最新の目論見書などを参照して手動で編集してください。
+          年間手数料は銘柄タイプから自動的に判定されています。ファンドの手数料率はファンドの種類から推定されますが、個別株は運用会社が存在しないため手数料は0%となります。ファンドの手数料情報は市場データ更新時に自動的に確認・更新されます。
           <span className="block mt-1">
             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 mr-1">個別株 (0%)</span>
             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 mr-1">推定値</span>
             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 mr-1">ティッカー固有の情報</span>
-            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">ユーザー設定</span>
           </span>
         </p>
       </div>
