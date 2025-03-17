@@ -349,7 +349,68 @@ src/
     })
   );
   ```
+6.3 手数料情報の管理（更新）
 
+ユーザーによる直接編集の制限:
+javascriptコピー// 手数料情報はPortfolioContext内でのみ更新可能
+// 市場データ更新時に手数料情報も更新
+const refreshMarketPrices = useCallback(async () => {
+  setIsLoading(true);
+  try {
+    // 手数料変更検出用
+    let feeChangesCount = 0;
+    const feeChangeDetails = [];
+    
+    const updatedAssets = await Promise.all(
+      currentAssets.map(async (asset) => {
+        try {
+          // 市場データ取得
+          const updatedData = await fetchTickerData(asset.ticker);
+          
+          // 手数料情報の変更を検出
+          const hasFeeChanged = asset.annualFee !== updatedData.annualFee;
+          
+          // 手数料変更があれば記録
+          if (hasFeeChanged && !asset.isStock) {
+            feeChangesCount++;
+            feeChangeDetails.push({
+              ticker: asset.ticker,
+              name: asset.name,
+              oldFee: asset.annualFee,
+              newFee: updatedData.annualFee
+            });
+          }
+          
+          // 更新情報を返す（個別株は常に手数料0%）
+          return {
+            ...asset,
+            price: updatedData.price,
+            source: updatedData.source,
+            lastUpdated: updatedData.lastUpdated,
+            annualFee: asset.isStock ? 0 : updatedData.annualFee,
+            fundType: updatedData.fundType || asset.fundType,
+            feeSource: asset.isStock ? '個別株' : updatedData.feeSource,
+            feeIsEstimated: asset.isStock ? false : updatedData.feeIsEstimated,
+            region: updatedData.region || asset.region
+          };
+        } catch (error) {
+          return asset;
+        }
+      })
+    );
+    
+    // 手数料変更の通知
+    if (feeChangesCount > 0) {
+      addNotification(`${feeChangesCount}件のファンドで手数料情報が更新されました`, 'info');
+    }
+    
+    // 状態更新
+    setCurrentAssets(updatedAssets);
+    // ...
+  } finally {
+    setIsLoading(false);
+  }
+}, [currentAssets, addNotification]);
 ## 7. エラー処理
 
 ### 7.1 エラーキャッチと表示
