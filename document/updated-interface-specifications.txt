@@ -400,15 +400,15 @@ enum FundTypes {
 2. 依存パッケージインストール: `npm install`
 3. 環境変数設定: `.env.local` 作成
    ```
-   REACT_APP_GOOGLE_CLIENT_ID=あなたのGoogleクライアントID
-   REACT_APP_ALPHA_VANTAGE_API_KEY=GC4EBI5YHFKOJEXY
+REACT_APP_GOOGLE_CLIENT_ID: Google OAuthクライアントID
+ALPHA_VANTAGE_API_KEY: Alpha Vantage APIキー（フロントエンド用）
    ```
 4. 開発サーバー起動: `npm start`
 5. ブラウザでアクセス: `http://localhost:3000`
 
 ### 9.2 必要な環境変数
 - `REACT_APP_GOOGLE_CLIENT_ID`: Google OAuthクライアントID
-- `REACT_APP_ALPHA_VANTAGE_API_KEY`: Alpha Vantage APIキー（フロントエンド用）
+- `ALPHA_VANTAGE_API_KEY`: Alpha Vantage APIキー（フロントエンド用）
 
 ### 9.3 プロキシ設定
 setupProxy.js を使用したAPI連携設定:
