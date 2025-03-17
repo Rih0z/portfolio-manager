@@ -212,9 +212,12 @@ Alpha Vantage APIには無料プランで1日当たり25回までのリクエス
 
 ## 参考資料
 
-- [コード規約書](document/code-conventions.md)
-- [インターフェース仕様書](document/interface-specifications.md)
-- [セットアップガイド](document/setup-guide.md)
+- [コード規約書](https://github.com/Rih0z/portfolio-manager/blob/main/document/updated-code-conventions.txt)
+- [インターフェース仕様書](https://github.com/Rih0z/portfolio-manager/blob/main/document/updated-interface-specifications.txt)
+- [セットアップガイド](https://github.com/Rih0z/portfolio-manager/blob/main/document/updated-setup-guide.txt)
+- [仕様書](https://github.com/Rih0z/portfolio-manager/blob/main/document/updated-specifications.txt)
+
+ドキュメント一覧は[こちら](https://github.com/Rih0z/portfolio-manager/tree/main/document)でも確認できます。
 
 ## コンタクト
 
