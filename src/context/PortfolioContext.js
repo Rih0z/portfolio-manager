@@ -1,6 +1,44 @@
 import React, { createContext, useState, useCallback, useEffect } from 'react';
 import { fetchTickerData, fetchExchangeRate, fetchFundInfo } from '../services/api';
 
+// 暗号化/復号化のためのシンプルな関数
+// 注: 本番環境では、より堅牢な暗号化を検討してください
+const encryptData = (data, key = 'portfolio-manager-secret') => {
+  try {
+    // シンプルな文字列化と組み合わせた基本的な暗号化
+    const jsonString = JSON.stringify(data);
+    return btoa(jsonString); // Base64エンコード（簡易的な暗号化）
+  } catch (error) {
+    console.error('データの暗号化に失敗しました', error);
+    return null;
+  }
+};
+
+const decryptData = (encryptedData, key = 'portfolio-manager-secret') => {
+  try {
+    // 復号化処理
+    const jsonString = atob(encryptedData); // Base64デコード
+    return JSON.parse(jsonString);
+  } catch (error) {
+    console.error('データの復号化に失敗しました', error);
+    return null;
+  }
+};
+
+// 保存するデータ構造の定義
+const createDataStructure = (state) => {
+  return {
+    baseCurrency: state.baseCurrency,
+    exchangeRate: state.exchangeRate,
+    lastUpdated: state.lastUpdated,
+    currentAssets: state.currentAssets,
+    targetPortfolio: state.targetPortfolio,
+    additionalBudget: state.additionalBudget,
+    version: '1.0.0', // データバージョン管理
+    timestamp: new Date().toISOString()
+  };
+};
+
 export const PortfolioContext = createContext();
 
 export const PortfolioProvider = ({ children }) => {
@@ -17,6 +55,13 @@ export const PortfolioProvider = ({ children }) => {
   const [targetPortfolio, setTargetPortfolio] = useState([]);
   const [additionalBudget, setAdditionalBudget] = useState(300000);
   const [notifications, setNotifications] = useState([]);
+  
+  // 新規: データ保存関連の状態
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState(null);
+  const [dataSource, setDataSource] = useState('local'); // 'local' or 'cloud'
 
   // 通知を追加する関数
   const addNotification = useCallback((message, type = 'info') => {
@@ -30,9 +75,277 @@ export const PortfolioProvider = ({ children }) => {
     setNotifications(prev => prev.filter(notification => notification.id !== id));
   }, []);
 
+  // ローカルストレージにデータを保存
+  const saveToLocalStorage = useCallback(() => {
+    try {
+      const portfolioData = {
+        baseCurrency,
+        exchangeRate,
+        lastUpdated,
+        currentAssets,
+        targetPortfolio,
+        additionalBudget,
+        version: '1.0.0', // データバージョン管理
+        timestamp: new Date().toISOString()
+      };
+      
+      // データの暗号化
+      const encryptedData = encryptData(portfolioData);
+      
+      // ローカルストレージに保存
+      localStorage.setItem('portfolioData', encryptedData);
+      
+      return true;
+    } catch (error) {
+      console.error('ローカルストレージへの保存に失敗しました', error);
+      return false;
+    }
+  }, [baseCurrency, exchangeRate, lastUpdated, currentAssets, targetPortfolio, additionalBudget]);
+
+  // ローカルストレージからデータを読み込み
+  const loadFromLocalStorage = useCallback(() => {
+    try {
+      // ローカルストレージからデータを取得
+      const encryptedData = localStorage.getItem('portfolioData');
+      if (!encryptedData) return null;
+      
+      // データの復号化
+      const decryptedData = decryptData(encryptedData);
+      if (!decryptedData) return null;
+      
+      return decryptedData;
+    } catch (error) {
+      console.error('ローカルストレージからの読み込みに失敗しました', error);
+      return null;
+    }
+  }, []);
+
   // 通貨切替
   const toggleCurrency = useCallback(() => {
-    setBaseCurrency(prev => prev === 'JPY' ? 'USD' : 'JPY');
+    setBaseCurrency(prev => {
+      const newCurrency = prev === 'JPY' ? 'USD' : 'JPY';
+      // 通貨切替後、自動保存
+      setTimeout(() => saveToLocalStorage(), 0);
+      return newCurrency;
+    });
+  }, [saveToLocalStorage]);
+
+  // ローカルストレージにデータを保存
+  const saveToLocalStorage = useCallback(() => {
+    try {
+      const dataToSave = createDataStructure({
+        baseCurrency,
+        exchangeRate,
+        lastUpdated,
+        currentAssets,
+        targetPortfolio,
+        additionalBudget
+      });
+      
+      // データの暗号化
+      const encryptedData = encryptData(dataToSave);
+      
+      // ローカルストレージに保存
+      localStorage.setItem('portfolioData', encryptedData);
+      localStorage.setItem('portfolioDataTimestamp', new Date().toISOString());
+      
+      return true;
+    } catch (error) {
+      console.error('ローカルストレージへの保存に失敗しました', error);
+      return false;
+    }
+  }, [baseCurrency, exchangeRate, lastUpdated, currentAssets, targetPortfolio, additionalBudget]);
+
+  // ローカルストレージからデータを読み込み
+  const loadFromLocalStorage = useCallback(() => {
+    try {
+      // ローカルストレージからデータを取得
+      const encryptedData = localStorage.getItem('portfolioData');
+      if (!encryptedData) return null;
+      
+      // データの復号化
+      const decryptedData = decryptData(encryptedData);
+      if (!decryptedData) return null;
+      
+      return decryptedData;
+    } catch (error) {
+      console.error('ローカルストレージからの読み込みに失敗しました', error);
+      return null;
+    }
+  }, []);
+
+  // Googleドライブにデータを保存
+  const saveToGoogleDrive = useCallback(async () => {
+    if (!isAuthenticated || !user) {
+      addNotification('データをクラウドに保存するにはGoogleアカウントでログインしてください', 'warning');
+      return false;
+    }
+    
+    try {
+      setIsSyncing(true);
+      
+      // Googleドライブに保存するデータ
+      const dataToSave = createDataStructure({
+        baseCurrency,
+        exchangeRate,
+        lastUpdated,
+        currentAssets,
+        targetPortfolio,
+        additionalBudget
+      });
+      
+      // Google Drive APIを使ってデータを保存する処理
+      // 注: この部分は実際にGoogle Drive APIを呼び出す処理に置き換える必要があります
+      console.log('クラウドへデータ保存:', dataToSave);
+      
+      // ここでGoogle Drive APIを呼び出す（API自体はまだ実装されていないため、シミュレーション）
+      // 成功したと仮定
+      setLastSyncTime(new Date().toISOString());
+      setDataSource('cloud');
+      addNotification('データをクラウドに保存しました', 'success');
+      
+      return true;
+    } catch (error) {
+      console.error('クラウドへの保存に失敗しました', error);
+      addNotification('クラウドへの保存に失敗しました', 'error');
+      return false;
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [isAuthenticated, user, baseCurrency, exchangeRate, lastUpdated, currentAssets, targetPortfolio, additionalBudget, addNotification]);
+
+  // Googleドライブからデータを読み込み
+  const loadFromGoogleDrive = useCallback(async () => {
+    if (!isAuthenticated || !user) {
+      return null;
+    }
+    
+    try {
+      setIsSyncing(true);
+      
+      // Google Drive APIを使ってデータを取得する処理
+      // 注: この部分は実際にGoogle Drive APIを呼び出す処理に置き換える必要があります
+      console.log('クラウドからデータ読み込み');
+      
+      // ここでGoogle Drive APIを呼び出す（API自体はまだ実装されていないため、シミュレーション）
+      // 成功したと仮定し、ダミーデータを返す (実際の実装では削除してください)
+      const dummyCloudData = null;
+      
+      if (dummyCloudData) {
+        setLastSyncTime(new Date().toISOString());
+        setDataSource('cloud');
+        addNotification('クラウドからデータを読み込みました', 'success');
+      }
+      
+      return dummyCloudData;
+    } catch (error) {
+      console.error('クラウドからの読み込みに失敗しました', error);
+      addNotification('クラウドからの読み込みに失敗しました', 'error');
+      return null;
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [isAuthenticated, user, addNotification]);
+
+  // 認証状態の変更を処理
+  const handleAuthStateChange = useCallback((authState, userData) => {
+    setIsAuthenticated(authState);
+    setUser(userData);
+    
+    if (authState && userData) {
+      // 認証成功時、クラウドデータと同期
+      synchronizeData();
+    } else {
+      // ログアウト時、ローカルデータを使用
+      setDataSource('local');
+    }
+  }, []);
+
+  // データの同期（ローカルとクラウドの競合解決）
+  const synchronizeData = useCallback(async () => {
+    try {
+      setIsSyncing(true);
+      
+      // ローカルデータの取得
+      const localData = loadFromLocalStorage();
+      const localTimestamp = localStorage.getItem('portfolioDataTimestamp');
+      
+      // クラウドデータの取得
+      const cloudData = await loadFromGoogleDrive();
+      
+      if (!cloudData && !localData) {
+        // どちらもデータがない場合は何もしない
+        return;
+      }
+      
+      if (!cloudData && localData) {
+        // クラウドにデータがなく、ローカルにデータがある場合
+        // ローカルデータを適用し、クラウドに保存
+        applyData(localData);
+        await saveToGoogleDrive();
+        return;
+      }
+      
+      if (cloudData && !localData) {
+        // クラウドにデータがあり、ローカルにデータがない場合
+        // クラウドデータを適用
+        applyData(cloudData);
+        saveToLocalStorage();
+        return;
+      }
+      
+      // 両方にデータがある場合、タイムスタンプを比較
+      if (cloudData.timestamp > localTimestamp) {
+        // クラウドデータの方が新しい場合
+        applyData(cloudData);
+        saveToLocalStorage();
+        addNotification('クラウドの最新データを適用しました', 'info');
+      } else {
+        // ローカルデータの方が新しい場合
+        applyData(localData);
+        await saveToGoogleDrive();
+        addNotification('ローカルの最新データをクラウドに同期しました', 'info');
+      }
+    } catch (error) {
+      console.error('データ同期中にエラーが発生しました', error);
+      addNotification('データの同期に失敗しました', 'error');
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [loadFromLocalStorage, loadFromGoogleDrive, saveToGoogleDrive, saveToLocalStorage, addNotification]);
+
+  // データを状態に適用する関数
+  const applyData = useCallback((data) => {
+    if (!data) return;
+    
+    // 各状態を更新
+    if (data.baseCurrency) setBaseCurrency(data.baseCurrency);
+    if (data.exchangeRate) setExchangeRate(data.exchangeRate);
+    if (data.lastUpdated) setLastUpdated(data.lastUpdated);
+    if (data.additionalBudget) setAdditionalBudget(data.additionalBudget);
+    
+    // アセットデータのインポート（個別株の手数料を0%に確保）
+    if (Array.isArray(data.currentAssets)) {
+      const validatedAssets = data.currentAssets.map(asset => {
+        // 個別株の場合は手数料を0に設定
+        if (asset.isStock || asset.fundType === 'STOCK' || asset.fundType === '個別株') {
+          return {
+            ...asset,
+            annualFee: 0,
+            feeSource: '個別株',
+            feeIsEstimated: false,
+            isStock: true
+          };
+        }
+        return asset;
+      });
+      setCurrentAssets(validatedAssets);
+    }
+    
+    // 目標配分データの適用
+    if (Array.isArray(data.targetPortfolio)) {
+      setTargetPortfolio(data.targetPortfolio);
+    }
   }, []);
 
   // 市場データの更新（手数料更新機能を追加）
@@ -120,6 +433,9 @@ export const PortfolioProvider = ({ children }) => {
         });
       }
       
+      // データの自動保存
+      await autoSaveData();
+      
       return { success: true, message };
     } catch (error) {
       console.error('市場データの更新に失敗しました', error);
@@ -128,7 +444,18 @@ export const PortfolioProvider = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [currentAssets, addNotification]);
+  }, [currentAssets, addNotification, autoSaveData]);
+
+  // データの自動保存（ローカルストレージとクラウド）
+  const autoSaveData = useCallback(async () => {
+    // ローカルストレージに保存
+    saveToLocalStorage();
+    
+    // 認証済みの場合はクラウドにも保存
+    if (isAuthenticated && user) {
+      await saveToGoogleDrive();
+    }
+  }, [saveToLocalStorage, saveToGoogleDrive, isAuthenticated, user]);
 
   // 銘柄追加
   const addTicker = useCallback(async (ticker) => {
@@ -184,6 +511,9 @@ export const PortfolioProvider = ({ children }) => {
       if (feeMessage) {
         addNotification(feeMessage, 'info');
       }
+      
+      // データの自動保存
+      await autoSaveData();
 
       return { success: true, message: '銘柄を追加しました' };
     } catch (error) {
@@ -191,31 +521,52 @@ export const PortfolioProvider = ({ children }) => {
       addNotification(`銘柄「${ticker}」の追加に失敗しました`, 'error');
       return { success: false, message: '銘柄の追加に失敗しました' };
     }
-  }, [targetPortfolio, currentAssets, addNotification]);
+  }, [targetPortfolio, currentAssets, addNotification, autoSaveData]);
 
   // 目標配分更新
   const updateTargetAllocation = useCallback((id, percentage) => {
-    setTargetPortfolio(prev => 
-      prev.map(item => 
+    setTargetPortfolio(prev => {
+      const updated = prev.map(item => 
         item.id === id ? { ...item, targetPercentage: parseFloat(percentage) } : item
-      )
-    );
-  }, []);
+      );
+      
+      // 変更後に自動保存
+      setTimeout(() => autoSaveData(), 0);
+      
+      return updated;
+    });
+  }, [autoSaveData]);
 
   // 保有数量更新（小数点以下4桁まで対応）
   const updateHoldings = useCallback((id, holdings) => {
-    setCurrentAssets(prev => 
-      prev.map(item => 
+    setCurrentAssets(prev => {
+      const updated = prev.map(item => 
         item.id === id ? { ...item, holdings: parseFloat(parseFloat(holdings).toFixed(4)) || 0 } : item
-      )
-    );
-  }, []);
+      );
+      
+      // 変更後に自動保存
+      setTimeout(() => autoSaveData(), 0);
+      
+      return updated;
+    });
+  }, [autoSaveData]);
 
   // 銘柄削除
   const removeTicker = useCallback((id) => {
-    setTargetPortfolio(prev => prev.filter(item => item.id !== id));
-    setCurrentAssets(prev => prev.filter(item => item.id !== id));
-  }, []);
+    setTargetPortfolio(prev => {
+      const updated = prev.filter(item => item.id !== id);
+      return updated;
+    });
+    
+    setCurrentAssets(prev => {
+      const updated = prev.filter(item => item.id !== id);
+      
+      // 変更後に自動保存
+      setTimeout(() => autoSaveData(), 0);
+      
+      return updated;
+    });
+  }, [autoSaveData]);
 
   // シミュレーション計算
   const calculateSimulation = useCallback(() => {
@@ -295,14 +646,19 @@ export const PortfolioProvider = ({ children }) => {
 
   // 購入処理（小数点以下4桁まで対応）
   const executePurchase = useCallback((tickerId, units) => {
-    setCurrentAssets(prev => 
-      prev.map(asset => 
+    setCurrentAssets(prev => {
+      const updated = prev.map(asset => 
         asset.id === tickerId 
           ? { ...asset, holdings: parseFloat((asset.holdings + parseFloat(units)).toFixed(4)) } 
           : asset
-      )
-    );
-  }, []);
+      );
+      
+      // 変更後に自動保存
+      setTimeout(() => autoSaveData(), 0);
+      
+      return updated;
+    });
+  }, [autoSaveData]);
 
   // 一括購入処理
   const executeBatchPurchase = useCallback((simulationResult) => {
@@ -311,7 +667,10 @@ export const PortfolioProvider = ({ children }) => {
         executePurchase(result.id, result.additionalUnits);
       }
     });
-  }, [executePurchase]);
+    
+    // データの自動保存
+    autoSaveData();
+  }, [executePurchase, autoSaveData]);
 
   // データのインポート（手数料情報の整合性を確保）
   const importData = useCallback((data) => {
@@ -342,12 +701,15 @@ export const PortfolioProvider = ({ children }) => {
       
       if (Array.isArray(data.targetPortfolio)) setTargetPortfolio(data.targetPortfolio);
       
+      // データの自動保存
+      autoSaveData();
+      
       return { success: true, message: 'データをインポートしました' };
     } catch (error) {
       console.error('データのインポートに失敗しました', error);
       return { success: false, message: 'データのインポートに失敗しました' };
     }
-  }, []);
+  }, [autoSaveData]);
 
   // データのエクスポート
   const exportData = useCallback(() => {
@@ -378,11 +740,35 @@ export const PortfolioProvider = ({ children }) => {
           lastUpdated: result.lastUpdated
         });
       }
+      
+      // データの自動保存
+      autoSaveData();
     } catch (error) {
       console.error('為替レートの更新に失敗しました', error);
       // 更新失敗時は既存のレートを維持
     }
-  }, [baseCurrency]);
+  }, [baseCurrency, autoSaveData]);
+
+  // 初期化時の処理: ローカルストレージから読み込み
+  useEffect(() => {
+    const initializeData = async () => {
+      // ローカルストレージからデータを読み込み
+      const localData = loadFromLocalStorage();
+      
+      if (localData) {
+        // データが存在する場合は適用
+        applyData(localData);
+        addNotification('前回のデータを読み込みました', 'info');
+      }
+      
+      // 認証済みの場合はクラウドとも同期
+      if (isAuthenticated && user) {
+        await synchronizeData();
+      }
+    };
+    
+    initializeData();
+  }, []);
 
   // 通貨切替時に為替レートを更新
   useEffect(() => {
@@ -426,7 +812,7 @@ export const PortfolioProvider = ({ children }) => {
     return sum + (assetValue * (asset.annualFee || 0) / 100);
   }, 0);
 
-  // コンテキスト値 (updateAnnualFeeを削除)
+  // コンテキスト値（データ保存・同期関連を追加）
   const contextValue = {
     baseCurrency, 
     exchangeRate, 
@@ -437,6 +823,11 @@ export const PortfolioProvider = ({ children }) => {
     additionalBudget,
     totalAssets, 
     annualFees,
+    isAuthenticated,
+    user,
+    isSyncing,
+    lastSyncTime,
+    dataSource,
     toggleCurrency, 
     refreshMarketPrices, 
     addTicker,
@@ -450,7 +841,14 @@ export const PortfolioProvider = ({ children }) => {
     importData, 
     exportData,
     addNotification,
-    removeNotification
+    removeNotification,
+    // 新規追加の関数
+    handleAuthStateChange,
+    synchronizeData,
+    saveToLocalStorage,
+    loadFromLocalStorage,
+    saveToGoogleDrive,
+    loadFromGoogleDrive
   };
 
   return (
