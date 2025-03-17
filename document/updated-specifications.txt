@@ -6,6 +6,8 @@
 
 ### 1.1 主要機能
 - 資産管理（保有数の小数点以下4桁対応）
+- 銘柄タイプ自動判定（個別株、ETF、インデックスファンド、アクティブファンドなど）
+- 年間手数料率の自動推定と計算（個別株は0%固定）
 - 理想ポートフォリオ配分設定
 - 資金配分シミュレーション
 - データインポート/エクスポート
@@ -36,6 +38,7 @@
 - **netlify.toml**: Netlifyデプロイとサーバーレス関数の設定
 - **.env.local**: 環境変数設定（ローカル開発用）
 - **src/setupProxy.js**: プロキシ設定（API連携用）
+- **src/utils/fundUtils.js**: ファンドタイプと手数料情報のユーティリティ関数
 
 ### 2.2 環境変数
 ```
@@ -152,14 +155,15 @@ portfolio-manager/
 │   │   ├── api.js
 │   │   └── marketDataService.js
 │   ├── utils/
-│   │   └── formatters.js
+│   │   ├── formatters.js
+│   │   └── fundUtils.js
 │   ├── App.jsx
 │   ├── index.js
 │   ├── setupProxy.js
 │   └── index.css
 ├── functions/
-│   ├── yahoo-finance-proxy.js
 │   ├── alpha-vantage-proxy.js
+│   ├── yahoo-finance-proxy.js
 │   └── mof-exchange-rate-proxy.js
 ├── package.json
 ├── tailwind.config.js
@@ -171,136 +175,279 @@ portfolio-manager/
 ### 3.2 主要ファイルの役割
 - **App.jsx**: アプリケーションのルートコンポーネント、認証プロバイダー、ルーティング設定
 - **context/AuthContext.js**: Google認証管理（jwt-decode 3.x対応済み）
-- **context/PortfolioContext.js**: ポートフォリオ状態・ロジック管理
+- **context/PortfolioContext.js**: ポートフォリオ状態・ロジック管理、手数料計算
 - **hooks/useAuth.js**: 認証状態管理フック
 - **hooks/usePortfolioContext.js**: ポートフォリオコンテキスト使用フック
+- **utils/fundUtils.js**: ファンドタイプ判定と手数料率推定のユーティリティ関数
 - **setupProxy.js**: 開発環境用APIプロキシ設定
 - **index.css**: Tailwind CSSとiOS風インターフェース用スタイリング
-- **services/marketDataService.js**: 市場データ取得サービス（複数データソース対応）
+- **services/api.js**: 市場データ取得サービス（複数データソース対応）
 - **functions/alpha-vantage-proxy.js**: Alpha Vantage API呼び出し用のサーバーレス関数
-- **functions/yahoo-finance-proxy.js**: Yahoo Finance API呼び出し用のサーバーレス関数
-- **functions/mof-exchange-rate-proxy.js**: 財務省為替レート取得用のサーバーレス関数
 
-## 4. 特記事項と解決済み技術課題
+## 4. データモデル（更新版）
 
-### 4.1 jwt-decode対応
-jwt-decodeライブラリのバージョン4との互換性問題を解決するため、以下の方法でインポートを行います：
-```javascript
-// 旧バージョン
-import { jwtDecode } from 'jwt-decode';
-
-// 新バージョン（現在の実装）
-import jwtDecode from 'jwt-decode';
-```
-
-### 4.2 プロキシ設定
-React Scriptsでは、複雑なプロキシ設定はpackage.jsonで直接指定できません。以下の方法で解決しています：
-1. package.jsonでは単純な設定: `"proxy": "http://localhost:9000"`
-2. http-proxy-middlewareを使った詳細設定（setupProxy.js）:
-```javascript
-app.use(
-  '/.netlify/functions/',
-  createProxyMiddleware({
-    target: 'http://localhost:9000',
-    pathRewrite: {
-      '^/\\.netlify/functions': ''
-    },
-    changeOrigin: true
-  })
-);
-```
-
-### 4.3 アクセシビリティ対応
-以下のようなアクセシビリティ問題に対処しています：
-- ラベルとフォームコントロールの関連付け（htmlFor, id使用）
-- ARIAロール属性の適切な使用
-- 色のコントラスト比の確保
-
-### 4.4 市場データの複数ソース対応（更新）
-市場データの取得において、以下の順で複数ソースを試行するフォールバック機構を実装しました：
-1. Alpha Vantage API（プライマリソース）
-2. デフォルト値の使用（フォールバック）
-
-Yahoo Finance APIからの継続的な401 Unauthorized エラーを回避するため、Alpha Vantage APIを直接プライマリソースとして使用するように変更しました。APIリクエストにはタイムアウト設定を追加し、応答が遅い場合に迅速にフォールバック値に切り替わるようにしています：
-```javascript
-// Alpha Vantage: 15秒タイムアウト
-await axios.get(ALPHA_VANTAGE_URL, {
-  params: {
-    function: 'GLOBAL_QUOTE',
-    symbol: ticker,
-    apikey: ALPHA_VANTAGE_KEY
-  },
-  timeout: 15000
-});
-```
-
-詳細なログを出力することでデバッグを容易にし、API取得の失敗原因を特定できるようにしています。なお、Alpha Vantage APIには無料プランで1日25リクエストの制限があるため、フォールバック値の使用は重要な役割を果たします。
-
-## 5. 実装上の注意点
-
-### 5.1 Netlifyデプロイ時の考慮事項
-- CI環境での警告を無視するビルドコマンド: `CI= npm run build`
-- 正確なバージョン指定による依存関係の安定化
-- すべての環境変数のNetlify管理コンソールでの設定
-  - `ALPHA_VANTAGE_API_KEY`: Alpha Vantage APIキー（サーバーレス関数用）
-  - `REACT_APP_ALPHA_VANTAGE_API_KEY`: フロントエンド用APIキー
-
-### 5.2 サーバーレス関数
-- 関数はNetlify Functionsとして実装
-- `.netlify/functions/`パスでアクセス可能
-- CORS対応済み（プリフライトリクエスト処理含む）
-- 主要な関数：
-  - **yahoo-finance-proxy.js**: Yahoo Finance APIの呼び出し
-  - **alpha-vantage-proxy.js**: Alpha Vantage APIの呼び出し
-  - **mof-exchange-rate-proxy.js**: 財務省為替レートの取得
-
-### 5.3 タイポグラフィ・スタイリング
-- システムフォント（sans-serif）の優先使用
-- モバイルフレンドリーなレスポンシブデザイン
-- iPhone用セーフエリア対応（ノッチやホームバーなど）
-
-## 6. コードスタイルとベストプラクティス
-
-### 6.1 ESLint設定
-```json
-{
-  "extends": [
-    "react-app",
-    "react-app/jest"
-  ],
-  "rules": {
-    "no-console": ["warn", { "allow": ["warn", "error"] }],
-    "no-unused-vars": "warn",
-    "react-hooks/rules-of-hooks": "error",
-    "react-hooks/exhaustive-deps": "warn",
-    "jsx-a11y/label-has-associated-control": "off"
-  }
+### 4.1 Asset（保有資産）
+```typescript
+interface Asset {
+  id: string;
+  name: string;
+  ticker: string;
+  exchangeMarket: string;
+  price: number;
+  currency: string;
+  holdings: number; // 小数点以下4桁対応
+  annualFee: number; // 年間手数料率（%）- 個別株は常に0%
+  fundType: string; // ファンドの種類 (ETF_JP, INDEX_US, STOCK など)
+  isStock: boolean; // 個別株かどうかのフラグ
+  feeSource: string; // 手数料情報の出所 ('個別株', 'ティッカー固有の情報', 'ファンドタイプからの推定', 'ユーザー設定')
+  feeIsEstimated: boolean; // 手数料情報が推定値かどうか
+  userSetFee?: boolean; // ユーザーが手動で設定したかどうか
+  region?: string; // 対象地域 ('日本', '米国', 'グローバル', '不明')
+  lastUpdated?: string; // 最終更新日時
+  source?: string; // データソース ('Alpha Vantage', 'Fallback')
 }
 ```
 
-### 6.2 React関連ベストプラクティス
-- 関数コンポーネントの使用
-- useCallbackとuseMemoによるパフォーマンス最適化
-- アクセシビリティに配慮したUI実装
-- 条件付きレンダリングのクリーンな実装
+### 4.2 TargetAllocation（目標配分）
+```typescript
+interface TargetAllocation {
+  id: string;
+  name: string;
+  ticker: string;
+  targetPercentage: number;
+}
+```
 
-### 6.3 データ取得とエラーハンドリング（更新）
-- 複数データソースを試行するフォールバック機構
-- 詳細なエラーログ出力
-- タイムアウト設定によるレスポンス改善
-- ユーザーフレンドリーなエラーメッセージ表示
+### 4.3 SimulationResult（シミュレーション結果）
+```typescript
+interface SimulationResult {
+  id: string;
+  name: string;
+  ticker: string;
+  price: number;
+  currency: string;
+  targetPercentage: number;
+  currentAmount: number;
+  targetAmount: number;
+  additionalAmount: number;
+  additionalUnits: number; // 小数点以下4桁対応
+  purchaseAmount: number;
+  remark?: string;
+}
+```
 
-## 7. 今後の拡張計画
+### 4.4 FundTypes（ファンドタイプ）
+```typescript
+enum FundTypes {
+  INDEX_JP = 'インデックス（日本）',
+  INDEX_US = 'インデックス（米国）',
+  INDEX_GLOBAL = 'インデックス（グローバル）',
+  ACTIVE_JP = 'アクティブ（日本）',
+  ACTIVE_US = 'アクティブ（米国）',
+  ACTIVE_GLOBAL = 'アクティブ（グローバル）',
+  ETF_JP = 'ETF（日本）',
+  ETF_US = 'ETF（米国）',
+  REIT_JP = 'REIT（日本）',
+  REIT_US = 'REIT（米国）',
+  CRYPTO = '暗号資産関連',
+  BOND = '債券',
+  STOCK = '個別株',
+  UNKNOWN = '不明'
+}
+```
 
-- ローカルストレージによるデータ永続化
-- Netlify Functionsを使用したGoogleドライブAPI完全連携
-- 複数ポートフォリオのクラウド保存と管理
-- 複数デバイス間でのリアルタイムデータ同期
-- 証券会社APIとの連携によるデータ自動更新
-- モバイル専用アプリの開発（React Native）
-- より信頼性の高い代替市場データAPIの検討
+## 5. 手数料計算と銘柄判定（新規）
 
----
+### 5.1 銘柄タイプ判定ロジック
+銘柄のティッカーシンボルや名前からファンドタイプを判定する機能を実装しています：
+
+- **個別株の判定**:
+  - 日本株: 4桁+.T形式でないもの
+  - 米国株: 1-5文字のティッカーで、既知のETFやファンドに該当しないもの
+  - ETF、インデックスファンド、REIT、債券ファンド、暗号資産などに該当しないもの
+
+- **ETFの判定**:
+  - 日本ETF: 1から始まる4桁の数字 + .T形式（例: 1306.T）
+  - 米国ETF: 既知のETFリストに含まれる、または名前にETFを含む
+
+- **インデックスファンドの判定**:
+  - 名前に「index」「インデックス」「日経」「topix」「S&P」などを含む
+
+- **REITの判定**:
+  - 名前に「REIT」「リート」「不動産投資」などを含む
+
+### 5.2 手数料率推定ロジック
+銘柄タイプに基づいて年間手数料率を推定します：
+
+- **個別株**: 常に0%（編集不可）
+- **インデックスファンド（日本）**: 0.3%
+- **インデックスファンド（米国）**: 0.15%
+- **インデックスファンド（グローバル）**: 0.25%
+- **アクティブファンド（日本）**: 1.5%
+- **アクティブファンド（米国）**: 0.75%
+- **アクティブファンド（グローバル）**: 1.0%
+- **ETF（日本）**: 0.22%
+- **ETF（米国）**: 0.12%
+- **REIT**: 0.5-0.6%
+- **その他**: 0.5%（デフォルト値）
+
+### 5.3 特定銘柄の手数料情報データベース
+人気のETFやファンドについては、より正確な手数料情報をアプリケーション内のデータベースから取得します：
+
+```javascript
+// 主要ETFの例
+'SPY': 0.09,  // SPDR S&P 500 ETF
+'VOO': 0.03,  // Vanguard S&P 500 ETF
+'VTI': 0.03,  // Vanguard Total Stock Market ETF
+'1306.T': 0.11, // TOPIX ETF
+'1320.T': 0.16, // 日経225 ETF
+```
+
+### 5.4 年間手数料の計算
+保有資産ごとの年間手数料を計算し、合計します：
+
+```javascript
+// 年間手数料の計算
+const annualFees = currentAssets.reduce((sum, asset) => {
+  // 個別株は手数料を0にする
+  if (asset.fundType === FUND_TYPES.STOCK || asset.isStock) {
+    return sum;
+  }
+  
+  let assetValue = asset.price * asset.holdings;
+  
+  // 通貨換算
+  if (asset.currency !== baseCurrency) {
+    if (baseCurrency === 'JPY' && asset.currency === 'USD') {
+      assetValue *= exchangeRate.rate;
+    } else if (baseCurrency === 'USD' && asset.currency === 'JPY') {
+      assetValue /= exchangeRate.rate;
+    }
+  }
+  
+  return sum + (assetValue * (asset.annualFee || 0) / 100);
+}, 0);
+```
+
+## 6. 主要コンポーネントの実装詳細
+
+### 6.1 HoldingsEditor（保有資産編集）
+- 保有資産の編集UIを提供
+- 保有数量の編集（小数点以下4桁対応）
+- 年間手数料率の編集（個別株は編集不可）
+- 銘柄タイプの表示
+- 手数料情報の出所を表示（個別株、推定値、固有情報、ユーザー設定）
+- 銘柄タイプに応じたUIの切り替え（個別株は灰色背景、手数料編集不可）
+
+### 6.2 PortfolioSummary（ポートフォリオサマリー）
+- 総資産額を表示
+- 銘柄数を表示
+- 年間手数料の合計と割合を表示
+- 最も高い/低い手数料率の銘柄を表示
+- ファンドタイプ別の手数料統計を表示
+
+### 6.3 AssetsTable（保有資産一覧）
+- 保有資産を表形式で表示
+- 銘柄、価格、保有数、評価額などを表示
+- 銘柄ごとの年間手数料を表示
+- 個別株は手数料0%で表示
+
+### 6.4 FundUtils（ファンドユーティリティ）
+- 銘柄タイプ判定関数（`guessFundType`）
+- 手数料率推定関数（`estimateAnnualFee`）
+- 特定銘柄の手数料情報データベース
+- ファンド情報の抽出関数（`extractFundInfo`）
+
+## 7. APIとデータ取得
+
+### 7.1 市場データ取得
+- Alpha Vantage APIを使用して最新価格を取得
+- 銘柄データ取得時に銘柄タイプと手数料情報も自動推定
+- 個別株は手数料率0%として扱う
+
+```javascript
+// 銘柄データの取得と手数料情報の推定
+export async function fetchTickerData(ticker) {
+  // Alpha Vantageから価格データを取得
+  
+  // ファンド情報の取得（種類と手数料率の推定）
+  const fundInfo = extractFundInfo(ticker, name);
+  const fundType = guessFundType(ticker, name);
+  const feeInfo = estimateAnnualFee(ticker, name);
+  
+  // 個別株かどうかを判定
+  const isStock = fundType === FUND_TYPES.STOCK;
+  
+  // 個別株の場合は手数料を必ず0に設定
+  const annualFee = isStock ? 0 : feeInfo.fee;
+  
+  return {
+    // 銘柄データと手数料情報
+  };
+}
+```
+
+### 7.2 手数料情報の自動取得
+- 銘柄追加時に手数料情報を自動取得・推定
+- 市場データ更新時に手数料情報も更新（ユーザー設定値は保持）
+
+## 8. UI操作フロー
+
+### 8.1 銘柄追加フロー
+1. ユーザーが銘柄シンボルを入力
+2. `addTicker`関数を呼び出し
+3. Alpha Vantage APIからデータ取得
+4. 銘柄タイプを判定し、手数料情報を推定
+5. 個別株の場合は手数料を0%に設定
+6. 保有資産と目標配分リストに追加
+7. 手数料情報の通知を表示
+
+### 8.2 手数料編集フロー
+1. ユーザーが手数料率の編集を選択（個別株の場合は編集不可）
+2. `updateAnnualFee`関数を呼び出し
+3. ユーザー設定としてマーク
+4. UI更新と結果通知
+
+### 8.3 年間手数料計算フロー
+1. 各保有資産について：
+   a. 個別株の場合はスキップ（常に0円）
+   b. 評価額を基準通貨に換算
+   c. 評価額に年間手数料率を掛けて計算
+2. すべての銘柄の手数料を合計
+3. 総資産に対する手数料率を計算
+
+## 9. エラー処理と制約
+
+### 9.1 個別株の手数料制約
+- 個別株の年間手数料率は常に0%
+- ユーザーは個別株の手数料率を編集できない
+- 個別株の手数料編集を試みた場合は警告メッセージを表示
+
+### 9.2 データインポート時の処理
+- インポートしたデータ内の個別株の手数料率を0%に修正
+- 銘柄タイプと手数料情報が欠けている場合は自動推定
+
+### 9.3 データ更新時の処理
+- ユーザーが手動設定した手数料情報は上書きしない
+- 個別株判定された銘柄の手数料は強制的に0%にする
+
+## 10. 実装上の注意点
+
+### 10.1 個別株とファンドの区別
+- UI上で個別株とファンドを視覚的に区別（灰色背景、バッジなど）
+- 個別株の手数料関連操作を無効化
+
+### 10.2 手数料情報の視覚的表示
+- 手数料情報の出所をバッジで表示
+  - 個別株: 灰色バッジ
+  - 推定値: 黄色バッジ
+  - ティッカー固有の情報: 緑色バッジ
+  - ユーザー設定: 紫色バッジ
+
+### 10.3 手数料統計の表示
+- 最高/最低手数料率の銘柄
+- ファンドタイプ別の手数料合計
+- 総資産に対する手数料率
 
 ## 改訂履歴
 | バージョン | 日付 | 内容 | 担当者 |
@@ -310,3 +457,5 @@ await axios.get(ALPHA_VANTAGE_URL, {
 | 3.0 | 2025/03/17 | jwt-decode対応・プロキシ設定・ESLint設定の改訂 |  |
 | 4.0 | 2025/03/18 | Alpha Vantage API連携強化・環境変数名統一・データフォールバック機構拡充 |  |
 | 5.0 | 2025/03/18 | Yahoo Finance API無効化、Alpha Vantageをプライマリソースに変更、401認証エラー対応 |  |
+| 6.0 | 2025/03/19 | 銘柄タイプ自動判定と年間手数料の自動推定機能追加 |  |
+| 7.0 | 2025/03/20 | 個別株の手数料固定（0%）とファンド手数料計算ロジックの修正 |  |
