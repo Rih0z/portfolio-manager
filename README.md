@@ -218,6 +218,12 @@ Alpha Vantage APIには無料プランで1日当たり25回までのリクエス
 4. ブランチにプッシュ (`git push origin feature/amazing-feature`)
 5. Pull Requestを作成
 
+**重要な注意事項：**
+- 貢献前に必ず各種ドキュメント（コード規約書、仕様書、インターフェース仕様書など）をAIに読ませるか、自身で熟読してください
+- すべてのコードは[コード規約書](https://github.com/Rih0z/portfolio-manager/blob/main/document/updated-code-conventions.txt)に厳密に準拠する必要があります
+- コードを変更した場合は、必ず関連する仕様書も合わせて更新してください
+- ドキュメントの整合性を保つことは、プロジェクトの品質維持に不可欠です
+
 ## ライセンス
 
 このプロジェクトは[MITライセンス](LICENSE)の下で公開されています。
