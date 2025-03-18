@@ -1,7 +1,7 @@
 # ポートフォリオマネージャー セットアップガイド（更新版）
 
 **バージョン:** 1.3  
-**最終更新日:** 2025/03/25
+**最終更新日時:** 2025/03/15 11:25
 
 このガイドでは、ポートフォリオマネージャーアプリケーションを実行するための手順を解説します。GitHubリポジトリからのクローン、ローカル環境でのセットアップ、およびNetlifyへのデプロイについて説明します。
 
@@ -33,7 +33,8 @@ npm install
 
 ```
 REACT_APP_GOOGLE_CLIENT_ID=あなたのGoogleクライアントID
-REACT_APP_ALPHA_VANTAGE_API_KEY=あなたのAlpha Vantage APIキー
+REACT_APP_GOOGLE_API_KEY=あなたのGoogle APIキー
+ALPHA_VANTAGE_API_KEY=あなたのAlpha Vantage APIキー
 ```
 
 ### 2.4 開発サーバーの起動
@@ -89,8 +90,8 @@ netlify deploy --prod
    - Functions directory: `functions`
 5. 「Show advanced」をクリックし、環境変数を設定：
    - `REACT_APP_GOOGLE_CLIENT_ID`: Google OAuthクライアントID
-   - `REACT_APP_ALPHA_VANTAGE_API_KEY`: Alpha Vantage API用キー（フロントエンド用）
-   - `ALPHA_VANTAGE_API_KEY`: Alpha Vantage API用キー（サーバーレス関数用）
+   - `REACT_APP_GOOGLE_API_KEY`: Google APIキー
+   - `ALPHA_VANTAGE_API_KEY`: Alpha Vantage APIキー
 6. 「Deploy site」をクリック
 
 ### 3.2 GitHubとの連携によるCI/CD
@@ -171,7 +172,7 @@ A: 個別株の年間手数料率は常に0%として固定されており、ユ
 
 | バージョン | 日付 | 内容 | 担当者 |
 |---|---|---|---|
-| 1.0 | 2025/03/17 | 初版作成 |  |
-| 1.1 | 2025/03/18 | Alpha Vantage API連携強化・環境変数名統一・トラブルシューティング追加 |  |
-| 1.2 | 2025/03/25 | ローカルストレージによるデータ永続化機能・Google認証連携・コンテキスト連携の追加 |  |
-| 1.3 | 2025/03/25 | GitHubコードの実行に特化した内容に更新 |  |
+| 1.0 | 2025/03/6 | 初版作成 |  |
+| 1.1 | 2025/03/08 09:45 | Alpha Vantage API連携強化・環境変数名統一・トラブルシューティング追加 |  |
+| 1.2 | 2025/03/12 16:40 | ローカルストレージによるデータ永続化機能・Google認証連携・コンテキスト連携の追加 |  |
+| 1.3 | 2025/03/15 11:25 | GitHubコードの実行に特化した内容に更新 |  |
