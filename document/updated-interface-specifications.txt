@@ -1,5 +1,7 @@
 # ポートフォリオマネージャー インターフェース仕様書（更新版2.0）
 
+**最終更新日時:** 2025/03/16 19:20
+
 *本仕様書は、AIの別セッションでも開発を引き継げるよう設計されています。*
 
 ## 1. プロジェクト概要
@@ -221,7 +223,7 @@ interface StorageData {
 ### 5.1 Alpha Vantage API連携（プライマリソース）
 - **エンドポイント**: `alpha-vantage-proxy` (Netlify Functions経由)
 - **機能**: 市場データのプライマリソース
-- **APIキー**: 環境変数 `REACT_APP_ALPHA_VANTAGE_API_KEY` (フロントエンド) と `ALPHA_VANTAGE_API_KEY` (サーバーレス関数) で設定
+- **APIキー**: 環境変数 `ALPHA_VANTAGE_API_KEY` で設定
 - **タイムアウト設定**: 15秒
 - **レート制限**: 無料プランで1日25リクエストまで
 - **フォールバック**: API失敗時のデフォルト値使用
@@ -600,7 +602,7 @@ class ErrorBoundary extends React.Component {
    ```
 REACT_APP_GOOGLE_CLIENT_ID: Google OAuthクライアントID
 REACT_APP_GOOGLE_API_KEY: Google API Key
-REACT_APP_ALPHA_VANTAGE_API_KEY: Alpha Vantage APIキー（フロントエンド用）
+ALPHA_VANTAGE_API_KEY: Alpha Vantage APIキー
    ```
 4. 開発サーバー起動: `npm start`
 5. ブラウザでアクセス: `http://localhost:3000`
@@ -608,8 +610,7 @@ REACT_APP_ALPHA_VANTAGE_API_KEY: Alpha Vantage APIキー（フロントエンド
 ### 9.2 必要な環境変数
 - `REACT_APP_GOOGLE_CLIENT_ID`: Google OAuthクライアントID
 - `REACT_APP_GOOGLE_API_KEY`: Google API Key
-- `REACT_APP_ALPHA_VANTAGE_API_KEY`: Alpha Vantage APIキー（フロントエンド用）
-- `ALPHA_VANTAGE_API_KEY`: Alpha Vantage APIキー（サーバーレス関数用）
+- `ALPHA_VANTAGE_API_KEY`: Alpha Vantage APIキー
 
 ### 9.3 プロキシ設定
 setupProxy.js を使用したAPI連携設定:
@@ -654,8 +655,7 @@ module.exports = function(app) {
 3. 以下の環境変数を追加:
    - `REACT_APP_GOOGLE_CLIENT_ID`
    - `REACT_APP_GOOGLE_API_KEY`
-   - `REACT_APP_ALPHA_VANTAGE_API_KEY`
-   - `ALPHA_VANTAGE_API_KEY` (Functions用)
+   - `ALPHA_VANTAGE_API_KEY`
 
 ### 10.4 ビルド設定（Netlify）
 netlify.toml 設定ファイル:
@@ -804,12 +804,12 @@ netlify.toml 設定ファイル:
 
 | バージョン | 日付 | 内容 | 担当者 |
 |---|---|---|---|
-| 1.0 | 2025/03/12 | 初版作成 |  |
-| 2.0 | 2025/03/17 | jwt-decode対応、アクセシビリティ対応、プロキシ設定更新 |  |
-| 3.0 | 2025/03/18 | Alpha Vantage API連携強化、環境変数名統一、マルチソースデータ取得フロー実装 |  |
-| 4.0 | 2025/03/18 | Yahoo Finance API無効化、Alpha Vantageをプライマリソースに変更、401認証エラー問題対応 |  |
-| 5.0 | 2025/03/19 | 銘柄タイプ自動判定と年間手数料の自動推定機能追加 |  |
-| 6.0 | 2025/03/20 | 個別株の手数料固定（0%）とファンド手数料計算ロジックの修正 |  |
-| 7.0 | 2025/03/21 | 人気銘柄リストの更新 |  |
-| 8.0 | 2025/03/25 | ローカルストレージによるデータ永続化とGoogle認証連携強化 |  |
-| 9.0 | 2025/03/31 | データ暗号化/復号化処理の強化、Google Drive API連携改善、エラーバウンダリ導入、認証フロー更新 |  |
+| 1.0 | 2025/03/6 | 初版作成 |  |
+| 2.0 | 2025/03/7 | jwt-decode対応、アクセシビリティ対応、プロキシ設定更新 |  |
+| 3.0 | 2025/03/07 10:20 | Alpha Vantage API連携強化、環境変数名統一、マルチソースデータ取得フロー実装 |  |
+| 4.0 | 2025/03/09 13:40 | Yahoo Finance API無効化、Alpha Vantageをプライマリソースに変更、401認証エラー問題対応 |  |
+| 5.0 | 2025/03/10 14:35 | 銘柄タイプ自動判定と年間手数料の自動推定機能追加 |  |
+| 6.0 | 2025/03/11 17:20 | 個別株の手数料固定（0%）とファンド手数料計算ロジックの修正 |  |
+| 7.0 | 2025/03/12 10:45 | 人気銘柄リストの更新 |  |
+| 8.0 | 2025/03/13 16:15 | ローカルストレージによるデータ永続化とGoogle認証連携強化 |  |
+| 9.0 | 2025/03/16 19:20 | データ暗号化/復号化処理の強化、Google Drive API連携改善、エラーバウンダリ導入、認証フロー更新 |  |
