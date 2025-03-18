@@ -2,8 +2,6 @@
 
 資産管理を支援するWebアプリケーション。保有資産と理想のポートフォリオ配分を比較・管理し、最適な資金配分のシミュレーションを実施できる環境を提供します。ブラウザのローカルストレージとGoogleドライブを活用したデータ永続化機能を備え、複数デバイス間でのデータ共有をサポートします。
 
-![ポートフォリオマネージャースクリーンショット]
-
 ## 主要機能
 
 - **資産管理**：保有数の小数点以下4桁対応
@@ -16,10 +14,6 @@
 - **Google認証・Googleドライブ連携**
 - **市場データの自動取得**：Alpha Vantageをプライマリソース、フォールバック値をバックアップとして使用
 - **iOS風タブバーによるナビゲーション**
-
-## スクリーンショット
-
-（スクリーンショットを追加）
 
 ## デモ
 
@@ -69,8 +63,17 @@ npm install
 プロジェクトのルートディレクトリに `.env.local` ファイルを作成し、必要な環境変数を設定します。
 
 ```
+# Google OAuth認証用クライアントID
 REACT_APP_GOOGLE_CLIENT_ID=あなたのGoogleクライアントID
+
+# Google API Key
+REACT_APP_GOOGLE_API_KEY=あなたのGoogle APIキー
+
+# Alpha Vantage API（フロントエンド用）
 REACT_APP_ALPHA_VANTAGE_API_KEY=あなたのAlpha Vantage APIキー
+
+# Netlify Functions用環境変数（ローカルで関数を実行する場合）
+ALPHA_VANTAGE_API_KEY=あなたのAlpha Vantage APIキー
 ```
 
 4. **開発サーバーの起動**
@@ -130,6 +133,7 @@ netlify deploy --prod
    - Functions directory: `functions`
 5. 「Show advanced」をクリックし、環境変数を設定：
    - `REACT_APP_GOOGLE_CLIENT_ID`: Google OAuthクライアントID
+   - `REACT_APP_GOOGLE_API_KEY`: Google APIキー
    - `REACT_APP_ALPHA_VANTAGE_API_KEY`: Alpha Vantage API用キー（フロントエンド用）
    - `ALPHA_VANTAGE_API_KEY`: Alpha Vantage API用キー（サーバーレス関数用）
 6. 「Deploy site」をクリック
@@ -198,6 +202,18 @@ Alpha Vantage APIには無料プランで1日当たり25回までのリクエス
 
 詳細なトラブルシューティングはセットアップガイドを参照してください。
 
+## 既知のバグ
+
+- **銘柄タイプ判定の誤り**: 一部のインデックスファンド、ETFが個別株として誤って登録される場合があります
+- **手数料情報の不正確さ**: 一部のインデックスファンドについて適切な手数料情報を取得できないことがあります
+- **Google連携の問題**: 特定の条件下でGoogleアカウント連携に失敗する場合があります
+- **YFinance連携の問題**: Yahoo Finance (yfinance) との連携がうまく機能していない場合があります
+
+## 将来の実装予定
+
+- **年間配当金の計算**: 保有銘柄の配当情報を取得し、年間配当金を自動計算する機能
+- **利回り計算**: アプリ利用開始時からの利回りを計算・表示する機能
+
 ## 貢献方法
 
 1. このリポジトリをフォーク
@@ -222,5 +238,6 @@ Alpha Vantage APIには無料プランで1日当たり25回までのリクエス
 ## コンタクト
 
 プロジェクト責任者 - [@Rih0z](https://github.com/Rih0z)
+メールアドレス - riho.dare at gmail.com
 
 プロジェクトリンク: [https://delicate-malasada-1fb747.netlify.app/settings](https://delicate-malasada-1fb747.netlify.app/settings)
