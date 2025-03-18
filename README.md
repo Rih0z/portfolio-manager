@@ -69,10 +69,7 @@ REACT_APP_GOOGLE_CLIENT_ID=あなたのGoogleクライアントID
 # Google API Key
 REACT_APP_GOOGLE_API_KEY=あなたのGoogle APIキー
 
-# Alpha Vantage API（フロントエンド用）
-REACT_APP_ALPHA_VANTAGE_API_KEY=あなたのAlpha Vantage APIキー
-
-# Netlify Functions用環境変数（ローカルで関数を実行する場合）
+# Alpha Vantage API
 ALPHA_VANTAGE_API_KEY=あなたのAlpha Vantage APIキー
 ```
 
@@ -134,8 +131,7 @@ netlify deploy --prod
 5. 「Show advanced」をクリックし、環境変数を設定：
    - `REACT_APP_GOOGLE_CLIENT_ID`: Google OAuthクライアントID
    - `REACT_APP_GOOGLE_API_KEY`: Google APIキー
-   - `REACT_APP_ALPHA_VANTAGE_API_KEY`: Alpha Vantage API用キー（フロントエンド用）
-   - `ALPHA_VANTAGE_API_KEY`: Alpha Vantage API用キー（サーバーレス関数用）
+   - `ALPHA_VANTAGE_API_KEY`: Alpha Vantage API用キー
 6. 「Deploy site」をクリック
 
 ## 使用方法
