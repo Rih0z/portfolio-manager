@@ -20,8 +20,8 @@ const HoldingsEditor = () => {
 
   // 編集を開始
   const startEditing = (id, value, field) => {
-    // 手数料の編集は許可しない
-    if (field === 'annualFee') return;
+    // 手数料や配当情報の編集は許可しない
+    if (field === 'annualFee' || field === 'dividendYield') return;
     
     setEditingId(id);
     setEditValue(value.toString());
@@ -83,6 +83,27 @@ const HoldingsEditor = () => {
     
     return assetValue * (asset.annualFee || 0) / 100;
   };
+  
+  // 年間配当金を計算
+  const calculateAnnualDividend = (asset) => {
+    // 配当がない場合は0
+    if (!asset.hasDividend) {
+      return 0;
+    }
+    
+    let assetValue = asset.price * asset.holdings;
+    
+    // 通貨換算
+    if (asset.currency !== baseCurrency) {
+      if (baseCurrency === 'JPY' && asset.currency === 'USD') {
+        assetValue *= exchangeRate.rate || 150;
+      } else if (baseCurrency === 'USD' && asset.currency === 'JPY') {
+        assetValue /= exchangeRate.rate || 150;
+      }
+    }
+    
+    return assetValue * (asset.dividendYield || 0) / 100;
+  };
 
   // 銘柄の削除
   const handleRemoveTicker = (id, name) => {
@@ -107,6 +128,17 @@ const HoldingsEditor = () => {
       setMessage('');
       setMessageType('');
     }, 5000);
+  };
+
+  // 配当頻度の表示変換
+  const formatDividendFrequency = (frequency) => {
+    switch (frequency) {
+      case 'monthly': return '毎月';
+      case 'quarterly': return '四半期';
+      case 'semi-annual': return '半年';
+      case 'annual': return '年1回';
+      default: return '不明';
+    }
   };
 
   // 保有資産がない場合
@@ -136,13 +168,19 @@ const HoldingsEditor = () => {
                 保有数
               </th>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                年間手数料率(%)
+                年間手数料率
+              </th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                配当利回り
               </th>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 評価額
               </th>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 年間手数料
+              </th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                年間配当金
               </th>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 操作
@@ -255,6 +293,27 @@ const HoldingsEditor = () => {
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex flex-col">
+                    <div className="flex items-center">
+                      <span className="text-sm">
+                        {asset.hasDividend ? formatPercent(asset.dividendYield || 0, 2) : '0.00%'}
+                      </span>
+                    </div>
+                    {asset.hasDividend && (
+                      <div className="mt-1">
+                        <span className={`text-xs px-1.5 py-0.5 rounded ${
+                          asset.dividendIsEstimated
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-green-100 text-green-800'
+                        }`}>
+                          {formatDividendFrequency(asset.dividendFrequency)}
+                          {asset.dividendIsEstimated ? '（推定）' : ''}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900">
                     {formatCurrency(calculateAssetValue(asset), baseCurrency)}
                   </div>
@@ -264,6 +323,14 @@ const HoldingsEditor = () => {
                     {asset.fundType === FUND_TYPES.STOCK || asset.isStock 
                       ? formatCurrency(0, baseCurrency)
                       : formatCurrency(calculateAnnualFee(asset), baseCurrency)
+                    }
+                  </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-green-600">
+                    {asset.hasDividend
+                      ? formatCurrency(calculateAnnualDividend(asset), baseCurrency)
+                      : formatCurrency(0, baseCurrency)
                     }
                   </div>
                 </td>
@@ -282,15 +349,17 @@ const HoldingsEditor = () => {
       </div>
       
       <div className="mt-4 bg-gray-50 p-4 rounded-md">
-        <h3 className="text-sm font-medium text-gray-700 mb-2">ファンド手数料について</h3>
+        <h3 className="text-sm font-medium text-gray-700 mb-2">手数料・配当情報について</h3>
         <p className="text-xs text-gray-600">
-          年間手数料は銘柄タイプから自動的に判定されています。ファンドの手数料率はファンドの種類から推定されますが、個別株は運用会社が存在しないため手数料は0%となります。ファンドの手数料情報は市場データ更新時に自動的に確認・更新されます。
-          <span className="block mt-1">
-            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 mr-1">個別株 (0%)</span>
-            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 mr-1">推定値</span>
-            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 mr-1">ティッカー固有の情報</span>
-          </span>
+          手数料や配当情報は銘柄タイプから自動的に判定されています。ファンドの手数料率はファンドの種類から推定されますが、個別株は運用会社が存在しないため手数料は0%となります。配当利回りは銘柄の種類や名称から推定されています。市場データ更新時に最新情報が自動的に取得されます。
         </p>
+        <div className="flex flex-wrap gap-1 mt-2">
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">個別株 (0%)</span>
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">推定値</span>
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">ティッカー固有の情報</span>
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">毎月配当</span>
+          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">四半期配当</span>
+        </div>
       </div>
       
       {message && (
