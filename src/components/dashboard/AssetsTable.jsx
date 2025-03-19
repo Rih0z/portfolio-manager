@@ -32,12 +32,16 @@ const AssetsTable = () => {
     const targetPercentage = target ? target.targetPercentage : 0;
     const difference = targetPercentage - currentPercentage;
     
+    // 年間配当金の計算
+    const annualDividend = asset.hasDividend ? (assetValue * (asset.dividendYield || 0) / 100) : 0;
+    
     return {
       ...asset,
       targetPercentage,
       currentPercentage,
       difference,
-      assetValue
+      assetValue,
+      annualDividend
     };
   });
 
@@ -52,6 +56,17 @@ const AssetsTable = () => {
       </div>
     );
   }
+
+  // 配当頻度の表示変換
+  const formatDividendFrequency = (frequency) => {
+    switch (frequency) {
+      case 'monthly': return '毎月';
+      case 'quarterly': return '四半期';
+      case 'semi-annual': return '半年';
+      case 'annual': return '年1回';
+      default: return '不明';
+    }
+  };
 
   return (
     <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -83,7 +98,10 @@ const AssetsTable = () => {
                 差分
               </th>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                年間手数料
+                手数料
+              </th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                配当
               </th>
             </tr>
           </thead>
@@ -99,6 +117,16 @@ const AssetsTable = () => {
                       <div className="text-sm text-gray-500">
                         {asset.ticker}
                       </div>
+                      {/* ファンドタイプバッジを表示 */}
+                      {asset.fundType && (
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                          asset.isStock 
+                            ? 'bg-gray-100 text-gray-800' 
+                            : 'bg-blue-100 text-blue-800'
+                        }`}>
+                          {asset.fundType}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </td>
@@ -109,7 +137,7 @@ const AssetsTable = () => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900">
-                    {asset.holdings.toLocaleString()}
+                    {asset.holdings.toLocaleString(undefined, {maximumFractionDigits: 4})}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -143,6 +171,41 @@ const AssetsTable = () => {
                   <div className="text-xs text-gray-500">
                     ({asset.annualFee}%)
                   </div>
+                  {/* 手数料情報源バッジ */}
+                  {asset.feeSource && (
+                    <span className={`text-xs px-1.5 py-0.5 rounded ${
+                      asset.feeSource === '個別株'
+                        ? 'bg-gray-100 text-gray-800'
+                        : asset.feeIsEstimated 
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-green-100 text-green-800'
+                    }`}>
+                      {asset.feeSource}
+                    </span>
+                  )}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {asset.hasDividend ? (
+                    <div>
+                      <div className="text-sm text-green-600">
+                        {formatCurrency(asset.annualDividend, baseCurrency)}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        ({formatPercent(asset.dividendYield, 2)})
+                      </div>
+                      {/* 配当頻度バッジ */}
+                      <span className={`text-xs px-1.5 py-0.5 rounded ${
+                        asset.dividendIsEstimated
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-green-100 text-green-800'
+                      }`}>
+                        {formatDividendFrequency(asset.dividendFrequency)}
+                        {asset.dividendIsEstimated ? '（推定）' : ''}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="text-xs text-gray-500">なし</div>
+                  )}
                 </td>
               </tr>
             ))}
