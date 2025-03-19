@@ -47,7 +47,7 @@ export const TICKER_SPECIFIC_FEES = {
   '1343.T': 0.55, // NEXT FUNDS 東証REIT指数
   '1348.T': 0.09, // MAXIS トピックス上場投信
   
-  // 米国のETF
+  // 米国の主要ETF
   'SPY': 0.09,  // SPDR S&P 500 ETF
   'VOO': 0.03,  // Vanguard S&P 500 ETF
   'VTI': 0.03,  // Vanguard Total Stock Market ETF
@@ -62,26 +62,93 @@ export const TICKER_SPECIFIC_FEES = {
   'AGG': 0.04,  // iShares Core U.S. Aggregate Bond ETF
   'VNQ': 0.12,  // Vanguard Real Estate ETF
   
-  // その他の有名なファンド
-  'VTSAX': 0.04, // Vanguard Total Stock Market Index Fund Admiral Shares
-  'VFIAX': 0.04, // Vanguard 500 Index Fund Admiral Shares
+  // 問題が報告されたETF
+  'GLD': 0.40,  // SPDR Gold Shares
+  'LQD': 0.14,  // iShares iBoxx $ Investment Grade Corporate Bond ETF
+  'LVXUS': 0.09, // Leavenworth International Equity Fund
   
-  // 追加の一般的なETF
-  'ARKK': 0.75, // ARK Innovation ETF
+  // 新しく追加するETF
+  'EIDO': 0.57, // iShares MSCI Indonesia ETF
+  'INDA': 0.65, // iShares MSCI India ETF
+  'IBIT': 0.25, // iShares Bitcoin Trust
+  
+  // その他の有名なETF（追加）
   'DIA': 0.16,  // SPDR Dow Jones Industrial Average ETF
   'XLF': 0.12,  // Financial Select Sector SPDR Fund
   'XLE': 0.12,  // Energy Select Sector SPDR Fund
   'XLK': 0.12,  // Technology Select Sector SPDR Fund
   'XLV': 0.12,  // Health Care Select Sector SPDR Fund
-  'VIG': 0.06,  // Vanguard Dividend Appreciation ETF
   'SCHD': 0.06, // Schwab US Dividend Equity ETF
   'IEMG': 0.09, // iShares Core MSCI Emerging Markets ETF
   'IJH': 0.04,  // iShares Core S&P Mid-Cap ETF
   'IJR': 0.06,  // iShares Core S&P Small-Cap ETF
+  'ARKK': 0.75, // ARK Innovation ETF
+  'ARKW': 0.75, // ARK Web x.0 ETF
+  'ARKG': 0.75, // ARK Genomic Revolution ETF
+  'ARKF': 0.75, // ARK Fintech Innovation ETF
+  'IEFA': 0.07, // iShares Core MSCI EAFE ETF
+  'EEM': 0.68,  // iShares MSCI Emerging Markets ETF
+  'EFA': 0.32,  // iShares MSCI EAFE ETF
+  'ITOT': 0.03, // iShares Core S&P Total U.S. Stock Market ETF
+  'DVY': 0.38,  // iShares Select Dividend ETF
+  'MUB': 0.07,  // iShares National Muni Bond ETF
+  'TLT': 0.15,  // iShares 20+ Year Treasury Bond ETF
+  'SHY': 0.15,  // iShares 1-3 Year Treasury Bond ETF
+  'HYG': 0.48,  // iShares iBoxx $ High Yield Corporate Bond ETF
+  'JNK': 0.40,  // SPDR Bloomberg High Yield Bond ETF
+  
+  // その他の有名なファンド
+  'VTSAX': 0.04, // Vanguard Total Stock Market Index Fund Admiral Shares
+  'VFIAX': 0.04, // Vanguard 500 Index Fund Admiral Shares
   
   // 暗号資産関連
   'GBTC': 2.00, // Grayscale Bitcoin Trust
   'ETHE': 2.50  // Grayscale Ethereum Trust
+};
+
+// 特定のティッカーシンボルの配当利回り情報（％）
+export const TICKER_SPECIFIC_DIVIDENDS = {
+  // 米国の主要ETF
+  'SPY': 1.5,   // SPDR S&P 500 ETF
+  'VOO': 1.5,   // Vanguard S&P 500 ETF
+  'VTI': 1.4,   // Vanguard Total Stock Market ETF
+  'QQQ': 0.6,   // Invesco QQQ Trust (ナスダック100)
+  'IVV': 1.5,   // iShares Core S&P 500 ETF
+  'VGT': 0.7,   // Vanguard Information Technology ETF
+  'VYM': 3.2,   // Vanguard High Dividend Yield ETF
+  'VEA': 3.0,   // Vanguard FTSE Developed Markets ETF
+  'VWO': 3.2,   // Vanguard FTSE Emerging Markets ETF
+  'BND': 2.8,   // Vanguard Total Bond Market ETF
+  'BNDX': 2.5,  // Vanguard Total International Bond ETF
+  'AGG': 2.7,   // iShares Core U.S. Aggregate Bond ETF
+  'VNQ': 4.0,   // Vanguard Real Estate ETF
+  
+  // 問題が報告されたETF
+  'GLD': 0.0,   // SPDR Gold Shares - 配当なし
+  'LQD': 3.5,   // iShares iBoxx $ Investment Grade Corporate Bond ETF
+  'LVXUS': 2.2, // Leavenworth International Equity Fund
+  
+  // 新しく追加するETF
+  'EIDO': 1.8,  // iShares MSCI Indonesia ETF
+  'INDA': 0.7,  // iShares MSCI India ETF
+  'IBIT': 0.0,  // iShares Bitcoin Trust - 暗号資産ETFのため配当なし
+  
+  // その他の有名なETF（追加）
+  'DIA': 2.2,   // SPDR Dow Jones Industrial Average ETF
+  'XLF': 2.0,   // Financial Select Sector SPDR Fund
+  'XLE': 3.8,   // Energy Select Sector SPDR Fund
+  'XLK': 0.7,   // Technology Select Sector SPDR Fund
+  'XLV': 1.5,   // Health Care Select Sector SPDR Fund
+  'SCHD': 3.5,  // Schwab US Dividend Equity ETF
+  'DVY': 3.8,   // iShares Select Dividend ETF
+  'HDV': 3.9,   // iShares Core High Dividend ETF
+  
+  // 債券ETF
+  'HYG': 5.0,   // iShares iBoxx $ High Yield Corporate Bond ETF
+  'JNK': 5.2,   // SPDR Bloomberg High Yield Bond ETF
+  'TLT': 3.0,   // iShares 20+ Year Treasury Bond ETF
+  'SHY': 1.8,   // iShares 1-3 Year Treasury Bond ETF
+  'MUB': 2.5,   // iShares National Muni Bond ETF
 };
 
 // EMAXISシリーズのファンドコードリスト（日本のインデックスファンド）
@@ -128,6 +195,11 @@ export const JP_CODE_PREFIX_MAP = {
   '253': 'インデックスファンド',  // eMAXISなどのインデックスファンド
 };
 
+// ETFかどうかの簡易判定（TICKER_SPECIFIC_FEESに含まれるか）
+function isKnownETF(ticker) {
+  return Object.keys(TICKER_SPECIFIC_FEES).includes(ticker);
+}
+
 // ティッカーシンボルからファンドの種類を推定する
 export function guessFundType(ticker, name = '') {
   if (!ticker) return FUND_TYPES.UNKNOWN;
@@ -137,6 +209,20 @@ export function guessFundType(ticker, name = '') {
   
   // 日本市場のティッカー判定
   const isJapanese = ticker.includes('.T') || /^\d{4,}$/.test(ticker);
+  
+  // 重要: 特定のティッカーリストに含まれる銘柄は優先的にETFとして判定
+  if (isKnownETF(ticker)) {
+    // 特定のETFかどうかをチェック
+    if (isREIT(name)) {
+      return isJapanese ? FUND_TYPES.REIT_JP : FUND_TYPES.REIT_US;
+    } else if (isCrypto(name, ticker)) {
+      return FUND_TYPES.CRYPTO;
+    } else if (isBond(name, ticker)) {
+      return FUND_TYPES.BOND;
+    } else {
+      return isJapanese ? FUND_TYPES.ETF_JP : FUND_TYPES.ETF_US;
+    }
+  }
   
   // 特定のファンドリストに含まれるかチェック
   if (EMAXIS_FUNDS.includes(ticker) || EMAXIS_SLIM_FUNDS.includes(ticker) || RAKUTEN_VT_FUNDS.includes(ticker)) {
@@ -172,25 +258,12 @@ export function guessFundType(ticker, name = '') {
     }
   }
   
-  // 特定のティッカーが手数料テーブルに存在する場合はETFなどと判断
-  if (Object.keys(TICKER_SPECIFIC_FEES).includes(ticker)) {
-    if (isREIT(name)) {
-      return isJapanese ? FUND_TYPES.REIT_JP : FUND_TYPES.REIT_US;
-    } else if (isCrypto(name, ticker)) {
-      return FUND_TYPES.CRYPTO;
-    } else if (isBond(name, ticker)) {
-      return FUND_TYPES.BOND;
-    } else {
-      return isJapanese ? FUND_TYPES.ETF_JP : FUND_TYPES.ETF_US;
-    }
-  }
-  
   // 日本のETF（1から始まる4桁+.T）
   if (isJapanese && /^[1-9]\d{3}\.T$/.test(ticker)) {
     return FUND_TYPES.ETF_JP;
   }
   
-  // ファンド名称での判定
+  // ファンド名称による判定
   // ETF判定
   if (isETF(name, ticker)) {
     return isJapanese ? FUND_TYPES.ETF_JP : FUND_TYPES.ETF_US;
@@ -229,29 +302,37 @@ export function guessFundType(ticker, name = '') {
     }
   }
   
-  // 以下の条件に当てはまらない場合は基本的に個別株とみなす
-  // 1. 米国：1~5文字のティッカー
-  // 2. 日本：4桁ティッカー + .T、または4桁以上の数字
-  if ((!isJapanese && ticker.length >= 1 && ticker.length <= 5) ||
-      (isJapanese && (/\d{4}\.T$/.test(ticker) || /^\d{4,}$/.test(ticker)))) {
-    
-    // 最終確認：ファンド名称に明らかなヒントがあれば、個別株でないと判断
-    if (containsFundIndicators(name)) {
-      // 地域による分類
-      if (isGlobal(name)) {
-        return isActive(name) ? FUND_TYPES.ACTIVE_GLOBAL : FUND_TYPES.INDEX_GLOBAL;
-      } else if (isJapanese || name.includes('japan') || name.includes('日本')) {
-        return isActive(name) ? FUND_TYPES.ACTIVE_JP : FUND_TYPES.INDEX_JP;
-      } else {
-        return isActive(name) ? FUND_TYPES.ACTIVE_US : FUND_TYPES.INDEX_US;
-      }
+  // 明らかなファンド指標がある場合はファンドとして扱う
+  if (containsFundIndicators(name)) {
+    // 地域による分類
+    if (isGlobal(name)) {
+      return isActive(name) ? FUND_TYPES.ACTIVE_GLOBAL : FUND_TYPES.INDEX_GLOBAL;
+    } else if (isJapanese || name.includes('japan') || name.includes('日本')) {
+      return isActive(name) ? FUND_TYPES.ACTIVE_JP : FUND_TYPES.INDEX_JP;
+    } else {
+      return isActive(name) ? FUND_TYPES.ACTIVE_US : FUND_TYPES.INDEX_US;
     }
-    
-    return FUND_TYPES.STOCK;
   }
   
-  // デフォルト：不明
-  return FUND_TYPES.UNKNOWN;
+  // 3文字以上のティッカーに特定のキーワードが含まれる場合はETFの可能性が高い
+  if (ticker.length >= 3) {
+    // ETFの特徴的なティッカーパターン
+    if (/^[A-Z]{3,5}$/.test(ticker)) {
+      const etfPatterns = [
+        'ETF', 'VOO', 'SPY', 'QQQ', 'DIA', 'XL', 'IVV', 'EFA', 'VT', 'ARK',
+        'VFH', 'VGT', 'VHT', 'VIS', 'VDE', 'VAW', 'VNQ', 'VPU', 'VCR', 'BND', 'SHY'
+      ];
+      
+      for (const pattern of etfPatterns) {
+        if (ticker.includes(pattern)) {
+          return FUND_TYPES.ETF_US;
+        }
+      }
+    }
+  }
+  
+  // 最終的な判断（デフォルトは個別株）
+  return FUND_TYPES.STOCK;
 }
 
 // ファンド名称に明らかなファンド指標があるかチェック
@@ -326,7 +407,13 @@ function isBond(name, ticker) {
          name.includes('fixed income') ||
          ticker === 'BND' ||
          ticker === 'AGG' ||
-         ticker === 'BNDX';
+         ticker === 'BNDX' ||
+         ticker === 'LQD' ||
+         ticker === 'HYG' ||
+         ticker === 'JNK' ||
+         ticker === 'TLT' ||
+         ticker === 'SHY' ||
+         ticker === 'MUB';
 }
 
 // 暗号資産関連かどうかを判定
@@ -338,7 +425,8 @@ function isCrypto(name, ticker) {
          name.includes('ビットコイン') ||
          name.includes('イーサリアム') ||
          ticker === 'GBTC' ||
-         ticker === 'ETHE';
+         ticker === 'ETHE' ||
+         ticker === 'IBIT';
 }
 
 // アクティブファンドかどうかを判定
@@ -382,8 +470,11 @@ export function estimateAnnualFee(ticker, name = '') {
   
   // 特定のティッカーに対するオーバーライド値があれば使用
   if (TICKER_SPECIFIC_FEES[ticker]) {
+    // ファンドタイプも取得して一緒に返す
+    const fundType = guessFundType(ticker, name);
     return {
       fee: TICKER_SPECIFIC_FEES[ticker],
+      fundType: fundType,
       source: 'ティッカー固有の情報',
       isEstimated: false
     };
@@ -478,10 +569,27 @@ export function extractFundInfo(ticker, name = '') {
       info.dividendFrequency = 'annual';
     } else {
       // デフォルトの配当頻度（不明の場合）
-      info.dividendFrequency = 'unknown';
+      info.dividendFrequency = 'quarterly';
     }
   } else {
-    info.hasDividend = false;
+    // 配当情報がない場合でも、ファンドタイプに基づいてデフォルト値を設定
+    const fundType = guessFundType(ticker, name);
+    
+    if (fundType === FUND_TYPES.STOCK) {
+      // 個別株は配当があるかどうか不明なのでfalseにしておく
+      info.hasDividend = false;
+    } else if (fundType === FUND_TYPES.BOND || 
+               fundType === FUND_TYPES.ETF_JP || 
+               fundType === FUND_TYPES.ETF_US || 
+               fundType === FUND_TYPES.REIT_JP || 
+               fundType === FUND_TYPES.REIT_US) {
+      // 債券、ETF、REITは基本的に配当あり
+      info.hasDividend = true;
+      info.dividendFrequency = 'quarterly'; // デフォルトは四半期
+    } else {
+      // その他のタイプはケースバイケース
+      info.hasDividend = false;
+    }
   }
   
   // 銘柄タイプを取得
@@ -491,31 +599,28 @@ export function extractFundInfo(ticker, name = '') {
   return info;
 }
 
-// 推定配当利回りを計算する（新規）
+// 推定配当利回りを計算する
 export function estimateDividendYield(ticker, name = '') {
+  if (!ticker) return {
+    yield: 0,
+    isEstimated: true,
+    hasDividend: false,
+    dividendFrequency: 'unknown'
+  };
+  
+  ticker = ticker.toUpperCase();
   const info = extractFundInfo(ticker, name);
   
   // 基本的な推定値
   let estimatedYield = 0;
   let isEstimated = true;
+  let hasDividend = info.hasDividend || false;
   
-  // ティッカーベースの特定の配当利回り情報
-  const KNOWN_DIVIDEND_YIELDS = {
-    'VYM': 3.2,    // Vanguard High Dividend Yield ETF
-    'SCHD': 3.5,   // Schwab US Dividend Equity ETF
-    'HDV': 3.8,    // iShares Core High Dividend ETF
-    'DVY': 3.6,    // iShares Select Dividend ETF
-    'DIA': 2.0,    // SPDR Dow Jones Industrial Average ETF
-    'SPY': 1.5,    // SPDR S&P 500 ETF
-    'VOO': 1.5,    // Vanguard S&P 500 ETF
-    'VTI': 1.4,    // Vanguard Total Stock Market ETF
-    'QQQ': 0.6,    // Invesco QQQ Trust (ナスダック100)
-  };
-  
-  // 特定のティッカーに対する値があれば使用
-  if (KNOWN_DIVIDEND_YIELDS[ticker]) {
-    estimatedYield = KNOWN_DIVIDEND_YIELDS[ticker];
+  // 特定のティッカーに対する配当利回り情報があれば使用
+  if (TICKER_SPECIFIC_DIVIDENDS[ticker] !== undefined) {
+    estimatedYield = TICKER_SPECIFIC_DIVIDENDS[ticker];
     isEstimated = false;
+    hasDividend = estimatedYield > 0;
   } else {
     // ファンドタイプに基づく推定
     const fundType = info.fundType;
@@ -523,37 +628,54 @@ export function estimateDividendYield(ticker, name = '') {
     if (fundType === FUND_TYPES.STOCK) {
       // 個別株の場合は配当情報を持たないと仮定（推定困難のため、後でデータを更新）
       estimatedYield = 0;
+      hasDividend = false;
+    } else if (fundType === FUND_TYPES.REIT_US) {
+      estimatedYield = 4.0; // 米国REITの平均
+      hasDividend = true;
+    } else if (fundType === FUND_TYPES.REIT_JP) {
+      estimatedYield = 3.5; // 日本REITの平均
+      hasDividend = true;
+    } else if (fundType === FUND_TYPES.BOND) {
+      estimatedYield = 2.5; // 債券ファンドの平均
+      hasDividend = true;
     } else if (
       name.includes('dividend') || 
       name.includes('配当') || 
       name.includes('income') || 
-      name.includes('yield')
+      name.includes('yield') ||
+      name.includes('高配当')
     ) {
       // 名前から高配当と推測される場合
       estimatedYield = 3.0;
+      hasDividend = true;
     } else if (fundType === FUND_TYPES.ETF_US) {
       estimatedYield = 1.5; // 米国ETFの平均
+      hasDividend = true;
     } else if (fundType === FUND_TYPES.ETF_JP) {
       estimatedYield = 1.8; // 日本ETFの平均
+      hasDividend = true;
     } else if (fundType === FUND_TYPES.INDEX_US) {
       estimatedYield = 1.5; // 米国インデックスファンドの平均
+      hasDividend = true;
     } else if (fundType === FUND_TYPES.INDEX_JP) {
       estimatedYield = 1.2; // 日本インデックスファンドの平均
-    } else if (fundType === FUND_TYPES.REIT_US) {
-      estimatedYield = 4.0; // 米国REITの平均
-    } else if (fundType === FUND_TYPES.REIT_JP) {
-      estimatedYield = 3.5; // 日本REITの平均
-    } else if (fundType === FUND_TYPES.BOND) {
-      estimatedYield = 2.5; // 債券ファンドの平均
+      hasDividend = true;
     } else {
       estimatedYield = 1.0; // その他のファンドのデフォルト値
+      hasDividend = estimatedYield > 0;
     }
+  }
+  
+  // 金ETFは特に配当がない
+  if (ticker === 'GLD' || name.includes('gold') || name.includes('ゴールド') || name.includes('金')) {
+    hasDividend = false;
+    estimatedYield = 0;
   }
   
   return {
     yield: estimatedYield,
     isEstimated: isEstimated,
-    hasDividend: info.hasDividend || estimatedYield > 0,
+    hasDividend: hasDividend,
     dividendFrequency: info.dividendFrequency || 'quarterly' // デフォルトは四半期
   };
 }
