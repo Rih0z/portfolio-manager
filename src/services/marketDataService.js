@@ -6,7 +6,9 @@ import {
   estimateAnnualFee, 
   extractFundInfo, 
   estimateDividendYield,
-  TICKER_SPECIFIC_DIVIDENDS
+  TICKER_SPECIFIC_FEES,
+  TICKER_SPECIFIC_DIVIDENDS,
+  FUND_TYPES
 } from '../utils/fundUtils';
 
 // 環境に応じたベースURL設定
@@ -56,6 +58,92 @@ const DEFAULT_EXCHANGE_RATES = {
 };
 
 /**
+ * 特定ティッカーがETFかどうかを判定する
+ * @param {string} ticker - ティッカーシンボル 
+ * @returns {boolean} - ETFならtrue
+ */
+function isETFFromTickerSpecificList(ticker) {
+  // 大文字に統一
+  ticker = ticker.toUpperCase();
+  // TICKER_SPECIFIC_FEESリストに含まれていて、特定の例外以外はETFとみなす
+  return TICKER_SPECIFIC_FEES[ticker] !== undefined && 
+         !['VTSAX', 'VFIAX', 'GBTC', 'ETHE'].includes(ticker);
+}
+
+/**
+ * 銘柄のファンドタイプを確実に判定する
+ * @param {string} ticker - ティッカーシンボル
+ * @param {string} name - 銘柄名 
+ * @returns {string} - 確定したファンドタイプ
+ */
+function determineFundType(ticker, name) {
+  // 大文字に統一
+  ticker = ticker.toUpperCase();
+  
+  // ティッカーが既知のETF/ファンドリストにあるかチェック
+  if (isETFFromTickerSpecificList(ticker)) {
+    // BTC関連はクリプト、GLDはETFに
+    if (ticker === 'IBIT' || ticker === 'GBTC' || ticker === 'ETHE') {
+      return FUND_TYPES.CRYPTO;
+    }
+    // 通常のETF
+    return ticker.includes('.T') ? FUND_TYPES.ETF_JP : FUND_TYPES.ETF_US;
+  }
+  
+  // そうでなければ通常の判定ロジックを使用
+  return guessFundType(ticker, name);
+}
+
+/**
+ * ETFかどうかを判定し、配当情報を確定する
+ * @param {string} ticker - ティッカーシンボル
+ * @returns {boolean} - 配当があるならtrue
+ */
+function determineHasDividend(ticker) {
+  // 大文字に統一
+  ticker = ticker.toUpperCase();
+  
+  // 特定の配当リストに情報があればそれを使用
+  if (TICKER_SPECIFIC_DIVIDENDS[ticker] !== undefined) {
+    return TICKER_SPECIFIC_DIVIDENDS[ticker] > 0;
+  }
+  
+  // 知られている無配当ETF
+  const noDividendETFs = ['GLD', 'IBIT', 'GBTC', 'ETHE'];
+  if (noDividendETFs.includes(ticker)) {
+    return false;
+  }
+  
+  // ETFリストに含まれるものは（上記の例外を除き）配当ありとみなす
+  if (isETFFromTickerSpecificList(ticker)) {
+    return true;
+  }
+  
+  // ファンドタイプに基づく判断
+  const fundType = determineFundType(ticker, ticker);
+  
+  if (fundType === FUND_TYPES.STOCK) {
+    // 個別株は配当の有無不明のためfalse
+    return false;
+  } else if (
+    fundType === FUND_TYPES.ETF_JP || 
+    fundType === FUND_TYPES.ETF_US || 
+    fundType === FUND_TYPES.INDEX_JP || 
+    fundType === FUND_TYPES.INDEX_US || 
+    fundType === FUND_TYPES.INDEX_GLOBAL ||
+    fundType === FUND_TYPES.REIT_JP || 
+    fundType === FUND_TYPES.REIT_US || 
+    fundType === FUND_TYPES.BOND
+  ) {
+    // ETF、インデックスファンド、REIT、債券ファンドは通常配当あり
+    return true;
+  }
+  
+  // デフォルトはfalse
+  return false;
+}
+
+/**
  * 銘柄データを取得 - Alpha Vantageをプライマリソースとして使用
  * @param {string} ticker - ティッカーシンボル
  * @returns {Promise<Object>} - 銘柄データとステータス
@@ -68,6 +156,9 @@ export async function fetchTickerData(ticker) {
       error: true
     };
   }
+  
+  // ティッカーを大文字に統一
+  ticker = ticker.toUpperCase();
   
   try {
     // Alpha Vantage APIからデータ取得を試みる（プライマリソース）
@@ -103,22 +194,27 @@ export async function fetchTickerData(ticker) {
         console.log(`Could not fetch name for ${ticker}, using ticker as name`);
       }
       
-      // ファンドタイプと手数料情報を取得
-      const fundInfo = extractFundInfo(ticker, name);
-      const fundType = guessFundType(ticker, name);
+      // ファンドタイプを判定（ETFリストを優先）
+      const fundType = determineFundType(ticker, name);
+      console.log(`Determined fund type for ${ticker}: ${fundType}`);
+      
+      // 個別株かどうかを判定（ETFリストに含まれる場合は必ず個別株ではない）
+      const isStock = fundType === FUND_TYPES.STOCK;
+      
+      // 手数料情報を取得
       const feeInfo = estimateAnnualFee(ticker, name);
+      
+      // 基本情報を取得
+      const fundInfo = extractFundInfo(ticker, name);
       
       // 配当情報の取得
       const dividendInfo = estimateDividendYield(ticker, name);
       
-      // 特定のETFの配当情報を設定
-      const hasDividend = determineHasDividend(ticker, fundType, dividendInfo);
+      // 配当情報を確定（ETFリストを優先）
+      const hasDividend = determineHasDividend(ticker);
       
       // 通貨判定
       const currency = fundInfo.currency || (ticker.includes('.T') ? 'JPY' : 'USD');
-      
-      // 個別株かどうかを判定（複数の条件で判断）
-      const isStock = fundType === 'STOCK' || fundType === '個別株';
       
       // 手数料情報（個別株は常に0%）
       const annualFee = isStock ? 0 : feeInfo.fee;
@@ -165,64 +261,33 @@ export async function fetchTickerData(ticker) {
 }
 
 /**
- * ETFかどうかを判定し、配当情報を確定する
- */
-function determineHasDividend(ticker, fundType, dividendInfo) {
-  // TICKER_SPECIFIC_DIVIDENDSに登録されている場合はその値を優先
-  if (TICKER_SPECIFIC_DIVIDENDS[ticker] !== undefined) {
-    return TICKER_SPECIFIC_DIVIDENDS[ticker] > 0;
-  }
-  
-  // 金ETFなど特別なケース
-  if (ticker === 'GLD') {
-    return false;
-  }
-  
-  // ファンドタイプに基づく判断
-  if (fundType === 'STOCK' || fundType === '個別株') {
-    // 個別株は場合によって配当があるかどうか不明なのでデフォルトはfalse
-    return false;
-  } else if (
-    fundType === 'ETF（米国）' || 
-    fundType === 'ETF（日本）' || 
-    fundType === 'インデックス（米国）' || 
-    fundType === 'インデックス（日本）' || 
-    fundType === 'インデックス（グローバル）' ||
-    fundType === 'REIT（米国）' || 
-    fundType === 'REIT（日本）' || 
-    fundType === '債券'
-  ) {
-    // ETF、インデックスファンド、REIT、債券ファンドは通常配当あり
-    return true;
-  }
-  
-  // dividendInfoの値を使用
-  return dividendInfo.hasDividend;
-}
-
-/**
  * 全ての取得方法が失敗した場合のフォールバックデータ生成
  * @param {string} ticker - ティッカーシンボル
  * @returns {Object} - フォールバック銘柄データとステータス
  */
 function generateFallbackTickerData(ticker) {
+  // ティッカーを大文字に統一
+  ticker = ticker.toUpperCase();
+  
   // 市場とティッカーから推測されるデフォルト値を使用
   const isJapanese = ticker.includes('.T') || /^\d{4,}$/.test(ticker);
   const defaultPrice = isJapanese ? 2500 : 150;
   
-  // ファンドタイプと手数料情報を取得
+  // ファンドタイプを判定（ETFリストを優先）
+  const fundType = determineFundType(ticker, ticker);
+  
+  // 個別株かどうかを判定（ETFリストに含まれる場合は必ず個別株ではない）
+  const isStock = fundType === FUND_TYPES.STOCK;
+  
+  // 基本情報と手数料情報を取得
   const fundInfo = extractFundInfo(ticker, ticker);
-  const fundType = guessFundType(ticker, ticker);
   const feeInfo = estimateAnnualFee(ticker, ticker);
   
   // 配当情報の推定
   const dividendInfo = estimateDividendYield(ticker, ticker);
   
-  // 特定のETFの配当情報を設定
-  const hasDividend = determineHasDividend(ticker, fundType, dividendInfo);
-  
-  // 個別株かどうかを判定
-  const isStock = fundType === 'STOCK' || fundType === '個別株';
+  // 配当情報を確定（ETFリストを優先）
+  const hasDividend = determineHasDividend(ticker);
   
   // 手数料情報（個別株は常に0%）
   const annualFee = isStock ? 0 : feeInfo.fee;
@@ -263,12 +328,17 @@ function generateFallbackTickerData(ticker) {
  */
 export async function fetchDividendData(ticker) {
   try {
-    // ファンドタイプと配当情報を取得
-    const fundType = guessFundType(ticker);
-    const dividendInfo = estimateDividendYield(ticker);
+    // ティッカーを大文字に統一
+    ticker = ticker.toUpperCase();
     
-    // 特定のETFの配当情報を設定
-    const hasDividend = determineHasDividend(ticker, fundType, dividendInfo);
+    // ファンドタイプを判定（ETFリストを優先）
+    const fundType = determineFundType(ticker, ticker);
+    
+    // 配当情報の取得
+    const dividendInfo = estimateDividendYield(ticker, ticker);
+    
+    // 配当情報を確定（ETFリストを優先）
+    const hasDividend = determineHasDividend(ticker);
     
     return {
       success: true,
@@ -285,9 +355,8 @@ export async function fetchDividendData(ticker) {
     console.error('Dividend data fetch error:', error);
     
     // エラー時はティッカーからの推定値を返す
-    const dividendInfo = estimateDividendYield(ticker);
-    const fundType = guessFundType(ticker);
-    const hasDividend = determineHasDividend(ticker, fundType, dividendInfo);
+    const dividendInfo = estimateDividendYield(ticker, ticker);
+    const hasDividend = determineHasDividend(ticker);
     
     return {
       success: false,
@@ -312,8 +381,14 @@ export async function fetchDividendData(ticker) {
  */
 export async function fetchFundInfo(ticker, name = '') {
   try {
-    // ファンドタイプを推定
-    const fundType = guessFundType(ticker, name);
+    // ティッカーを大文字に統一
+    ticker = ticker.toUpperCase();
+    
+    // ファンドタイプを判定（ETFリストを優先）
+    const fundType = determineFundType(ticker, name);
+    
+    // 個別株かどうかを判定
+    const isStock = fundType === FUND_TYPES.STOCK;
     
     // 手数料情報を推定
     const feeInfo = estimateAnnualFee(ticker, name);
@@ -321,11 +396,8 @@ export async function fetchFundInfo(ticker, name = '') {
     // 配当情報を推定
     const dividendInfo = estimateDividendYield(ticker, name);
     
-    // 特定のETFの配当情報を設定
-    const hasDividend = determineHasDividend(ticker, fundType, dividendInfo);
-    
-    // 個別株かどうかを判定
-    const isStock = fundType === 'STOCK' || fundType === '個別株';
+    // 配当情報を確定（ETFリストを優先）
+    const hasDividend = determineHasDividend(ticker);
     
     return {
       success: true,
