@@ -8,7 +8,15 @@ import {
   saveToGoogleDrive as apiSaveToGoogleDrive,
   initGoogleDriveAPI
 } from '../services/api';
-import { FUND_TYPES } from '../utils/fundUtils';
+import { 
+  FUND_TYPES, 
+  guessFundType, 
+  estimateAnnualFee, 
+  estimateDividendYield,
+  US_ETF_LIST, 
+  TICKER_SPECIFIC_FEES, 
+  TICKER_SPECIFIC_DIVIDENDS 
+} from '../utils/fundUtils';
 
 // 改善された暗号化関数
 const encryptData = (data) => {
@@ -178,6 +186,139 @@ export const PortfolioProvider = ({ children }) => {
     });
   }, [saveToLocalStorage]);
 
+  // 保有銘柄のタイプを検証して修正する関数（新規追加）
+  const validateAssetTypes = useCallback((assets) => {
+    if (!Array.isArray(assets) || assets.length === 0) {
+      return { updatedAssets: [], changes: { fundType: 0, fees: 0, dividends: 0 } };
+    }
+
+    console.log('保有銘柄の情報を検証しています...');
+    let fundTypeChanges = 0;
+    let feeChanges = 0;
+    let dividendChanges = 0;
+    const fundTypeChangeDetails = [];
+    const feeChangeDetails = [];
+
+    // 全銘柄を検証
+    const validatedAssets = assets.map(asset => {
+      if (!asset.ticker) return asset;
+      
+      const ticker = asset.ticker.toUpperCase();
+      const name = asset.name || '';
+
+      // 特別なケース：VXUSや他の米国ETFが個別株として誤って登録されていないか確認
+      const isInETFList = US_ETF_LIST.includes(ticker);
+      
+      // 正しい銘柄タイプを取得
+      const correctFundType = guessFundType(ticker, name);
+      const correctIsStock = correctFundType === FUND_TYPES.STOCK;
+      
+      // 銘柄タイプに誤りがあるか確認
+      const fundTypeIsWrong = asset.fundType !== correctFundType || asset.isStock !== correctIsStock;
+      
+      // 手数料情報を取得
+      let correctFee;
+      let feeSource;
+      let feeIsEstimated;
+      
+      if (correctIsStock) {
+        // 個別株は常に手数料0%
+        correctFee = 0;
+        feeSource = '個別株';
+        feeIsEstimated = false;
+      } else if (TICKER_SPECIFIC_FEES[ticker]) {
+        // 特定銘柄リストにある場合
+        correctFee = TICKER_SPECIFIC_FEES[ticker];
+        feeSource = 'ティッカー固有の情報';
+        feeIsEstimated = false;
+      } else {
+        // タイプから推定
+        const feeInfo = estimateAnnualFee(ticker, name);
+        correctFee = feeInfo.fee;
+        feeSource = feeInfo.source;
+        feeIsEstimated = feeInfo.isEstimated;
+      }
+      
+      // 手数料に誤りがあるか確認
+      const feeIsWrong = 
+        Math.abs(asset.annualFee - correctFee) > 0.001 || // 手数料率が異なる
+        asset.feeSource !== feeSource || // 情報源が異なる
+        asset.feeIsEstimated !== feeIsEstimated; // 推定状態が異なる
+      
+      // 配当情報を取得
+      const dividendInfo = estimateDividendYield(ticker, name);
+      const correctDividendYield = dividendInfo.yield;
+      const correctHasDividend = dividendInfo.hasDividend;
+      const correctDividendFrequency = dividendInfo.dividendFrequency;
+      const correctDividendIsEstimated = dividendInfo.isEstimated;
+      
+      // 配当情報に誤りがあるか確認
+      const dividendIsWrong = 
+        Math.abs(asset.dividendYield - correctDividendYield) > 0.001 || // 配当利回りが異なる
+        asset.hasDividend !== correctHasDividend || // 配当の有無が異なる
+        asset.dividendFrequency !== correctDividendFrequency || // 配当頻度が異なる
+        asset.dividendIsEstimated !== correctDividendIsEstimated; // 推定状態が異なる
+      
+      // 変更があれば統計とログを更新
+      if (fundTypeIsWrong) {
+        fundTypeChanges++;
+        fundTypeChangeDetails.push({
+          ticker: ticker,
+          name: asset.name,
+          oldType: asset.fundType,
+          newType: correctFundType
+        });
+        console.log(`銘柄 ${ticker} (${asset.name}) のタイプを修正: ${asset.fundType} -> ${correctFundType}`);
+      }
+      
+      if (feeIsWrong) {
+        feeChanges++;
+        feeChangeDetails.push({
+          ticker: ticker,
+          name: asset.name,
+          oldFee: asset.annualFee,
+          newFee: correctFee
+        });
+        console.log(`銘柄 ${ticker} (${asset.name}) の手数料率を修正: ${asset.annualFee}% -> ${correctFee}%`);
+      }
+      
+      if (dividendIsWrong) {
+        dividendChanges++;
+        console.log(`銘柄 ${ticker} (${asset.name}) の配当情報を修正: 利回り ${asset.dividendYield}% -> ${correctDividendYield}%, 配当${asset.hasDividend ? 'あり' : 'なし'} -> ${correctHasDividend ? 'あり' : 'なし'}`);
+      }
+      
+      // 修正した情報で銘柄を更新
+      if (fundTypeIsWrong || feeIsWrong || dividendIsWrong) {
+        return {
+          ...asset,
+          fundType: correctFundType,
+          isStock: correctIsStock,
+          annualFee: correctFee,
+          feeSource: feeSource,
+          feeIsEstimated: feeIsEstimated,
+          dividendYield: correctDividendYield,
+          hasDividend: correctHasDividend,
+          dividendFrequency: correctDividendFrequency,
+          dividendIsEstimated: correctDividendIsEstimated,
+        };
+      }
+      
+      // 変更がなければそのまま返す
+      return asset;
+    });
+
+    // 変更の統計
+    const changes = {
+      fundType: fundTypeChanges,
+      fees: feeChanges,
+      dividends: dividendChanges,
+      fundTypeDetails: fundTypeChangeDetails,
+      feeDetails: feeChangeDetails
+    };
+
+    return { updatedAssets: validatedAssets, changes };
+  }, []);
+
   // 市場データの更新（銘柄タイプ、手数料、配当情報の正確な更新を含む）
   const refreshMarketPrices = useCallback(async () => {
     setIsLoading(true);
@@ -270,11 +411,27 @@ export const PortfolioProvider = ({ children }) => {
         })
       );
 
-      setCurrentAssets(updatedAssets);
+      // 更新したデータをさらに検証（VXUSなど特殊ケースの対応）
+      const { updatedAssets: validatedAssets, changes } = validateAssetTypes(updatedAssets);
+      
+      // 追加の変更があれば統計に加算
+      fundTypeChangesCount += changes.fundType;
+      feeChangesCount += changes.fees;
+      dividendChangesCount += changes.dividends;
+      
+      // 変更があった銘柄の詳細も追加
+      if (changes.fundTypeDetails && changes.fundTypeDetails.length > 0) {
+        fundTypeChangeDetails.push(...changes.fundTypeDetails);
+      }
+      if (changes.feeDetails && changes.feeDetails.length > 0) {
+        feeChangeDetails.push(...changes.feeDetails);
+      }
+
+      setCurrentAssets(validatedAssets);
       setLastUpdated(new Date().toISOString());
       
       // データソースの統計を計算
-      const sourceCounts = updatedAssets.reduce((acc, asset) => {
+      const sourceCounts = validatedAssets.reduce((acc, asset) => {
         acc[asset.source] = (acc[asset.source] || 0) + 1;
         return acc;
       }, {});
@@ -335,7 +492,7 @@ export const PortfolioProvider = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [currentAssets, addNotification, saveToLocalStorage]);
+  }, [currentAssets, addNotification, saveToLocalStorage, validateAssetTypes]);
 
   // 銘柄追加（銘柄タイプ、手数料、配当情報の設定を含む）
   const addTicker = useCallback(async (ticker) => {
@@ -372,7 +529,17 @@ export const PortfolioProvider = ({ children }) => {
       console.log('Fetched dividend info:', dividendResult);
 
       // 銘柄タイプを確認してisStockフラグを設定
-      const fundType = tickerData.fundType || fundInfoResult.fundType || 'unknown';
+      // 特別な処理: VXUSなどのETFリストで明示的に指定されている銘柄の確認
+      let fundType;
+      const upperTicker = ticker.toUpperCase();
+      
+      if (US_ETF_LIST.includes(upperTicker)) {
+        // 明示的にリストにある場合はETF_USとして扱う
+        fundType = FUND_TYPES.ETF_US;
+      } else {
+        fundType = tickerData.fundType || fundInfoResult.fundType || 'unknown';
+      }
+      
       const isStock = fundType === FUND_TYPES.STOCK;
       
       // 自動取得した情報のメッセージを作成
@@ -650,39 +817,24 @@ export const PortfolioProvider = ({ children }) => {
       if (data.baseCurrency) setBaseCurrency(data.baseCurrency);
       if (data.exchangeRate) setExchangeRate(data.exchangeRate);
       
-      // アセットデータのインポート（個別株の手数料を0%に確保）
+      // アセットデータのインポート（銘柄タイプの検証を含む）
       if (Array.isArray(data.currentAssets)) {
-        const validatedAssets = data.currentAssets.map(asset => {
-          // 銘柄タイプを確認（FUND_TYPESの値で正規化）
-          const isStock = asset.isStock || asset.fundType === FUND_TYPES.STOCK;
-          
-          // 個別株の場合は手数料を0に設定
-          if (isStock) {
-            return {
-              ...asset,
-              fundType: FUND_TYPES.STOCK,
-              isStock: true,
-              annualFee: 0,
-              feeSource: '個別株',
-              feeIsEstimated: false,
-              // 配当情報がない場合は初期値を設定
-              dividendYield: asset.dividendYield || 0,
-              hasDividend: asset.hasDividend || false,
-              dividendFrequency: asset.dividendFrequency || 'quarterly',
-              dividendIsEstimated: asset.dividendIsEstimated || true
-            };
-          }
-          return {
-            ...asset,
-            isStock: isStock,
-            // 配当情報がない場合は初期値を設定
-            dividendYield: asset.dividendYield || 0,
-            hasDividend: asset.hasDividend || false,
-            dividendFrequency: asset.dividendFrequency || 'quarterly',
-            dividendIsEstimated: asset.dividendIsEstimated || true
-          };
-        });
+        // 銘柄タイプを検証して修正
+        const { updatedAssets: validatedAssets, changes } = validateAssetTypes(data.currentAssets);
+        
+        // 検証結果をセット
         setCurrentAssets(validatedAssets);
+        
+        // 変更があった場合は通知を表示
+        if (changes.fundType > 0) {
+          addNotification(`${changes.fundType}件の銘柄で種別情報を修正しました`, 'info');
+        }
+        if (changes.fees > 0) {
+          addNotification(`${changes.fees}件の銘柄で手数料情報を修正しました`, 'info');
+        }
+        if (changes.dividends > 0) {
+          addNotification(`${changes.dividends}件の銘柄で配当情報を修正しました`, 'info');
+        }
       }
       
       if (Array.isArray(data.targetPortfolio)) setTargetPortfolio(data.targetPortfolio);
@@ -696,7 +848,7 @@ export const PortfolioProvider = ({ children }) => {
       addNotification(`データのインポートに失敗しました: ${error.message}`, 'error');
       return { success: false, message: `データのインポートに失敗しました: ${error.message}` };
     }
-  }, [saveToLocalStorage, addNotification]);
+  }, [saveToLocalStorage, addNotification, validateAssetTypes]);
 
   // データのエクスポート
   const exportData = useCallback(() => {
@@ -828,38 +980,22 @@ export const PortfolioProvider = ({ children }) => {
         if (cloudData.lastUpdated) setLastUpdated(cloudData.lastUpdated);
         if (cloudData.additionalBudget !== undefined) setAdditionalBudget(cloudData.additionalBudget);
         
-        // アセットデータのインポート（個別株の手数料を0%に確保、配当情報の初期値を設定）
+        // アセットデータのインポート（銘柄タイプ検証・修正付き）
         if (Array.isArray(cloudData.currentAssets)) {
-          const validatedAssets = cloudData.currentAssets.map(asset => {
-            // 銘柄タイプを確認（FUND_TYPESの値で正規化）
-            const isStock = asset.isStock || asset.fundType === FUND_TYPES.STOCK;
-            
-            if (isStock) {
-              return {
-                ...asset,
-                fundType: FUND_TYPES.STOCK,
-                isStock: true,
-                annualFee: 0,
-                feeSource: '個別株',
-                feeIsEstimated: false,
-                // 配当情報がない場合は初期値を設定
-                dividendYield: asset.dividendYield || 0,
-                hasDividend: asset.hasDividend || false,
-                dividendFrequency: asset.dividendFrequency || 'quarterly',
-                dividendIsEstimated: asset.dividendIsEstimated || true
-              };
-            }
-            return {
-              ...asset,
-              isStock: isStock,
-              // 配当情報がない場合は初期値を設定
-              dividendYield: asset.dividendYield || 0,
-              hasDividend: asset.hasDividend || false,
-              dividendFrequency: asset.dividendFrequency || 'quarterly',
-              dividendIsEstimated: asset.dividendIsEstimated || true
-            };
-          });
+          // 銘柄タイプの検証と修正
+          const { updatedAssets: validatedAssets, changes } = validateAssetTypes(cloudData.currentAssets);
           setCurrentAssets(validatedAssets);
+          
+          // 変更があった場合は通知
+          if (changes.fundType > 0) {
+            addNotification(`${changes.fundType}件の銘柄で種別情報を修正しました`, 'info');
+          }
+          if (changes.fees > 0) {
+            addNotification(`${changes.fees}件の銘柄で手数料情報を修正しました`, 'info');
+          }
+          if (changes.dividends > 0) {
+            addNotification(`${changes.dividends}件の銘柄で配当情報を修正しました`, 'info');
+          }
         }
         
         if (Array.isArray(cloudData.targetPortfolio)) setTargetPortfolio(cloudData.targetPortfolio);
@@ -887,9 +1023,9 @@ export const PortfolioProvider = ({ children }) => {
       addNotification(`クラウドからの読み込みに失敗しました: ${error.message}`, 'error');
       return { success: false, message: `クラウド読み込みに失敗しました: ${error.message}` };
     }
-  }, [baseCurrency, addNotification, saveToLocalStorage]);
+  }, [addNotification, saveToLocalStorage, validateAssetTypes]);
 
-  // データの初期化処理（ローカルストレージからデータを読み込む）
+  // データの初期化処理（ローカルストレージからデータを読み込み、銘柄情報を検証）
   const initializeData = useCallback(() => {
     try {
       console.log('データの初期化を開始...');
@@ -919,39 +1055,36 @@ export const PortfolioProvider = ({ children }) => {
           setAdditionalBudget(localData.additionalBudget);
         }
         
-        // アセットデータのインポート（個別株の手数料を0%に確保、配当情報の初期値を設定）
+        // アセットデータのインポートと検証
         if (Array.isArray(localData.currentAssets)) {
           console.log('保有資産データを設定:', localData.currentAssets.length, '件');
-          const validatedAssets = localData.currentAssets.map(asset => {
-            // 銘柄タイプを確認（FUND_TYPESの値で正規化）
-            const isStock = asset.isStock || asset.fundType === FUND_TYPES.STOCK;
-            
-            if (isStock) {
-              return {
-                ...asset,
-                fundType: FUND_TYPES.STOCK,
-                isStock: true,
-                annualFee: 0,
-                feeSource: '個別株',
-                feeIsEstimated: false,
-                // 配当情報がない場合は初期値を設定
-                dividendYield: asset.dividendYield || 0,
-                hasDividend: asset.hasDividend || false,
-                dividendFrequency: asset.dividendFrequency || 'quarterly',
-                dividendIsEstimated: asset.dividendIsEstimated || true
-              };
-            }
-            return {
-              ...asset,
-              isStock: isStock,
-              // 配当情報がない場合は初期値を設定
-              dividendYield: asset.dividendYield || 0,
-              hasDividend: asset.hasDividend || false,
-              dividendFrequency: asset.dividendFrequency || 'quarterly',
-              dividendIsEstimated: asset.dividendIsEstimated || true
-            };
-          });
+          
+          // 銘柄タイプ、手数料、配当情報を検証して修正
+          const { updatedAssets: validatedAssets, changes } = validateAssetTypes(localData.currentAssets);
+          
+          // 検証・修正済みのデータを設定
           setCurrentAssets(validatedAssets);
+          
+          // 変更があった場合は通知を表示
+          if (changes.fundType > 0) {
+            addNotification(`${changes.fundType}件の銘柄で種別情報を修正しました`, 'info');
+            
+            // 詳細な変更内容も表示（最大3件まで）
+            changes.fundTypeDetails.slice(0, 3).forEach(detail => {
+              addNotification(
+                `「${detail.name || detail.ticker}」のタイプが「${detail.oldType}」から「${detail.newType}」に変更されました`,
+                'info'
+              );
+            });
+          }
+          
+          if (changes.fees > 0) {
+            addNotification(`${changes.fees}件の銘柄で手数料情報を修正しました`, 'info');
+          }
+          
+          if (changes.dividends > 0) {
+            addNotification(`${changes.dividends}件の銘柄で配当情報を修正しました`, 'info');
+          }
         }
         
         if (Array.isArray(localData.targetPortfolio)) {
@@ -960,6 +1093,15 @@ export const PortfolioProvider = ({ children }) => {
         }
         
         addNotification('前回のデータを読み込みました', 'info');
+        
+        // データが修正された場合は自動保存
+        if ((localData.currentAssets && 
+             (changes?.fundType > 0 || changes?.fees > 0 || changes?.dividends > 0))) {
+          setTimeout(() => {
+            console.log('修正したデータを自動保存します');
+            saveToLocalStorage();
+          }, 500);
+        }
       } else {
         console.log('ローカルストレージにデータがありませんでした。初期状態を使用します。');
       }
@@ -971,7 +1113,7 @@ export const PortfolioProvider = ({ children }) => {
       addNotification(`データの初期化中にエラーが発生しました: ${error.message}`, 'error');
       setInitialized(true); // エラーが発生しても初期化完了とマークする
     }
-  }, [loadFromLocalStorage, addNotification]);
+  }, [loadFromLocalStorage, addNotification, validateAssetTypes, saveToLocalStorage]);
 
   // コンポーネントマウント時にローカルストレージからデータを読み込む
   useEffect(() => {
@@ -1080,7 +1222,8 @@ export const PortfolioProvider = ({ children }) => {
     saveToGoogleDrive,
     loadFromGoogleDrive,
     handleAuthStateChange,
-    initializeData
+    initializeData,
+    validateAssetTypes // 銘柄タイプ検証関数を追加
   };
 
   return (
