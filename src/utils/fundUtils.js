@@ -38,6 +38,15 @@ export const FUND_TYPE_FEES = {
   [FUND_TYPES.UNKNOWN]: 0.5 // 不明な場合のデフォルト値
 };
 
+// 明示的に米国ETFリストを定義
+export const US_ETF_LIST = [
+  'SPY', 'VOO', 'VTI', 'QQQ', 'IVV', 'VGT', 'VYM', 'VEA', 'VWO', 'BND', 'BNDX', 
+  'AGG', 'VNQ', 'GLD', 'LQD', 'EIDO', 'INDA', 'IBIT', 'DIA', 'XLF', 'XLE', 'XLK', 
+  'XLV', 'SCHD', 'IEMG', 'IJH', 'IJR', 'ARKK', 'ARKW', 'ARKG', 'ARKF', 'IEFA', 
+  'EEM', 'EFA', 'ITOT', 'DVY', 'MUB', 'TLT', 'SHY', 'HYG', 'JNK',
+  'VXUS' // 明示的にVXUSを追加（Vanguard Total International Stock ETF）
+];
+
 // 特定のティッカーシンボルに対する手数料のオーバーライド
 export const TICKER_SPECIFIC_FEES = {
   // 日本のETF
@@ -57,6 +66,7 @@ export const TICKER_SPECIFIC_FEES = {
   'VYM': 0.06,  // Vanguard High Dividend Yield ETF
   'VEA': 0.05,  // Vanguard FTSE Developed Markets ETF
   'VWO': 0.08,  // Vanguard FTSE Emerging Markets ETF
+  'VXUS': 0.07, // Vanguard Total International Stock ETF - 明示的に追加
   'BND': 0.03,  // Vanguard Total Bond Market ETF
   'BNDX': 0.07, // Vanguard Total International Bond ETF
   'AGG': 0.04,  // iShares Core U.S. Aggregate Bond ETF
@@ -118,6 +128,7 @@ export const TICKER_SPECIFIC_DIVIDENDS = {
   'VYM': 3.2,   // Vanguard High Dividend Yield ETF
   'VEA': 3.0,   // Vanguard FTSE Developed Markets ETF
   'VWO': 3.2,   // Vanguard FTSE Emerging Markets ETF
+  'VXUS': 3.0,  // Vanguard Total International Stock ETF - 明示的に追加
   'BND': 2.8,   // Vanguard Total Bond Market ETF
   'BNDX': 2.5,  // Vanguard Total International Bond ETF
   'AGG': 2.7,   // iShares Core U.S. Aggregate Bond ETF
@@ -197,7 +208,7 @@ export const JP_CODE_PREFIX_MAP = {
 
 // ETFかどうかの簡易判定（TICKER_SPECIFIC_FEESに含まれるか）
 function isKnownETF(ticker) {
-  return Object.keys(TICKER_SPECIFIC_FEES).includes(ticker);
+  return Object.keys(TICKER_SPECIFIC_FEES).includes(ticker) || US_ETF_LIST.includes(ticker);
 }
 
 // ティッカーシンボルからファンドの種類を推定する
@@ -206,6 +217,15 @@ export function guessFundType(ticker, name = '') {
   
   ticker = ticker.toUpperCase();
   name = (name || '').toLowerCase();
+  
+  // 明示的に米国ETFリストをチェック（VXUSもここでチェックされる）
+  if (US_ETF_LIST.includes(ticker)) {
+    // VXUSは特に米国ETFとして判定
+    if (ticker === 'VXUS') {
+      return FUND_TYPES.ETF_US;
+    }
+    return FUND_TYPES.ETF_US;
+  }
   
   // 日本市場のティッカー判定
   const isJapanese = ticker.includes('.T') || /^\d{4,}$/.test(ticker);
