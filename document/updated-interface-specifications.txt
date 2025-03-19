@@ -1,6 +1,6 @@
-# ポートフォリオマネージャー インターフェース仕様書（更新版2.0）
+# ポートフォリオマネージャー インターフェース仕様書（更新版3.0）
 
-**最終更新日時:** 2025/03/16 19:20
+**最終更新日時:** 2025/03/18 15:45
 
 *本仕様書は、AIの別セッションでも開発を引き継げるよう設計されています。*
 
@@ -10,8 +10,9 @@
 
 ### 1.1 主要機能
 - 資産管理（保有数の小数点以下4桁対応）
-- 銘柄タイプ自動判定（個別株、ETF、インデックスファンド、アクティブファンドなど）
+- 銘柄タイプ自動判定（個別株、ETF、インデックスファンドなど）
 - 年間手数料率の自動推定と計算（個別株は0%固定）
+- 年間配当金の計算と配当情報の管理（新規）
 - 理想ポートフォリオ配分設定
 - 資金配分シミュレーション
 - データインポート/エクスポート
@@ -71,7 +72,7 @@
 +----------------------------------------+
 ```
 
-### 2.4 エラーバウンダリ（新規）
+### 2.4 エラーバウンダリ
 - アプリケーション全体をエラーバウンダリでラップ
 - 予期しないエラー発生時にアプリケーションのクラッシュを防止
 - ユーザーフレンドリーなエラー表示画面
@@ -81,7 +82,7 @@
 
 ### 3.1 コンテキスト設計
 - **AuthContext**: 認証状態、ユーザー情報、Googleドライブ連携、PortfolioContextへの参照
-- **PortfolioContext**: ポートフォリオデータ、資産情報、シミュレーション計算、手数料管理、ローカルストレージ操作
+- **PortfolioContext**: ポートフォリオデータ、資産情報、配当情報、シミュレーション計算、手数料管理、ローカルストレージ操作
 
 ### 3.2 コンテキスト間の連携
 - **ContextConnector**: AuthContextとPortfolioContextの相互参照を管理するコンポーネント
@@ -91,7 +92,7 @@
 ### 3.3 主要な状態変数
 - `baseCurrency`: 基準通貨 ('JPY' | 'USD')
 - `exchangeRate`: 為替レート情報 ({ rate, source, lastUpdated })
-- `currentAssets`: 保有資産の配列
+- `currentAssets`: 保有資産の配列（配当情報を含む）
 - `targetPortfolio`: 目標配分の配列
 - `additionalBudget`: 追加投資予算
 - `isAuthenticated`: 認証状態
@@ -101,6 +102,9 @@
 - `lastSyncTime`: 最終同期時間
 - `initialized`: 初期化完了フラグ
 - `hasError`: エラー状態（エラーバウンダリ用）
+- `totalAssets`: 総資産額
+- `annualFees`: 年間手数料合計
+- `annualDividends`: 年間配当金合計（新規）
 
 ### 3.4 データ構造
 #### 保有資産 (Asset)
@@ -121,6 +125,10 @@ interface Asset {
   region?: string; // 対象地域 ('日本', '米国', 'グローバル', '不明')
   lastUpdated?: string;
   source?: string; // 'Alpha Vantage' | 'Fallback'
+  dividendYield: number; // 配当利回り（%）（新規）
+  hasDividend: boolean; // 配当があるかどうか（新規）
+  dividendFrequency: string; // 配当頻度（'monthly', 'quarterly', 'semi-annual', 'annual'）（新規）
+  dividendIsEstimated: boolean; // 配当情報が推定値かどうか（新規）
 }
 ```
 
@@ -141,15 +149,19 @@ interface StorageData {
 ## 4. コンポーネント仕様
 
 ### 4.1 ダッシュボード画面コンポーネント
-- **PortfolioSummary**: 総資産、銘柄数、年間手数料の表示
+- **PortfolioSummary**: 総資産、銘柄数、年間手数料、年間配当金の表示
   - 最高/最低手数料率の銘柄を表示
+  - 最高配当利回りの銘柄を表示（新規）
   - ファンドタイプ別の手数料統計を表示
-  - 手数料についての説明を表示
+  - ファンドタイプ別の配当金統計を表示（新規）
+  - 手数料と配当についての説明を表示
 - **PortfolioCharts**: 理想配分と現在配分の円グラフ
 - **DifferenceChart**: 理想と現状の差分バーチャート
 - **AssetsTable**: 保有資産の詳細テーブル
   - データソースと銘柄タイプの表示
   - 年間手数料の表示（個別株は0%）
+  - 配当情報の表示（利回り、頻度、年間配当金）（新規）
+  - 配当情報源のバッジ表示（推定値/確定値）（新規）
 - **DataStatusBar**: データ更新状態と最終更新時刻の表示
 
 ### 4.2 設定画面コンポーネント
@@ -160,9 +172,11 @@ interface StorageData {
   - 日本市場カテゴリ
 - **HoldingsEditor**: 保有資産の編集
   - 保有数量編集（小数点4桁対応）
-  - 年間手数料率編集（個別株は編集不可）
+  - 年間手数料率表示（個別株は編集不可）
   - 銘柄タイプの表示
   - 手数料情報源を表示（個別株、推定値、固有情報、ユーザー設定）
+  - 配当情報の表示（利回り、頻度）（新規）
+  - 配当情報源のバッジ表示（新規）
 - **AllocationEditor**: 目標配分の編集
 
 ### 4.3 シミュレーション画面コンポーネント
@@ -186,7 +200,7 @@ interface StorageData {
   - クラウド保存/読み込みボタン
   - データ同期ステータス表示
   - 同期ボタン
-- **DataErrorRecovery**: データ修復機能（新規）
+- **DataErrorRecovery**: データ修復機能
   - ローカルストレージのクリア機能
   - データリセット機能
   - エラー報告表示
@@ -200,7 +214,7 @@ interface StorageData {
 - **DataSourceBadge**: データソース表示バッジ
   - 各データソースに応じた表示（Alpha Vantage/Fallback）
   - ソースに応じた色分け（緑: Alpha Vantage, 赤: Fallback）
-- **ErrorBoundary**: エラーバウンダリコンポーネント（新規）
+- **ErrorBoundary**: エラーバウンダリコンポーネント
   - エラー発生時の処理
   - リロード機能
   - エラー詳細表示
@@ -216,6 +230,11 @@ interface StorageData {
   - 推定値: 黄色バッジ
   - ティッカー固有の情報: 緑色バッジ
   - ユーザー設定: 紫色バッジ
+- **DividendBadge**: 配当情報を表示するバッジ（新規）
+  - 配当なし: 灰色バッジ
+  - 配当あり（推定値）: 黄色バッジ
+  - 配当あり（確定値）: 緑色バッジ
+  - 配当頻度別のラベル表示
 - **ContextConnector**: コンテキスト間の連携を管理するコンポーネント
 
 ## 5. API・外部連携仕様
@@ -228,13 +247,14 @@ interface StorageData {
 - **レート制限**: 無料プランで1日25リクエストまで
 - **フォールバック**: API失敗時のデフォルト値使用
 
-### 5.2 ローカルストレージ連携
+### 5.2 ローカルストレージ連携（更新版）
 - **ストレージキー**: `portfolioData`
 - **暗号化方式**: URIエンコード + Base64エンコーディングによる安全な暗号化
-- **保存データ**: ポートフォリオデータ、設定情報、タイムスタンプ
+- **保存データ**: ポートフォリオデータ、配当情報、設定情報、タイムスタンプ
 - **保存タイミング**: データ変更時、明示的な保存操作時、同期時
 - **読み込みタイミング**: アプリケーション初期化時、明示的な読み込み操作時
 - **フォールバック処理**: 古い形式のデータ読み込みにも対応
+- **データ構造検証**: 復号化後のデータ構造を検証し、整合性を確認
 
 ### 5.3 Google OAuth認証（更新版）
 - **認証フロー**: Google Identity Services APIを使用した最新のOAuthフロー
@@ -255,22 +275,27 @@ interface StorageData {
   - ファイル検索: `https://www.googleapis.com/drive/v3/files?q=name='filename' and trashed=false`
   - ファイル読み込み: `https://www.googleapis.com/drive/v3/files/{fileId}?alt=media`
 - **認証**: OAuth 2.0アクセストークン
+- **エラーハンドリング**: 認証エラー、ネットワークエラー、APIエラーに対応
 
-### 5.5 ファンド情報API
-- **機能**: 銘柄タイプ判定と手数料情報取得
+### 5.5 ファンド情報API（更新版）
+- **機能**: 銘柄タイプ判定、手数料情報取得、配当情報取得
 - **実装方法**: フロントエンドで実装（`fundUtils.js`）
 - **データソース**: アプリ内DBとロジックによる判定
 - **個別株判定**: ティッカーパターンと名前に基づく判定
+- **配当情報データベース**: `TICKER_SPECIFIC_DIVIDENDS` による特定銘柄の配当情報（新規）
+- **配当判定ロジック**: ファンドタイプと名前に基づく配当の有無を判定（新規）
 
 ## 6. イベントフロー
 
-### 6.1 初期化フロー
+### 6.1 初期化フロー（更新版）
 1. アプリケーション起動
 2. `PortfolioProvider` と `AuthProvider` の初期化
 3. ContextConnectorによるコンテキスト間連携の確立
 4. ローカルストレージからのデータ読み込み（エラーハンドリング強化）
 5. トークンストレージからの認証情報読み込み
 6. データがあれば状態を更新し、UIに反映
+7. 配当情報が欠けている場合は初期値を設定（新規）
+8. エラー発生時はエラーバウンダリでキャッチ
 
 ```javascript
 // 初期化処理の主要部分（エラーハンドリング強化版）
@@ -285,6 +310,35 @@ useEffect(() => {
       setExchangeRate(localData.exchangeRate);
       // その他のデータ適用
       
+      // アセットデータのインポート（個別株の手数料を0%に確保、配当情報の初期値を設定）
+      if (Array.isArray(localData.currentAssets)) {
+        const validatedAssets = localData.currentAssets.map(asset => {
+          if (asset.isStock || asset.fundType === 'STOCK' || asset.fundType === '個別株') {
+            return {
+              ...asset,
+              annualFee: 0,
+              feeSource: '個別株',
+              feeIsEstimated: false,
+              isStock: true,
+              // 配当情報がない場合は初期値を設定
+              dividendYield: asset.dividendYield || 0,
+              hasDividend: asset.hasDividend || false,
+              dividendFrequency: asset.dividendFrequency || 'quarterly',
+              dividendIsEstimated: asset.dividendIsEstimated || true
+            };
+          }
+          return {
+            ...asset,
+            // 配当情報がない場合は初期値を設定
+            dividendYield: asset.dividendYield || 0,
+            hasDividend: asset.hasDividend || false,
+            dividendFrequency: asset.dividendFrequency || 'quarterly',
+            dividendIsEstimated: asset.dividendIsEstimated || true
+          };
+        });
+        setCurrentAssets(validatedAssets);
+      }
+      
       addNotification('前回のデータを読み込みました', 'info');
     } else {
       console.log('ローカルストレージにデータがありませんでした。初期状態を使用します。');
@@ -298,7 +352,7 @@ useEffect(() => {
 }, [loadFromLocalStorage, addNotification]);
 ```
 
-### 6.2 データ保存フロー
+### 6.2 データ保存フロー（更新版）
 1. データ変更（銘柄追加、保有数量変更、目標配分変更など）
 2. 状態更新関数（useState）による状態更新
 3. 状態更新後のコールバックで `saveToLocalStorage` 呼び出し
@@ -339,7 +393,110 @@ const saveToLocalStorage = useCallback(() => {
 }, [initialized, baseCurrency, exchangeRate, lastUpdated, currentAssets, targetPortfolio, additionalBudget, addNotification]);
 ```
 
-### 6.3 認証連携フロー（更新版）
+### 6.3 市場データ更新フロー（更新版）
+1. ユーザーがデータ更新ボタンをクリック
+2. 銘柄ごとに最新の価格、手数料情報、配当情報を取得
+3. 個別株は常に手数料率0%を維持
+4. 手数料情報や配当情報に変更があった場合は通知
+5. データをローカルストレージに自動保存
+
+```javascript
+// 市場データの更新（手数料更新機能と配当情報更新機能を追加）
+const refreshMarketPrices = useCallback(async () => {
+  setIsLoading(true);
+  try {
+    console.log('Refreshing market prices for all assets...');
+    
+    let feeChangesCount = 0;
+    const feeChangeDetails = [];
+    let dividendChangesCount = 0;
+    
+    // 全ての保有銘柄の最新価格と手数料情報・配当情報を取得
+    const updatedAssets = await Promise.all(
+      currentAssets.map(async (asset) => {
+        try {
+          // Alpha Vantageから直接データ取得
+          const updatedData = await fetchTickerData(asset.ticker);
+          
+          // 手数料情報の変更を確認
+          const hasFeeChanged = !asset.isStock && asset.annualFee !== updatedData.data.annualFee;
+          
+          // 手数料変更があれば記録
+          if (hasFeeChanged) {
+            feeChangesCount++;
+            feeChangeDetails.push({
+              ticker: asset.ticker,
+              name: asset.name,
+              oldFee: asset.annualFee,
+              newFee: updatedData.data.annualFee
+            });
+          }
+          
+          // 配当情報も取得
+          const dividendData = await fetchDividendData(asset.ticker);
+          
+          // 配当情報の変更を確認
+          const hasDividendChanged = 
+            asset.dividendYield !== dividendData.data.dividendYield ||
+            asset.hasDividend !== dividendData.data.hasDividend;
+          
+          if (hasDividendChanged) {
+            dividendChangesCount++;
+          }
+          
+          // 更新されたアセット情報を返す（個別株は常に手数料0%を維持）
+          return {
+            ...asset,
+            price: updatedData.data.price,
+            source: updatedData.data.source,
+            lastUpdated: updatedData.data.lastUpdated,
+            annualFee: asset.isStock ? 0 : updatedData.data.annualFee,
+            fundType: updatedData.data.fundType || asset.fundType,
+            feeSource: asset.isStock ? '個別株' : updatedData.data.feeSource,
+            feeIsEstimated: asset.isStock ? false : updatedData.data.feeIsEstimated,
+            region: updatedData.data.region || asset.region,
+            // 配当情報を更新
+            dividendYield: dividendData.data.dividendYield,
+            hasDividend: dividendData.data.hasDividend,
+            dividendFrequency: dividendData.data.dividendFrequency,
+            dividendIsEstimated: dividendData.data.dividendIsEstimated
+          };
+        } catch (error) {
+          console.error(`銘柄 ${asset.ticker} の更新に失敗しました`, error);
+          return asset;
+        }
+      })
+    );
+
+    setCurrentAssets(updatedAssets);
+    setLastUpdated(new Date().toISOString());
+    
+    // 手数料変更があった場合は別途通知
+    if (feeChangesCount > 0) {
+      let feeMessage = `${feeChangesCount}件のファンドで手数料情報が更新されました`;
+      addNotification(feeMessage, 'info');
+    }
+    
+    // 配当情報の変更があった場合の通知
+    if (dividendChangesCount > 0) {
+      addNotification(`${dividendChangesCount}件の銘柄で配当情報が更新されました`, 'info');
+    }
+    
+    // データを自動保存
+    saveToLocalStorage();
+    
+    return { success: true, message: '市場データを更新しました' };
+  } catch (error) {
+    console.error('市場データの更新に失敗しました', error);
+    addNotification('市場データの更新に失敗しました', 'error');
+    return { success: false, message: '市場データの更新に失敗しました' };
+  } finally {
+    setIsLoading(false);
+  }
+}, [currentAssets, addNotification, saveToLocalStorage]);
+```
+
+### 6.4 認証連携フロー（更新版）
 1. ユーザーがGoogleログインボタンをクリック
 2. Google Identity Services APIを通じて最新のOAuth認証フローを実行
 3. 認証成功時、トークンをローカルストレージに保存
@@ -390,14 +547,15 @@ const handleLogin = useCallback((credentialResponse) => {
 }, []);
 ```
 
-### 6.4 データ同期フロー（更新版）
+### 6.5 データ同期フロー（更新版）
 1. ユーザーが同期ボタンをクリック
 2. 新しいアクセストークンをGoogle Identity Services APIから取得
 3. ローカルデータとクラウドデータの取得
 4. タイムスタンプを比較して最新データを特定
 5. 最新データを状態に適用
-6. 両方のストレージを最新状態に更新
-7. 同期情報（日時、ソース）を更新
+6. 配当情報が欠けている場合は初期値を設定（新規）
+7. 両方のストレージを最新状態に更新
+8. 同期情報（日時、ソース）を更新
 
 ```javascript
 // アクセストークン取得処理（Google Identity Services API使用）
@@ -437,8 +595,8 @@ async function getGoogleAccessToken() {
 }
 ```
 
-### 6.5 エラー回復フロー（新規）
-1. エラーが発生すると、エラーバウンダリがキャッチ
+### 6.6 エラー回復フロー
+1. エラーが発生するとエラーバウンダリがキャッチ
 2. ユーザーにエラー内容と回復オプションを提示
 3. ユーザーがリロードボタンをクリック
 4. アプリケーションを再読み込み
@@ -486,7 +644,7 @@ class ErrorBoundary extends React.Component {
 
 ## 7. スタイリング規則
 
-### 7.1 カラーパレット
+### 7.1 カラーパレット（更新版）
 - **プライマリ**: 青系 (#0088FE, #1E88E5, etc.)
 - **アクセント**: 緑系 (#00C49F, #4CAF50, etc.)
 - **警告**: 赤系 (#FF0000, #F44336, etc.)
@@ -505,10 +663,15 @@ class ErrorBoundary extends React.Component {
   - ティッカー固有情報: 緑系 (#4CAF50)
   - 推定値: 黄色系 (#FFC107)
   - ユーザー設定: 紫系 (#9C27B0)
+- **配当情報表示用**（新規）:
+  - 配当なし: グレー系 (#9E9E9E)
+  - 配当あり（確定値）: 緑系 (#4CAF50)
+  - 配当あり（推定値）: 黄色系 (#FFC107)
+  - 高配当: 深緑系 (#2E7D32)
 - **データソース表示用**:
   - ローカル: 黄色系 (#FFC107)
   - クラウド: 青系 (#2196F3)
-- **エラー処理用**（新規）:
+- **エラー処理用**:
   - エラー表示: 赤系 (#F44336)
   - エラーバウンダリ背景: 明るい赤 (#FFEBEE)
   - リカバリーボタン: 青系 (#2196F3)
@@ -520,16 +683,33 @@ class ErrorBoundary extends React.Component {
 - **小テキスト**: 12px、軽量（font-light）
 - **エラーメッセージ**: 16px、太字（font-bold）、赤色
 
-### 7.3 コンポーネントスタイル
+### 7.3 コンポーネントスタイル（更新版）
 - **カード**: 白背景、丸角、影付き
 - **ボタン**: 背景色付き、丸角、ホバーエフェクト
 - **入力フィールド**: 境界線付き、フォーカス時強調
 - **テーブル**: 行の区切り線、隔行カラー、レスポンシブ
 - **銘柄タイプバッジ**: 小さい丸型または角丸ラベル、タイプに応じた色
 - **手数料情報バッジ**: 小さい丸型または角丸ラベル、情報源に応じた色
+- **配当情報バッジ**（新規）: 小さい丸型または角丸ラベル、配当状況に応じた色
+  ```jsx
+  {asset.hasDividend ? (
+    <span className={`text-xs px-1.5 py-0.5 rounded ${
+      asset.dividendIsEstimated
+        ? 'bg-yellow-100 text-yellow-800'
+        : 'bg-green-100 text-green-800'
+    }`}>
+      {formatDividendFrequency(asset.dividendFrequency)}
+      {asset.dividendIsEstimated ? '（推定）' : ''}
+    </span>
+  ) : (
+    <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-800">
+      配当なし
+    </span>
+  )}
+  ```
 - **個別株行**: 灰色背景で視覚的に区別
 - **同期ステータスインジケーター**: 丸いドット、色による状態表示
-- **エラー表示コンポーネント**（新規）:
+- **エラー表示コンポーネント**:
   - 中央配置のモーダル風デザイン
   - クリックしやすいリロードボタン
   - 明確なエラー詳細表示
@@ -558,14 +738,14 @@ class ErrorBoundary extends React.Component {
 - **手数料設定エラー**: 個別株の手数料変更試行
 - **ストレージエラー**: ローカルストレージ読み書き失敗
 - **同期エラー**: データ同期失敗
-- **アプリケーションエラー**（新規）: 予期しないJavaScriptエラー
+- **アプリケーションエラー**: 予期しないJavaScriptエラー
 
 ### 8.2 通知表示
 - **成功通知**: 緑色背景、自動消去（5秒）
 - **警告通知**: 黄色背景、自動消去（5秒）
 - **エラー通知**: 赤色背景、手動消去可能
 - **情報通知**: 青色背景、自動消去（5秒）
-- **アプリケーションエラー通知**（新規）: エラーバウンダリによる全画面表示
+- **アプリケーションエラー通知**: エラーバウンダリによる全画面表示
 
 ### 8.3 API障害対応
 - 複数データソースの使用によるフォールバック機構
@@ -578,205 +758,148 @@ class ErrorBoundary extends React.Component {
 - ローカルストレージ失敗時のエラー処理強化
 - データ復号化失敗時のフォールバック処理追加
 - 初期化完了フラグによる保存処理の制御
+- データ構造検証による整合性確認
 - 適切なエラーメッセージと通知
 - ローカルストレージクリア機能による修復オプション
 
-### 8.5 認証障害対応（新規）
+### 8.5 認証障害対応
 - OAuth認証エラーの適切なハンドリング
 - トークン失効時の再認証フロー
 - アクセストークン取得エラーの処理
 - ユーザーフレンドリーな認証エラーメッセージ
 
-### 8.6 アプリケーションエラー対応（新規）
+### 8.6 アプリケーションエラー対応
 - エラーバウンダリによる予期しないエラーのキャッチ
 - エラー発生時のUIフォールバック表示
 - リロードボタンによる簡単な回復方法の提供
 - 詳細なエラー情報のログ出力
 
-## 9. 開発環境設定
+## 9. 配当情報表示のUI（新規）
 
-### 9.1 ローカル開発環境
-1. リポジトリクローン
-2. 依存パッケージインストール: `npm install`
-3. 環境変数設定: `.env.local` 作成
-   ```
-REACT_APP_GOOGLE_CLIENT_ID: Google OAuthクライアントID
-REACT_APP_GOOGLE_API_KEY: Google API Key
-ALPHA_VANTAGE_API_KEY: Alpha Vantage APIキー
-   ```
-4. 開発サーバー起動: `npm start`
-5. ブラウザでアクセス: `http://localhost:3000`
+### 9.1 PortfolioSummaryでの配当表示
+- 年間配当金の合計を表示（総資産の上部セクション）
+- ポートフォリオ全体の配当利回りを表示
+- 最高配当利回りの銘柄を表示（詳細セクション）
+- ファンドタイプ別の配当金統計を表示（詳細セクション）
 
-### 9.2 必要な環境変数
-- `REACT_APP_GOOGLE_CLIENT_ID`: Google OAuthクライアントID
-- `REACT_APP_GOOGLE_API_KEY`: Google API Key
-- `ALPHA_VANTAGE_API_KEY`: Alpha Vantage APIキー
+```jsx
+{/* 配当情報の表示 */}
+<div className="bg-green-50 p-4 rounded-lg">
+  <p className="text-sm text-gray-500 mb-1">年間配当金（推定）</p>
+  <div>
+    <p className="text-2xl font-bold text-green-600">
+      {formatCurrency(annualDividends, baseCurrency)}
+    </p>
+    <p className="text-sm text-gray-500">
+      （配当利回り{formatPercent(dividendYieldPercentage, 2)}）
+    </p>
+  </div>
+</div>
 
-### 9.3 プロキシ設定
-setupProxy.js を使用したAPI連携設定:
+{/* 最高配当利回りの銘柄 */}
+{highestDividendAsset && (
+  <div className="p-3 border border-green-200 rounded-lg">
+    <p className="text-sm font-medium">最も高い配当利回りの銘柄:</p>
+    <p className="text-base">
+      <span className="font-semibold">{highestDividendAsset.name}</span>
+      <span className="ml-2 text-green-600 font-bold">
+        {formatPercent(highestDividendAsset.dividendYield || 0, 2)}
+      </span>
+    </p>
+    <p className="text-xs text-gray-500 mt-1">
+      年間配当金: {formatCurrency((highestDividendAsset.price * highestDividendAsset.holdings * (highestDividendAsset.dividendYield || 0) / 100), highestDividendAsset.currency)}
+    </p>
+  </div>
+)}
+```
+
+### 9.2 AssetsTableでの配当表示
+- 保有資産テーブルに配当関連の列を追加
+- 配当利回りと配当頻度の表示
+- 配当情報源のバッジ表示（推定値/確定値）
+- 年間配当金の表示（通貨換算対応）
+
+```jsx
+<td className="px-6 py-4 whitespace-nowrap">
+  {asset.hasDividend ? (
+    <div>
+      <div className="text-sm text-green-600">
+        {formatCurrency(asset.annualDividend, baseCurrency)}
+      </div>
+      <div className="text-xs text-gray-500">
+        ({formatPercent(asset.dividendYield, 2)})
+      </div>
+      {/* 配当頻度バッジ */}
+      <span className={`text-xs px-1.5 py-0.5 rounded ${
+        asset.dividendIsEstimated
+          ? 'bg-yellow-100 text-yellow-800'
+          : 'bg-green-100 text-green-800'
+      }`}>
+        {formatDividendFrequency(asset.dividendFrequency)}
+        {asset.dividendIsEstimated ? '（推定）' : ''}
+      </span>
+    </div>
+  ) : (
+    <div className="text-xs text-gray-500">なし</div>
+  )}
+</td>
+```
+
+### 9.3 HoldingsEditorでの配当表示
+- 保有資産編集画面に配当情報の列を追加
+- 配当利回りと配当頻度の表示
+- 配当情報源のバッジ表示
+- 年間配当金の表示
+
+```jsx
+<td className="px-6 py-4 whitespace-nowrap">
+  <div className="flex flex-col">
+    <div className="flex items-center">
+      <span className="text-sm">
+        {asset.hasDividend ? formatPercent(asset.dividendYield || 0, 2) : '0.00%'}
+      </span>
+    </div>
+    {asset.hasDividend && (
+      <div className="mt-1">
+        <span className={`text-xs px-1.5 py-0.5 rounded ${
+          asset.dividendIsEstimated
+            ? 'bg-yellow-100 text-yellow-800'
+            : 'bg-green-100 text-green-800'
+        }`}>
+          {formatDividendFrequency(asset.dividendFrequency)}
+          {asset.dividendIsEstimated ? '（推定）' : ''}
+        </span>
+      </div>
+    )}
+  </div>
+</td>
+```
+
+### 9.4 配当頻度の表示変換
 ```javascript
-const { createProxyMiddleware } = require('http-proxy-middleware');
-
-module.exports = function(app) {
-  app.use(
-    '/api',
-    createProxyMiddleware({
-      target: 'http://localhost:9000',
-      pathRewrite: {
-        '^/api': '/.netlify/functions'
-      },
-      changeOrigin: true
-    })
-  );
+// 配当頻度の表示変換
+const formatDividendFrequency = (frequency) => {
+  switch (frequency) {
+    case 'monthly': return '毎月';
+    case 'quarterly': return '四半期';
+    case 'semi-annual': return '半年';
+    case 'annual': return '年1回';
+    default: return '不明';
+  }
 };
 ```
 
-## 10. ビルド・デプロイ手順
+## 10. データ永続化と同期（更新版）
 
-### 10.1 ビルド手順
-1. 環境変数の設定確認
-2. 本番ビルド実行: `npm run build`
-3. `build` ディレクトリに成果物生成
-
-### 10.2 Netlifyデプロイ
-#### CLIを使用
-1. Netlify CLIインストール: `npm install -g netlify-cli`
-2. ログイン: `netlify login`
-3. デプロイ: `netlify deploy --prod`
-
-#### ドラッグ＆ドロップ
-1. Netlifyダッシュボードにアクセス
-2. 「Sites」→「New site from upload」
-3. `build` フォルダをドロップ
-
-### 10.3 環境変数設定（Netlify）
-1. サイト設定画面に移動
-2. 「Build & deploy」→「Environment」
-3. 以下の環境変数を追加:
-   - `REACT_APP_GOOGLE_CLIENT_ID`
-   - `REACT_APP_GOOGLE_API_KEY`
-   - `ALPHA_VANTAGE_API_KEY`
-
-### 10.4 ビルド設定（Netlify）
-netlify.toml 設定ファイル:
-```toml
-[build]
-  command = "CI= npm run build"
-  publish = "build"
-  functions = "functions"
-
-[dev]
-  command = "npm start"
-  port = 3000
-  targetPort = 3000
-  publish = "build"
-  functionsPort = 9000
-
-# Functions へのアクセス許可設定
-[[headers]]
-  for = "/api/*"
-    [headers.values]
-    Access-Control-Allow-Origin = "*"
-    Access-Control-Allow-Headers = "Content-Type, Authorization"
-    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
-
-# API経由でFunctionsにアクセス
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
-  force = true
-
-# SPAのためのリダイレクト
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-
-# Functions 設定
-[functions]
-  directory = "functions"
-  node_bundler = "esbuild"
-  included_files = ["functions/**"]
-```
-
-## 11. 既知の問題と解決策
-
-### 11.1 既知の問題
-1. **jwt-decode 互換性**: v4以降のjwt-decodeでインポート方法が変更
-2. **ESLintアクセシビリティ警告**: デフォルト設定ではアクセシビリティ警告が多発
-3. **APIレート制限**: Alpha Vantageのレート制限（1日25リクエスト）
-4. **プロキシ設定複雑さ**: React Dev Serverでの詳細なプロキシ設定に制限あり
-5. **銘柄タイプ判定精度**: ティッカーシンボルのみからの判定は完全な精度を保証できない
-6. **React Hooks ルール違反**: useEffectやuseCallbackの依存配列管理に注意
-7. **コンテキスト間の循環参照**: AuthContextとPortfolioContextの相互参照に注意
-8. **Google Drive API連携の複雑さ**（新規）: OAuth 2.0トークンとアクセストークンの管理に注意
-9. **データ暗号化/復号化の互換性**（新規）: 新旧形式のデータ処理に注意
-
-### 11.2 回避策・解決策
-1. **jwt-decode対応**: 
-   ```javascript
-   import jwtDecode from 'jwt-decode';  // デフォルトインポートを使用
-   ```
-
-2. **ESLint設定調整**:
-   ```json
-   {
-     "rules": {
-       "jsx-a11y/label-has-associated-control": "off",
-       "react-hooks/rules-of-hooks": "error",
-       "react-hooks/exhaustive-deps": "warn"
-     }
-   }
-   ```
-
-3. **API制限回避**: 
-   - フォールバック値の使用
-   - 複数データソース順次試行
-   - タイムアウト設定による応答遅延対策
-   - エラーリトライ処理の実装
-
-4. **プロキシ設定**: 
-   - package.jsonで基本設定: `"proxy": "http://localhost:9000"`
-   - setupProxy.jsで詳細設定
-
-5. **銘柄タイプ判定精度向上**:
-   - 特定ティッカーのデータベース拡充
-   - 判定ロジックの継続的な改良
-   - ユーザーによる手動調整機能の提供
-
-6. **React Hooks ルール対応**:
-   - カスタムHook内での適切な依存配列管理
-   - 通常関数内でHookを使用しない
-   - 条件付きHook呼び出しを避ける
-   - Refによるコンテキスト参照の実装
-
-7. **コンテキスト循環参照の解決**:
-   - 専用コネクタコンポーネントの使用
-   - useRefによる一方向参照の実装
-   - 初期化順序の制御
-
-8. **Google Drive API連携対応**（新規）:
-   - Google Identity Services APIの使用
-   - アクセストークン取得処理の分離
-   - エラーハンドリングの強化
-   - Fetch APIによる直接アクセス実装
-
-9. **データ暗号化/復号化の互換性確保**（新規）:
-   - URIエンコード + Base64の組み合わせによる堅牢化
-   - 古い形式のデータ読み込みにも対応するフォールバック処理
-   - データ構造検証の追加
-
-## 12. データ永続化と同期（更新版）
-
-### 12.1 データ永続化の仕組み
-- **保存対象データ**: ポートフォリオデータ、設定値、タイムスタンプ
+### 10.1 データ永続化の仕組み（更新版）
+- **保存対象データ**: ポートフォリオデータ、配当情報、設定値、タイムスタンプ
 - **保存形式**: URIエンコード + Base64暗号化されたJSON
 - **保存場所**: ブラウザのローカルストレージ
 - **自動保存**: データ変更時に遅延付きで自動保存
 - **エラーリカバリ**: 復号化失敗時の適切な処理とフォールバック機能
+- **データ構造検証**: 復号化後のデータ構造を検証し、整合性を確認
 
-### 12.2 データ同期の仕組み（更新版）
+### 10.2 データ同期の仕組み（更新版）
 - **同期対象**: ローカルストレージとGoogleドライブ
 - **同期タイミング**: 
   - 明示的な同期ボタンクリック時
@@ -784,9 +907,10 @@ netlify.toml 設定ファイル:
 - **認証処理**: Google Identity Services APIを使用した最新のOAuth 2.0認証
 - **アクセストークン管理**: Google Drive API用の適切なスコープを持つアクセストークン取得
 - **競合解決**: タイムスタンプによる新しいデータの優先
+- **配当情報の整合性**: 欠けている配当情報には初期値を設定
 - **エラーリカバリ**: 同期失敗時の適切な通知と状態維持
 
-### 12.3 認証連携の仕組み（更新版）
+### 10.3 認証連携の仕組み（更新版）
 - **認証情報保存**: ローカルストレージにJWTトークン保存
 - **認証状態復元**: アプリケーション起動時にトークン検証
 - **権限スコープ**: ドライブAPI用の適切なスコープ設定（`https://www.googleapis.com/auth/drive.file`）
@@ -794,7 +918,7 @@ netlify.toml 設定ファイル:
 - **API層連携**: 認証トークンをAPI層にも通知
 - **アクセストークン取得**: Google Identity Services APIを使用した明示的なトークン取得
 
-### 12.4 エラー回復機能（新規）
+### 10.4 エラー回復機能
 - **ローカルストレージクリア**: データ損傷時にストレージをクリアする機能
 - **エラーバウンダリ**: アプリケーションクラッシュを防止するエラーバウンダリ
 - **リロードボタン**: エラー発生時にアプリケーションを再読み込みする機能
@@ -813,3 +937,4 @@ netlify.toml 設定ファイル:
 | 7.0 | 2025/03/12 10:45 | 人気銘柄リストの更新 |  |
 | 8.0 | 2025/03/13 16:15 | ローカルストレージによるデータ永続化とGoogle認証連携強化 |  |
 | 9.0 | 2025/03/16 19:20 | データ暗号化/復号化処理の強化、Google Drive API連携改善、エラーバウンダリ導入、認証フロー更新 |  |
+| 10.0 | 2025/03/18 15:45 | 配当情報の管理機能追加、配当情報の表示UI実装、PortfolioSummaryとAssetsTableの配当情報表示追加、Google Drive API連携の安定性向上 |  |
