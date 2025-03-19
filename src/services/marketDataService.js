@@ -1,6 +1,7 @@
 // src/services/marketDataService.js
 
 import axios from 'axios';
+import { guessFundType, estimateAnnualFee, extractFundInfo, estimateDividendYield } from '../utils/fundUtils';
 
 // 環境に応じたベースURL設定
 const isLocalhost = 
@@ -50,11 +51,18 @@ const DEFAULT_EXCHANGE_RATES = {
 
 /**
  * 銘柄データを取得 - Alpha Vantageをプライマリソースとして使用
- * Yahoo Financeの401エラー回避のため
  * @param {string} ticker - ティッカーシンボル
  * @returns {Promise<Object>} - 銘柄データとステータス
  */
 export async function fetchTickerData(ticker) {
+  if (!ticker) {
+    return {
+      success: false,
+      message: 'ティッカーシンボルが指定されていません',
+      error: true
+    };
+  }
+  
   try {
     // Alpha Vantage APIからデータ取得を試みる（プライマリソース）
     console.log(`Attempting to fetch data for ${ticker} from Alpha Vantage at: ${ALPHA_VANTAGE_URL}`);
@@ -79,22 +87,56 @@ export async function fetchTickerData(ticker) {
       
       console.log(`Successfully fetched data for ${ticker} from Alpha Vantage`);
       
-      // 通貨判定（簡易的な判定、実際にはより詳細な判定が必要）
-      const currency = ticker.includes('.T') ? 'JPY' : 'USD';
+      // 銘柄名の取得を試みる（短めのフォールバック処理）
+      let name = ticker;
+      try {
+        // もし時間とAPIリクエスト数に余裕があれば
+        // SYMBOL_SEARCH機能で銘柄名を取得することも可能
+        // ここでは単純にティッカーを名前として使用
+      } catch (error) {
+        console.log(`Could not fetch name for ${ticker}, using ticker as name`);
+      }
+      
+      // ファンドタイプと手数料情報を取得
+      const fundInfo = extractFundInfo(ticker, name);
+      const fundType = guessFundType(ticker, name);
+      const feeInfo = estimateAnnualFee(ticker, name);
+      
+      // 配当情報の推定
+      const dividendInfo = estimateDividendYield(ticker, name);
+      
+      // 通貨判定
+      const currency = fundInfo.currency || (ticker.includes('.T') ? 'JPY' : 'USD');
+      
+      // 個別株かどうかを判定（複数の条件で判断）
+      const isStock = fundType === 'STOCK' || fundType === '個別株';
+      
+      // 手数料情報（個別株は常に0%）
+      const annualFee = isStock ? 0 : feeInfo.fee;
       
       return {
         success: true,
         data: {
           id: ticker,
-          name: ticker, // Alpha Vantageからは銘柄名が取得できないため、ティッカーを使用
+          name: name,
           ticker: ticker,
           exchangeMarket: ticker.includes('.T') ? 'Japan' : 'US',
           price: price,
           currency: currency,
           holdings: 0,
-          annualFee: 0.3,
+          annualFee: annualFee,
+          fundType: fundType,
+          isStock: isStock,
+          feeSource: isStock ? '個別株' : feeInfo.source,
+          feeIsEstimated: isStock ? false : feeInfo.isEstimated,
+          region: fundInfo.region || 'unknown',
           lastUpdated: new Date().toISOString(),
-          source: 'Alpha Vantage'
+          source: 'Alpha Vantage',
+          // 配当情報を追加
+          dividendYield: dividendInfo.yield,
+          hasDividend: dividendInfo.hasDividend,
+          dividendFrequency: dividendInfo.dividendFrequency,
+          dividendIsEstimated: dividendInfo.isEstimated
         },
         message: '正常に取得しました'
       };
@@ -120,8 +162,22 @@ export async function fetchTickerData(ticker) {
  */
 function generateFallbackTickerData(ticker) {
   // 市場とティッカーから推測されるデフォルト値を使用
-  const isJapanese = ticker.includes('.T');
+  const isJapanese = ticker.includes('.T') || /^\d{4,}$/.test(ticker);
   const defaultPrice = isJapanese ? 2500 : 150;
+  
+  // ファンドタイプと手数料情報を取得
+  const fundInfo = extractFundInfo(ticker, ticker);
+  const fundType = guessFundType(ticker, ticker);
+  const feeInfo = estimateAnnualFee(ticker, ticker);
+  
+  // 配当情報の推定
+  const dividendInfo = estimateDividendYield(ticker, ticker);
+  
+  // 個別株かどうかを判定（複数の条件で判断）
+  const isStock = fundType === 'STOCK' || fundType === '個別株';
+  
+  // 手数料情報（個別株は常に0%）
+  const annualFee = isStock ? 0 : feeInfo.fee;
   
   return {
     success: false,
@@ -133,13 +189,124 @@ function generateFallbackTickerData(ticker) {
       price: defaultPrice,
       currency: isJapanese ? 'JPY' : 'USD',
       holdings: 0,
-      annualFee: 0.3,
+      annualFee: annualFee,
+      fundType: fundType,
+      isStock: isStock,
+      feeSource: isStock ? '個別株' : feeInfo.source,
+      feeIsEstimated: isStock ? false : feeInfo.isEstimated,
+      region: fundInfo.region || 'unknown',
       lastUpdated: new Date().toISOString(),
-      source: 'Fallback'
+      source: 'Fallback',
+      // 配当情報を追加
+      dividendYield: dividendInfo.yield,
+      hasDividend: dividendInfo.hasDividend,
+      dividendFrequency: dividendInfo.dividendFrequency,
+      dividendIsEstimated: dividendInfo.isEstimated
     },
     message: '最新の価格データを取得できませんでした。前回の価格または推定値を使用しています。',
     error: true
   };
+}
+
+/**
+ * 配当データを取得（新規）
+ * Alpha Vantageなどから配当情報を取得する場合に使用
+ * @param {string} ticker - ティッカーシンボル
+ * @returns {Promise<Object>} - 配当データとステータス
+ */
+export async function fetchDividendData(ticker) {
+  try {
+    // 現時点ではAPIからの配当データ取得は実装せず、推定値を返す
+    // 将来的には、Alpha Vantageの'TIME_SERIES_MONTHLY_ADJUSTED'などのエンドポイントから
+    // 配当情報を取得する実装に置き換えることを想定
+    
+    const dividendInfo = estimateDividendYield(ticker);
+    
+    return {
+      success: true,
+      data: {
+        dividendYield: dividendInfo.yield,
+        hasDividend: dividendInfo.hasDividend,
+        dividendFrequency: dividendInfo.dividendFrequency,
+        dividendIsEstimated: dividendInfo.isEstimated,
+        lastUpdated: new Date().toISOString()
+      },
+      message: '配当情報を取得しました（推定値）'
+    };
+  } catch (error) {
+    console.error('Dividend data fetch error:', error);
+    
+    // エラー時は推定値を返す
+    const dividendInfo = estimateDividendYield(ticker);
+    
+    return {
+      success: false,
+      data: {
+        dividendYield: dividendInfo.yield,
+        hasDividend: dividendInfo.hasDividend,
+        dividendFrequency: dividendInfo.dividendFrequency,
+        dividendIsEstimated: true,
+        lastUpdated: new Date().toISOString()
+      },
+      message: '配当情報の取得に失敗しました。推定値を使用しています。',
+      error: true
+    };
+  }
+}
+
+/**
+ * 銘柄情報を取得（手数料と配当情報を含む）
+ * @param {string} ticker - ティッカーシンボル
+ * @returns {Promise<Object>} - 銘柄情報とステータス
+ */
+export async function fetchFundInfo(ticker, name = '') {
+  try {
+    // ファンドタイプを推定
+    const fundType = guessFundType(ticker, name);
+    
+    // 手数料情報を推定
+    const feeInfo = estimateAnnualFee(ticker, name);
+    
+    // 配当情報を推定
+    const dividendInfo = estimateDividendYield(ticker, name);
+    
+    // 個別株かどうかを判定
+    const isStock = fundType === 'STOCK' || fundType === '個別株';
+    
+    return {
+      success: true,
+      ticker: ticker,
+      name: name || ticker,
+      fundType: fundType,
+      isStock: isStock,
+      annualFee: isStock ? 0 : feeInfo.fee,
+      feeSource: isStock ? '個別株' : feeInfo.source,
+      feeIsEstimated: isStock ? false : feeInfo.isEstimated,
+      dividendYield: dividendInfo.yield,
+      hasDividend: dividendInfo.hasDividend,
+      dividendFrequency: dividendInfo.dividendFrequency,
+      dividendIsEstimated: dividendInfo.isEstimated,
+      message: 'ファンド情報を取得しました'
+    };
+  } catch (error) {
+    console.error('Fund info fetch error:', error);
+    
+    return {
+      success: false,
+      ticker: ticker,
+      fundType: 'UNKNOWN',
+      isStock: false,
+      annualFee: 0,
+      feeSource: '取得失敗',
+      feeIsEstimated: true,
+      dividendYield: 0,
+      hasDividend: false,
+      dividendFrequency: 'unknown',
+      dividendIsEstimated: true,
+      message: 'ファンド情報の取得に失敗しました',
+      error: true
+    };
+  }
 }
 
 /**
