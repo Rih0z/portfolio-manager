@@ -1,7 +1,13 @@
 // src/services/marketDataService.js
 
 import axios from 'axios';
-import { guessFundType, estimateAnnualFee, extractFundInfo, estimateDividendYield } from '../utils/fundUtils';
+import { 
+  guessFundType, 
+  estimateAnnualFee, 
+  extractFundInfo, 
+  estimateDividendYield,
+  TICKER_SPECIFIC_DIVIDENDS
+} from '../utils/fundUtils';
 
 // 環境に応じたベースURL設定
 const isLocalhost = 
@@ -19,7 +25,7 @@ const PROD_BASE_URL = process.env.REACT_APP_API_BASE_URL ||
 // API エンドポイントの設定
 const BASE_URL = isLocalhost ? '' : PROD_BASE_URL;
 
-// Alpha Vantage APIエンドポイント（プライマリデータソース）
+// Alpha Vantage APIエンドポイント（プライマリソース）
 const ALPHA_VANTAGE_URL = isLocalhost
   ? '/.netlify/functions/alpha-vantage-proxy' // ローカル環境
   : `${BASE_URL}/.netlify/functions/alpha-vantage-proxy`; // 本番環境
@@ -102,8 +108,11 @@ export async function fetchTickerData(ticker) {
       const fundType = guessFundType(ticker, name);
       const feeInfo = estimateAnnualFee(ticker, name);
       
-      // 配当情報の推定
+      // 配当情報の取得
       const dividendInfo = estimateDividendYield(ticker, name);
+      
+      // 特定のETFの配当情報を設定
+      const hasDividend = determineHasDividend(ticker, fundType, dividendInfo);
       
       // 通貨判定
       const currency = fundInfo.currency || (ticker.includes('.T') ? 'JPY' : 'USD');
@@ -132,9 +141,9 @@ export async function fetchTickerData(ticker) {
           region: fundInfo.region || 'unknown',
           lastUpdated: new Date().toISOString(),
           source: 'Alpha Vantage',
-          // 配当情報を追加
+          // 配当情報
           dividendYield: dividendInfo.yield,
-          hasDividend: dividendInfo.hasDividend,
+          hasDividend: hasDividend,
           dividendFrequency: dividendInfo.dividendFrequency,
           dividendIsEstimated: dividendInfo.isEstimated
         },
@@ -156,6 +165,42 @@ export async function fetchTickerData(ticker) {
 }
 
 /**
+ * ETFかどうかを判定し、配当情報を確定する
+ */
+function determineHasDividend(ticker, fundType, dividendInfo) {
+  // TICKER_SPECIFIC_DIVIDENDSに登録されている場合はその値を優先
+  if (TICKER_SPECIFIC_DIVIDENDS[ticker] !== undefined) {
+    return TICKER_SPECIFIC_DIVIDENDS[ticker] > 0;
+  }
+  
+  // 金ETFなど特別なケース
+  if (ticker === 'GLD') {
+    return false;
+  }
+  
+  // ファンドタイプに基づく判断
+  if (fundType === 'STOCK' || fundType === '個別株') {
+    // 個別株は場合によって配当があるかどうか不明なのでデフォルトはfalse
+    return false;
+  } else if (
+    fundType === 'ETF（米国）' || 
+    fundType === 'ETF（日本）' || 
+    fundType === 'インデックス（米国）' || 
+    fundType === 'インデックス（日本）' || 
+    fundType === 'インデックス（グローバル）' ||
+    fundType === 'REIT（米国）' || 
+    fundType === 'REIT（日本）' || 
+    fundType === '債券'
+  ) {
+    // ETF、インデックスファンド、REIT、債券ファンドは通常配当あり
+    return true;
+  }
+  
+  // dividendInfoの値を使用
+  return dividendInfo.hasDividend;
+}
+
+/**
  * 全ての取得方法が失敗した場合のフォールバックデータ生成
  * @param {string} ticker - ティッカーシンボル
  * @returns {Object} - フォールバック銘柄データとステータス
@@ -173,7 +218,10 @@ function generateFallbackTickerData(ticker) {
   // 配当情報の推定
   const dividendInfo = estimateDividendYield(ticker, ticker);
   
-  // 個別株かどうかを判定（複数の条件で判断）
+  // 特定のETFの配当情報を設定
+  const hasDividend = determineHasDividend(ticker, fundType, dividendInfo);
+  
+  // 個別株かどうかを判定
   const isStock = fundType === 'STOCK' || fundType === '個別株';
   
   // 手数料情報（個別株は常に0%）
@@ -197,9 +245,9 @@ function generateFallbackTickerData(ticker) {
       region: fundInfo.region || 'unknown',
       lastUpdated: new Date().toISOString(),
       source: 'Fallback',
-      // 配当情報を追加
+      // 配当情報
       dividendYield: dividendInfo.yield,
-      hasDividend: dividendInfo.hasDividend,
+      hasDividend: hasDividend,
       dividendFrequency: dividendInfo.dividendFrequency,
       dividendIsEstimated: dividendInfo.isEstimated
     },
@@ -209,41 +257,43 @@ function generateFallbackTickerData(ticker) {
 }
 
 /**
- * 配当データを取得（新規）
- * Alpha Vantageなどから配当情報を取得する場合に使用
+ * 配当データを取得
  * @param {string} ticker - ティッカーシンボル
  * @returns {Promise<Object>} - 配当データとステータス
  */
 export async function fetchDividendData(ticker) {
   try {
-    // 現時点ではAPIからの配当データ取得は実装せず、推定値を返す
-    // 将来的には、Alpha Vantageの'TIME_SERIES_MONTHLY_ADJUSTED'などのエンドポイントから
-    // 配当情報を取得する実装に置き換えることを想定
-    
+    // ファンドタイプと配当情報を取得
+    const fundType = guessFundType(ticker);
     const dividendInfo = estimateDividendYield(ticker);
+    
+    // 特定のETFの配当情報を設定
+    const hasDividend = determineHasDividend(ticker, fundType, dividendInfo);
     
     return {
       success: true,
       data: {
         dividendYield: dividendInfo.yield,
-        hasDividend: dividendInfo.hasDividend,
+        hasDividend: hasDividend,
         dividendFrequency: dividendInfo.dividendFrequency,
         dividendIsEstimated: dividendInfo.isEstimated,
         lastUpdated: new Date().toISOString()
       },
-      message: '配当情報を取得しました（推定値）'
+      message: '配当情報を取得しました'
     };
   } catch (error) {
     console.error('Dividend data fetch error:', error);
     
-    // エラー時は推定値を返す
+    // エラー時はティッカーからの推定値を返す
     const dividendInfo = estimateDividendYield(ticker);
+    const fundType = guessFundType(ticker);
+    const hasDividend = determineHasDividend(ticker, fundType, dividendInfo);
     
     return {
       success: false,
       data: {
         dividendYield: dividendInfo.yield,
-        hasDividend: dividendInfo.hasDividend,
+        hasDividend: hasDividend,
         dividendFrequency: dividendInfo.dividendFrequency,
         dividendIsEstimated: true,
         lastUpdated: new Date().toISOString()
@@ -257,6 +307,7 @@ export async function fetchDividendData(ticker) {
 /**
  * 銘柄情報を取得（手数料と配当情報を含む）
  * @param {string} ticker - ティッカーシンボル
+ * @param {string} name - 銘柄名（省略可）
  * @returns {Promise<Object>} - 銘柄情報とステータス
  */
 export async function fetchFundInfo(ticker, name = '') {
@@ -269,6 +320,9 @@ export async function fetchFundInfo(ticker, name = '') {
     
     // 配当情報を推定
     const dividendInfo = estimateDividendYield(ticker, name);
+    
+    // 特定のETFの配当情報を設定
+    const hasDividend = determineHasDividend(ticker, fundType, dividendInfo);
     
     // 個別株かどうかを判定
     const isStock = fundType === 'STOCK' || fundType === '個別株';
@@ -283,7 +337,7 @@ export async function fetchFundInfo(ticker, name = '') {
       feeSource: isStock ? '個別株' : feeInfo.source,
       feeIsEstimated: isStock ? false : feeInfo.isEstimated,
       dividendYield: dividendInfo.yield,
-      hasDividend: dividendInfo.hasDividend,
+      hasDividend: hasDividend,
       dividendFrequency: dividendInfo.dividendFrequency,
       dividendIsEstimated: dividendInfo.isEstimated,
       message: 'ファンド情報を取得しました'
