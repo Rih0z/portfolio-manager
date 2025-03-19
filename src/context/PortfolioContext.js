@@ -3,6 +3,7 @@ import {
   fetchTickerData, 
   fetchExchangeRate, 
   fetchFundInfo,
+  fetchDividendData,
   loadFromGoogleDrive as apiLoadFromGoogleDrive,
   saveToGoogleDrive as apiSaveToGoogleDrive,
   initGoogleDriveAPI
@@ -176,7 +177,7 @@ export const PortfolioProvider = ({ children }) => {
     });
   }, [saveToLocalStorage]);
 
-  // 市場データの更新（手数料更新機能を追加）
+  // 市場データの更新（手数料更新機能と配当情報更新機能を追加）
   const refreshMarketPrices = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -184,8 +185,9 @@ export const PortfolioProvider = ({ children }) => {
       
       let feeChangesCount = 0;
       const feeChangeDetails = [];
+      let dividendChangesCount = 0;
       
-      // 全ての保有銘柄の最新価格と手数料情報を取得
+      // 全ての保有銘柄の最新価格と手数料情報・配当情報を取得
       const updatedAssets = await Promise.all(
         currentAssets.map(async (asset) => {
           try {
@@ -194,30 +196,47 @@ export const PortfolioProvider = ({ children }) => {
             console.log(`Updated data for ${asset.ticker}:`, updatedData);
             
             // 手数料情報の変更を確認
-            const hasFeeChanged = asset.annualFee !== updatedData.annualFee;
+            const hasFeeChanged = !asset.isStock && asset.annualFee !== updatedData.data.annualFee;
             
             // 手数料変更があれば記録
-            if (hasFeeChanged && !asset.isStock) {
+            if (hasFeeChanged) {
               feeChangesCount++;
               feeChangeDetails.push({
                 ticker: asset.ticker,
                 name: asset.name,
                 oldFee: asset.annualFee,
-                newFee: updatedData.annualFee
+                newFee: updatedData.data.annualFee
               });
+            }
+            
+            // 配当情報も取得
+            const dividendData = await fetchDividendData(asset.ticker);
+            
+            // 配当情報の変更を確認
+            const hasDividendChanged = 
+              asset.dividendYield !== dividendData.data.dividendYield ||
+              asset.hasDividend !== dividendData.data.hasDividend;
+            
+            if (hasDividendChanged) {
+              dividendChangesCount++;
             }
             
             // 更新されたアセット情報を返す（個別株は常に手数料0%を維持）
             return {
               ...asset,
-              price: updatedData.price,
-              source: updatedData.source,
-              lastUpdated: updatedData.lastUpdated,
-              annualFee: asset.isStock ? 0 : updatedData.annualFee, // 個別株は常に0%
-              fundType: updatedData.fundType || asset.fundType,
-              feeSource: asset.isStock ? '個別株' : updatedData.feeSource,
-              feeIsEstimated: asset.isStock ? false : updatedData.feeIsEstimated,
-              region: updatedData.region || asset.region
+              price: updatedData.data.price,
+              source: updatedData.data.source,
+              lastUpdated: updatedData.data.lastUpdated,
+              annualFee: asset.isStock ? 0 : updatedData.data.annualFee, // 個別株は常に0%
+              fundType: updatedData.data.fundType || asset.fundType,
+              feeSource: asset.isStock ? '個別株' : updatedData.data.feeSource,
+              feeIsEstimated: asset.isStock ? false : updatedData.data.feeIsEstimated,
+              region: updatedData.data.region || asset.region,
+              // 配当情報を更新
+              dividendYield: dividendData.data.dividendYield,
+              hasDividend: dividendData.data.hasDividend,
+              dividendFrequency: dividendData.data.dividendFrequency,
+              dividendIsEstimated: dividendData.data.dividendIsEstimated
             };
           } catch (error) {
             console.error(`銘柄 ${asset.ticker} の更新に失敗しました`, error);
@@ -261,6 +280,11 @@ export const PortfolioProvider = ({ children }) => {
         });
       }
       
+      // 配当情報の変更があった場合の通知
+      if (dividendChangesCount > 0) {
+        addNotification(`${dividendChangesCount}件の銘柄で配当情報が更新されました`, 'info');
+      }
+      
       // データを自動保存
       saveToLocalStorage();
       
@@ -274,7 +298,7 @@ export const PortfolioProvider = ({ children }) => {
     }
   }, [currentAssets, addNotification, saveToLocalStorage]);
 
-  // 銘柄追加
+  // 銘柄追加（手数料と配当情報の設定を含む）
   const addTicker = useCallback(async (ticker) => {
     try {
       // 既に存在するか確認
@@ -287,24 +311,49 @@ export const PortfolioProvider = ({ children }) => {
       }
 
       // Alpha Vantageから銘柄データ取得
-      const tickerData = await fetchTickerData(ticker);
-      console.log('Fetched ticker data:', tickerData);
+      const tickerResult = await fetchTickerData(ticker);
+      console.log('Fetched ticker data:', tickerResult);
+      
+      if (!tickerResult.success) {
+        // 取得失敗時でもフォールバックデータがあるのでそれを使用
+        console.log('Using fallback data for ticker:', tickerResult.data);
+      }
+      
+      // 銘柄データ
+      const tickerData = tickerResult.data;
 
       // ファンド情報を取得（手数料率など）
-      const fundInfoResult = await fetchFundInfo(ticker);
+      const fundInfoResult = await fetchFundInfo(ticker, tickerData.name);
       console.log('Fetched fund info:', fundInfoResult);
       
-      // 自動取得した手数料情報のメッセージを作成
-      let feeMessage = '';
+      // 配当情報を取得
+      const dividendResult = await fetchDividendData(ticker);
+      console.log('Fetched dividend info:', dividendResult);
+      
+      // 自動取得した情報のメッセージを作成
+      let infoMessage = '';
       if (fundInfoResult.success) {
         const { fundType, annualFee, feeIsEstimated } = fundInfoResult;
-        feeMessage = `${fundType} ファンドとして判定し、年間手数料率${annualFee}%を${feeIsEstimated ? '推定' : '設定'}しました`;
+        
+        // 個別株かどうかでメッセージを変える
+        if (fundInfoResult.isStock) {
+          infoMessage = `${fundType || '個別株'} として判定しました（手数料は固定で0%）`;
+        } else {
+          infoMessage = `${fundType} ファンドとして判定し、年間手数料率${annualFee}%を${feeIsEstimated ? '推定' : '設定'}しました`;
+        }
+        
+        // 配当情報があれば追加
+        if (dividendResult.data.hasDividend) {
+          infoMessage += `、配当利回り${dividendResult.data.dividendYield.toFixed(2)}%${dividendResult.data.dividendIsEstimated ? '（推定）' : ''}`;
+        }
       }
 
       // 目標配分に追加
       setTargetPortfolio(prev => {
         const newItems = [...prev, {
-          ...tickerData,
+          id: tickerData.id,
+          name: tickerData.name,
+          ticker: tickerData.ticker,
           targetPercentage: 0
         }];
         return newItems;
@@ -314,19 +363,27 @@ export const PortfolioProvider = ({ children }) => {
       setCurrentAssets(prev => {
         const newItems = [...prev, {
           ...tickerData,
+          // 保有数量は0から始める
           holdings: 0,
-          annualFee: tickerData.annualFee || 0,
-          fundType: tickerData.fundType || 'unknown',
-          feeSource: tickerData.feeSource || 'Estimated',
-          feeIsEstimated: tickerData.feeIsEstimated || true,
-          region: tickerData.region || 'unknown'
+          // 手数料情報（個別株は常に0%）
+          annualFee: tickerData.isStock ? 0 : tickerData.annualFee || fundInfoResult.annualFee || 0,
+          fundType: tickerData.fundType || fundInfoResult.fundType || 'unknown',
+          isStock: tickerData.isStock || fundInfoResult.isStock || false,
+          feeSource: tickerData.isStock ? '個別株' : tickerData.feeSource || fundInfoResult.feeSource || 'Estimated',
+          feeIsEstimated: tickerData.isStock ? false : tickerData.feeIsEstimated || fundInfoResult.feeIsEstimated || true,
+          region: tickerData.region || fundInfoResult.region || 'unknown',
+          // 配当情報
+          dividendYield: dividendResult.data.dividendYield,
+          hasDividend: dividendResult.data.hasDividend,
+          dividendFrequency: dividendResult.data.dividendFrequency,
+          dividendIsEstimated: dividendResult.data.dividendIsEstimated
         }];
         return newItems;
       });
 
-      // 手数料情報の通知を追加
-      if (feeMessage) {
-        addNotification(feeMessage, 'info');
+      // 手数料・配当情報の通知を追加
+      if (infoMessage) {
+        addNotification(infoMessage, 'info');
       }
       
       // データを自動保存
@@ -358,6 +415,60 @@ export const PortfolioProvider = ({ children }) => {
       const updated = prev.map(item => 
         item.id === id ? { ...item, holdings: parseFloat(parseFloat(holdings).toFixed(4)) || 0 } : item
       );
+      // 変更後に自動保存
+      setTimeout(() => saveToLocalStorage(), 100);
+      return updated;
+    });
+  }, [saveToLocalStorage]);
+
+  // 手数料率の更新（手数料情報が不正確な場合にユーザーが修正可能に）
+  const updateAnnualFee = useCallback((id, fee) => {
+    setCurrentAssets(prev => {
+      const updated = prev.map(item => {
+        if (item.id === id) {
+          // 個別株の場合は手数料を0に固定（変更不可）
+          if (item.isStock || item.fundType === 'STOCK' || item.fundType === '個別株') {
+            return {
+              ...item,
+              annualFee: 0,
+              feeSource: '個別株',
+              feeIsEstimated: false
+            };
+          } else {
+            // その他のファンドの場合はユーザー指定の値を使用
+            return {
+              ...item,
+              annualFee: parseFloat(parseFloat(fee).toFixed(2)) || 0,
+              feeSource: 'ユーザー設定',
+              feeIsEstimated: false
+            };
+          }
+        }
+        return item;
+      });
+      
+      // 変更後に自動保存
+      setTimeout(() => saveToLocalStorage(), 100);
+      return updated;
+    });
+  }, [saveToLocalStorage]);
+  
+  // 配当情報の更新
+  const updateDividendInfo = useCallback((id, dividendYield, hasDividend = true, frequency = 'quarterly') => {
+    setCurrentAssets(prev => {
+      const updated = prev.map(item => {
+        if (item.id === id) {
+          return {
+            ...item,
+            dividendYield: parseFloat(parseFloat(dividendYield).toFixed(2)) || 0,
+            hasDividend: hasDividend,
+            dividendFrequency: frequency,
+            dividendIsEstimated: false
+          };
+        }
+        return item;
+      });
+      
       // 変更後に自動保存
       setTimeout(() => saveToLocalStorage(), 100);
       return updated;
@@ -476,7 +587,7 @@ export const PortfolioProvider = ({ children }) => {
     saveToLocalStorage();
   }, [executePurchase, saveToLocalStorage]);
 
-  // データのインポート（手数料情報の整合性を確保）
+  // データのインポート（手数料情報と配当情報の整合性を確保）
   const importData = useCallback((data) => {
     if (!data) return { success: false, message: 'データが無効です' };
     
@@ -503,10 +614,22 @@ export const PortfolioProvider = ({ children }) => {
               annualFee: 0,
               feeSource: '個別株',
               feeIsEstimated: false,
-              isStock: true
+              isStock: true,
+              // 配当情報がない場合は初期値を設定
+              dividendYield: asset.dividendYield || 0,
+              hasDividend: asset.hasDividend || false,
+              dividendFrequency: asset.dividendFrequency || 'quarterly',
+              dividendIsEstimated: asset.dividendIsEstimated || true
             };
           }
-          return asset;
+          return {
+            ...asset,
+            // 配当情報がない場合は初期値を設定
+            dividendYield: asset.dividendYield || 0,
+            hasDividend: asset.hasDividend || false,
+            dividendFrequency: asset.dividendFrequency || 'quarterly',
+            dividendIsEstimated: asset.dividendIsEstimated || true
+          };
         });
         setCurrentAssets(validatedAssets);
       }
@@ -654,7 +777,7 @@ export const PortfolioProvider = ({ children }) => {
         if (cloudData.lastUpdated) setLastUpdated(cloudData.lastUpdated);
         if (cloudData.additionalBudget !== undefined) setAdditionalBudget(cloudData.additionalBudget);
         
-        // アセットデータのインポート（個別株の手数料を0%に確保）
+        // アセットデータのインポート（個別株の手数料を0%に確保、配当情報の初期値を設定）
         if (Array.isArray(cloudData.currentAssets)) {
           const validatedAssets = cloudData.currentAssets.map(asset => {
             if (asset.isStock || asset.fundType === 'STOCK' || asset.fundType === '個別株') {
@@ -663,10 +786,22 @@ export const PortfolioProvider = ({ children }) => {
                 annualFee: 0,
                 feeSource: '個別株',
                 feeIsEstimated: false,
-                isStock: true
+                isStock: true,
+                // 配当情報がない場合は初期値を設定
+                dividendYield: asset.dividendYield || 0,
+                hasDividend: asset.hasDividend || false,
+                dividendFrequency: asset.dividendFrequency || 'quarterly',
+                dividendIsEstimated: asset.dividendIsEstimated || true
               };
             }
-            return asset;
+            return {
+              ...asset,
+              // 配当情報がない場合は初期値を設定
+              dividendYield: asset.dividendYield || 0,
+              hasDividend: asset.hasDividend || false,
+              dividendFrequency: asset.dividendFrequency || 'quarterly',
+              dividendIsEstimated: asset.dividendIsEstimated || true
+            };
           });
           setCurrentAssets(validatedAssets);
         }
@@ -728,7 +863,7 @@ export const PortfolioProvider = ({ children }) => {
           setAdditionalBudget(localData.additionalBudget);
         }
         
-        // アセットデータのインポート（個別株の手数料を0%に確保）
+        // アセットデータのインポート（個別株の手数料を0%に確保、配当情報の初期値を設定）
         if (Array.isArray(localData.currentAssets)) {
           console.log('保有資産データを設定:', localData.currentAssets.length, '件');
           const validatedAssets = localData.currentAssets.map(asset => {
@@ -738,10 +873,22 @@ export const PortfolioProvider = ({ children }) => {
                 annualFee: 0,
                 feeSource: '個別株',
                 feeIsEstimated: false,
-                isStock: true
+                isStock: true,
+                // 配当情報がない場合は初期値を設定
+                dividendYield: asset.dividendYield || 0,
+                hasDividend: asset.hasDividend || false,
+                dividendFrequency: asset.dividendFrequency || 'quarterly',
+                dividendIsEstimated: asset.dividendIsEstimated || true
               };
             }
-            return asset;
+            return {
+              ...asset,
+              // 配当情報がない場合は初期値を設定
+              dividendYield: asset.dividendYield || 0,
+              hasDividend: asset.hasDividend || false,
+              dividendFrequency: asset.dividendFrequency || 'quarterly',
+              dividendIsEstimated: asset.dividendIsEstimated || true
+            };
           });
           setCurrentAssets(validatedAssets);
         }
@@ -814,6 +961,27 @@ export const PortfolioProvider = ({ children }) => {
     return sum + (assetValue * (asset.annualFee || 0) / 100);
   }, 0);
 
+  // 年間配当金の計算（新規）
+  const annualDividends = currentAssets.reduce((sum, asset) => {
+    // 配当がない場合はスキップ
+    if (!asset.hasDividend) {
+      return sum;
+    }
+    
+    let assetValue = asset.price * asset.holdings;
+    
+    // 通貨換算
+    if (asset.currency !== baseCurrency) {
+      if (baseCurrency === 'JPY' && asset.currency === 'USD') {
+        assetValue *= exchangeRate.rate;
+      } else if (baseCurrency === 'USD' && asset.currency === 'JPY') {
+        assetValue /= exchangeRate.rate;
+      }
+    }
+    
+    return sum + (assetValue * (asset.dividendYield || 0) / 100);
+  }, 0);
+
   // コンテキスト値 (データ保存・同期関連の関数を追加)
   const contextValue = {
     baseCurrency, 
@@ -825,6 +993,7 @@ export const PortfolioProvider = ({ children }) => {
     additionalBudget,
     totalAssets, 
     annualFees,
+    annualDividends, // 年間配当金を追加
     dataSource,
     lastSyncTime,
     toggleCurrency, 
@@ -832,6 +1001,8 @@ export const PortfolioProvider = ({ children }) => {
     addTicker,
     updateTargetAllocation, 
     updateHoldings,
+    updateAnnualFee, // 手数料率更新関数を追加
+    updateDividendInfo, // 配当情報更新関数を追加
     removeTicker,
     setAdditionalBudget, 
     calculateSimulation,
