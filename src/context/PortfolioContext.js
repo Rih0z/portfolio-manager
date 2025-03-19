@@ -82,10 +82,18 @@ export const PortfolioProvider = ({ children }) => {
   const [dataSource, setDataSource] = useState('local');
   const [lastSyncTime, setLastSyncTime] = useState(null);
 
-  // 通知を追加する関数
+  // 通知を追加する関数（タイムアウト付き）
   const addNotification = useCallback((message, type = 'info') => {
     const id = Date.now();
     setNotifications(prev => [...prev, { id, message, type }]);
+  
+    // 情報・成功・警告通知は自動消去（5秒後）
+    if (type !== 'error') {
+      setTimeout(() => {
+        removeNotification(id);
+      }, 5000);
+    }
+  
     return id;
   }, []);
 
@@ -1028,6 +1036,7 @@ export const PortfolioProvider = ({ children }) => {
   // データの初期化処理（ローカルストレージからデータを読み込み、銘柄情報を検証）
   const initializeData = useCallback(() => {
     try {
+      if (initialized) return;
       console.log('データの初期化を開始...');
       const localData = loadFromLocalStorage();
       
