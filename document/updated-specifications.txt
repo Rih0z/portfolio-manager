@@ -1,6 +1,6 @@
-# ポートフォリオマネージャー 仕様書（更新版2.0）
+# ポートフォリオマネージャー 仕様書（更新版3.0）
 
-**最終更新日時:** 2025/03/17 14:45
+**最終更新日時:** 2025/03/18 15:30
 
 ## 1. プロジェクト概要
 
@@ -8,8 +8,9 @@
 
 ### 1.1 主要機能
 - 資産管理（保有数の小数点以下4桁対応）
-- 銘柄タイプ自動判定（個別株、ETF、インデックスファンド、アクティブファンドなど）
+- 銘柄タイプ自動判定（個別株、ETF、インデックスファンドなど）
 - 年間手数料率の自動推定と計算（個別株は0%固定）
+- 年間配当金の計算と配当情報の管理
 - 理想ポートフォリオ配分設定
 - 資金配分シミュレーション
 - データインポート/エクスポート
@@ -44,7 +45,7 @@
 - **netlify.toml**: Netlifyデプロイとサーバーレス関数の設定
 - **.env.local**: 環境変数設定（ローカル開発用）
 - **src/setupProxy.js**: プロキシ設定（API連携用）
-- **src/utils/fundUtils.js**: ファンドタイプと手数料情報のユーティリティ関数
+- **src/utils/fundUtils.js**: ファンドタイプと手数料情報、配当情報のユーティリティ関数
 - **public/index.html**: 基本HTMLとGoogle APIスクリプトの読み込み
 
 ### 2.2 環境変数
@@ -120,14 +121,14 @@ portfolio-manager/
 │   │   │   ├── LoginButton.jsx
 │   │   │   └── UserProfile.jsx
 │   │   ├── dashboard/
-│   │   │   ├── PortfolioSummary.jsx
+│   │   │   ├── PortfolioSummary.jsx      # 配当情報の表示を追加
 │   │   │   ├── PortfolioCharts.jsx
 │   │   │   ├── DifferenceChart.jsx
-│   │   │   └── AssetsTable.jsx
+│   │   │   └── AssetsTable.jsx           # 配当情報の列を追加
 │   │   ├── settings/
 │   │   │   ├── TickerSearch.jsx
 │   │   │   ├── PopularTickers.jsx
-│   │   │   ├── HoldingsEditor.jsx
+│   │   │   ├── HoldingsEditor.jsx        # 配当情報の表示と編集機能を追加
 │   │   │   └── AllocationEditor.jsx
 │   │   ├── simulation/
 │   │   │   ├── BudgetInput.jsx
@@ -135,18 +136,18 @@ portfolio-manager/
 │   │   ├── data/
 │   │   │   ├── ExportOptions.jsx
 │   │   │   ├── ImportOptions.jsx
-│   │   │   ├── GoogleDriveIntegration.jsx
-│   │   │   └── DataErrorRecovery.jsx      # 新規: データ修復コンポーネント
+│   │   │   ├── GoogleDriveIntegration.jsx # 認証フロー改善
+│   │   │   └── DataErrorRecovery.jsx      # データ修復コンポーネント
 │   │   └── common/
 │   │       ├── CurrencyFormat.jsx
 │   │       ├── NumberInput.jsx
 │   │       ├── Modal.jsx
 │   │       ├── ToastNotification.jsx
 │   │       ├── DataSourceBadge.jsx
-│   │       └── ErrorBoundary.jsx          # 新規: エラーバウンダリコンポーネント
+│   │       └── ErrorBoundary.jsx          
 │   ├── context/
-│   │   ├── AuthContext.js                 # 修正: 認証フロー改善
-│   │   └── PortfolioContext.js            # 修正: 暗号化/復号化処理強化
+│   │   ├── AuthContext.js                 # 認証フロー改善
+│   │   └── PortfolioContext.js            # 配当情報の処理と暗号化強化
 │   ├── hooks/
 │   │   ├── useAuth.js
 │   │   └── usePortfolioContext.js
@@ -156,12 +157,12 @@ portfolio-manager/
 │   │   ├── Simulation.jsx
 │   │   └── DataIntegration.jsx
 │   ├── services/
-│   │   ├── api.js                         # 修正: Google Drive API連携実装
-│   │   └── marketDataService.js
+│   │   ├── api.js                         # Google Drive API連携と配当データ取得
+│   │   └── marketDataService.js           # 配当情報取得機能追加
 │   ├── utils/
 │   │   ├── formatters.js
-│   │   └── fundUtils.js
-│   ├── App.jsx                            # 修正: エラーバウンダリ追加
+│   │   └── fundUtils.js                   # 配当情報推定機能追加
+│   ├── App.jsx                            
 │   ├── index.js
 │   ├── setupProxy.js
 │   └── index.css
@@ -179,13 +180,17 @@ portfolio-manager/
 
 - **App.jsx**: アプリケーションのルートコンポーネント、認証プロバイダー、ルーティング設定、エラーバウンダリ
 - **context/AuthContext.js**: Google認証管理、PortfolioContextとの連携、認証フロー改善
-- **context/PortfolioContext.js**: ポートフォリオ状態・ロジック管理、暗号化/復号化処理強化
+- **context/PortfolioContext.js**: ポートフォリオ状態・ロジック管理、配当情報処理、暗号化/復号化処理強化
 - **hooks/useAuth.js**: 認証状態管理フック
 - **hooks/usePortfolioContext.js**: ポートフォリオコンテキスト使用フック
-- **utils/fundUtils.js**: ファンドタイプ判定と手数料率推定のユーティリティ関数
+- **utils/fundUtils.js**: ファンドタイプ判定、手数料率推定、配当情報推定のユーティリティ関数
 - **setupProxy.js**: 開発環境用APIプロキシ設定
-- **services/api.js**: 市場データ取得とGoogle Drive API連携（Fetch API使用）
+- **services/api.js**: 市場データ取得とGoogle Drive API連携、配当データ取得
+- **services/marketDataService.js**: 銘柄データと配当情報の取得、ファンドタイプ判定
 - **components/common/ErrorBoundary.jsx**: アプリケーションエラーのキャッチと表示
+- **components/dashboard/PortfolioSummary.jsx**: 資産概要と配当情報サマリーの表示
+- **components/dashboard/AssetsTable.jsx**: 資産詳細と配当情報の表示
+- **components/settings/HoldingsEditor.jsx**: 保有資産の編集と配当情報表示
 - **public/index.html**: Google API Client Libraryを読み込み
 
 ## 4. データモデル（更新版）
@@ -208,6 +213,11 @@ interface Asset {
   region?: string; // 対象地域 ('日本', '米国', 'グローバル', '不明')
   lastUpdated?: string; // 最終更新日時
   source?: string; // データソース ('Alpha Vantage', 'Fallback')
+  // 配当情報の追加
+  dividendYield: number; // 配当利回り（%）
+  hasDividend: boolean; // 配当があるかどうか
+  dividendFrequency: string; // 配当頻度 ('monthly', 'quarterly', 'semi-annual', 'annual')
+  dividendIsEstimated: boolean; // 配当情報が推定値かどうか
 }
 ```
 
@@ -259,7 +269,18 @@ enum FundTypes {
 }
 ```
 
-### 4.5 ローカルストレージデータ形式（更新版）
+### 4.5 DividendFrequency（配当頻度）
+```typescript
+enum DividendFrequency {
+  MONTHLY = 'monthly', // 毎月
+  QUARTERLY = 'quarterly', // 四半期
+  SEMI_ANNUAL = 'semi-annual', // 半年
+  ANNUAL = 'annual', // 年1回
+  UNKNOWN = 'unknown' // 不明
+}
+```
+
+### 4.6 ローカルストレージデータ形式（更新版）
 ```typescript
 interface PortfolioData {
   baseCurrency: string;
@@ -270,14 +291,6 @@ interface PortfolioData {
   additionalBudget: number;
   version: string; // データバージョン管理用
   timestamp: string; // 保存日時
-}
-```
-
-### 4.6 エラーバウンダリ状態（新規）
-```typescript
-interface ErrorBoundaryState {
-  hasError: boolean;
-  error: Error | null;
 }
 ```
 
@@ -293,6 +306,7 @@ interface ErrorBoundaryState {
   - アプリケーション初期化時
   - ユーザーによる明示的な読み込み操作時
 - **フォールバック処理**: 新形式で復号化に失敗した場合、古い形式での復号化を試行
+- **データ構造検証**: 復号化後のデータ構造を検証し、有効性を確認
 
 ```javascript
 // 改良版データ暗号化関数
@@ -310,7 +324,21 @@ const encryptData = (data) => {
 const decryptData = (encryptedData) => {
   try {
     const jsonString = decodeURIComponent(atob(encryptedData)); // Base64デコードしてからURI復号
-    return JSON.parse(jsonString);
+    const data = JSON.parse(jsonString);
+    
+    // 基本的なデータ構造の検証
+    if (!data || typeof data !== 'object') {
+      throw new Error('無効なデータ形式です');
+    }
+    
+    // 必須フィールドの検証
+    const requiredFields = ['baseCurrency', 'currentAssets', 'targetPortfolio'];
+    const missingFields = requiredFields.filter(field => !(field in data));
+    if (missingFields.length > 0) {
+      throw new Error(`必須フィールドがありません: ${missingFields.join(', ')}`);
+    }
+    
+    return data;
   } catch (error) {
     console.error('データの復号化に失敗しました', error);
     // フォールバック処理 - 古い形式を試行
@@ -374,7 +402,7 @@ async function getGoogleAccessToken() {
 }
 ```
 
-## 6. 手数料計算と銘柄判定（更新なし）
+## 6. 手数料計算と配当情報管理（更新版）
 
 ### 6.1 銘柄タイプ判定ロジック
 銘柄のティッカーシンボルや名前からファンドタイプを判定する機能を実装しています：
@@ -409,26 +437,62 @@ async function getGoogleAccessToken() {
 - REIT: 0.5-0.6%
 - その他: 0.5%（デフォルト値）
 
-### 6.3 特定銘柄の手数料情報データベース
-人気のETFやファンドについては、より正確な手数料情報をアプリケーション内のデータベースから取得します：
+### 6.3 配当情報推定ロジック（新規）
+銘柄タイプや名前から配当情報を推定します：
+
+- **配当利回り推定**:
+  - 既知の銘柄: データベースから正確な値を取得
+  - 高配当ETF: 3.0-4.0%
+  - 米国ETF: 1.5%（平均）
+  - 日本ETF: 1.8%（平均）
+  - 米国REITs: 4.0%（平均）
+  - 日本REITs: 3.5%（平均）
+  - 債券ファンド: 2.5%（平均）
+  - 個別株: 0%（情報不足のため）
+
+- **配当の有無判定**:
+  - 金ETF（GLD）など一部の銘柄: 配当なし
+  - 暗号資産関連: 配当なし
+  - ETF、インデックスファンド、REIT、債券: 通常配当あり
+  - 名前に「dividend」「配当」「yield」「income」を含む: 配当あり
+  - その他: 個別判断
+
+- **配当頻度推定**:
+  - 名前に基づいて推定（「monthly」「quarterly」など）
+  - デフォルト: 四半期（quarterly）
+
+### 6.4 特定銘柄の配当情報データベース（新規）
+人気のETFやファンドについては、より正確な配当情報をアプリケーション内のデータベースから取得します：
 
 ```javascript
-// 主要ETFの例
-'SPY': 0.09,  // SPDR S&P 500 ETF
-'VOO': 0.03,  // Vanguard S&P 500 ETF
-'VTI': 0.03,  // Vanguard Total Stock Market ETF
-'1306.T': 0.11, // TOPIX ETF
-'1320.T': 0.16, // 日経225 ETF
+// 特定のティッカーシンボルの配当利回り情報（％）
+export const TICKER_SPECIFIC_DIVIDENDS = {
+  // 米国の主要ETF
+  'SPY': 1.5,   // SPDR S&P 500 ETF
+  'VOO': 1.5,   // Vanguard S&P 500 ETF
+  'VTI': 1.4,   // Vanguard Total Stock Market ETF
+  'QQQ': 0.6,   // Invesco QQQ Trust (ナスダック100)
+  'VYM': 3.2,   // Vanguard High Dividend Yield ETF
+  'VEA': 3.0,   // Vanguard FTSE Developed Markets ETF
+  'VNQ': 4.0,   // Vanguard Real Estate ETF
+  'HDV': 3.9,   // iShares Core High Dividend ETF
+  
+  // 債券ETF
+  'BND': 2.8,   // Vanguard Total Bond Market ETF
+  'AGG': 2.7,   // iShares Core U.S. Aggregate Bond ETF
+  'HYG': 5.0,   // iShares iBoxx $ High Yield Corporate Bond ETF
+  'JNK': 5.2,   // SPDR Bloomberg High Yield Bond ETF
+};
 ```
 
-### 6.4 年間手数料の計算
-保有資産ごとの年間手数料を計算し、合計します：
+### 6.5 年間配当金の計算（新規）
+保有資産ごとの年間配当金を計算し、合計します：
 
 ```javascript
-// 年間手数料の計算
-const annualFees = currentAssets.reduce((sum, asset) => {
-  // 個別株は手数料を0にする
-  if (asset.fundType === FUND_TYPES.STOCK || asset.isStock) {
+// 年間配当金の計算
+const annualDividends = currentAssets.reduce((sum, asset) => {
+  // 配当がない場合はスキップ
+  if (!asset.hasDividend) {
     return sum;
   }
   
@@ -443,41 +507,38 @@ const annualFees = currentAssets.reduce((sum, asset) => {
     }
   }
   
-  return sum + (assetValue * (asset.annualFee || 0) / 100);
+  return sum + (assetValue * (asset.dividendYield || 0) / 100);
 }, 0);
 ```
 
 ## 7. 主要コンポーネントの実装詳細（更新版）
 
-### 7.1 新しい人気銘柄リスト
-```javascript
-// インデックスファンド・ETF
-const POPULAR_FUNDS = [
-  { ticker: '2533106', name: 'eMAXIS Slim 全世界株式（オール・カントリー）' },
-  { ticker: '2531108', name: 'eMAXIS Slim 米国株式（S&P500）' },
-  { ticker: 'VOO', name: 'Vanguard S&P 500 ETF' },
-  { ticker: 'VXUS', name: 'Vanguard Total International Stock ETF' },
-  { ticker: 'GLD', name: 'SPDR Gold Shares' },
-  { ticker: 'LQD', name: 'iShares iBoxx $ Investment Grade Corporate Bond ETF' }
-];
+### 7.1 PortfolioSummary（更新版）
+- 総資産、銘柄数、年間手数料の表示
+- 年間配当金とポートフォリオ全体の配当利回りの表示（新規）
+- 最高手数料率と最低手数料率の銘柄を表示
+- 最高配当利回りの銘柄を表示（新規）
+- ファンドタイプ別の手数料統計を表示
+- ファンドタイプ別の配当金統計を表示（新規）
+- 手数料と配当に関する説明を表示
 
-// 個別株
-const POPULAR_STOCKS = [
-  { ticker: 'AAPL', name: 'アップル' },
-  { ticker: 'NVDA', name: 'エヌビディア' },
-  { ticker: 'MSFT', name: 'マイクロソフト' }
-];
-```
+### 7.2 AssetsTable（更新版）
+- 保有資産の詳細テーブル表示
+- 配当関連の列を追加（配当利回り、年間配当金）（新規）
+- 配当頻度と配当情報源のバッジ表示（新規）
+- データソースと銘柄タイプの表示
+- 年間手数料の表示（個別株は0%）
 
-### 7.2 HoldingsEditor（保有資産編集）
-- 保有資産の編集UIを提供
+### 7.3 HoldingsEditor（更新版）
+- 保有資産の編集UI
 - 保有数量の編集（小数点以下4桁対応）
-- 手数料編集は不可（読み取り専用で表示）
+- 配当情報の表示（配当利回り、配当頻度）（新規）
+- 手数料情報の表示（読み取り専用）
 - 銘柄タイプの表示
 - 手数料情報の出所を表示（個別株、推定値、固有情報）
 - 銘柄タイプに応じたUIの切り替え（個別株は灰色背景）
 
-### 7.3 DataSyncStatus（更新版）
+### 7.4 DataSyncStatus（更新版）
 - データ同期状況の表示
 - データソース（ローカル/クラウド）の表示
 - 最終同期時刻の表示
@@ -485,7 +546,7 @@ const POPULAR_STOCKS = [
 - クラウド保存/読み込みボタンの提供
 - エラー発生時の回復オプション表示
 
-### 7.4 GoogleDriveIntegration（更新版）
+### 7.5 GoogleDriveIntegration（更新版）
 - Googleアカウント連携UI
 - Google Identity Services APIによる最新の認証フロー
 - クラウドへのデータ保存機能（Fetch API使用）
@@ -494,22 +555,16 @@ const POPULAR_STOCKS = [
 - 認証状態に応じたUI切り替え
 - エラーハンドリングの強化
 
-### 7.5 ErrorBoundary（新規）
-- アプリケーション全体を保護するエラーバウンダリ
-- 予期しないエラーをキャッチしてUIに表示
-- リロードボタンによる回復オプション提供
-- エラー詳細情報のログ出力
-- ユーザーフレンドリーなエラー表示画面
-
 ## 8. APIとデータ取得（更新版）
 
-### 8.1 市場データ取得
+### 8.1 市場データ取得（更新版）
 - Alpha Vantage APIを使用して最新価格を取得
 - 銘柄データ取得時に銘柄タイプと手数料情報も自動推定
+- 配当情報の自動推定と取得（新規）
 - 個別株は手数料率0%として扱う
 
 ```javascript
-// 銘柄データの取得と手数料情報の推定
+// 銘柄データの取得と手数料情報、配当情報の推定
 export async function fetchTickerData(ticker) {
   // Alpha Vantageから価格データを取得
   
@@ -518,6 +573,10 @@ export async function fetchTickerData(ticker) {
   const fundType = guessFundType(ticker, name);
   const feeInfo = estimateAnnualFee(ticker, name);
   
+  // 配当情報の取得（新規）
+  const dividendInfo = estimateDividendYield(ticker, name);
+  const hasDividend = determineHasDividend(ticker);
+  
   // 個別株かどうかを判定
   const isStock = fundType === FUND_TYPES.STOCK;
   
@@ -525,12 +584,68 @@ export async function fetchTickerData(ticker) {
   const annualFee = isStock ? 0 : feeInfo.fee;
   
   return {
-    // 銘柄データと手数料情報
+    // 銘柄データと手数料情報、配当情報
+    id: ticker,
+    name: name,
+    ticker: ticker,
+    price: price,
+    currency: currency,
+    holdings: 0,
+    annualFee: annualFee,
+    fundType: fundType,
+    isStock: isStock,
+    feeSource: isStock ? '個別株' : feeInfo.source,
+    feeIsEstimated: isStock ? false : feeInfo.isEstimated,
+    region: fundInfo.region || 'unknown',
+    // 配当情報（新規）
+    dividendYield: dividendInfo.yield,
+    hasDividend: hasDividend,
+    dividendFrequency: dividendInfo.dividendFrequency,
+    dividendIsEstimated: dividendInfo.isEstimated
   };
 }
 ```
 
-### 8.2 Google Drive API連携（新規）
+### 8.2 配当データの取得（新規）
+- 銘柄情報から配当データを自動推定
+- 特定銘柄のデータベースから正確な情報を取得
+- 名前とティッカーパターンに基づいて判定
+
+```javascript
+// 配当データの取得
+export async function fetchDividendData(ticker) {
+  try {
+    // ティッカーを大文字に統一
+    ticker = ticker.toUpperCase();
+    
+    // ファンドタイプを判定（ETFリストを優先）
+    const fundType = determineFundType(ticker, ticker);
+    
+    // 配当情報の取得
+    const dividendInfo = estimateDividendYield(ticker, ticker);
+    
+    // 配当情報を確定（ETFリストを優先）
+    const hasDividend = determineHasDividend(ticker);
+    
+    return {
+      success: true,
+      data: {
+        dividendYield: dividendInfo.yield,
+        hasDividend: hasDividend,
+        dividendFrequency: dividendInfo.dividendFrequency,
+        dividendIsEstimated: dividendInfo.isEstimated,
+        lastUpdated: new Date().toISOString()
+      },
+      message: '配当情報を取得しました'
+    };
+  } catch (error) {
+    // エラー時は推定値を返す
+    ...
+  }
+}
+```
+
+### 8.3 Google Drive API連携（更新版）
 - Google Identity Services APIを使用した最新の認証フロー
 - ドライブAPIへの直接アクセス（Fetch API使用）
 - 適切なスコープを持つアクセストークン取得
@@ -542,19 +657,12 @@ export async function saveToGoogleDrive(data, userData, filename = 'portfolio_da
   try {
     // 新しいアクセストークンを取得
     const newToken = await getGoogleAccessToken();
-    if (!newToken) {
-      return { success: false, message: 'アクセストークンの取得に失敗しました' };
-    }
     
     // メタデータとファイル内容の準備
     const metadata = {
       name: filename,
       mimeType: 'application/json'
     };
-    
-    // JSONデータを文字列に変換
-    const jsonContent = JSON.stringify(data);
-    const blob = new Blob([jsonContent], { type: 'application/json' });
     
     // FormDataオブジェクトを作成
     const formData = new FormData();
@@ -566,35 +674,25 @@ export async function saveToGoogleDrive(data, userData, filename = 'portfolio_da
       'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
       {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${newToken}`
-        },
+        headers: { 'Authorization': `Bearer ${newToken}` },
         body: formData
       }
     );
     
-    // 結果の処理
-    const result = await response.json();
-    
-    return {
-      success: true,
-      message: 'データを保存しました',
-      fileId: result.id,
-      fileName: result.name
-    };
+    // 結果処理
+    ...
   } catch (error) {
-    return { 
-      success: false, 
-      message: `Googleドライブへの保存に失敗しました: ${error.message}` 
-    };
+    // エラーハンドリング
+    ...
   }
 }
 ```
 
-### 8.3 手数料情報の自動更新
-- 銘柄追加時に手数料情報を自動取得・推定
-- 市場データ更新時に手数料情報も更新
+### 8.4 手数料・配当情報の自動更新（更新版）
+- 銘柄追加時に手数料情報と配当情報を自動取得・推定
+- 市場データ更新時に手数料情報と配当情報も更新
 - 手数料情報に変更があった場合は通知で表示
+- 配当情報に変更があった場合は通知で表示（新規）
 
 ## 9. UI操作フロー（更新版）
 
@@ -605,51 +703,28 @@ export async function saveToGoogleDrive(data, userData, filename = 'portfolio_da
 4. ローカルストレージからのデータ読み込み（エラーハンドリング強化）
 5. トークンストレージからの認証情報読み込み
 6. データがあれば状態を更新し、UIに反映
-7. エラー発生時はエラーバウンダリでキャッチ
+7. 配当情報が欠けている場合は初期値を設定（新規）
+8. エラー発生時はエラーバウンダリでキャッチ
 
-```javascript
-// 初期化処理（エラーハンドリング強化版）
-useEffect(() => {
-  try {
-    console.log('データの初期化を開始...');
-    const localData = loadFromLocalStorage();
-    
-    if (localData) {
-      // 各状態を更新
-      setBaseCurrency(localData.baseCurrency);
-      setExchangeRate(localData.exchangeRate);
-      // その他のデータ適用
-      
-      addNotification('前回のデータを読み込みました', 'info');
-    } else {
-      console.log('ローカルストレージにデータがありませんでした。初期状態を使用します。');
-    }
-  } catch (error) {
-    console.error('データの初期化中にエラーが発生しました:', error);
-    addNotification(`データの初期化中にエラーが発生しました: ${error.message}`, 'error');
-  } finally {
-    setInitialized(true); // エラーが発生しても初期化完了とマークする
-  }
-}, [loadFromLocalStorage, addNotification]);
-```
-
-### 9.2 銘柄追加フロー
+### 9.2 銘柄追加フロー（更新版）
 1. ユーザーが銘柄シンボルを入力
 2. addTicker関数を呼び出し
 3. Alpha Vantage APIからデータ取得
 4. 銘柄タイプを判定し、手数料情報を推定
-5. 個別株の場合は手数料を0%に設定
-6. 保有資産と目標配分リストに追加
-7. データをローカルストレージに自動保存
-8. 手数料情報の通知を表示
+5. 配当情報を推定（新規）
+6. 個別株の場合は手数料を0%に設定
+7. 保有資産と目標配分リストに追加
+8. データをローカルストレージに自動保存
+9. 手数料・配当情報の通知を表示
 
-### 9.3 保有数量編集フロー
-1. ユーザーが保有数量の編集を選択
-2. 直接入力の場合：任意の数値（小数点以下4桁まで）を入力可能
-3. スピンボタン操作の場合：整数単位（1以上）での増減のみ可能
-4. updateHoldings関数を呼び出し
-5. データをローカルストレージに自動保存
-6. UI更新と結果通知
+### 9.3 市場データ更新フロー（更新版）
+1. ユーザーが更新ボタンをクリック
+2. Alpha Vantage APIから最新価格データを取得
+3. 銘柄タイプの確認と手数料情報の更新
+4. 配当情報の更新（新規）
+5. 手数料情報に変更があった場合は通知
+6. 配当情報に変更があった場合は通知（新規）
+7. データをローカルストレージに自動保存
 
 ### 9.4 データ同期フロー（更新版）
 1. ユーザーが同期ボタンをクリック
@@ -657,71 +732,31 @@ useEffect(() => {
 3. ローカルデータとクラウドデータを比較
 4. タイムスタンプに基づいて最新データを特定
 5. 最新データを状態に適用
-6. ローカルストレージとクラウド両方にデータを保存
-7. 同期状態表示の更新
-8. 結果通知の表示
-
-### 9.5 エラー回復フロー（新規）
-1. エラーが発生するとエラーバウンダリがキャッチ
-2. ユーザーにエラー内容と回復オプションを提示
-3. ユーザーがリロードボタンをクリック
-4. アプリケーションを再読み込み
-5. または、データ修復機能を使用してローカルストレージをクリア
-
-```javascript
-// エラーバウンダリコンポーネント内のレンダリング部分
-render() {
-  if (this.state.hasError) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="bg-white p-6 rounded-lg shadow-md max-w-md">
-          <h2 className="text-red-600 text-xl mb-4">エラーが発生しました</h2>
-          <p className="mb-2">申し訳ありませんが、アプリケーションにエラーが発生しました。</p>
-          <p className="text-gray-700 mb-4">詳細: {this.state.error?.message || '不明なエラー'}</p>
-          <button
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-            onClick={() => window.location.reload()}
-          >
-            リロードする
-          </button>
-        </div>
-      </div>
-    );
-  }
-  
-  return this.props.children;
-}
-```
+6. 配当情報が欠けている場合は初期値を設定（新規）
+7. ローカルストレージとクラウド両方にデータを保存
+8. 同期状態表示の更新
+9. 結果通知の表示
 
 ## 10. エラー処理と制約（更新版）
 
-### 10.1 個別株の手数料制約
+### 10.1 個別株と配当の制約（更新版）
 - 個別株の年間手数料率は常に0%
 - 手数料率はすべてのファンドタイプで編集不可（読み取り専用）
-- 手数料情報は市場データ更新時に自動的に確認・更新
+- 配当情報は推定値として表示（特定銘柄を除く）
+- 配当データが不明な場合は「なし」として表示
 
-### 10.2 データインポート時の処理
+### 10.2 データインポート時の処理（更新版）
 - インポートしたデータ内の個別株の手数料率を0%に修正
 - 銘柄タイプと手数料情報が欠けている場合は自動推定
+- 配当情報が欠けている場合は初期値を設定（新規）
 - インポート後にローカルストレージに自動保存
 
-### 10.3 データ同期時の処理（更新版）
-- 認証失敗時にエラー通知と適切なフォールバック
-- データ競合時にタイムスタンプベースの解決
-- アクセストークン取得失敗時の再認証プロセス
-- 同期失敗時にエラー情報の詳細表示
-
-### 10.4 アプリケーションエラー対応（新規）
-- エラーバウンダリによる予期しないエラーのキャッチ
-- エラー発生時のユーザーフレンドリーな表示
-- リロードによる簡単な回復オプション
-- データ修復機能によるデータ関連エラーの解消
-
-### 10.5 データ暗号化/復号化エラー対応（新規）
+### 10.3 データ暗号化/復号化エラー対応（更新版）
 - 暗号化プロセスでのエラーハンドリング強化
 - 復号化失敗時のフォールバック処理
 - 古い形式のデータにも対応する互換性処理
 - データ構造検証による無効データの検出
+- エラー詳細のログ出力と通知
 
 ## 改訂履歴
 | バージョン | 日付 | 内容 | 担当者 |
@@ -735,3 +770,4 @@ render() {
 | 7.0 | 2025/03/12 16:50 | 人気銘柄リストの更新 |  |
 | 8.0 | 2025/03/14 09:30 | ローカルストレージによるデータ保持機能とGoogle認証連携強化 |  |
 | 9.0 | 2025/03/17 14:45 | データ暗号化/復号化処理の強化、Google Drive API連携改善、エラーバウンダリ導入、認証フロー更新 |  |
+| 10.0 | 2025/03/18 15:30 | 配当情報の管理機能追加、銘柄タイプ判定ロジック強化、PortfolioSummaryとAssetsTableの配当情報表示追加、Google Drive API連携の安定性向上 |  |
