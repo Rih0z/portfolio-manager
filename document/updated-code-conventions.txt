@@ -1,7 +1,7 @@
-# ポートフォリオマネージャー コード規約書（更新版2.0）
+# ポートフォリオマネージャー コード規約書（更新版3.0）
 
-**バージョン:** 2.0  
-**最終更新日時:** 2025/03/17 18:45
+**バージョン:** 3.0  
+**最終更新日時:** 2025/03/18 16:00
 
 ## 1. 概要
 
@@ -73,6 +73,8 @@ src/
   const shouldRefresh = true;
   const isStock = true; // 個別株かどうかのフラグ
   const isInitialized = true; // 初期化完了フラグ
+  const hasDividend = true; // 配当があるかどうかのフラグ（新規）
+  const isDividendEstimated = true; // 配当情報が推定値かどうか（新規）
   ```
 
 ### 3.3 定数
@@ -87,6 +89,14 @@ src/
     STOCK: '個別株',
     ETF_JP: 'ETF（日本）',
     ETF_US: 'ETF（米国）'
+  };
+  // 配当頻度定数（新規）
+  const DIVIDEND_FREQUENCY = {
+    MONTHLY: 'monthly',
+    QUARTERLY: 'quarterly',
+    SEMI_ANNUAL: 'semi-annual',
+    ANNUAL: 'annual',
+    UNKNOWN: 'unknown'
   };
   ```
 
@@ -116,6 +126,7 @@ src/
   const handleInputChange = (e) => {...}
   const handleIncrementFee = (asset, amount) => {...}
   const handleSaveToLocalStorage = () => {...} // ローカルストレージ保存ハンドラ
+  const handleUpdateDividendInfo = (asset, yield) => {...} // 配当情報更新ハンドラ（新規）
   ```
 
 ### 3.6 ユーティリティ関数
@@ -128,6 +139,10 @@ src/
   const guessFundType = (ticker, name) => {...}
   const encryptData = (data) => {...} // データ暗号化関数
   const decryptData = (encrypted) => {...} // データ復号化関数
+  const estimateDividendYield = (ticker, name) => {...} // 配当利回り推定関数（新規）
+  const calculateAnnualDividend = (asset, exchangeRate, baseCurrency) => {...} // 年間配当金計算関数（新規）
+  const formatDividendFrequency = (frequency) => {...} // 配当頻度の表示変換関数（新規）
+  const determineHasDividend = (ticker, fundType) => {...} // 配当の有無判定関数（新規）
   ```
 
 ## 4. コードフォーマット
@@ -193,6 +208,19 @@ src/
   }`}>
     {dataSource === 'cloud' ? 'クラウド' : 'ローカル'}
   </span>
+  
+  // 配当情報バッジ（新規）
+  <span className={`text-xs px-1.5 py-0.5 rounded ${
+    !asset.hasDividend
+      ? 'bg-gray-100 text-gray-800'
+      : asset.dividendIsEstimated 
+        ? 'bg-yellow-100 text-yellow-800'
+        : 'bg-green-100 text-green-800'
+  }`}>
+    {!asset.hasDividend 
+      ? '配当なし' 
+      : formatDividendFrequency(asset.dividendFrequency) + (asset.dividendIsEstimated ? '（推定）' : '')}
+  </span>
   ```
 
 - **アクセシビリティ属性**:
@@ -229,7 +257,7 @@ src/
   import { usePortfolioContext } from '../../hooks/usePortfolioContext';
   import Header from '../layout/Header';
   
-  import { FUND_TYPES } from '../../utils/fundUtils';
+  import { FUND_TYPES, DIVIDEND_FREQUENCY } from '../../utils/fundUtils';
   
   import './styles.css';
   ```
@@ -249,13 +277,14 @@ src/
 - **Props分割代入**: コンポーネント内で使用
   ```jsx
   // 良い例
-  function UserCard({ name, email, avatar, isStock }) {
+  function UserCard({ name, email, avatar, isStock, hasDividend }) {
     return (
       <div>
         <img src={avatar} alt={name} />
         <h2>{name}</h2>
         <p>{email}</p>
         {isStock && <span className="badge">個別株</span>}
+        {hasDividend && <span className="badge">配当あり</span>}
       </div>
     );
   }
@@ -285,6 +314,7 @@ src/
   export const useAuth = () => {...}
   export const useFundUtils = () => {...}
   export const useLocalStorage = () => {...} // ローカルストレージ操作フック
+  export const useDividendCalculation = () => {...} // 配当計算フック（新規）
   ```
 
 ### 5.3 環境依存のライブラリ対応
@@ -333,7 +363,7 @@ src/
   };
   ```
 
-### 5.5 エラーバウンダリの使用（新規）
+### 5.5 エラーバウンダリの使用
 
 - **アプリケーション全体を保護**: エラーバウンダリでラップしてクラッシュ耐性を向上
   ```javascript
@@ -411,6 +441,9 @@ src/
   
   // 小数点以下2桁まで保存するケース（手数料率など）
   const fee = parseFloat(parseFloat(rawValue).toFixed(2));
+  
+  // 小数点以下2桁まで保存するケース（配当利回りなど）（新規）
+  const yield = parseFloat(parseFloat(rawValue).toFixed(2));
   ```
 
 - **条件付き状態更新**: 条件に基づいて異なる更新を行う
@@ -441,6 +474,31 @@ src/
       return item;
     })
   );
+  ```
+
+- **配当情報の更新**: 配当情報の更新処理（新規）
+  ```javascript
+  // 配当情報の更新
+  const updateDividendInfo = useCallback((id, dividendYield, hasDividend = true, frequency = 'quarterly') => {
+    setCurrentAssets(prev => {
+      const updated = prev.map(item => {
+        if (item.id === id) {
+          return {
+            ...item,
+            dividendYield: parseFloat(parseFloat(dividendYield).toFixed(2)) || 0,
+            hasDividend: hasDividend,
+            dividendFrequency: frequency,
+            dividendIsEstimated: false
+          };
+        }
+        return item;
+      });
+      
+      // 変更後に自動保存
+      setTimeout(() => saveToLocalStorage(), 100);
+      return updated;
+    });
+  }, [saveToLocalStorage]);
   ```
 
 - **状態更新後の処理**: setTimeout を使用して順序を確保
@@ -558,7 +616,7 @@ src/
   }, []);
   ```
 
-### 6.4 Google Drive連携（新規）
+### 6.4 Google Drive連携
 
 - **アクセストークン管理**: 認証トークンとアクセストークンの管理
   ```javascript
@@ -731,7 +789,7 @@ src/
   };
   ```
 
-### 7.5 エラーバウンダリの導入（新規）
+### 7.5 エラーバウンダリの導入
 
 - **コンポーネントレベルのエラー処理**:
   ```javascript
@@ -774,7 +832,7 @@ src/
   }
   ```
 
-## 8. Google Drive API連携（新規）
+## 8. Google Drive API連携
 
 ### 8.1 ファイル操作関数
 
@@ -919,7 +977,7 @@ src/
   }
   ```
 
-### 8.2 認証関連の処理（新規）
+### 8.2 認証関連の処理
 
 - **認証トークン処理**:
   ```javascript
@@ -968,7 +1026,7 @@ src/
 
 ## 9. アクセシビリティ
 
-### 9.1 基本原則（変更なし）
+### 9.1 基本原則
 
 - **意味的なHTML**: 適切なHTML要素や属性を使用
   ```jsx
@@ -983,7 +1041,7 @@ src/
   </button>
   ```
 
-### 9.2 フォームアクセシビリティ（変更なし）
+### 9.2 フォームアクセシビリティ
 
 - **ラベル関連付け**: フォーム要素にはlabelを関連付け
   ```jsx
@@ -1003,25 +1061,159 @@ src/
   </div>
   ```
 
-## 10. ESLint設定と解析ツール
+## 10. 配当情報関連の実装（新規）
 
-### 10.1 ESLint設定（更新版）
+### 10.1 配当情報の取得・計算
 
-```json
-{
-  "extends": [
-    "react-app",
-    "react-app/jest"
-  ],
-  "rules": {
-    "no-console": ["warn", { "allow": ["warn", "error", "log"] }],
-    "no-unused-vars": "warn",
-    "react-hooks/rules-of-hooks": "error",
-    "react-hooks/exhaustive-deps": "warn",
-    "jsx-a11y/label-has-associated-control": "off"
+- **配当情報の推定関数**:
+  ```javascript
+  // 配当利回りを推定する関数
+  export function estimateDividendYield(ticker, name = '') {
+    if (!ticker) return {
+      yield: 0,
+      isEstimated: true,
+      hasDividend: false,
+      dividendFrequency: 'unknown'
+    };
+    
+    ticker = ticker.toUpperCase();
+    const info = extractFundInfo(ticker, name);
+    
+    // 基本的な推定値
+    let estimatedYield = 0;
+    let isEstimated = true;
+    let hasDividend = info.hasDividend || false;
+    
+    // 特定のティッカーに対する配当利回り情報があれば使用
+    if (TICKER_SPECIFIC_DIVIDENDS[ticker] !== undefined) {
+      estimatedYield = TICKER_SPECIFIC_DIVIDENDS[ticker];
+      isEstimated = false;
+      hasDividend = estimatedYield > 0;
+    } else {
+      // ファンドタイプに基づく推定
+      const fundType = info.fundType;
+      
+      if (fundType === FUND_TYPES.STOCK) {
+        // 個別株の場合は配当情報を持たないと仮定（推定困難のため、後でデータを更新）
+        estimatedYield = 0;
+        hasDividend = false;
+      } else if (fundType === FUND_TYPES.REIT_US) {
+        estimatedYield = 4.0; // 米国REITの平均
+        hasDividend = true;
+      } else if (fundType === FUND_TYPES.REIT_JP) {
+        estimatedYield = 3.5; // 日本REITの平均
+        hasDividend = true;
+      } else if (fundType === FUND_TYPES.BOND) {
+        estimatedYield = 2.5; // 債券ファンドの平均
+        hasDividend = true;
+      } else if (
+        name.includes('dividend') || 
+        name.includes('配当') || 
+        name.includes('income') || 
+        name.includes('yield') ||
+        name.includes('高配当')
+      ) {
+        // 名前から高配当と推測される場合
+        estimatedYield = 3.0;
+        hasDividend = true;
+      } else if (fundType === FUND_TYPES.ETF_US) {
+        estimatedYield = 1.5; // 米国ETFの平均
+        hasDividend = true;
+      } else if (fundType === FUND_TYPES.ETF_JP) {
+        estimatedYield = 1.8; // 日本ETFの平均
+        hasDividend = true;
+      } else if (fundType === FUND_TYPES.INDEX_US) {
+        estimatedYield = 1.5; // 米国インデックスファンドの平均
+        hasDividend = true;
+      } else if (fundType === FUND_TYPES.INDEX_JP) {
+        estimatedYield = 1.2; // 日本インデックスファンドの平均
+        hasDividend = true;
+      } else {
+        estimatedYield = 1.0; // その他のファンドのデフォルト値
+        hasDividend = estimatedYield > 0;
+      }
+    }
+    
+    return {
+      yield: estimatedYield,
+      isEstimated: isEstimated,
+      hasDividend: hasDividend,
+      dividendFrequency: info.dividendFrequency || 'quarterly' // デフォルトは四半期
+    };
   }
-}
-```
+  ```
+
+- **年間配当金の計算**:
+  ```javascript
+  // 年間配当金の計算
+  const annualDividends = currentAssets.reduce((sum, asset) => {
+    // 配当がない場合はスキップ
+    if (!asset.hasDividend) {
+      return sum;
+    }
+    
+    let assetValue = asset.price * asset.holdings;
+    
+    // 通貨換算
+    if (asset.currency !== baseCurrency) {
+      if (baseCurrency === 'JPY' && asset.currency === 'USD') {
+        assetValue *= exchangeRate.rate;
+      } else if (baseCurrency === 'USD' && asset.currency === 'JPY') {
+        assetValue /= exchangeRate.rate;
+      }
+    }
+    
+    return sum + (assetValue * (asset.dividendYield || 0) / 100);
+  }, 0);
+  ```
+
+### 10.2 配当情報の表示
+
+- **配当情報バッジ**:
+  ```jsx
+  // 配当情報バッジ
+  <span className={`text-xs px-1.5 py-0.5 rounded ${
+    !asset.hasDividend
+      ? 'bg-gray-100 text-gray-800'
+      : asset.dividendIsEstimated 
+        ? 'bg-yellow-100 text-yellow-800'
+        : 'bg-green-100 text-green-800'
+  }`}>
+    {!asset.hasDividend 
+      ? '配当なし' 
+      : formatDividendFrequency(asset.dividendFrequency) + (asset.dividendIsEstimated ? '（推定）' : '')}
+  </span>
+  ```
+
+- **配当頻度の表示変換**:
+  ```javascript
+  // 配当頻度の表示変換
+  const formatDividendFrequency = (frequency) => {
+    switch (frequency) {
+      case 'monthly': return '毎月';
+      case 'quarterly': return '四半期';
+      case 'semi-annual': return '半年';
+      case 'annual': return '年1回';
+      default: return '不明';
+    }
+  };
+  ```
+
+- **配当情報の要約表示**:
+  ```jsx
+  // 配当情報の要約表示
+  <div className="bg-green-50 p-4 rounded-lg">
+    <p className="text-sm text-gray-500 mb-1">年間配当金（推定）</p>
+    <div>
+      <p className="text-2xl font-bold text-green-600">
+        {formatCurrency(annualDividends, baseCurrency)}
+      </p>
+      <p className="text-sm text-gray-500">
+        （配当利回り{formatPercent(dividendYieldPercentage, 2)}）
+      </p>
+    </div>
+  </div>
+  ```
 
 ## 改訂履歴
 
@@ -1033,3 +1225,4 @@ src/
 | 1.3      | 2025/03/12 16:25 | ファンドタイプ判定と年間手数料計算に関する規約追加、個別株の取り扱い追加 | |
 | 1.4      | 2025/03/15 10:50 | ローカルストレージによるデータ永続化、コンテキスト間連携、React Hooksルール強化 | |
 | 2.0      | 2025/03/17 18:45 | 暗号化/復号化処理の強化、エラーハンドリング改善、Google Drive API連携機能の実装、エラーバウンダリ導入 | |
+| 3.0      | 2025/03/18 16:00 | 配当情報関連の変数と関数の命名規則、配当情報の表示・計算機能の実装規則、コンポーネントスタイルの更新 | |
