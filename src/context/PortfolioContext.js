@@ -8,6 +8,7 @@ import {
   saveToGoogleDrive as apiSaveToGoogleDrive,
   initGoogleDriveAPI
 } from '../services/api';
+import { FUND_TYPES } from '../utils/fundUtils';
 
 // 改善された暗号化関数
 const encryptData = (data) => {
@@ -177,7 +178,7 @@ export const PortfolioProvider = ({ children }) => {
     });
   }, [saveToLocalStorage]);
 
-  // 市場データの更新（手数料更新機能と配当情報更新機能を追加）
+  // 市場データの更新（銘柄タイプ、手数料、配当情報の正確な更新を含む）
   const refreshMarketPrices = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -186,8 +187,10 @@ export const PortfolioProvider = ({ children }) => {
       let feeChangesCount = 0;
       const feeChangeDetails = [];
       let dividendChangesCount = 0;
+      let fundTypeChangesCount = 0; // 銘柄タイプの変更カウンター
+      const fundTypeChangeDetails = []; // 銘柄タイプの変更詳細
       
-      // 全ての保有銘柄の最新価格と手数料情報・配当情報を取得
+      // 全ての保有銘柄の最新データを取得
       const updatedAssets = await Promise.all(
         currentAssets.map(async (asset) => {
           try {
@@ -195,17 +198,36 @@ export const PortfolioProvider = ({ children }) => {
             const updatedData = await fetchTickerData(asset.ticker);
             console.log(`Updated data for ${asset.ticker}:`, updatedData);
             
-            // 手数料情報の変更を確認
-            const hasFeeChanged = !asset.isStock && asset.annualFee !== updatedData.data.annualFee;
+            // 銘柄タイプの変更を確認
+            const newFundType = updatedData.data.fundType || asset.fundType;
+            const hasFundTypeChanged = asset.fundType !== newFundType;
             
-            // 手数料変更があれば記録
+            // 銘柄タイプ変更の記録
+            if (hasFundTypeChanged) {
+              fundTypeChangesCount++;
+              fundTypeChangeDetails.push({
+                ticker: asset.ticker,
+                name: asset.name,
+                oldType: asset.fundType,
+                newType: newFundType
+              });
+            }
+            
+            // 新しい銘柄タイプに基づいて個別株かどうかを判定
+            const isStock = newFundType === FUND_TYPES.STOCK;
+            
+            // 手数料情報の変更を確認（個別株でなく、かつ手数料が変わった場合）
+            const newFee = isStock ? 0 : updatedData.data.annualFee;
+            const hasFeeChanged = asset.annualFee !== newFee;
+            
+            // 手数料変更を記録
             if (hasFeeChanged) {
               feeChangesCount++;
               feeChangeDetails.push({
                 ticker: asset.ticker,
                 name: asset.name,
                 oldFee: asset.annualFee,
-                newFee: updatedData.data.annualFee
+                newFee: newFee
               });
             }
             
@@ -221,16 +243,19 @@ export const PortfolioProvider = ({ children }) => {
               dividendChangesCount++;
             }
             
-            // 更新されたアセット情報を返す（個別株は常に手数料0%を維持）
+            // 更新されたアセット情報を返す
             return {
               ...asset,
               price: updatedData.data.price,
               source: updatedData.data.source,
               lastUpdated: updatedData.data.lastUpdated,
-              annualFee: asset.isStock ? 0 : updatedData.data.annualFee, // 個別株は常に0%
-              fundType: updatedData.data.fundType || asset.fundType,
-              feeSource: asset.isStock ? '個別株' : updatedData.data.feeSource,
-              feeIsEstimated: asset.isStock ? false : updatedData.data.feeIsEstimated,
+              // 銘柄タイプを更新
+              fundType: newFundType,
+              isStock: isStock,
+              // 手数料情報を更新（個別株は常に0%）
+              annualFee: isStock ? 0 : newFee,
+              feeSource: isStock ? '個別株' : updatedData.data.feeSource,
+              feeIsEstimated: isStock ? false : updatedData.data.feeIsEstimated,
               region: updatedData.data.region || asset.region,
               // 配当情報を更新
               dividendYield: dividendData.data.dividendYield,
@@ -266,6 +291,20 @@ export const PortfolioProvider = ({ children }) => {
       
       addNotification(message, 'success');
       
+      // 銘柄タイプの変更があった場合は通知
+      if (fundTypeChangesCount > 0) {
+        let typeMessage = `${fundTypeChangesCount}件の銘柄でタイプ情報が更新されました`;
+        addNotification(typeMessage, 'info');
+        
+        // 詳細な変更内容も表示（最大3件まで）
+        fundTypeChangeDetails.slice(0, 3).forEach(detail => {
+          addNotification(
+            `「${detail.name || detail.ticker}」のタイプが「${detail.oldType}」から「${detail.newType}」に変更されました`,
+            'info'
+          );
+        });
+      }
+      
       // 手数料変更があった場合は別途通知
       if (feeChangesCount > 0) {
         let feeMessage = `${feeChangesCount}件のファンドで手数料情報が更新されました`;
@@ -298,7 +337,7 @@ export const PortfolioProvider = ({ children }) => {
     }
   }, [currentAssets, addNotification, saveToLocalStorage]);
 
-  // 銘柄追加（手数料と配当情報の設定を含む）
+  // 銘柄追加（銘柄タイプ、手数料、配当情報の設定を含む）
   const addTicker = useCallback(async (ticker) => {
     try {
       // 既に存在するか確認
@@ -309,6 +348,8 @@ export const PortfolioProvider = ({ children }) => {
       if (exists) {
         return { success: false, message: '既に追加されている銘柄です' };
       }
+
+      setIsLoading(true);
 
       // Alpha Vantageから銘柄データ取得
       const tickerResult = await fetchTickerData(ticker);
@@ -329,17 +370,19 @@ export const PortfolioProvider = ({ children }) => {
       // 配当情報を取得
       const dividendResult = await fetchDividendData(ticker);
       console.log('Fetched dividend info:', dividendResult);
+
+      // 銘柄タイプを確認してisStockフラグを設定
+      const fundType = tickerData.fundType || fundInfoResult.fundType || 'unknown';
+      const isStock = fundType === FUND_TYPES.STOCK;
       
       // 自動取得した情報のメッセージを作成
       let infoMessage = '';
       if (fundInfoResult.success) {
-        const { fundType, annualFee, feeIsEstimated } = fundInfoResult;
-        
         // 個別株かどうかでメッセージを変える
-        if (fundInfoResult.isStock) {
+        if (isStock) {
           infoMessage = `${fundType || '個別株'} として判定しました（手数料は固定で0%）`;
         } else {
-          infoMessage = `${fundType} ファンドとして判定し、年間手数料率${annualFee}%を${feeIsEstimated ? '推定' : '設定'}しました`;
+          infoMessage = `${fundType} ファンドとして判定し、年間手数料率${isStock ? 0 : (tickerData.annualFee || fundInfoResult.annualFee || 0)}%を${fundInfoResult.feeIsEstimated ? '推定' : '設定'}しました`;
         }
         
         // 配当情報があれば追加
@@ -365,12 +408,13 @@ export const PortfolioProvider = ({ children }) => {
           ...tickerData,
           // 保有数量は0から始める
           holdings: 0,
+          // 銘柄タイプを設定
+          fundType: fundType,
+          isStock: isStock,
           // 手数料情報（個別株は常に0%）
-          annualFee: tickerData.isStock ? 0 : tickerData.annualFee || fundInfoResult.annualFee || 0,
-          fundType: tickerData.fundType || fundInfoResult.fundType || 'unknown',
-          isStock: tickerData.isStock || fundInfoResult.isStock || false,
-          feeSource: tickerData.isStock ? '個別株' : tickerData.feeSource || fundInfoResult.feeSource || 'Estimated',
-          feeIsEstimated: tickerData.isStock ? false : tickerData.feeIsEstimated || fundInfoResult.feeIsEstimated || true,
+          annualFee: isStock ? 0 : (tickerData.annualFee || fundInfoResult.annualFee || 0),
+          feeSource: isStock ? '個別株' : (tickerData.feeSource || fundInfoResult.feeSource || 'Estimated'),
+          feeIsEstimated: isStock ? false : (tickerData.feeIsEstimated || fundInfoResult.feeIsEstimated || true),
           region: tickerData.region || fundInfoResult.region || 'unknown',
           // 配当情報
           dividendYield: dividendResult.data.dividendYield,
@@ -394,6 +438,8 @@ export const PortfolioProvider = ({ children }) => {
       console.error('銘柄の追加に失敗しました', error);
       addNotification(`銘柄「${ticker}」の追加に失敗しました`, 'error');
       return { success: false, message: '銘柄の追加に失敗しました' };
+    } finally {
+      setIsLoading(false);
     }
   }, [targetPortfolio, currentAssets, addNotification, saveToLocalStorage]);
 
@@ -427,7 +473,7 @@ export const PortfolioProvider = ({ children }) => {
       const updated = prev.map(item => {
         if (item.id === id) {
           // 個別株の場合は手数料を0に固定（変更不可）
-          if (item.isStock || item.fundType === 'STOCK' || item.fundType === '個別株') {
+          if (item.isStock || item.fundType === FUND_TYPES.STOCK) {
             return {
               ...item,
               annualFee: 0,
@@ -607,14 +653,18 @@ export const PortfolioProvider = ({ children }) => {
       // アセットデータのインポート（個別株の手数料を0%に確保）
       if (Array.isArray(data.currentAssets)) {
         const validatedAssets = data.currentAssets.map(asset => {
+          // 銘柄タイプを確認（FUND_TYPESの値で正規化）
+          const isStock = asset.isStock || asset.fundType === FUND_TYPES.STOCK;
+          
           // 個別株の場合は手数料を0に設定
-          if (asset.isStock || asset.fundType === 'STOCK' || asset.fundType === '個別株') {
+          if (isStock) {
             return {
               ...asset,
+              fundType: FUND_TYPES.STOCK,
+              isStock: true,
               annualFee: 0,
               feeSource: '個別株',
               feeIsEstimated: false,
-              isStock: true,
               // 配当情報がない場合は初期値を設定
               dividendYield: asset.dividendYield || 0,
               hasDividend: asset.hasDividend || false,
@@ -624,6 +674,7 @@ export const PortfolioProvider = ({ children }) => {
           }
           return {
             ...asset,
+            isStock: isStock,
             // 配当情報がない場合は初期値を設定
             dividendYield: asset.dividendYield || 0,
             hasDividend: asset.hasDividend || false,
@@ -780,13 +831,17 @@ export const PortfolioProvider = ({ children }) => {
         // アセットデータのインポート（個別株の手数料を0%に確保、配当情報の初期値を設定）
         if (Array.isArray(cloudData.currentAssets)) {
           const validatedAssets = cloudData.currentAssets.map(asset => {
-            if (asset.isStock || asset.fundType === 'STOCK' || asset.fundType === '個別株') {
+            // 銘柄タイプを確認（FUND_TYPESの値で正規化）
+            const isStock = asset.isStock || asset.fundType === FUND_TYPES.STOCK;
+            
+            if (isStock) {
               return {
                 ...asset,
+                fundType: FUND_TYPES.STOCK,
+                isStock: true,
                 annualFee: 0,
                 feeSource: '個別株',
                 feeIsEstimated: false,
-                isStock: true,
                 // 配当情報がない場合は初期値を設定
                 dividendYield: asset.dividendYield || 0,
                 hasDividend: asset.hasDividend || false,
@@ -796,6 +851,7 @@ export const PortfolioProvider = ({ children }) => {
             }
             return {
               ...asset,
+              isStock: isStock,
               // 配当情報がない場合は初期値を設定
               dividendYield: asset.dividendYield || 0,
               hasDividend: asset.hasDividend || false,
@@ -867,13 +923,17 @@ export const PortfolioProvider = ({ children }) => {
         if (Array.isArray(localData.currentAssets)) {
           console.log('保有資産データを設定:', localData.currentAssets.length, '件');
           const validatedAssets = localData.currentAssets.map(asset => {
-            if (asset.isStock || asset.fundType === 'STOCK' || asset.fundType === '個別株') {
+            // 銘柄タイプを確認（FUND_TYPESの値で正規化）
+            const isStock = asset.isStock || asset.fundType === FUND_TYPES.STOCK;
+            
+            if (isStock) {
               return {
                 ...asset,
+                fundType: FUND_TYPES.STOCK,
+                isStock: true,
                 annualFee: 0,
                 feeSource: '個別株',
                 feeIsEstimated: false,
-                isStock: true,
                 // 配当情報がない場合は初期値を設定
                 dividendYield: asset.dividendYield || 0,
                 hasDividend: asset.hasDividend || false,
@@ -883,6 +943,7 @@ export const PortfolioProvider = ({ children }) => {
             }
             return {
               ...asset,
+              isStock: isStock,
               // 配当情報がない場合は初期値を設定
               dividendYield: asset.dividendYield || 0,
               hasDividend: asset.hasDividend || false,
@@ -943,7 +1004,7 @@ export const PortfolioProvider = ({ children }) => {
   // 年間手数料の計算
   const annualFees = currentAssets.reduce((sum, asset) => {
     // 個別株は手数料がかからない
-    if (asset.isStock || asset.fundType === 'STOCK' || asset.fundType === '個別株') {
+    if (asset.isStock || asset.fundType === FUND_TYPES.STOCK) {
       return sum;
     }
     
