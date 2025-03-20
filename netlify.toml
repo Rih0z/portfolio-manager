@@ -25,6 +25,13 @@
   status = 200
   force = true
 
+# Yahoo Financeプロキシ向けのリダイレクト（新規追加）
+[[redirects]]
+  from = "/api/yahoo-finance-proxy"
+  to = "/.netlify/functions/yahoo-finance-proxy"
+  status = 200
+  force = true
+
 # SPAのためのリダイレクト
 [[redirects]]
   from = "/*"
