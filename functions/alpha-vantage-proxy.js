@@ -54,14 +54,30 @@ exports.handler = async function(event, context) {
         };
     }
     
-    // シンボルの取得とログ出力（必須ではない関数も考慮）
-    const symbol = queryParams.symbol || '';
-    console.log(`Alpha Vantage API request: function=${functionType}, symbol=${symbol || 'N/A'}`);
+    // シンボルの取得とフォーマット
+    const originalSymbol = queryParams.symbol || '';
+    let symbol = originalSymbol;
+    
+    // Alpha Vantage用にシンボルを処理（必要に応じて）
+    // 米国シンボルの場合のフォーマットを調整
+    if (symbol && !symbol.includes('.')) {
+        const knownUSETFs = [
+            'VXUS', 'IBIT', 'LQD', 'GLD', 'SPY', 'VOO', 'VTI', 'QQQ', 'IVV', 'VGT', 'VYM', 
+            'VEA', 'VWO', 'BND', 'BNDX', 'AGG', 'VNQ'
+        ];
+        
+        if (knownUSETFs.includes(symbol.toUpperCase())) {
+            console.log(`Known US ETF detected: ${symbol}`);
+        }
+    }
+    
+    console.log(`Alpha Vantage API request: function=${functionType}, original symbol=${originalSymbol}, processed symbol=${symbol}`);
     
     try {
         // パラメータからAPIキーを除外して新しいパラメータオブジェクトを作成
         const params = { ...queryParams };
         if (params.apikey) delete params.apikey;
+        if (params.symbol) params.symbol = symbol; // 処理後のシンボルを使用
         
         // APIキーを追加（Alpha Vantageのパラメータ形式に合わせる）
         params.apikey = apiKey;
@@ -82,20 +98,21 @@ exports.handler = async function(event, context) {
         
         // レスポンスデータが存在するか確認
         if (!response.data) {
-            console.warn(`Empty response from Alpha Vantage for function: ${functionType}`);
+            console.warn(`Empty response from Alpha Vantage for function: ${functionType}, symbol: ${symbol}`);
             return {
                 statusCode: 404,
                 headers,
                 body: JSON.stringify({
                     error: 'No data received',
                     message: 'APIからデータを受信できませんでした',
+                    symbol: originalSymbol
                 })
             };
         }
         
         // レスポンスをログ出力（開発用）
         console.log(`Alpha Vantage API response status: ${response.status}`);
-        console.log(`Response for ${functionType}:`, JSON.stringify(response.data).substring(0, 200) + '...');
+        console.log(`Response for ${functionType} (${symbol}):`, JSON.stringify(response.data).substring(0, 200) + '...');
         
         // Alpha Vantageのレート制限チェック
         if (response.data && response.data.Note && response.data.Note.includes('API call frequency')) {
@@ -106,7 +123,8 @@ exports.handler = async function(event, context) {
                 body: JSON.stringify({
                     error: 'API rate limit exceeded',
                     message: 'Alpha Vantage APIのレート制限に達しました。しばらく待ってから再試行してください。',
-                    data: response.data
+                    data: response.data,
+                    symbol: originalSymbol
                 })
             };
         }
@@ -120,7 +138,8 @@ exports.handler = async function(event, context) {
                 body: JSON.stringify({
                     error: 'Alpha Vantage API error',
                     message: response.data['Error Message'],
-                    data: response.data
+                    data: response.data,
+                    symbol: originalSymbol
                 })
             };
         }
@@ -131,36 +150,58 @@ exports.handler = async function(event, context) {
             // 情報は表示するが、正常なレスポンスとして処理
         }
         
-        // 空のレスポンスチェック (Global Quoteがあるが空の場合)
-        if (response.data && response.data['Global Quote'] && 
-            Object.keys(response.data['Global Quote']).length === 0) {
-            console.warn(`Empty Global Quote from Alpha Vantage for symbol: ${symbol}`);
-            return {
-                statusCode: 404,
-                headers,
-                body: JSON.stringify({
-                    error: 'No quote data found',
-                    message: `銘柄「${symbol}」の価格データが見つかりませんでした`,
-                    data: response.data
-                })
-            };
+        // Global Quoteがある場合の追加チェック
+        if (functionType === 'GLOBAL_QUOTE' && response.data['Global Quote']) {
+            const quoteData = response.data['Global Quote'];
+            
+            // Global Quoteが空オブジェクトの場合（シンボルが見つからない）
+            if (Object.keys(quoteData).length === 0) {
+                console.warn(`Empty Global Quote from Alpha Vantage for symbol: ${symbol}`);
+                return {
+                    statusCode: 404,
+                    headers,
+                    body: JSON.stringify({
+                        error: 'No quote data found',
+                        message: `銘柄「${originalSymbol}」の価格データが見つかりませんでした`,
+                        data: response.data,
+                        symbol: originalSymbol
+                    })
+                };
+            }
+            
+            // 価格データが存在するか確認
+            if (!quoteData['05. price']) {
+                console.warn(`Missing price data in Global Quote for symbol: ${symbol}`);
+                return {
+                    statusCode: 404,
+                    headers,
+                    body: JSON.stringify({
+                        error: 'Price data not found',
+                        message: `銘柄「${originalSymbol}」の価格データが取得できませんでした`,
+                        data: response.data,
+                        symbol: originalSymbol
+                    })
+                };
+            }
         }
         
         // 空のレスポンスチェック (データが完全に空の場合)
         if (response.data && Object.keys(response.data).length === 0) {
-            console.warn(`Empty response from Alpha Vantage for function: ${functionType}`);
+            console.warn(`Empty response from Alpha Vantage for function: ${functionType}, symbol: ${symbol}`);
             return {
                 statusCode: 404,
                 headers,
                 body: JSON.stringify({
                     error: 'No data found',
-                    message: `関数「${functionType}」の応答データが空でした`,
-                    data: {}
+                    message: `関数「${functionType}」の応答データが空でした (シンボル: ${originalSymbol})`,
+                    data: {},
+                    symbol: originalSymbol
                 })
             };
         }
         
         // 正常なレスポンス
+        console.log(`Successfully processed response for ${symbol}`);
         return {
             statusCode: 200,
             headers,
@@ -183,17 +224,17 @@ exports.handler = async function(event, context) {
         
         // エラーの種類に応じたレスポンス
         let statusCode = error.response?.status || 500;
-        let errorMessage = 'Alpha Vantage APIからのデータ取得に失敗しました';
+        let errorMessage = `Alpha Vantage APIからのデータ取得に失敗しました (シンボル: ${originalSymbol})`;
         
         if (error.code === 'ECONNABORTED') {
             statusCode = 504; // Gateway Timeout
-            errorMessage = 'Alpha Vantage APIへのリクエストがタイムアウトしました';
+            errorMessage = `Alpha Vantage APIへのリクエストがタイムアウトしました (シンボル: ${originalSymbol})`;
         } else if (error.code === 'ENOTFOUND') {
             statusCode = 502; // Bad Gateway
-            errorMessage = 'Alpha Vantage APIへの接続に失敗しました';
+            errorMessage = `Alpha Vantage APIへの接続に失敗しました (シンボル: ${originalSymbol})`;
         } else if (error.response?.status === 403) {
             statusCode = 403;
-            errorMessage = 'Alpha Vantage APIへのアクセスが拒否されました（APIキーを確認してください）';
+            errorMessage = `Alpha Vantage APIへのアクセスが拒否されました（APIキーを確認してください）`;
         }
         
         // エラーレスポンス
@@ -203,6 +244,7 @@ exports.handler = async function(event, context) {
             body: JSON.stringify({
                 error: 'Failed to fetch data from Alpha Vantage API',
                 message: errorMessage,
+                symbol: originalSymbol,
                 details: error.response?.data || error.message
             })
         };
