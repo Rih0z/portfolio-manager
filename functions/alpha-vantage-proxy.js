@@ -12,7 +12,6 @@ exports.handler = async function(event, context) {
     console.log('Method:', event.httpMethod);
     console.log('Path:', event.path);
     console.log('Query parameters:', JSON.stringify(event.queryStringParameters));
-    console.log('Headers:', JSON.stringify(event.headers));
     
     // CORS ヘッダーを設定 - すべてのオリジンからのリクエストを許可
     const headers = {
@@ -55,14 +54,16 @@ exports.handler = async function(event, context) {
         };
     }
     
-    console.log(`Alpha Vantage API request: function=${functionType}, symbol=${queryParams.symbol || 'N/A'}`);
+    // シンボルの取得とログ出力（必須ではない関数も考慮）
+    const symbol = queryParams.symbol || '';
+    console.log(`Alpha Vantage API request: function=${functionType}, symbol=${symbol || 'N/A'}`);
     
     try {
         // パラメータからAPIキーを除外して新しいパラメータオブジェクトを作成
         const params = { ...queryParams };
         if (params.apikey) delete params.apikey;
         
-        // APIキーを追加
+        // APIキーを追加（Alpha Vantageのパラメータ形式に合わせる）
         params.apikey = apiKey;
         
         console.log(`Requesting Alpha Vantage API with params:`, JSON.stringify(params));
@@ -78,6 +79,19 @@ exports.handler = async function(event, context) {
             },
             timeout: 15000 // 15秒タイムアウト
         });
+        
+        // レスポンスデータが存在するか確認
+        if (!response.data) {
+            console.warn(`Empty response from Alpha Vantage for function: ${functionType}`);
+            return {
+                statusCode: 404,
+                headers,
+                body: JSON.stringify({
+                    error: 'No data received',
+                    message: 'APIからデータを受信できませんでした',
+                })
+            };
+        }
         
         // レスポンスをログ出力（開発用）
         console.log(`Alpha Vantage API response status: ${response.status}`);
@@ -97,7 +111,42 @@ exports.handler = async function(event, context) {
             };
         }
         
-        // 空のレスポンスチェック
+        // APIエラーメッセージのチェック
+        if (response.data && response.data['Error Message']) {
+            console.error('Alpha Vantage API returned an error:', response.data['Error Message']);
+            return {
+                statusCode: 400,
+                headers,
+                body: JSON.stringify({
+                    error: 'Alpha Vantage API error',
+                    message: response.data['Error Message'],
+                    data: response.data
+                })
+            };
+        }
+        
+        // Information メッセージのチェック (これはエラーではないが、情報提供)
+        if (response.data && response.data['Information']) {
+            console.log('Alpha Vantage API returned information:', response.data['Information']);
+            // 情報は表示するが、正常なレスポンスとして処理
+        }
+        
+        // 空のレスポンスチェック (Global Quoteがあるが空の場合)
+        if (response.data && response.data['Global Quote'] && 
+            Object.keys(response.data['Global Quote']).length === 0) {
+            console.warn(`Empty Global Quote from Alpha Vantage for symbol: ${symbol}`);
+            return {
+                statusCode: 404,
+                headers,
+                body: JSON.stringify({
+                    error: 'No quote data found',
+                    message: `銘柄「${symbol}」の価格データが見つかりませんでした`,
+                    data: response.data
+                })
+            };
+        }
+        
+        // 空のレスポンスチェック (データが完全に空の場合)
         if (response.data && Object.keys(response.data).length === 0) {
             console.warn(`Empty response from Alpha Vantage for function: ${functionType}`);
             return {
@@ -106,6 +155,7 @@ exports.handler = async function(event, context) {
                 body: JSON.stringify({
                     error: 'No data found',
                     message: `関数「${functionType}」の応答データが空でした`,
+                    data: {}
                 })
             };
         }
@@ -125,7 +175,6 @@ exports.handler = async function(event, context) {
         if (error.response) {
             // サーバーからのレスポンスがあった場合
             console.error('Error status:', error.response.status);
-            console.error('Error headers:', JSON.stringify(error.response.headers));
             console.error('Error data:', JSON.stringify(error.response.data));
         } else if (error.request) {
             // リクエストは送信されたがレスポンスがない場合
@@ -142,6 +191,9 @@ exports.handler = async function(event, context) {
         } else if (error.code === 'ENOTFOUND') {
             statusCode = 502; // Bad Gateway
             errorMessage = 'Alpha Vantage APIへの接続に失敗しました';
+        } else if (error.response?.status === 403) {
+            statusCode = 403;
+            errorMessage = 'Alpha Vantage APIへのアクセスが拒否されました（APIキーを確認してください）';
         }
         
         // エラーレスポンス
