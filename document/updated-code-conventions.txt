@@ -1,7 +1,7 @@
-# ポートフォリオマネージャー コード規約書（更新版3.1）
+# ポートフォリオマネージャー コード規約書（更新版3.2）
 
-**バージョン:** 3.1  
-**最終更新日時:** 2025/03/19 15:30
+**バージョン:** 3.2  
+**最終更新日時:** 2025/03/20 10:30
 
 ## 1. 概要
 
@@ -35,7 +35,7 @@ src/
 - **ユーティリティファイル**: camelCase を使用（例: `formatters.js`, `fundUtils.js`）
 - **テストファイル**: `.test.js` または `.spec.js` を追加（例: `PortfolioSummary.test.jsx`）
 - **CSS/SCSS**: コンポーネントと同じ名前で `.module.css` サフィックス（例: `Button.module.css`）
-- **サーバーレス関数**: camelCase を使用し、機能を表す名前（例: `alpha-vantage-proxy.js`, `mof-exchange-rate-proxy.js`）
+- **サーバーレス関数**: camelCase を使用し、機能を表す名前（例: `alpha-vantage-proxy.js`, `yahoo-finance-proxy.js`, `exchange-rate-proxy.js`）
 
 ## 3. 命名規則
 
@@ -75,6 +75,8 @@ src/
   const isInitialized = true; // 初期化完了フラグ
   const hasDividend = true; // 配当があるかどうかのフラグ
   const isDividendEstimated = true; // 配当情報が推定値かどうか
+  const isYahooFinanceTried = true; // Yahoo Financeを試行したかどうか（新規）
+  const isYahooFinanceSuccess = true; // Yahoo Financeからのデータ取得に成功したかどうか（新規）
   ```
 
 ### 3.3 定数
@@ -85,6 +87,7 @@ src/
   const MAX_RETRY_COUNT = 3;
   const DEFAULT_CURRENCY = 'JPY';
   const ALPHA_VANTAGE_URL = '/api/alpha-vantage-proxy';
+  const YAHOO_FINANCE_URL = '/api/yahoo-finance-proxy'; // 新規追加
   const FUND_TYPES = {
     STOCK: '個別株',
     ETF_JP: 'ETF（日本）',
@@ -98,15 +101,27 @@ src/
     ANNUAL: 'annual',
     UNKNOWN: 'unknown'
   };
-  // 通知タイプ定数（新規）
+  // 通知タイプ定数
   const NOTIFICATION_TYPES = {
     INFO: 'info',
     SUCCESS: 'success',
     WARNING: 'warning',
     ERROR: 'error'
   };
-  // 通知自動消去時間（新規）
+  // 通知自動消去時間
   const NOTIFICATION_AUTO_DISMISS_TIME = 5000; // 5秒
+  // データソース定数（新規）
+  const DATA_SOURCES = {
+    ALPHA_VANTAGE: 'Alpha Vantage',
+    YAHOO_FINANCE: 'Yahoo Finance',
+    FALLBACK: 'Fallback'
+  };
+  // データソース優先順位（新規）
+  const SOURCE_PRIORITY = [
+    DATA_SOURCES.ALPHA_VANTAGE,
+    DATA_SOURCES.YAHOO_FINANCE,
+    DATA_SOURCES.FALLBACK
+  ];
   ```
 
 ### 3.4 コンテキストとフック
@@ -136,7 +151,8 @@ src/
   const handleIncrementFee = (asset, amount) => {...}
   const handleSaveToLocalStorage = () => {...} // ローカルストレージ保存ハンドラ
   const handleUpdateDividendInfo = (asset, yield) => {...} // 配当情報更新ハンドラ
-  const handleRemoveNotification = (id) => {...} // 通知削除ハンドラ（新規）
+  const handleRemoveNotification = (id) => {...} // 通知削除ハンドラ
+  const handleRefreshMarketPrices = () => {...} // 市場データ更新ハンドラ
   ```
 
 ### 3.6 ユーティリティ関数
@@ -153,7 +169,29 @@ src/
   const calculateAnnualDividend = (asset, exchangeRate, baseCurrency) => {...} // 年間配当金計算関数
   const formatDividendFrequency = (frequency) => {...} // 配当頻度の表示変換関数
   const determineHasDividend = (ticker, fundType) => {...} // 配当の有無判定関数
-  const addNotificationWithTimeout = (message, type) => {...} // タイムアウト付き通知追加関数（新規）
+  const addNotificationWithTimeout = (message, type) => {...} // タイムアウト付き通知追加関数
+  const fetchFromYahooFinance = (ticker) => {...} // Yahoo Financeからデータを取得する関数（新規）
+  const formatTickerForYahooFinance = (ticker) => {...} // ティッカーをYahoo Finance用にフォーマットする関数（新規）
+  ```
+
+### 3.7 データソース関連（新規）
+
+- **データソース変数**: 明確な名前と意図を表す命名を使用
+  ```javascript
+  // 良い例
+  const dataSource = 'Alpha Vantage'; // データソースを文字列で表現
+  const sourceCounts = { 'Alpha Vantage': 5, 'Yahoo Finance': 3, 'Fallback': 2 }; // ソース別の統計
+  const yahooFinanceTriedCount = 5; // Yahoo Financeを試行した回数
+  const yahooFinanceSuccessCount = 3; // Yahoo Financeでの成功回数
+  const fallbackCount = 2; // フォールバック値の使用回数
+  ```
+
+- **フォールバック関連フラグ**: 各データソースの試行・成功状態を追跡
+  ```javascript
+  // 良い例
+  const yahooFinanceTried = true; // Yahoo Financeを試行したかどうか
+  const yahooFinanceSuccess = true; // Yahoo Financeからのデータ取得に成功したかどうか
+  const isFallback = result.data.source === 'Fallback'; // フォールバック値かどうか
   ```
 
 ## 4. コードフォーマット
@@ -211,13 +249,15 @@ src/
     {asset.feeSource}
   </span>
   
-  // データソースバッジ
+  // データソースバッジ（新規）
   <span className={`text-xs px-1.5 py-0.5 rounded ${
-    dataSource === 'cloud'
-      ? 'bg-blue-100 text-blue-800'
-      : 'bg-amber-100 text-amber-800'
+    asset.source === 'Alpha Vantage'
+      ? 'bg-green-100 text-green-800'
+      : asset.source === 'Yahoo Finance'
+        ? 'bg-blue-100 text-blue-800'
+        : 'bg-yellow-100 text-amber-800'
   }`}>
-    {dataSource === 'cloud' ? 'クラウド' : 'ローカル'}
+    {asset.source}
   </span>
   
   // 配当情報バッジ
@@ -234,7 +274,7 @@ src/
   </span>
   ```
 
-- **通知コンポーネント**（新規）:
+- **通知コンポーネント**:
   ```jsx
   // 通知メッセージ
   <div 
@@ -292,7 +332,7 @@ src/
   import { usePortfolioContext } from '../../hooks/usePortfolioContext';
   import Header from '../layout/Header';
   
-  import { FUND_TYPES, DIVIDEND_FREQUENCY, NOTIFICATION_TYPES } from '../../utils/fundUtils';
+  import { FUND_TYPES, DIVIDEND_FREQUENCY, NOTIFICATION_TYPES, DATA_SOURCES } from '../../utils/fundUtils';
   
   import './styles.css';
   ```
@@ -312,7 +352,7 @@ src/
 - **Props分割代入**: コンポーネント内で使用
   ```jsx
   // 良い例
-  function UserCard({ name, email, avatar, isStock, hasDividend }) {
+  function UserCard({ name, email, avatar, isStock, hasDividend, source }) {
     return (
       <div>
         <img src={avatar} alt={name} />
@@ -320,6 +360,7 @@ src/
         <p>{email}</p>
         {isStock && <span className="badge">個別株</span>}
         {hasDividend && <span className="badge">配当あり</span>}
+        <span className="source-badge">{source}</span> {/* データソースを表示 */}
       </div>
     );
   }
@@ -359,7 +400,8 @@ src/
   export const useFundUtils = () => {...}
   export const useLocalStorage = () => {...} // ローカルストレージ操作フック
   export const useDividendCalculation = () => {...} // 配当計算フック
-  export const useNotifications = () => {...} // 通知管理フック（新規）
+  export const useNotifications = () => {...} // 通知管理フック
+  export const useDataSources = () => {...} // データソース管理フック（新規）
   ```
 
 ### 5.3 環境依存のライブラリ対応
@@ -561,7 +603,7 @@ src/
 
 ### 6.3 ローカルストレージとの連携
 
-- **データの暗号化**: URIエンコーディングを含むBase64エンコーディングによる安全な暗号化（改良版）
+- **データの暗号化**: URIエンコーディングを含むBase64エンコーディングによる安全な暗号化
   ```javascript
   // 改良版 - 特殊文字にも対応
   const encryptData = (data) => {
@@ -610,6 +652,7 @@ src/
         timestamp: new Date().toISOString()
       };
       
+      // データの暗号化
       const encryptedData = encryptData(portfolioData);
       if (!encryptedData) {
         throw new Error('データの暗号化に失敗しました');
@@ -624,41 +667,6 @@ src/
       return false;
     }
   }, [initialized, /* 依存する状態変数 */]);
-  ```
-
-- **読み込み関数**: 強化されたエラーハンドリングと検証
-  ```javascript
-  const loadFromLocalStorage = useCallback(() => {
-    try {
-      console.log('ローカルストレージからのデータ読み込みを試行...');
-      const encryptedData = localStorage.getItem('portfolioData');
-      
-      if (!encryptedData) {
-        console.log('ローカルストレージにデータがありません');
-        return null;
-      }
-      
-      const decryptedData = decryptData(encryptedData);
-      if (!decryptedData) {
-        console.log('データの復号化に失敗しました');
-        return null;
-      }
-      
-      // 基本的なデータ構造の検証
-      const requiredFields = ['baseCurrency', 'currentAssets', 'targetPortfolio'];
-      const missingFields = requiredFields.filter(field => !(field in decryptedData));
-      
-      if (missingFields.length > 0) {
-        console.warn(`復号化されたデータに必須フィールドがありません: ${missingFields.join(', ')}`);
-        return null;
-      }
-      
-      return decryptedData;
-    } catch (error) {
-      console.error('ローカルストレージからの読み込みに失敗しました', error);
-      return null;
-    }
-  }, []);
   ```
 
 ### 6.4 Google Drive連携
@@ -716,7 +724,64 @@ src/
 
 ## 7. エラー処理
 
-### 7.1 エラーキャッチと表示
+### 7.1 マルチレベルのフォールバック処理（新規）
+
+- **段階的フォールバック**: プライマリ→セカンダリ→最終フォールバックの順で処理
+  ```javascript
+  // 良い例
+  try {
+    // プライマリソース（Alpha Vantage）からデータ取得を試行
+    const alphaVantageResult = await fetchFromAlphaVantage(ticker);
+    if (alphaVantageResult.success) {
+      return alphaVantageResult; // 成功した場合はそのまま返す
+    }
+    
+    // プライマリソースが失敗した場合はセカンダリソース（Yahoo Finance）を試行
+    console.log(`Alpha Vantage failed for ${ticker}, trying Yahoo Finance`);
+    const yahooFinanceResult = await fetchFromYahooFinance(ticker);
+    if (yahooFinanceResult.success) {
+      return yahooFinanceResult; // 成功した場合はそのまま返す
+    }
+    
+    // セカンダリソースも失敗した場合はフォールバック値を使用
+    console.log(`Yahoo Finance also failed for ${ticker}, using fallback data`);
+    return generateFallbackData(ticker);
+  } catch (error) {
+    // 全体的なエラー処理
+    console.error(`Error in fetching data for ${ticker}:`, error);
+    return generateFallbackData(ticker);
+  }
+  ```
+
+- **データソースの切り替え条件**: 明確な条件で次のソースに切り替え
+  ```javascript
+  // レート制限の検出
+  if (response.data && response.data.Note && response.data.Note.includes('API call frequency')) {
+    console.warn(`Alpha Vantage API rate limit reached for ${ticker}, trying Yahoo Finance`);
+    return await fetchFromYahooFinance(ticker);
+  }
+  
+  // データ取得失敗の検出
+  if (!response.data || !response.data['Global Quote'] || !response.data['Global Quote']['05. price']) {
+    console.warn(`No valid data from Alpha Vantage for ${ticker}, trying Yahoo Finance`);
+    return await fetchFromYahooFinance(ticker);
+  }
+  ```
+
+- **データソース追跡**: 各銘柄のデータソースを記録
+  ```javascript
+  // 銘柄データにソース情報を追加
+  return {
+    success: true,
+    data: {
+      // ...データフィールド
+      source: 'Alpha Vantage', // または 'Yahoo Finance', 'Fallback'
+    },
+    message: '正常に取得しました'
+  };
+  ```
+
+### 7.2 エラーキャッチと表示
 
 - **try/catch**: 非同期処理では常に使用
   ```javascript
@@ -740,12 +805,21 @@ src/
     // 処理
   } catch (error) {
     console.error(`Error fetching ${ticker} from Alpha Vantage:`, error);
-    console.log(`Trying fallback for ${ticker}`);
-    // 代替処理
+    console.log(`Trying Yahoo Finance for ${ticker}`);
+    try {
+      const yahooResponse = await axios.get(YAHOO_FINANCE_URL, {
+        params: { symbols: ticker },
+        timeout: 5000
+      });
+      // Yahoo Financeからのデータ処理
+    } catch (yahooError) {
+      console.error(`Yahoo Finance also failed for ${ticker}:`, yahooError);
+      // 最終フォールバック
+    }
   }
   ```
 
-### 7.2 入力バリデーション
+### 7.3 入力バリデーション
 
 - **早期リターン**: エラーケースを最初に処理
   ```javascript
@@ -793,19 +867,28 @@ src/
   }, [/* 依存関係 */, initialized]);
   ```
 
-### 7.3 API呼び出しのフォールバック処理
+### 7.4 API呼び出しのフォールバック処理（更新）
 
-- **Alpha Vantage API使用とフォールバック**:
+- **段階的フォールバック処理**: プライマリ→セカンダリ→最終フォールバックの順で試行
   ```javascript
-  // Alpha Vantage APIからのデータ取得を試みる
+  // プライマリソースからのデータ取得を試みる
   try {
-    const result = await fetchFromAlphaVantage(ticker);
-    return result;
+    const alphaVantageResult = await fetchFromAlphaVantage(ticker);
+    return alphaVantageResult;
   } catch (error) {
     console.error('Alpha Vantage API error:', error);
     
-    // APIからのデータ取得に失敗した場合はフォールバック値を使用
-    return generateFallbackData(ticker);
+    // セカンダリソースを試行
+    try {
+      console.log(`Trying Yahoo Finance for ${ticker}`);
+      const yahooResult = await fetchFromYahooFinance(ticker);
+      return yahooResult;
+    } catch (yahooError) {
+      console.error('Yahoo Finance API error:', yahooError);
+      
+      // すべてのソースが失敗した場合はフォールバック値を使用
+      return generateFallbackData(ticker);
+    }
   }
   ```
 
@@ -818,7 +901,7 @@ src/
   });
   ```
 
-### 7.4 データ永続化エラー処理
+### 7.5 データ永続化エラー処理
 
 - **暗号化/復号化エラー**:
   ```javascript
@@ -842,7 +925,63 @@ src/
   };
   ```
 
-### 7.5 エラーバウンダリの導入
+### 7.6 通知システムの実装（更新）
+
+- **通知の追加と自動消去**:
+  ```javascript
+  // 通知を追加する関数（タイムアウト付き）
+  const addNotification = useCallback((message, type = 'info') => {
+    const id = Date.now();
+    setNotifications(prev => [...prev, { id, message, type }]);
+    
+    // 情報・成功・警告通知は自動消去（5秒後）
+    if (type !== 'error') {
+      setTimeout(() => {
+        removeNotification(id);
+      }, NOTIFICATION_AUTO_DISMISS_TIME);
+    }
+    
+    return id;
+  }, [removeNotification]);
+  
+  // 通知を削除する関数
+  const removeNotification = useCallback((id) => {
+    setNotifications(prev => prev.filter(notification => notification.id !== id));
+  }, []);
+  ```
+
+- **データソース通知の追加（新規）**:
+  ```javascript
+  // データソースの統計を計算
+  const sourceCounts = validatedAssets.reduce((acc, asset) => {
+    acc[asset.source] = (acc[asset.source] || 0) + 1;
+    return acc;
+  }, {});
+  
+  // 通知メッセージを作成
+  let message = '市場データを更新しました';
+  if (sourceCounts['Alpha Vantage']) {
+    message += ` (Alpha Vantage: ${sourceCounts['Alpha Vantage']}件`;
+  }
+  if (sourceCounts['Yahoo Finance']) {
+    message += `, Yahoo Finance: ${sourceCounts['Yahoo Finance']}件`;
+  }
+  if (sourceCounts['Fallback']) {
+    message += `, フォールバック: ${sourceCounts['Fallback']}件`;
+  }
+  message += ')';
+  
+  // 成功通知を表示（5秒後に自動消去）
+  addNotification(message, 'success');
+  
+  // Yahoo Financeの使用状況に関する通知
+  if (yahooFinanceTriedCount > 0) {
+    const yahooMessage = `Alpha Vantageでの取得に失敗した${yahooFinanceTriedCount}銘柄について、Yahoo Financeを使用しました（成功: ${yahooFinanceSuccessCount}件）`;
+    addNotification(yahooMessage, 'info');
+  }
+  ```
+
+### 7.7 エラーバウンダリの導入
 
 - **コンポーネントレベルのエラー処理**:
   ```javascript
@@ -885,519 +1024,161 @@ src/
   }
   ```
 
-### 7.6 通知システムの実装（新規）
+## 8. マルチデータソース対応（新規）
 
-- **通知の追加と自動消去**:
+### 8.1 データソース優先順位の設定
+
+- **データソース優先順位の定義**:
   ```javascript
-  // 通知を追加する関数（タイムアウト付き）
-  const addNotification = useCallback((message, type = 'info') => {
-    const id = Date.now();
-    setNotifications(prev => [...prev, { id, message, type }]);
-    
-    // 情報・成功・警告通知は自動消去（5秒後）
-    if (type !== 'error') {
-      setTimeout(() => {
-        removeNotification(id);
-      }, NOTIFICATION_AUTO_DISMISS_TIME);
-    }
-    
-    return id;
-  }, [removeNotification]);
+  // データソース定数
+  const DATA_SOURCES = {
+    ALPHA_VANTAGE: 'Alpha Vantage',
+    YAHOO_FINANCE: 'Yahoo Finance',
+    FALLBACK: 'Fallback'
+  };
   
-  // 通知を削除する関数
-  const removeNotification = useCallback((id) => {
-    setNotifications(prev => prev.filter(notification => notification.id !== id));
-  }, []);
+  // データソース優先順位
+  const SOURCE_PRIORITY = [
+    DATA_SOURCES.ALPHA_VANTAGE, // プライマリソース
+    DATA_SOURCES.YAHOO_FINANCE, // セカンダリソース
+    DATA_SOURCES.FALLBACK // 最終フォールバック
+  ];
   ```
 
-- **通知表示コンポーネント**:
+- **切り替え条件の設定**:
   ```javascript
-  // 通知表示コンポーネント
-  const NotificationContainer = () => {
-    const { notifications, removeNotification } = useNotifications();
+  // レート制限の検出
+  if (response.data && response.data.Note && response.data.Note.includes('API call frequency')) {
+    console.warn(`Rate limit reached for ${ticker}, switching to ${SOURCE_PRIORITY[1]}`);
+    return getDataFromSource(ticker, SOURCE_PRIORITY[1]);
+  }
+  
+  // データがない場合の検出
+  if (!response.data || !response.data['Global Quote'] || !response.data['Global Quote']['05. price']) {
+    console.warn(`No data for ${ticker} from ${SOURCE_PRIORITY[0]}, switching to ${SOURCE_PRIORITY[1]}`);
+    return getDataFromSource(ticker, SOURCE_PRIORITY[1]);
+  }
+  ```
+
+### 8.2 データソース取得関数の実装
+
+- **一般化されたデータソース取得関数**:
+  ```javascript
+  // 指定されたデータソースからデータを取得する関数
+  async function getDataFromSource(ticker, source) {
+    switch(source) {
+      case DATA_SOURCES.ALPHA_VANTAGE:
+        return fetchFromAlphaVantage(ticker);
+      case DATA_SOURCES.YAHOO_FINANCE:
+        return fetchFromYahooFinance(ticker);
+      case DATA_SOURCES.FALLBACK:
+      default:
+        return generateFallbackData(ticker);
+    }
+  }
+  ```
+
+- **各データソース固有の取得関数**:
+  ```javascript
+  // Alpha Vantageからデータを取得する関数
+  async function fetchFromAlphaVantage(ticker) {
+    try {
+      // Alpha Vantageからのデータ取得ロジック
+      // ...
+    } catch (error) {
+      console.error(`Alpha Vantage error for ${ticker}:`, error);
+      throw error; // エラーを上位へ伝播
+    }
+  }
+  
+  // Yahoo Financeからデータを取得する関数
+  async function fetchFromYahooFinance(ticker) {
+    try {
+      // Yahoo Financeからのデータ取得ロジック
+      // ...
+    } catch (error) {
+      console.error(`Yahoo Finance error for ${ticker}:`, error);
+      throw error; // エラーを上位へ伝播
+    }
+  }
+  ```
+
+### 8.3 データソース情報の表示
+
+- **データソースバッジの実装**:
+  ```jsx
+  // データソースバッジコンポーネント
+  function DataSourceBadge({ source }) {
+    let badgeClass = 'text-xs px-1.5 py-0.5 rounded ';
+    
+    switch(source) {
+      case 'Alpha Vantage':
+        badgeClass += 'bg-green-100 text-green-800';
+        break;
+      case 'Yahoo Finance':
+        badgeClass += 'bg-blue-100 text-blue-800';
+        break;
+      case 'Fallback':
+      default:
+        badgeClass += 'bg-yellow-100 text-amber-800';
+    }
     
     return (
-      <div className="fixed bottom-0 right-0 p-4 space-y-2 z-50">
-        {notifications.map((notification) => (
-          <div 
-            key={notification.id}
-            className={`p-3 rounded-md shadow-md text-sm ${
-              notification.type === 'error' ? 'bg-red-100 text-red-700' :
-              notification.type === 'warning' ? 'bg-yellow-100 text-yellow-700' :
-              notification.type === 'success' ? 'bg-green-100 text-green-700' :
-              'bg-blue-100 text-blue-700'
-            }`}
-          >
-            <div className="flex justify-between items-start">
-              <span>{notification.message}</span>
-              <button 
-                onClick={() => removeNotification(notification.id)}
-                className="ml-2 text-gray-500 hover:text-gray-700"
-              >
-                &times;
-              </button>
-            </div>
-          </div>
+      <span className={badgeClass}>
+        {source}
+      </span>
+    );
+  }
+  ```
+
+- **データソース統計の表示**:
+  ```jsx
+  // データソース統計コンポーネント
+  function DataSourceStats({ assets }) {
+    // データソースごとに集計
+    const sourceCounts = assets.reduce((acc, asset) => {
+      acc[asset.source] = (acc[asset.source] || 0) + 1;
+      return acc;
+    }, {});
+    
+    return (
+      <div className="text-sm text-gray-600 mt-2">
+        <span>データソース: </span>
+        {Object.entries(sourceCounts).map(([source, count]) => (
+          <span key={source} className="ml-2">
+            {source}: {count}件
+          </span>
         ))}
       </div>
     );
-  };
-  ```
-
-## 8. Google Drive API連携
-
-### 8.1 ファイル操作関数
-
-- **ファイル保存関数**: 
-  ```javascript
-  export async function saveToGoogleDrive(data, userData, filename = 'portfolio_data.json') {
-    if (!userData || !userData.email) {
-      return { success: false, message: 'ユーザー情報がありません' };
-    }
-    
-    try {
-      // 新しいアクセストークンを取得
-      const newToken = await getGoogleAccessToken();
-      if (!newToken) {
-        return { success: false, message: 'アクセストークンの取得に失敗しました' };
-      }
-      
-      // メタデータとファイル内容の準備
-      const metadata = {
-        name: filename,
-        mimeType: 'application/json'
-      };
-      
-      // JSONデータを文字列に変換
-      const jsonContent = JSON.stringify(data);
-      const blob = new Blob([jsonContent], { type: 'application/json' });
-      
-      // FormDataオブジェクトを作成
-      const formData = new FormData();
-      formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-      formData.append('file', blob);
-      
-      // APIリクエストを実行
-      const response = await fetch(
-        'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${newToken}`
-          },
-          body: formData
-        }
-      );
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP error ${response.status}: ${errorText}`);
-      }
-      
-      const result = await response.json();
-      
-      return {
-        success: true,
-        message: 'データを保存しました',
-        fileId: result.id,
-        fileName: result.name
-      };
-    } catch (error) {
-      console.error('[API] Error saving to Google Drive:', error);
-      return { 
-        success: false, 
-        message: `Googleドライブへの保存に失敗しました: ${error.message}` 
-      };
-    }
   }
   ```
 
-- **ファイル読み込み関数**:
+### 8.4 ティッカーフォーマット関数
+
+- **各データソース用のティッカーフォーマット関数**:
   ```javascript
-  export async function loadFromGoogleDrive(userData, filename = 'portfolio_data.json') {
-    if (!userData || !userData.email) {
-      return { success: false, message: 'ユーザー情報がありません' };
-    }
-    
-    try {
-      // 新しいアクセストークンを取得
-      const newToken = await getGoogleAccessToken();
-      if (!newToken) {
-        return { success: false, message: 'アクセストークンの取得に失敗しました' };
-      }
-      
-      // ファイルを検索するクエリを構築
-      const query = encodeURIComponent(`name='${filename}' and trashed=false`);
-      
-      // ファイル検索APIを呼び出し
-      const searchResponse = await fetch(
-        `https://www.googleapis.com/drive/v3/files?q=${query}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${newToken}`
-          }
-        }
-      );
-      
-      if (!searchResponse.ok) {
-        const errorText = await searchResponse.text();
-        throw new Error(`検索エラー ${searchResponse.status}: ${errorText}`);
-      }
-      
-      const searchResult = await searchResponse.json();
-      
-      // ファイルが見つからない場合
-      if (!searchResult.files || searchResult.files.length === 0) {
-        return { success: false, message: 'ファイルが見つかりません' };
-      }
-      
-      // 最新のファイルを取得
-      const fileId = searchResult.files[0].id;
-      
-      // ファイルの内容を取得
-      const fileResponse = await fetch(
-        `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
-        {
-          headers: {
-            'Authorization': `Bearer ${newToken}`
-          }
-        }
-      );
-      
-      if (!fileResponse.ok) {
-        const errorText = await fileResponse.text();
-        throw new Error(`ファイル取得エラー ${fileResponse.status}: ${errorText}`);
-      }
-      
-      // レスポンスをJSONとしてパース
-      const data = await fileResponse.json();
-      
-      return {
-        success: true,
-        message: 'データを読み込みました',
-        data: data,
-        fileId: fileId,
-        fileName: filename
-      };
-    } catch (error) {
-      console.error('[API] Error loading from Google Drive:', error);
-      return { 
-        success: false, 
-        message: `Googleドライブからの読み込みに失敗しました: ${error.message}` 
-      };
-    }
-  }
-  ```
-
-### 8.2 認証関連の処理
-
-- **認証トークン処理**:
-  ```javascript
-  // ログイン処理
-  const handleLogin = useCallback((credentialResponse) => {
-    try {
-      // IDトークンをデコード
-      const decodedToken = jwtDecode(credentialResponse.credential);
-      
-      // トークンを保存
-      setGoogleToken(credentialResponse.credential);
-      
-      const userData = {
-        name: decodedToken.name,
-        email: decodedToken.email,
-        picture: decodedToken.picture
-      };
-      
-      setUser(userData);
-      setIsAuthenticated(true);
-      
-      // トークンをローカルストレージに保存
-      localStorage.setItem('googleToken', credentialResponse.credential);
-      
-      // API層にもトークンを設定
-      setGoogleAccessToken(credentialResponse.credential);
-      
-      // コンテキスト間の連携設定
-      if (portfolioContextRef.current) {
-        if (portfolioContextRef.current.handleAuthStateChange) {
-          portfolioContextRef.current.handleAuthStateChange(true, userData);
-        }
-        
-        // 遅延してからデータ読み込みを試行
-        setTimeout(() => {
-          if (portfolioContextRef.current.loadFromGoogleDrive) {
-            portfolioContextRef.current.loadFromGoogleDrive(userData);
-          }
-        }, 1000);
-      }
-    } catch (error) {
-      console.error('ログインエラー:', error);
-    }
-  }, []);
-  ```
-
-## 9. アクセシビリティ
-
-### 9.1 基本原則
-
-- **意味的なHTML**: 適切なHTML要素や属性を使用
-  ```jsx
-  // 良い例
-  <button 
-    type="button"
-    onClick={handleClick}
-    aria-label="閉じる"
-    disabled={isDisabled}
-  >
-    <Icon name="close" />
-  </button>
-  ```
-
-### 9.2 フォームアクセシビリティ
-
-- **ラベル関連付け**: フォーム要素にはlabelを関連付け
-  ```jsx
-  // 良い例
-  <div>
-    <label htmlFor="email">メールアドレス</label>
-    <input id="email" type="email" />
-  </div>
-  ```
-
-- **グループ化と関連付け**: ラジオボタンなどのグループは適切に構造化
-  ```jsx
-  <div role="radiogroup" aria-labelledby="format-label">
-    <span id="format-label">フォーマット:</span>
-    <button role="radio" aria-checked={format === 'json'}>JSON</button>
-    <button role="radio" aria-checked={format === 'csv'}>CSV</button>
-  </div>
-  ```
-
-## 10. 配当情報関連の実装
-
-### 10.1 配当情報の取得・計算
-
-- **配当情報の推定関数**:
-  ```javascript
-  // 配当利回りを推定する関数
-  export function estimateDividendYield(ticker, name = '') {
-    if (!ticker) return {
-      yield: 0,
-      isEstimated: true,
-      hasDividend: false,
-      dividendFrequency: 'unknown'
-    };
-    
+  // Alpha Vantage用にティッカーをフォーマットする関数
+  function formatTickerForAlphaVantage(ticker) {
+    if (!ticker) return '';
     ticker = ticker.toUpperCase();
-    const info = extractFundInfo(ticker, name);
     
-    // 基本的な推定値
-    let estimatedYield = 0;
-    let isEstimated = true;
-    let hasDividend = info.hasDividend || false;
-    
-    // 特定のティッカーに対する配当利回り情報があれば使用
-    if (TICKER_SPECIFIC_DIVIDENDS[ticker] !== undefined) {
-      estimatedYield = TICKER_SPECIFIC_DIVIDENDS[ticker];
-      isEstimated = false;
-      hasDividend = estimatedYield > 0;
-    } else {
-      // ファンドタイプに基づく推定
-      const fundType = info.fundType;
-      
-      if (fundType === FUND_TYPES.STOCK) {
-        // 個別株の場合は配当情報を持たないと仮定（推定困難のため、後でデータを更新）
-        estimatedYield = 0;
-        hasDividend = false;
-      } else if (fundType === FUND_TYPES.REIT_US) {
-        estimatedYield = 4.0; // 米国REITの平均
-        hasDividend = true;
-      } else if (fundType === FUND_TYPES.REIT_JP) {
-        estimatedYield = 3.5; // 日本REITの平均
-        hasDividend = true;
-      } else if (fundType === FUND_TYPES.BOND) {
-        estimatedYield = 2.5; // 債券ファンドの平均
-        hasDividend = true;
-      } else if (
-        name.includes('dividend') || 
-        name.includes('配当') || 
-        name.includes('income') || 
-        name.includes('yield') ||
-        name.includes('高配当')
-      ) {
-        // 名前から高配当と推測される場合
-        estimatedYield = 3.0;
-        hasDividend = true;
-      } else if (fundType === FUND_TYPES.ETF_US) {
-        estimatedYield = 1.5; // 米国ETFの平均
-        hasDividend = true;
-      } else if (fundType === FUND_TYPES.ETF_JP) {
-        estimatedYield = 1.8; // 日本ETFの平均
-        hasDividend = true;
-      } else if (fundType === FUND_TYPES.INDEX_US) {
-        estimatedYield = 1.5; // 米国インデックスファンドの平均
-        hasDividend = true;
-      } else if (fundType === FUND_TYPES.INDEX_JP) {
-        estimatedYield = 1.2; // 日本インデックスファンドの平均
-        hasDividend = true;
-      } else {
-        estimatedYield = 1.0; // その他のファンドのデフォルト値
-        hasDividend = estimatedYield > 0;
-      }
-    }
-    
-    return {
-      yield: estimatedYield,
-      isEstimated: isEstimated,
-      hasDividend: hasDividend,
-      dividendFrequency: info.dividendFrequency || 'quarterly' // デフォルトは四半期
-    };
+    // Alpha Vantageは日本株の.Tをそのまま使用
+    return ticker;
   }
-  ```
-
-- **年間配当金の計算**:
-  ```javascript
-  // 年間配当金の計算
-  const annualDividends = currentAssets.reduce((sum, asset) => {
-    // 配当がない場合はスキップ
-    if (!asset.hasDividend) {
-      return sum;
-    }
-    
-    let assetValue = asset.price * asset.holdings;
-    
-    // 通貨換算
-    if (asset.currency !== baseCurrency) {
-      if (baseCurrency === 'JPY' && asset.currency === 'USD') {
-        assetValue *= exchangeRate.rate;
-      } else if (baseCurrency === 'USD' && asset.currency === 'JPY') {
-        assetValue /= exchangeRate.rate;
-      }
-    }
-    
-    return sum + (assetValue * (asset.dividendYield || 0) / 100);
-  }, 0);
-  ```
-
-### 10.2 配当情報の表示
-
-- **配当情報バッジ**:
-  ```jsx
-  // 配当情報バッジ
-  <span className={`text-xs px-1.5 py-0.5 rounded ${
-    !asset.hasDividend
-      ? 'bg-gray-100 text-gray-800'
-      : asset.dividendIsEstimated 
-        ? 'bg-yellow-100 text-yellow-800'
-        : 'bg-green-100 text-green-800'
-  }`}>
-    {!asset.hasDividend 
-      ? '配当なし' 
-      : formatDividendFrequency(asset.dividendFrequency) + (asset.dividendIsEstimated ? '（推定）' : '')}
-  </span>
-  ```
-
-- **配当頻度の表示変換**:
-  ```javascript
-  // 配当頻度の表示変換
-  const formatDividendFrequency = (frequency) => {
-    switch (frequency) {
-      case 'monthly': return '毎月';
-      case 'quarterly': return '四半期';
-      case 'semi-annual': return '半年';
-      case 'annual': return '年1回';
-      default: return '不明';
-    }
-  };
-  ```
-
-## 11. 通知システムの実装（新規）
-
-### 11.1 通知コンポーネント
-
-- **通知コンテナコンポーネント**:
-  ```jsx
-  // 通知表示用コンテナコンポーネント
-  const NotificationContainer = () => {
-    const { notifications, removeNotification } = useNotifications();
-    
-    return (
-      <div className="fixed bottom-0 right-0 p-4 space-y-2 z-50">
-        {notifications.map((notification) => (
-          <div 
-            key={notification.id}
-            className={`p-3 rounded-md shadow-md text-sm ${
-              notification.type === 'error' ? 'bg-red-100 text-red-700' :
-              notification.type === 'warning' ? 'bg-yellow-100 text-yellow-700' :
-              notification.type === 'success' ? 'bg-green-100 text-green-700' :
-              'bg-blue-100 text-blue-700'
-            }`}
-          >
-            <div className="flex justify-between items-start">
-              <span>{notification.message}</span>
-              <button 
-                onClick={() => removeNotification(notification.id)}
-                className="ml-2 text-gray-500 hover:text-gray-700"
-              >
-                &times;
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  };
-  ```
-
-### 11.2 通知管理関数
-
-- **通知の追加と自動消去**:
-  ```javascript
-  // 通知を追加する関数（タイムアウト付き）
-  const addNotification = useCallback((message, type = 'info') => {
-    const id = Date.now();
-    setNotifications(prev => [...prev, { id, message, type }]);
-    
-    // 情報・成功・警告通知は自動消去（5秒後）
-    if (type !== 'error') {
-      setTimeout(() => {
-        removeNotification(id);
-      }, NOTIFICATION_AUTO_DISMISS_TIME);
-    }
-    
-    return id;
-  }, [removeNotification]);
   
-  // 通知を削除する関数
-  const removeNotification = useCallback((id) => {
-    setNotifications(prev => prev.filter(notification => notification.id !== id));
-  }, []);
-  ```
-
-### 11.3 通知の使用例
-
-- **成功通知**:
-  ```javascript
-  // 成功通知（5秒後に自動消去）
-  addNotification('データを保存しました', 'success');
-  ```
-
-- **エラー通知**:
-  ```javascript
-  // エラー通知（手動消去まで表示）
-  addNotification('データの保存に失敗しました: ' + error.message, 'error');
-  ```
-
-- **情報通知**:
-  ```javascript
-  // 情報通知（5秒後に自動消去）
-  addNotification('前回のデータを読み込みました', 'info');
-  ```
-
-- **警告通知**:
-  ```javascript
-  // 警告通知（5秒後に自動消去）
-  addNotification('銘柄「XYZ」の価格情報がフォールバック値を使用しています', 'warning');
+  // Yahoo Finance用にティッカーをフォーマットする関数
+  function formatTickerForYahooFinance(ticker) {
+    if (!ticker) return '';
+    ticker = ticker.toUpperCase();
+    
+    // 4桁数字の場合は.Tを追加
+    if (/^\d{4}$/.test(ticker) && !ticker.includes('.T')) {
+      return `${ticker}.T`;
+    }
+    
+    return ticker;
+  }
   ```
 
 ## 改訂履歴
@@ -1412,3 +1193,4 @@ src/
 | 2.0      | 2025/03/17 18:45 | 暗号化/復号化処理の強化、エラーハンドリング改善、Google Drive API連携機能の実装、エラーバウンダリ導入 | |
 | 3.0      | 2025/03/18 16:00 | 配当情報関連の変数と関数の命名規則、配当情報の表示・計算機能の実装規則、コンポーネントスタイルの更新 | |
 | 3.1      | 2025/03/19 15:30 | 通知システムの自動消去機能追加、通知コンポーネントとスタイルの規約追加、初期化処理の重複実行防止対策の規約追加 | |
+| 3.2      | 2025/03/20 10:30 | マルチデータソース対応の規約追加、データソース表示コンポーネント、フォールバック処理の標準化、Yahoo Finance対応の命名規則追加 | |
