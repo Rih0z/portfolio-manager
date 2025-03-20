@@ -328,6 +328,7 @@ export const PortfolioProvider = ({ children }) => {
   }, []);
 
   // 市場データの更新（銘柄タイプ、手数料、配当情報の正確な更新を含む）
+  // 市場データの更新（銘柄タイプ、手数料、配当情報の正確な更新を含む）
   const refreshMarketPrices = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -346,6 +347,11 @@ export const PortfolioProvider = ({ children }) => {
       let fallbackCount = 0;
       const fallbackDetails = [];
       
+      // Yahoo Financeの利用統計
+      let yahooFinanceTriedCount = 0;
+      let yahooFinanceSuccessCount = 0;
+      const yahooFinanceDetails = [];
+      
       // 全ての保有銘柄の最新データを取得
       const updatedAssets = await Promise.all(
         currentAssets.map(async (asset) => {
@@ -353,6 +359,25 @@ export const PortfolioProvider = ({ children }) => {
             // Alpha Vantageから直接データ取得
             const updatedData = await fetchTickerData(asset.ticker);
             console.log(`Updated data for ${asset.ticker}:`, updatedData);
+            
+            // Yahoo Financeの利用状況を記録
+            if (updatedData.yahooFinanceTried) {
+              yahooFinanceTriedCount++;
+              if (updatedData.yahooFinanceSuccess || updatedData.data.source === 'Yahoo Finance') {
+                yahooFinanceSuccessCount++;
+                yahooFinanceDetails.push({
+                  ticker: asset.ticker,
+                  name: asset.name || asset.ticker,
+                  success: true
+                });
+              } else {
+                yahooFinanceDetails.push({
+                  ticker: asset.ticker,
+                  name: asset.name || asset.ticker,
+                  success: false
+                });
+              }
+            }
             
             // エラーの処理
             if (!updatedData.success) {
@@ -498,10 +523,19 @@ export const PortfolioProvider = ({ children }) => {
       if (sourceCounts['Alpha Vantage']) {
         message += ` (Alpha Vantage: ${sourceCounts['Alpha Vantage']}件`;
       }
+      if (sourceCounts['Yahoo Finance']) {
+        message += `, Yahoo Finance: ${sourceCounts['Yahoo Finance']}件`;
+      }
       if (sourceCounts['Fallback']) {
         message += `, フォールバック: ${sourceCounts['Fallback']}件`;
       }
       message += ')';
+      
+      // Yahoo Financeの利用状況に関する通知
+      if (yahooFinanceTriedCount > 0) {
+        const yahooMessage = `Alpha Vantageでの取得に失敗した${yahooFinanceTriedCount}銘柄について、Yahoo Financeを使用しました（成功: ${yahooFinanceSuccessCount}件）`;
+        addNotification(yahooMessage, 'info');
+      }
       
       // エラーがあった場合は通知
       if (errorCount > 0) {
