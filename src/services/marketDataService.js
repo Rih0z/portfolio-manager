@@ -33,10 +33,10 @@ const ALPHA_VANTAGE_URL = isLocalhost
   ? '/.netlify/functions/alpha-vantage-proxy' // ローカル環境
   : `${BASE_URL}/.netlify/functions/alpha-vantage-proxy`; // 本番環境
 
-// Yahoo Finance APIエンドポイント（バックアップソース - 現在動作しない）
-const YAHOO_API_URL = isLocalhost
-  ? '/v7/finance/quote' // ローカル環境ではsetupProxy.jsのプロキシ経由
-  : `${BASE_URL}/.netlify/functions/yahoo-finance-proxy`; // 本番環境
+// Yahoo Finance APIエンドポイント（バックアップソース - 有効化済み）
+const YAHOO_FINANCE_URL = isLocalhost
+  ? '/api/yahoo-finance-proxy' // ローカル環境では直接プロキシ経由
+  : `${BASE_URL}/api/yahoo-finance-proxy`; // 本番環境
 
 // 環境変数または固定値からAPIキーを取得
 const ALPHA_VANTAGE_KEY = process.env.REACT_APP_ALPHA_VANTAGE_API_KEY || 'GC4EBI5YHFKOJEXY';
@@ -46,7 +46,7 @@ console.log(`API Configuration:
 - Environment: ${isLocalhost ? 'Local development' : 'Production'}
 - Base URL: ${BASE_URL || '(using proxy)'}
 - Alpha Vantage API (Primary): ${ALPHA_VANTAGE_URL}
-- Yahoo Finance API (Disabled): ${YAHOO_API_URL}
+- Yahoo Finance API (Fallback): ${YAHOO_FINANCE_URL}
 - Alpha Vantage Key: ${ALPHA_VANTAGE_KEY.substring(0, 4)}...
 `);
 
@@ -76,6 +76,25 @@ function formatTickerForAlphaVantage(ticker) {
   
   // 米国ETF/株式の場合は特別な処理
   // 米国株式市場のシンボルはAlpha Vantageでそのままで使用可能
+  return ticker;
+}
+
+/**
+ * ティッカーシンボルをYahoo Finance API用にフォーマットする
+ * @param {string} ticker - 元のティッカーシンボル
+ * @returns {string} - フォーマットされたティッカーシンボル
+ */
+function formatTickerForYahooFinance(ticker) {
+  if (!ticker) return '';
+  
+  // 大文字に変換
+  ticker = ticker.toUpperCase();
+  
+  // 4桁数字で.Tが付いていない日本株の場合は.Tを追加
+  if (/^\d{4}$/.test(ticker) && !ticker.includes('.T')) {
+    return `${ticker}.T`;
+  }
+  
   return ticker;
 }
 
@@ -185,7 +204,110 @@ function determineHasDividend(ticker) {
 }
 
 /**
- * 銘柄データを取得 - Alpha Vantageをプライマリソースとして使用
+ * Yahoo Finance APIから銘柄データを取得する
+ * @param {string} ticker - ティッカーシンボル
+ * @returns {Promise<Object>} - Yahoo Financeからのデータまたはnull
+ */
+async function fetchFromYahooFinance(ticker) {
+  try {
+    // Yahoo Finance用にティッカーをフォーマット
+    const formattedTicker = formatTickerForYahooFinance(ticker);
+    console.log(`Attempting to fetch data for ${formattedTicker} from Yahoo Finance at: ${YAHOO_FINANCE_URL}`);
+    
+    // Yahoo Finance APIにリクエスト
+    const response = await axios.get(YAHOO_FINANCE_URL, {
+      params: { 
+        symbols: formattedTicker 
+      },
+      timeout: 15000 // 15秒タイムアウト
+    });
+    
+    // レスポンスデータをログ（デバッグ用）
+    console.log(`Yahoo Finance response for ${formattedTicker}:`, response.data);
+    
+    // データの存在を確認
+    if (response.data && 
+        response.data.quoteResponse && 
+        response.data.quoteResponse.result && 
+        response.data.quoteResponse.result.length > 0) {
+      
+      const quoteData = response.data.quoteResponse.result[0];
+      
+      // 価格の存在確認
+      if (quoteData.regularMarketPrice) {
+        const price = quoteData.regularMarketPrice;
+        
+        console.log(`Successfully fetched data for ${formattedTicker} from Yahoo Finance: $${price}`);
+        
+        // 銘柄名を取得
+        const name = quoteData.shortName || quoteData.longName || ticker;
+        
+        // ファンドタイプを判定
+        const fundType = determineFundType(ticker, name);
+        console.log(`Determined fund type for ${ticker} from Yahoo Finance: ${fundType}`);
+        
+        // 個別株かどうかを判定
+        const isStock = fundType === FUND_TYPES.STOCK;
+        
+        // 手数料情報を取得
+        const feeInfo = estimateAnnualFee(ticker, name);
+        
+        // 基本情報を取得
+        const fundInfo = extractFundInfo(ticker, name);
+        
+        // 配当情報の取得
+        const dividendInfo = estimateDividendYield(ticker, name);
+        
+        // 配当情報を確定
+        const hasDividend = determineHasDividend(ticker);
+        
+        // 通貨判定（Yahoo Financeから取得できる場合はそれを使用）
+        const currency = quoteData.currency || fundInfo.currency || 
+                         (ticker.includes('.T') ? 'JPY' : 'USD');
+        
+        // 手数料情報（個別株は常に0%）
+        const annualFee = isStock ? 0 : feeInfo.fee;
+        
+        return {
+          success: true,
+          data: {
+            id: ticker,
+            name: name,
+            ticker: ticker,
+            exchangeMarket: ticker.includes('.T') ? 'Japan' : 'US',
+            price: price,
+            currency: currency,
+            holdings: 0,
+            annualFee: annualFee,
+            fundType: fundType,
+            isStock: isStock,
+            feeSource: isStock ? '個別株' : feeInfo.source,
+            feeIsEstimated: isStock ? false : feeInfo.isEstimated,
+            region: fundInfo.region || 'unknown',
+            lastUpdated: new Date().toISOString(),
+            source: 'Yahoo Finance', // データソースを明記
+            // 配当情報
+            dividendYield: dividendInfo.yield,
+            hasDividend: hasDividend,
+            dividendFrequency: dividendInfo.dividendFrequency,
+            dividendIsEstimated: dividendInfo.isEstimated
+          },
+          message: 'Yahoo Financeから正常に取得しました'
+        };
+      }
+    }
+    
+    console.log(`No valid data found for ${formattedTicker} from Yahoo Finance`);
+    return null;
+  } catch (error) {
+    console.error(`Yahoo Finance API error for ${ticker}:`, error.message);
+    return null;
+  }
+}
+
+/**
+ * 銘柄データを取得 - Alpha Vantageをプライマリソース、
+ * 失敗時はYahoo Financeをフォールバックとして使用
  * @param {string} ticker - ティッカーシンボル
  * @returns {Promise<Object>} - 銘柄データとステータス
  */
@@ -229,10 +351,18 @@ export async function fetchTickerData(ticker) {
     
     // APIレート制限のチェック
     if (response.data && response.data.Note && response.data.Note.includes('API call frequency')) {
-      console.warn(`Alpha Vantage API rate limit reached for ${formattedTicker}`);
+      console.warn(`Alpha Vantage API rate limit reached for ${formattedTicker}, trying Yahoo Finance`);
+      
+      // Yahoo Financeをフォールバックとして試行
+      const yahooResult = await fetchFromYahooFinance(ticker);
+      if (yahooResult && yahooResult.success) {
+        return yahooResult;
+      }
+      
+      // Yahoo Financeも失敗した場合はフォールバック値を使用
       return {
         success: false,
-        message: 'Alpha Vantage APIのリクエスト制限に達しました。しばらく待ってから再試行してください。',
+        message: 'Alpha Vantage APIのリクエスト制限に達し、Yahoo Financeからも取得できませんでした。フォールバック値を使用します。',
         error: true,
         errorType: 'RATE_LIMIT',
         data: generateFallbackTickerData(ticker).data
@@ -313,25 +443,26 @@ export async function fetchTickerData(ticker) {
             message: '正常に取得しました'
           };
         } else {
-          console.warn(`Invalid price value for ${formattedTicker}: ${price}. Using fallback.`);
+          console.warn(`Invalid price value for ${formattedTicker}: ${price}. Trying Yahoo Finance.`);
         }
       } else {
-        console.warn(`Missing price data for ${formattedTicker} in response. Using fallback.`);
+        console.warn(`Missing price data for ${formattedTicker} in response. Trying Yahoo Finance.`);
       }
     } else if (response.data && response.data['Error Message']) {
       // Alpha Vantage のエラーメッセージがある場合
       console.error(`Alpha Vantage API error for ${formattedTicker}: ${response.data['Error Message']}`);
-      return {
-        success: false,
-        message: `銘柄情報の取得エラー: ${response.data['Error Message']}`,
-        error: true,
-        errorType: 'API_ERROR',
-        data: generateFallbackTickerData(ticker).data
-      };
+      console.log(`Attempting fallback to Yahoo Finance for ${ticker}`);
     }
     
-    console.log(`No valid data found for ${formattedTicker} from Alpha Vantage, using fallback`);
-    // データが適切な形式でない場合、フォールバック値を使用
+    // Alpha Vantageからデータを取得できなかった場合、Yahoo Financeを試行
+    console.log(`No valid data found for ${formattedTicker} from Alpha Vantage, trying Yahoo Finance`);
+    const yahooResult = await fetchFromYahooFinance(ticker);
+    if (yahooResult && yahooResult.success) {
+      return yahooResult;
+    }
+    
+    // Yahoo Financeも失敗した場合、フォールバック値を使用
+    console.log(`Yahoo Finance also failed for ${ticker}, using fallback data`);
     return generateFallbackTickerData(ticker);
     
   } catch (error) {
@@ -339,32 +470,44 @@ export async function fetchTickerData(ticker) {
     
     // エラーの種類を特定して適切なメッセージを生成
     let errorType = 'UNKNOWN';
-    let errorMessage = 'データの取得に失敗しました。';
+    let errorMessage = 'データの取得に失敗しました。Yahoo Financeを試行します。';
     
     if (error.response) {
       // サーバーからのレスポンスがある場合
       if (error.response.status === 429) {
         errorType = 'RATE_LIMIT';
-        errorMessage = 'APIリクエスト制限に達しました。しばらく待ってから再試行してください。';
+        errorMessage = 'APIリクエスト制限に達しました。Yahoo Financeを試行します。';
       } else {
         errorType = 'API_ERROR';
-        errorMessage = `API エラー (${error.response.status}): ${error.response.data?.message || error.message}`;
+        errorMessage = `API エラー (${error.response.status}): ${error.response.data?.message || error.message}. Yahoo Financeを試行します。`;
       }
     } else if (error.code === 'ECONNABORTED') {
       errorType = 'TIMEOUT';
-      errorMessage = 'リクエストのタイムアウトが発生しました。ネットワーク接続を確認してください。';
+      errorMessage = 'リクエストのタイムアウトが発生しました。Yahoo Financeを試行します。';
     } else if (error.code === 'ERR_NETWORK') {
       errorType = 'NETWORK';
-      errorMessage = 'ネットワークエラーが発生しました。インターネット接続を確認してください。';
+      errorMessage = 'ネットワークエラーが発生しました。Yahoo Financeを試行します。';
     }
     
-    // エラー詳細を含むレスポンス
+    console.log(errorMessage);
+    
+    // Alpha Vantageが失敗した場合、Yahoo Financeを試行
+    try {
+      const yahooResult = await fetchFromYahooFinance(ticker);
+      if (yahooResult && yahooResult.success) {
+        return yahooResult;
+      }
+    } catch (yahooError) {
+      console.error(`Yahoo Finance also failed for ${ticker}:`, yahooError.message);
+    }
+    
+    // フォールバックデータを生成して返す
     const fallbackResult = generateFallbackTickerData(ticker);
     
     return {
       ...fallbackResult,
       errorType: errorType,
-      message: errorMessage
+      message: `Alpha VantageとYahoo Financeからのデータ取得に失敗しました: ${error.message}. フォールバック値を使用します。`
     };
   }
 }
@@ -453,11 +596,72 @@ function generateFallbackTickerData(ticker) {
 }
 
 /**
- * 配当データを取得
- * @param {string} ticker - ティッカーシンボル
- * @returns {Promise<Object>} - 配当データとステータス
+ * 複数銘柄のデータを一括取得する
+ * @param {Array<string>} tickers - ティッカーシンボルの配列
+ * @returns {Promise<Object>} - 複数銘柄のデータとステータス
  */
-export async function fetchDividendData(ticker) {
+export async function fetchMultipleTickerData(tickers) {
+  if (!tickers || !tickers.length) {
+    return {
+      success: false,
+      data: [],
+      message: 'ティッカーリストが空です',
+      error: true
+    };
+  }
+  
+  console.log(`Fetching data for ${tickers.length} tickers: ${tickers.join(', ')}`);
+  
+  // 各ティッカーを並行して取得
+  const results = await Promise.all(
+    tickers.map(async (ticker) => {
+      // ここでは個別ティッカー取得を使用（すでにフォールバックロジックを含む）
+      const result = await fetchTickerData(ticker);
+      return {
+        ticker,
+        ...result
+      };
+    })
+  );
+  
+  // データソースの情報を集計
+  const sourceStats = results.reduce((stats, result) => {
+    const source = result.data?.source || 'Unknown';
+    stats[source] = (stats[source] || 0) + 1;
+    return stats;
+  }, {});
+  
+  console.log(`Data source statistics:`, sourceStats);
+  
+  // 全体の成功・失敗を判定
+  const hasError = results.some(result => !result.success);
+  const allSuccess = results.every(result => result.success);
+  
+  // 結果のサマリーをログ
+  console.log(`Fetch summary: ${results.filter(r => r.success).length} succeeded, ${results.filter(r => !r.success).length} failed`);
+  
+  return {
+    success: allSuccess,
+    data: results.map(result => result.data),
+    partialSuccess: hasError && results.some(result => result.success),
+    message: allSuccess 
+      ? '全ての銘柄データを正常に取得しました' 
+      : hasError 
+        ? '一部の銘柄データの取得に失敗しました' 
+        : '全ての銘柄データの取得に失敗しました',
+    error: hasError,
+    details: results.map(result => ({
+      ticker: result.ticker,
+      success: result.success,
+      message: result.message,
+      source: result.data.source
+    }))
+  };
+}
+
+// 以下の関数はそのまま利用
+export const fetchDividendData = async function(ticker) {
+  // 既存のコードをそのまま維持
   try {
     // ティッカーを大文字に統一
     ticker = ticker.toUpperCase();
@@ -502,15 +706,11 @@ export async function fetchDividendData(ticker) {
       error: true
     };
   }
-}
+};
 
-/**
- * 銘柄情報を取得（手数料と配当情報を含む）
- * @param {string} ticker - ティッカーシンボル
- * @param {string} name - 銘柄名（省略可）
- * @returns {Promise<Object>} - 銘柄情報とステータス
- */
-export async function fetchFundInfo(ticker, name = '') {
+// 以下の関数もそのまま利用
+export const fetchFundInfo = async function(ticker, name = '') {
+  // 既存のコードをそのまま維持
   try {
     // ティッカーを大文字に統一
     ticker = ticker.toUpperCase();
@@ -564,15 +764,11 @@ export async function fetchFundInfo(ticker, name = '') {
       error: true
     };
   }
-}
+};
 
-/**
- * 為替レートを取得する
- * @param {string} fromCurrency - 元の通貨
- * @param {string} toCurrency - 変換先通貨
- * @returns {Promise<Object>} - 為替レートデータとステータス
- */
-export async function fetchExchangeRate(fromCurrency, toCurrency) {
+// 為替レート取得関数はそのまま利用
+export const fetchExchangeRate = async function(fromCurrency, toCurrency) {
+  // 既存のコードをそのまま維持
   try {
     // 同一通貨の場合は1を返す
     if (fromCurrency === toCurrency) {
@@ -626,14 +822,9 @@ export async function fetchExchangeRate(fromCurrency, toCurrency) {
     // フォールバック値を返す
     return generateFallbackExchangeRate(fromCurrency, toCurrency);
   }
-}
+};
 
-/**
- * デフォルトの為替レートを生成する
- * @param {string} fromCurrency - 元の通貨
- * @param {string} toCurrency - 変換先通貨
- * @returns {Object} - デフォルト為替レートデータとステータス
- */
+// フォールバック為替レート生成関数はそのまま利用
 function generateFallbackExchangeRate(fromCurrency, toCurrency) {
   const pair = `${fromCurrency}/${toCurrency}`;
   let rate;
@@ -662,67 +853,8 @@ function generateFallbackExchangeRate(fromCurrency, toCurrency) {
   };
 }
 
-/**
- * 複数銘柄のデータを一括取得する
- * @param {Array<string>} tickers - ティッカーシンボルの配列
- * @returns {Promise<Object>} - 複数銘柄のデータとステータス
- */
-export async function fetchMultipleTickerData(tickers) {
-  if (!tickers || !tickers.length) {
-    return {
-      success: false,
-      data: [],
-      message: 'ティッカーリストが空です',
-      error: true
-    };
-  }
-  
-  console.log(`Fetching data for ${tickers.length} tickers: ${tickers.join(', ')}`);
-  
-  // 各ティッカーを並行して取得
-  const results = await Promise.all(
-    tickers.map(async (ticker) => {
-      const result = await fetchTickerData(ticker);
-      return {
-        ticker,
-        ...result
-      };
-    })
-  );
-  
-  // 全体の成功・失敗を判定
-  const hasError = results.some(result => !result.success);
-  const allSuccess = results.every(result => result.success);
-  
-  // 結果のサマリーをログ
-  console.log(`Fetch summary: ${results.filter(r => r.success).length} succeeded, ${results.filter(r => !r.success).length} failed`);
-  
-  return {
-    success: allSuccess,
-    data: results.map(result => result.data),
-    partialSuccess: hasError && results.some(result => result.success),
-    message: allSuccess 
-      ? '全ての銘柄データを正常に取得しました' 
-      : hasError 
-        ? '一部の銘柄データの取得に失敗しました' 
-        : '全ての銘柄データの取得に失敗しました',
-    error: hasError,
-    details: results.map(result => ({
-      ticker: result.ticker,
-      success: result.success,
-      message: result.message,
-      source: result.data.source
-    }))
-  };
-}
-
-/**
- * 市場データの更新状態をチェックする
- * @param {Array<Object>} assets - 資産データ
- * @param {number} staleThresholdHours - 古いと判断する時間（時間単位）
- * @returns {Object} - 更新状態の診断結果
- */
-export function checkDataFreshness(assets, staleThresholdHours = 24) {
+// データ更新状態チェック関数はそのまま利用
+export const checkDataFreshness = function(assets, staleThresholdHours = 24) {
   if (!assets || !assets.length) {
     return {
       fresh: true,
@@ -765,4 +897,4 @@ export function checkDataFreshness(assets, staleThresholdHours = 24) {
         ? `${missingUpdateTime.length}個の銘柄に更新時間情報がありません` 
         : 'すべてのデータは最新です'
   };
-}
+};
