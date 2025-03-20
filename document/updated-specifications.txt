@@ -1,6 +1,6 @@
-# ポートフォリオマネージャー 仕様書（更新版3.1）
+# ポートフォリオマネージャー 仕様書（更新版3.2）
 
-**最終更新日時:** 2025/03/19 15:15
+**最終更新日時:** 2025/03/20 10:00
 
 ## 1. プロジェクト概要
 
@@ -16,7 +16,7 @@
 - データインポート/エクスポート
 - ブラウザローカルストレージによるデータ保持（URIエンコード+Base64による安全な暗号化）
 - Google認証・Googleドライブ連携（Google Identity Services API対応）
-- 市場データの自動取得（Alpha Vantageをプライマリソース、フォールバック値をバックアップとして使用）
+- 市場データの自動取得（マルチソース対応：Alpha Vantage → Yahoo Finance → フォールバック値の順で試行）
 - iOS風タブバーによるナビゲーション
 - 自動消去機能付き通知システム
 - エラーバウンダリによるアプリケーション耐障害性向上
@@ -36,6 +36,7 @@
 - **デプロイ**: Netlify
 - **データ永続化**: ローカルストレージ（URIエンコード+Base64暗号化）
 - **クラウド連携**: Google Drive API v3
+- **市場データ取得**: Alpha Vantage API, Yahoo Finance API（フォールバック）
 
 ## 2. 環境設定
 
@@ -88,6 +89,13 @@ netlify.toml（最新版）:
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
+  status = 200
+  force = true
+
+# Yahoo Financeプロキシ向けのリダイレクト（新規追加）
+[[redirects]]
+  from = "/api/yahoo-finance-proxy"
+  to = "/.netlify/functions/yahoo-finance-proxy"
   status = 200
   force = true
 
@@ -159,7 +167,7 @@ portfolio-manager/
 │   │   └── DataIntegration.jsx
 │   ├── services/
 │   │   ├── api.js                         # Google Drive API連携と配当データ取得
-│   │   └── marketDataService.js           # 配当情報取得機能追加
+│   │   └── marketDataService.js           # 複数データソース対応、フォールバック機能追加
 │   ├── utils/
 │   │   ├── formatters.js
 │   │   └── fundUtils.js                   # 配当情報推定機能追加
@@ -169,6 +177,7 @@ portfolio-manager/
 │   └── index.css
 ├── functions/
 │   ├── alpha-vantage-proxy.js
+│   ├── yahoo-finance-proxy.js             # Yahoo Finance APIプロキシ（新規追加）
 │   └── mof-exchange-rate-proxy.js
 ├── package.json
 ├── tailwind.config.js
@@ -187,7 +196,9 @@ portfolio-manager/
 - **utils/fundUtils.js**: ファンドタイプ判定、手数料率推定、配当情報推定のユーティリティ関数
 - **setupProxy.js**: 開発環境用APIプロキシ設定
 - **services/api.js**: 市場データ取得とGoogle Drive API連携、配当データ取得
-- **services/marketDataService.js**: 銘柄データと配当情報の取得、ファンドタイプ判定
+- **services/marketDataService.js**: 銘柄データと配当情報の取得、マルチデータソース対応（Alpha Vantage→Yahoo Finance→フォールバック値）
+- **functions/alpha-vantage-proxy.js**: Alpha Vantage APIプロキシ
+- **functions/yahoo-finance-proxy.js**: Yahoo Finance APIプロキシ（フォールバック用）
 - **components/common/ErrorBoundary.jsx**: アプリケーションエラーのキャッチと表示
 - **components/common/ToastNotification.jsx**: 通知メッセージ表示システム（自動消去機能付き）
 - **components/dashboard/PortfolioSummary.jsx**: 資産概要と配当情報サマリーの表示
@@ -214,7 +225,7 @@ interface Asset {
   feeIsEstimated: boolean; // 手数料情報が推定値かどうか
   region?: string; // 対象地域 ('日本', '米国', 'グローバル', '不明')
   lastUpdated?: string; // 最終更新日時
-  source?: string; // データソース ('Alpha Vantage', 'Fallback')
+  source?: string; // データソース ('Alpha Vantage', 'Yahoo Finance', 'Fallback')
   // 配当情報の追加
   dividendYield: number; // 配当利回り（%）
   hasDividend: boolean; // 配当があるかどうか
@@ -251,7 +262,7 @@ interface SimulationResult {
 }
 ```
 
-### 4.4 通知メッセージ（新規）
+### 4.4 通知メッセージ
 ```typescript
 interface Notification {
   id: number; // タイムスタンプをIDとして使用
@@ -291,7 +302,7 @@ enum DividendFrequency {
 }
 ```
 
-### 4.7 ローカルストレージデータ形式（更新版）
+### 4.7 ローカルストレージデータ形式
 ```typescript
 interface PortfolioData {
   baseCurrency: string;
@@ -305,9 +316,9 @@ interface PortfolioData {
 }
 ```
 
-## 5. データ永続化と認証連携（更新版）
+## 5. データ永続化と認証連携
 
-### 5.1 ローカルストレージによるデータ保持（更新版）
+### 5.1 ローカルストレージによるデータ保持
 - **データ暗号化**: URIエンコード + Base64エンコーディングによる安全な暗号化
 - **保存タイミング**: 
   - ユーザーアクションによるデータ変更時（自動保存）
@@ -341,7 +352,7 @@ const initializeData = useCallback(() => {
 }, [loadFromLocalStorage, addNotification, validateAssetTypes, saveToLocalStorage, initialized]);
 ```
 
-### 5.2 Google認証とデータ同期（更新版）
+### 5.2 Google認証とデータ同期
 - **認証フロー**: Google Identity Services APIを使用した最新のOAuth 2.0認証
 - **認証情報の保存**: ローカルストレージにJWTトークンを保存
 - **有効期限チェック**: トークン有効期限の確認と自動ログアウト
@@ -352,7 +363,7 @@ const initializeData = useCallback(() => {
   - ログアウト時: ローカルデータを使用
   - データ競合時: 最新のタイムスタンプを持つデータを優先
 
-### 5.3 通知システムの実装（新規）
+### 5.3 通知システムの実装
 - **通知メッセージの構造**: ID、メッセージ内容、タイプ（情報、成功、警告、エラー）
 - **表示位置**: 画面右下に固定表示（z-index: 50）
 - **スタイリング**: タイプごとに異なる背景色とテキスト色
@@ -382,9 +393,53 @@ const removeNotification = useCallback((id) => {
 }, []);
 ```
 
-## 6. 手数料計算と配当情報管理（更新版）
+## 6. 市場データ取得と配当情報管理（更新版）
 
-### 6.1 銘柄タイプ判定ロジック
+### 6.1 マルチデータソース対応（新規）
+- **データソースの優先順位**:
+  1. Alpha Vantage API（プライマリソース）
+  2. Yahoo Finance API（フォールバックソース）
+  3. フォールバック値（両方のAPIが失敗した場合）
+
+- **データソース切り替え条件**:
+  - Alpha Vantageがレート制限に達した場合
+  - Alpha Vantageからデータが正しく取得できない場合
+  - Alpha Vantageへのリクエストがエラーになった場合
+
+- **データソース表示**:
+  - 各銘柄データにソース情報を付加（'Alpha Vantage', 'Yahoo Finance', 'Fallback'）
+  - 全体の統計情報を通知でユーザーに表示
+
+```javascript
+// データソースの統計を計算
+const sourceCounts = validatedAssets.reduce((acc, asset) => {
+  acc[asset.source] = (acc[asset.source] || 0) + 1;
+  return acc;
+}, {});
+
+// 通知メッセージを作成
+let message = '市場データを更新しました';
+if (sourceCounts['Alpha Vantage']) {
+  message += ` (Alpha Vantage: ${sourceCounts['Alpha Vantage']}件`;
+}
+if (sourceCounts['Yahoo Finance']) {
+  message += `, Yahoo Finance: ${sourceCounts['Yahoo Finance']}件`;
+}
+if (sourceCounts['Fallback']) {
+  message += `, フォールバック: ${sourceCounts['Fallback']}件`;
+}
+message += ')';
+```
+
+### 6.2 Yahoo Finance APIプロキシ（新規）
+- **プロキシエンドポイント**: `/api/yahoo-finance-proxy`
+- **対応API**: Yahoo Finance API v7/quote
+- **ヘッダー設定**: より本物らしいブラウザからのリクエストに見せるために、User-Agent、Referer、Origin等のヘッダーを適切に設定
+- **日本株対応**: 4桁の数字のティッカーに自動的に`.T`を追加
+- **レスポンス形式**: 標準化された形式に変換
+- **エラーハンドリング**: 認証エラー（401）や接続エラーに対して適切なエラーメッセージを返す
+
+### 6.3 銘柄タイプ判定ロジック
 銘柄のティッカーシンボルや名前からファンドタイプを判定する機能を実装しています：
 
 - **個別株の判定**:
@@ -402,7 +457,7 @@ const removeNotification = useCallback((id) => {
 - **REITの判定**:
   - 名前に「REIT」「リート」「不動産投資」などを含む
 
-### 6.2 手数料率推定ロジック
+### 6.4 手数料率推定ロジック
 銘柄タイプに基づいて年間手数料率を推定します：
 
 - 個別株: 常に0%（ユーザーによる変更不可）
@@ -417,7 +472,7 @@ const removeNotification = useCallback((id) => {
 - REIT: 0.5-0.6%
 - その他: 0.5%（デフォルト値）
 
-### 6.3 配当情報推定ロジック（更新）
+### 6.5 配当情報推定ロジック
 銘柄タイプや名前から配当情報を推定します：
 
 - **配当利回り推定**:
@@ -441,10 +496,7 @@ const removeNotification = useCallback((id) => {
   - 名前に基づいて推定（「monthly」「quarterly」など）
   - デフォルト: 四半期（quarterly）
 
-### 6.4 特定銘柄の配当情報データベース
-人気のETFやファンドについては、より正確な配当情報をアプリケーション内のデータベースから取得します。
-
-### 6.5 年間配当金の計算
+### 6.6 年間配当金の計算
 保有資産ごとの年間配当金を計算し、合計します：
 
 ```javascript
@@ -470,191 +522,154 @@ const annualDividends = currentAssets.reduce((sum, asset) => {
 }, 0);
 ```
 
-## 7. 主要コンポーネントの実装詳細（更新版）
+## 7. エラー処理とフォールバックメカニズム（更新版）
 
-### 7.1 PortfolioSummary（更新版）
-- 総資産、銘柄数、年間手数料の表示
-- 年間配当金とポートフォリオ全体の配当利回りの表示
-- 最高手数料率と最低手数料率の銘柄を表示
-- 最高配当利回りの銘柄を表示
-- ファンドタイプ別の手数料統計を表示
-- ファンドタイプ別の配当金統計を表示
-- 手数料と配当に関する説明を表示
+### 7.1 マルチレベルフォールバック（新規）
+- **フォールバックレベル1**: Alpha Vantage APIが失敗した場合、Yahoo Finance APIを試行
+- **フォールバックレベル2**: Yahoo Finance APIも失敗した場合、フォールバック値を使用
+- **使用状況の通知**: 各データソースの使用状況をユーザーに通知
+- **フォールバック詳細の記録**: 各銘柄ごとにフォールバックの使用状況を記録
 
-### 7.2 AssetsTable（更新版）
-- 保有資産の詳細テーブル表示
-- 配当関連の列を追加（配当利回り、年間配当金）
-- 配当頻度と配当情報源のバッジ表示
-- データソースと銘柄タイプの表示
-- 年間手数料の表示（個別株は0%）
-
-### 7.3 ToastNotification（更新版）
-- 通知メッセージの表示UI
-- 通知タイプに応じた色分け
-- 各通知に手動消去ボタン（×）を表示
-- エラー以外の通知は5秒後に自動消去
-- 画面右下に固定表示（z-index: 50）
-- スタック表示（新しい通知が下に追加）
-
-```jsx
-<div className="fixed bottom-0 right-0 p-4 space-y-2 z-50">
-  {notifications.map((notification) => (
-    <div 
-      key={notification.id}
-      className={`p-3 rounded-md shadow-md text-sm ${
-        notification.type === 'error' ? 'bg-red-100 text-red-700' :
-        notification.type === 'warning' ? 'bg-yellow-100 text-yellow-700' :
-        notification.type === 'success' ? 'bg-green-100 text-green-700' :
-        'bg-blue-100 text-blue-700'
-      }`}
-    >
-      <div className="flex justify-between items-start">
-        <span>{notification.message}</span>
-        <button 
-          onClick={() => removeNotification(notification.id)}
-          className="ml-2 text-gray-500 hover:text-gray-700"
-        >
-          &times;
-        </button>
-      </div>
-    </div>
-  ))}
-</div>
+```javascript
+// Yahoo Financeの利用状況に関する通知
+if (yahooFinanceTriedCount > 0) {
+  const yahooMessage = `Alpha Vantageでの取得に失敗した${yahooFinanceTriedCount}銘柄について、Yahoo Financeを使用しました（成功: ${yahooFinanceSuccessCount}件）`;
+  addNotification(yahooMessage, 'info');
+}
 ```
 
-### 7.4 DataSyncStatus（更新版）
-- データ同期状況の表示
-- データソース（ローカル/クラウド）の表示
-- 最終同期時刻の表示
-- 同期ボタンの提供
-- クラウド保存/読み込みボタンの提供
-- エラー発生時の回復オプション表示
-- 同期操作に関する通知表示（自動消去機能付き）
+### 7.2 API障害対応
+- **エラータイプの識別**: レート制限、ネットワークエラー、認証エラーなど、異なるタイプのエラーを区別
+- **エラー詳細のログ**: より詳細なエラー情報をコンソールに記録
+- **タイムアウト設定**: 各APIリクエストに対して15秒のタイムアウトを設定
+- **認証エラー対策**: Yahoo Finance APIの認証エラー（401）に対応するためのヘッダー設定
 
-### 7.5 GoogleDriveIntegration（更新版）
-- Googleアカウント連携UI
-- Google Identity Services APIによる最新の認証フロー
-- クラウドへのデータ保存機能（Fetch API使用）
-- クラウドからのデータ読み込み機能
-- データ同期機能（ローカルとクラウドの統合）
-- 認証状態に応じたUI切り替え
-- エラーハンドリングの強化
-- データ同期結果の通知表示（自動消去機能付き）
+### 7.3 フォールバック値の生成ロジック
+- **ファンドタイプ別のデフォルト価格**: 日本株・米国株・ETFなど、タイプに応じた適切なデフォルト価格を設定
+- **特定銘柄のカスタマイズ**: 人気ETFなどに対しては、より現実的なデフォルト価格を設定
+- **地域判定**: ティッカー形式（.Tの有無など）から地域と通貨を判定
+- **フォールバック情報の明示**: データがフォールバック値であることを明示し、投資判断の際に注意を促す
 
-## 8. APIとデータ取得（更新版）
+```javascript
+// フォールバックデータを使用している場合は通知
+if (fallbackCount > 0) {
+  addNotification(
+    `${fallbackCount}銘柄の株価情報は最新データを取得できず、前回保存した価格データを使用しています。実際の市場価格と異なる可能性があります。`,
+    'warning'
+  );
+}
+```
 
-### 8.1 市場データ取得（更新版）
-- Alpha Vantage APIを使用して最新価格を取得
-- 銘柄データ取得時に銘柄タイプと手数料情報も自動推定
-- 配当情報の自動推定と取得
-- 個別株は手数料率0%として扱う
-- データ取得結果の通知（5秒後に自動消去）
+### 7.4 ユーザー通知メカニズム
+- **ソース別詳細情報**: データソースごとの成功・失敗件数を通知
+- **フォールバック使用の警告**: フォールバック値を使用している銘柄について警告
+- **自動消去タイマー**: 情報・成功・警告通知は5秒後に自動消去
+- **エラー永続表示**: エラー通知のみ手動消去まで表示を維持
+- **タイプ別視覚表示**: 通知の種類に応じた色分け表示
 
-### 8.2 配当データの取得
-- 銘柄情報から配当データを自動推定
-- 特定銘柄のデータベースから正確な情報を取得
-- 名前とティッカーパターンに基づいて判定
-- 配当データ更新時の通知（自動消去機能付き）
+## 8. 主要コンポーネントの実装詳細（更新版）
 
-### 8.3 Google Drive API連携（更新版）
-- Google Identity Services APIを使用した最新の認証フロー
-- ドライブAPIへの直接アクセス（Fetch API使用）
-- 適切なスコープを持つアクセストークン取得
-- エラーハンドリングの強化
-- API操作結果の通知表示（自動消去機能付き）
+### 8.1 市場データサービス（marketDataService.js）（更新版）
+- マルチソースのデータ取得（Alpha Vantage→Yahoo Finance→フォールバック）
+- 日本株・米国株に対応したティッカーフォーマット処理
+- API障害時のフォールバックメカニズム
+- 取得結果の詳細な記録と統計
+- データソース情報の付加と表示
 
-### 8.4 手数料・配当情報の自動更新
-- 銘柄追加時に手数料情報と配当情報を自動取得・推定
-- 市場データ更新時に手数料情報と配当情報も更新
-- 手数料情報に変更があった場合は通知で表示
-- 配当情報に変更があった場合は通知で表示
-- 変更通知は5秒後に自動消去
+### 8.2 Yahoo Financeプロキシ（yahoo-finance-proxy.js）（新規）
+- Yahoo Finance APIへの最適化されたリクエスト設定
+- 認証エラー回避のためのヘッダー調整
+- 日本株ティッカー自動変換機能（.T付加）
+- 詳細なエラーハンドリングとログ出力
+
+### 8.3 ポートフォリオコンテキスト（PortfolioContext.js）（更新版）
+- データソース統計の記録と通知機能強化
+- Yahoo Finance利用状態の追跡と詳細表示
+- 障害発生時のエラー通知改善
+- より詳細な通知メッセージの生成
+
+### 8.4 日本株対応の強化
+- 4桁数字のティッカーに.Tを自動付加
+- 日本市場と米国市場の違いを考慮した処理
+- 通貨変換処理の調整（JPY⇔USD）
+- 日本株ETFの特別処理（1で始まる4桁コード）
 
 ## 9. UI操作フロー（更新版）
 
-### 9.1 初期化フロー（更新版）
-1. アプリケーション起動
-2. `PortfolioProvider` と `AuthProvider` の初期化
-3. ContextConnectorによるコンテキスト間連携の確立
-4. 初期化済みフラグをチェック（重複実行防止）
-5. ローカルストレージからのデータ読み込み（エラーハンドリング強化）
-6. トークンストレージからの認証情報読み込み
-7. データがあれば状態を更新し、UIに反映
-8. 配当情報が欠けている場合は初期値を設定
-9. データ読み込み通知の表示（5秒後に自動消去）
-10. 初期化完了のフラグを設定
-11. エラー発生時はエラーバウンダリでキャッチ
+### 9.1 市場データ更新フロー（更新版）
+1. ユーザーが更新ボタンをクリック
+2. Alpha Vantage APIから最新価格データを取得
+3. 取得失敗またはレート制限に達した場合、Yahoo Finance APIを自動試行
+4. それも失敗した場合はフォールバック値を使用
+5. 銘柄タイプの確認と手数料情報の更新
+6. 配当情報の更新
+7. 使用したデータソースに関する通知表示
+8. 手数料情報・配当情報に変更があった場合は通知
+9. データをローカルストレージに自動保存
 
-### 9.2 通知表示フロー（新規）
-1. 通知を表示する関数（`addNotification`）が呼び出される
-2. 通知のタイプ（info, success, warning, error）とメッセージを受け取る
-3. タイムスタンプをIDとして新しい通知オブジェクトを作成
-4. 通知を表示用配列に追加
-5. エラータイプ以外の通知は5秒後に自動消去するタイマーを設定
-6. 通知が画面右下に表示される
-7. 自動消去タイマーの期限が切れるか、手動で×ボタンがクリックされると通知が消去される
-8. 通知を表示配列から削除
+```javascript
+// データソースの統計を表示
+let message = '市場データを更新しました';
+if (sourceCounts['Alpha Vantage']) {
+  message += ` (Alpha Vantage: ${sourceCounts['Alpha Vantage']}件`;
+}
+if (sourceCounts['Yahoo Finance']) {
+  message += `, Yahoo Finance: ${sourceCounts['Yahoo Finance']}件`;
+}
+if (sourceCounts['Fallback']) {
+  message += `, フォールバック: ${sourceCounts['Fallback']}件`;
+}
+message += ')';
+addNotification(message, 'success');
 
-### 9.3 銘柄追加フロー（更新版）
+// Yahoo Financeの利用状況に関する通知
+if (yahooFinanceTriedCount > 0) {
+  const yahooMessage = `Alpha Vantageでの取得に失敗した${yahooFinanceTriedCount}銘柄について、Yahoo Financeを使用しました（成功: ${yahooFinanceSuccessCount}件）`;
+  addNotification(yahooMessage, 'info');
+}
+```
+
+### 9.2 銘柄追加フロー（更新版）
 1. ユーザーが銘柄シンボルを入力
 2. addTicker関数を呼び出し
 3. Alpha Vantage APIからデータ取得
-4. 銘柄タイプを判定し、手数料情報を推定
-5. 配当情報を推定
-6. 個別株の場合は手数料を0%に設定
-7. 保有資産と目標配分リストに追加
-8. データをローカルストレージに自動保存
-9. 手数料・配当情報の通知を表示（5秒後に自動消去）
+4. 取得失敗時はYahoo Finance APIを自動試行
+5. それも失敗した場合はフォールバック値を使用
+6. 銘柄タイプを判定し、手数料情報を推定
+7. 配当情報を推定
+8. 個別株の場合は手数料を0%に設定
+9. 保有資産と目標配分リストに追加
+10. データソースや使用状況を通知
+11. データをローカルストレージに自動保存
 
-### 9.4 市場データ更新フロー（更新版）
-1. ユーザーが更新ボタンをクリック
-2. Alpha Vantage APIから最新価格データを取得
-3. 銘柄タイプの確認と手数料情報の更新
-4. 配当情報の更新
-5. 手数料情報に変更があった場合は通知（5秒後に自動消去）
-6. 配当情報に変更があった場合は通知（5秒後に自動消去）
-7. データをローカルストレージに自動保存
+### 9.3 エラーおよびフォールバック通知フロー（新規）
+1. データ更新または銘柄追加時にエラーが発生
+2. エラータイプを判別（レート制限、認証エラー、ネットワークエラーなど）
+3. 次のフォールバックデータソースを自動試行
+4. すべてのソースが失敗した場合はフォールバック値を生成
+5. エラーの詳細をコンソールに記録
+6. ユーザーに適切な通知を表示（エラーの内容に応じて）
+7. フォールバック値を使用している場合は警告通知
+8. 使用したデータソースの統計情報を表示
 
-### 9.5 データ同期フロー（更新版）
-1. ユーザーが同期ボタンをクリック
-2. Google Identity Services APIから新しいアクセストークンを取得
-3. ローカルデータとクラウドデータを比較
-4. タイムスタンプに基づいて最新データを特定
-5. 最新データを状態に適用
-6. 配当情報が欠けている場合は初期値を設定
-7. ローカルストレージとクラウド両方にデータを保存
-8. 同期状態表示の更新
-9. 結果通知の表示（5秒後に自動消去）
-
-## 10. エラー処理と制約（更新版）
-
-### 10.1 個別株と配当の制約（更新版）
-- 個別株の年間手数料率は常に0%
-- 手数料率はすべてのファンドタイプで編集不可（読み取り専用）
-- 配当情報は推定値として表示（特定銘柄を除く）
-- 配当データが不明な場合は「なし」として表示
-
-### 10.2 データインポート時の処理（更新版）
-- インポートしたデータ内の個別株の手数料率を0%に修正
-- 銘柄タイプと手数料情報が欠けている場合は自動推定
-- 配当情報が欠けている場合は初期値を設定
-- インポート後にローカルストレージに自動保存
-- インポート結果の通知表示（5秒後に自動消去）
-
-### 10.3 データ暗号化/復号化エラー対応（更新版）
-- 暗号化プロセスでのエラーハンドリング強化
-- 復号化失敗時のフォールバック処理
-- 古い形式のデータにも対応する互換性処理
-- データ構造検証による無効データの検出
-- エラー詳細のログ出力と通知（エラー通知は手動消去まで表示）
-
-### 10.4 通知システムの管理（新規）
-- 通知の種類に応じた表示期間制御
-  - エラー通知: 手動消去まで表示
-  - 情報/成功/警告通知: 5秒後に自動消去
-- 通知スタックの管理（古い通知を残しつつ新しい通知を追加）
-- 通知の重複表示の防止（必要に応じてID管理）
-- 初期化時の重複通知防止（初期化済みフラグによる制御）
+```javascript
+// エラーがあった場合は通知
+if (errorCount > 0) {
+  const errorMessage = rateLimit 
+    ? `APIリクエスト制限のため、${errorCount}銘柄のデータが正しく更新できませんでした` 
+    : `${errorCount}銘柄のデータ更新でエラーが発生しました`;
+  
+  addNotification(errorMessage, 'error');
+  
+  // 最大3件までエラー詳細を表示
+  errorDetails.slice(0, 3).forEach(error => {
+    addNotification(
+      `「${error.name || error.ticker}」: ${error.message}`,
+      'warning'
+    );
+  });
+}
+```
 
 ## 改訂履歴
 | バージョン | 日付 | 内容 | 担当者 |
@@ -670,3 +685,4 @@ const annualDividends = currentAssets.reduce((sum, asset) => {
 | 9.0 | 2025/03/17 14:45 | データ暗号化/復号化処理の強化、Google Drive API連携改善、エラーバウンダリ導入、認証フロー更新 |  |
 | 10.0 | 2025/03/18 15:30 | 配当情報の管理機能追加、銘柄タイプ判定ロジック強化、PortfolioSummaryとAssetsTableの配当情報表示追加、Google Drive API連携の安定性向上 |  |
 | 3.1 | 2025/03/19 15:15 | 通知システムの自動消去機能追加（タイプ別）、初期化処理の重複実行防止機能追加、通知表示フローの詳細定義追加 |  |
+| 3.2 | 2025/03/20 10:00 | Yahoo Finance APIフォールバック機能の追加、マルチデータソース対応の実装、API障害時の詳細通知機能強化、日本株ティッカー変換改善 |  |
