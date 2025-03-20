@@ -1,6 +1,6 @@
-# ポートフォリオマネージャー インターフェース仕様書（更新版3.1）
+# ポートフォリオマネージャー インターフェース仕様書（更新版3.2）
 
-**最終更新日時:** 2025/03/19 15:00
+**最終更新日時:** 2025/03/20 10:00
 
 *本仕様書は、AIの別セッションでも開発を引き継げるよう設計されています。*
 
@@ -18,7 +18,7 @@
 - データインポート/エクスポート
 - ブラウザローカルストレージによるデータ永続化（URIエンコード+Base64による安全な暗号化）
 - Google認証・Googleドライブ連携（OAuth 2.0対応）
-- 市場データの自動取得（Alpha Vantageをプライマリソース、フォールバック値をバックアップとして使用）
+- 市場データの自動取得（マルチソース対応：Alpha Vantage → Yahoo Finance → フォールバック値の順で試行）
 - iOS風タブバーによるナビゲーション
 - 自動消去機能付き通知システム
 - エラーバウンダリによるアプリケーション耐障害性の向上
@@ -38,6 +38,7 @@
 - **デプロイ**: Netlify
 - **データ永続化**: ローカルストレージ（URIエンコード+Base64暗号化）
 - **クラウド連携**: Google Drive API v3
+- **市場データ取得**: Alpha Vantage API, Yahoo Finance API（フォールバック）
 
 ## 2. インターフェース構造
 
@@ -79,7 +80,7 @@
 - ユーザーフレンドリーなエラー表示画面
 - リロードボタンによる復旧機能
 
-### 2.5 通知システム（更新）
+### 2.5 通知システム
 - 画面右下に固定表示される通知パネル
 - 通知のタイプに応じた色分け表示
   - 成功：緑色背景
@@ -92,6 +93,15 @@
 - 各通知には手動で閉じるボタン（×）を表示
 - 同時に複数の通知を表示可能
 - スタック表示で新しい通知が下に追加される
+
+### 2.6 データソース表示（新規）
+- 銘柄データのソースを明示的に表示
+  - Alpha Vantage：緑色バッジ
+  - Yahoo Finance：青色バッジ
+  - Fallback：黄色バッジ
+- 更新時に各データソースの利用状況を通知
+- フォールバック使用時は注意喚起表示
+- 株価情報の信頼性をユーザーが判断できるようサポート
 
 ## 3. 状態管理
 
@@ -139,7 +149,7 @@ interface Asset {
   feeIsEstimated: boolean; // 手数料情報が推定値かどうか
   region?: string; // 対象地域 ('日本', '米国', 'グローバル', '不明')
   lastUpdated?: string;
-  source?: string; // 'Alpha Vantage' | 'Fallback'
+  source?: string; // 'Alpha Vantage' | 'Yahoo Finance' | 'Fallback'
   dividendYield: number; // 配当利回り（%）
   hasDividend: boolean; // 配当があるかどうか
   dividendFrequency: string; // 配当頻度（'monthly', 'quarterly', 'semi-annual', 'annual'）
@@ -147,7 +157,7 @@ interface Asset {
 }
 ```
 
-#### 通知メッセージ（更新）
+#### 通知メッセージ
 ```typescript
 interface Notification {
   id: number; // タイムスタンプをIDとして使用
@@ -186,6 +196,7 @@ interface StorageData {
   - 年間手数料の表示（個別株は0%）
   - 配当情報の表示（利回り、頻度、年間配当金）
   - 配当情報源のバッジ表示（推定値/確定値）
+  - データソースのバッジ表示（Alpha Vantage/Yahoo Finance/Fallback）
 - **DataStatusBar**: データ更新状態と最終更新時刻の表示
 
 ### 4.2 設定画面コンポーネント
@@ -201,6 +212,7 @@ interface StorageData {
   - 手数料情報源を表示（個別株、推定値、固有情報、ユーザー設定）
   - 配当情報の表示（利回り、頻度）
   - 配当情報源のバッジ表示
+  - データソースのバッジ表示
 - **AllocationEditor**: 目標配分の編集
 
 ### 4.3 シミュレーション画面コンポーネント
@@ -234,13 +246,16 @@ interface StorageData {
 - **TabNavigation**: iOS風タブナビゲーション
 - **LoginButton**: Googleログインボタン
 - **UserProfile**: ユーザープロフィール表示
-- **ToastNotification**: 通知メッセージ表示（更新）
+- **ToastNotification**: 通知メッセージ表示
   - 自動消去タイマー機能（情報/成功/警告通知は5秒後に自動消去）
   - 手動消去ボタン
   - 通知タイプ別のスタイリング
-- **DataSourceBadge**: データソース表示バッジ
-  - 各データソースに応じた表示（Alpha Vantage/Fallback）
-  - ソースに応じた色分け（緑: Alpha Vantage, 赤: Fallback）
+- **DataSourceBadge**: データソース表示バッジ（更新）
+  - 各データソースに応じた表示（Alpha Vantage/Yahoo Finance/Fallback）
+  - ソースに応じた色分け
+    - Alpha Vantage: 緑色
+    - Yahoo Finance: 青色
+    - Fallback: 黄色
 - **ErrorBoundary**: エラーバウンダリコンポーネント
   - エラー発生時の処理
   - リロード機能
@@ -266,15 +281,74 @@ interface StorageData {
 
 ## 5. API・外部連携仕様
 
-### 5.1 Alpha Vantage API連携（プライマリソース）
+### 5.1 マルチデータソース対応（新規）
+- **データソース優先順位**:
+  1. Alpha Vantage API（プライマリソース）
+  2. Yahoo Finance API（フォールバックソース）
+  3. フォールバック値（両方のAPIが失敗した場合）
+
+- **切り替え条件**:
+  - Alpha Vantageがレート制限に達した場合
+  - Alpha Vantageからデータが取得できない場合
+  - Alpha Vantageでエラーが発生した場合
+
+- **実装例**:
+```javascript
+// Alpha Vantage APIからデータ取得を試みる
+try {
+  const response = await axios.get(ALPHA_VANTAGE_URL, { ... });
+  
+  // レート制限チェック
+  if (response.data.Note && response.data.Note.includes('API call frequency')) {
+    // Yahoo Financeに切り替え
+    return await fetchFromYahooFinance(ticker);
+  }
+  
+  // 正常なデータ取得
+  if (response.data['Global Quote'] && response.data['Global Quote']['05. price']) {
+    // Alpha Vantageからのデータを処理
+    return {
+      success: true,
+      data: { ... },
+      source: 'Alpha Vantage'
+    };
+  }
+  
+  // データが取得できない場合もYahoo Financeを試行
+  return await fetchFromYahooFinance(ticker);
+} catch (error) {
+  // エラー発生時もYahoo Financeを試行
+  return await fetchFromYahooFinance(ticker);
+}
+```
+
+### 5.2 Alpha Vantage API連携
 - **エンドポイント**: `alpha-vantage-proxy` (Netlify Functions経由)
 - **機能**: 市場データのプライマリソース
 - **APIキー**: 環境変数 `ALPHA_VANTAGE_API_KEY` で設定
 - **タイムアウト設定**: 15秒
 - **レート制限**: 無料プランで1日25リクエストまで
-- **フォールバック**: API失敗時のデフォルト値使用
+- **フォールバック**: フォールバックメカニズムで対応
 
-### 5.2 ローカルストレージ連携（更新版）
+### 5.3 Yahoo Finance API連携（新規）
+- **エンドポイント**: `yahoo-finance-proxy` (Netlify Functions経由)
+- **機能**: 市場データのフォールバックソース
+- **請求形式**: `/api/yahoo-finance-proxy?symbols=AAPL,MSFT`
+- **対象API**: Yahoo Finance API v7/quote
+- **通貨変換**: 自動的に検出・変換
+- **日本株対応**: 4桁数字のティッカーに自動的に `.T` を追加
+- **認証対策**: User-Agent、Referer、Originヘッダーの適切な設定
+- **タイムアウト設定**: 15秒
+- **エラーハンドリング**: 詳細なエラーログと適切なフォールバックメカニズム
+
+### 5.4 為替レート取得連携
+- **エンドポイント**: `mof-exchange-rate-proxy` (Netlify Functions経由)
+- **機能**: USD/JPY為替レートの取得
+- **データソース**: Alpha Vantage API（プライマリ）
+- **レート制限対応**: フォールバック値（150.0）の使用
+- **更新頻度**: 基準通貨変更時、明示的な更新ボタンクリック時
+
+### 5.5 ローカルストレージ連携
 - **ストレージキー**: `portfolioData`
 - **暗号化方式**: URIエンコード + Base64エンコーディングによる安全な暗号化
 - **保存データ**: ポートフォリオデータ、配当情報、設定情報、タイムスタンプ
@@ -284,7 +358,7 @@ interface StorageData {
 - **データ構造検証**: 復号化後のデータ構造を検証し、整合性を確認
 - **重複初期化防止**: 初期化済みフラグによる重複処理の回避
 
-### 5.3 Google OAuth認証（更新版）
+### 5.6 Google OAuth認証
 - **認証フロー**: Google Identity Services APIを使用した最新のOAuthフロー
 - **スコープ**: ユーザー情報、Googleドライブアクセス（`https://www.googleapis.com/auth/drive.file`）
 - **トークン管理**: localStorage保存、有効期限チェック
@@ -292,7 +366,7 @@ interface StorageData {
 - **トークン解析**: jwt-decode 3.x
 - **スクリプト**: Google Identity Services API (`accounts.google.com/gsi/client`)
 
-### 5.4 Googleドライブ連携（更新版）
+### 5.7 Googleドライブ連携
 - **機能**: ポートフォリオデータの保存・読み込み
 - **ファイル形式**: JSON
 - **アクセス権**: アプリ固有のファイル権限
@@ -305,7 +379,7 @@ interface StorageData {
 - **認証**: OAuth 2.0アクセストークン
 - **エラーハンドリング**: 認証エラー、ネットワークエラー、APIエラーに対応
 
-### 5.5 ファンド情報API（更新版）
+### 5.8 ファンド情報API
 - **機能**: 銘柄タイプ判定、手数料情報取得、配当情報取得
 - **実装方法**: フロントエンドで実装（`fundUtils.js`）
 - **データソース**: アプリ内DBとロジックによる判定
@@ -316,7 +390,7 @@ interface StorageData {
 
 ## 6. イベントフロー
 
-### 6.1 初期化フロー（更新版）
+### 6.1 初期化フロー
 1. アプリケーション起動
 2. `PortfolioProvider` と `AuthProvider` の初期化
 3. ContextConnectorによるコンテキスト間連携の確立
@@ -356,10 +430,55 @@ const initializeData = useCallback(() => {
     addNotification(`データの初期化中にエラーが発生しました: ${error.message}`, 'error');
     setInitialized(true); // エラーが発生しても初期化完了とマークする
   }
-}, [loadFromLocalStorage, addNotification, validateAssetTypes, saveToLocalStorage, initialized]);
+}, [initialized, /* その他の依存関係 */]);
 ```
 
-### 6.2 通知フロー（新規）
+### 6.2 市場データ更新フロー（更新版）
+1. ユーザーがデータ更新ボタンをクリック
+2. Alpha Vantage APIからデータ取得を試行
+3. 失敗またはレート制限の場合、自動的にYahoo Finance APIを試行
+4. それも失敗した場合はフォールバック値を使用
+5. 銘柄ごとに最新の価格、手数料情報、配当情報を取得
+6. 個別株は常に手数料率0%を維持
+7. データソースの統計情報を計算（各ソースの使用銘柄数）
+8. 使用したデータソースを通知メッセージとして表示
+9. Yahoo Financeの使用状況を別途通知
+10. 手数料情報や配当情報に変更があった場合は通知
+11. フォールバック値を使用している場合は警告通知
+12. データをローカルストレージに自動保存
+13. 通知は5秒後に自動消去（エラー以外）
+
+```javascript
+// データソースの統計を計算
+const sourceCounts = validatedAssets.reduce((acc, asset) => {
+  acc[asset.source] = (acc[asset.source] || 0) + 1;
+  return acc;
+}, {});
+
+// 通知メッセージを作成
+let message = '市場データを更新しました';
+if (sourceCounts['Alpha Vantage']) {
+  message += ` (Alpha Vantage: ${sourceCounts['Alpha Vantage']}件`;
+}
+if (sourceCounts['Yahoo Finance']) {
+  message += `, Yahoo Finance: ${sourceCounts['Yahoo Finance']}件`;
+}
+if (sourceCounts['Fallback']) {
+  message += `, フォールバック: ${sourceCounts['Fallback']}件`;
+}
+message += ')';
+addNotification(message, 'success');
+
+// Yahoo Financeの利用状況に関する通知
+if (yahooFinanceTriedCount > 0) {
+  addNotification(
+    `Alpha Vantageでの取得に失敗した${yahooFinanceTriedCount}銘柄について、Yahoo Financeを使用しました（成功: ${yahooFinanceSuccessCount}件）`,
+    'info'
+  );
+}
+```
+
+### 6.3 通知フロー
 1. 通知表示関数（`addNotification`）が呼び出される
 2. タイムスタンプをIDとして使用
 3. 通知タイプに応じた表示（info, success, warning, error）
@@ -389,7 +508,22 @@ const removeNotification = useCallback((id) => {
 }, []);
 ```
 
-### 6.3 データ保存フロー（更新版）
+### 6.4 銘柄追加フロー（更新版）
+1. ユーザーが銘柄シンボルを入力
+2. addTicker関数を呼び出し
+3. Alpha Vantage APIからデータ取得
+4. 失敗時はYahoo Financeを自動的に試行
+5. それも失敗した場合はフォールバック値を使用
+6. 銘柄タイプを判定し、手数料情報を推定
+7. 配当情報を推定
+8. 個別株の場合は手数料を0%に設定
+9. 保有資産と目標配分リストに追加
+10. データソースの通知を表示
+11. フォールバック使用時は警告通知を表示
+12. 手数料・配当情報の通知を表示
+13. データをローカルストレージに自動保存
+
+### 6.5 データ保存フロー
 1. データ変更（銘柄追加、保有数量変更、目標配分変更など）
 2. 状態更新関数（useState）による状態更新
 3. 状態更新後のコールバックで `saveToLocalStorage` 呼び出し
@@ -398,15 +532,7 @@ const removeNotification = useCallback((id) => {
 6. 認証中の場合は必要に応じてクラウド同期
 7. 保存結果に応じた通知（成功時は5秒後に自動消去）
 
-### 6.4 市場データ更新フロー（更新版）
-1. ユーザーがデータ更新ボタンをクリック
-2. 銘柄ごとに最新の価格、手数料情報、配当情報を取得
-3. 個別株は常に手数料率0%を維持
-4. 手数料情報や配当情報に変更があった場合は通知
-5. データをローカルストレージに自動保存
-6. すべての通知は5秒後に自動消去（エラー以外）
-
-### 6.5 データ同期フロー（更新版）
+### 6.6 データ同期フロー
 1. ユーザーが同期ボタンをクリック
 2. 新しいアクセストークンをGoogle Identity Services APIから取得
 3. ローカルデータとクラウドデータの取得
@@ -430,9 +556,10 @@ const removeNotification = useCallback((id) => {
   - 成功: 緑系 (#4CAF50) - 背景: bg-green-100, テキスト: text-green-700
   - 警告: 黄色系 (#FFC107) - 背景: bg-yellow-100, テキスト: text-yellow-700
   - エラー: 赤系 (#F44336) - 背景: bg-red-100, テキスト: text-red-700
-- **データソース表示用**:
+- **データソース表示用（更新）**:
   - Alpha Vantage: 緑系 (#4CAF50)
-  - Fallback: 赤系 (#F44336)
+  - Yahoo Finance: 青系 (#2196F3)
+  - Fallback: 黄色系 (#FFC107)
 - **ファンドタイプ表示用**:
   - 個別株: グレー系 (#9E9E9E)
   - ETF: 青系 (#2196F3)
@@ -464,7 +591,7 @@ const removeNotification = useCallback((id) => {
 - **エラーメッセージ**: 16px、太字（font-bold）、赤色
 - **通知テキスト**: 14px（text-sm）、通常（font-normal）
 
-### 7.3 コンポーネントスタイル（更新版）
+### 7.3 コンポーネントスタイル
 - **通知コンポーネント**: 角丸（rounded-md）、影付き（shadow-md）、タイプ別の背景色
 ```jsx
 <div 
@@ -495,11 +622,27 @@ const removeNotification = useCallback((id) => {
 - **銘柄タイプバッジ**: 小さい丸型または角丸ラベル、タイプに応じた色
 - **手数料情報バッジ**: 小さい丸型または角丸ラベル、情報源に応じた色
 - **配当情報バッジ**: 小さい丸型または角丸ラベル、配当状況に応じた色
+- **データソースバッジ**: 小さい丸型または角丸ラベル、ソースに応じた色
 - **個別株行**: 灰色背景で視覚的に区別
 - **同期ステータスインジケーター**: 丸いドット、色による状態表示
 - **エラー表示コンポーネント**: 中央配置のモーダル風デザイン、明確なエラー詳細表示
 
-### 7.4 レスポンシブデザイン
+### 7.4 データソースバッジ（新規）
+```jsx
+// データソースバッジコンポーネント
+<span className={`text-xs px-1.5 py-0.5 rounded ${
+  dataSource === 'Alpha Vantage'
+    ? 'bg-green-100 text-green-800'
+    : dataSource === 'Yahoo Finance'
+      ? 'bg-blue-100 text-blue-800'
+      : 'bg-yellow-100 text-yellow-800'
+}`}>
+  {dataSource === 'Alpha Vantage' ? 'Alpha Vantage' : 
+   dataSource === 'Yahoo Finance' ? 'Yahoo Finance' : 'Fallback'}
+</span>
+```
+
+### 7.5 レスポンシブデザイン
 - **モバイル優先**: 基本はモバイル表示に最適化
 - **ブレークポイント**: sm(640px), md(768px), lg(1024px)
 - **iOS互換**: セーフエリア対応、タブバー設計
@@ -516,8 +659,10 @@ const removeNotification = useCallback((id) => {
 - **ストレージエラー**: ローカルストレージ読み書き失敗
 - **同期エラー**: データ同期失敗
 - **アプリケーションエラー**: 予期しないJavaScriptエラー
+- **API制限エラー**: Alpha Vantageのリクエスト制限到達
+- **認証エラー（Yahoo Finance）**: Yahoo Finance APIの401エラー
 
-### 8.2 通知表示（更新）
+### 8.2 通知表示
 - **成功通知**: 緑色背景、自動消去（5秒）
 - **警告通知**: 黄色背景、自動消去（5秒）
 - **エラー通知**: 赤色背景、手動消去のみ
@@ -527,14 +672,36 @@ const removeNotification = useCallback((id) => {
 - **閉じるボタン**: すべての通知に手動で閉じるボタンを表示
 - **自動消去**: エラー以外の通知は5秒後に自動消去
 
-### 8.3 API障害対応
+### 8.3 マルチソースによるフォールバック（新規）
+- **API制限検出**: Alpha Vantageのレート制限を検出して自動切り替え
+- **ソース切り替え通知**: データソースの切り替えをユーザーに通知
+- **ソース使用統計**: 各データソースの使用状況を統計として表示
+- **フォールバック警告**: フォールバック値使用時は投資判断への注意を促す
+
+```javascript
+// Yahoo Financeの利用状況に関する通知
+if (yahooFinanceTriedCount > 0) {
+  const yahooMessage = `Alpha Vantageでの取得に失敗した${yahooFinanceTriedCount}銘柄について、Yahoo Financeを使用しました（成功: ${yahooFinanceSuccessCount}件）`;
+  addNotification(yahooMessage, 'info');
+}
+
+// フォールバックデータを使用している場合は通知
+if (fallbackCount > 0) {
+  addNotification(
+    `${fallbackCount}銘柄の株価情報は最新データを取得できず、推定値を使用しています。実際の市場価格と異なる可能性があります。`,
+    'warning'
+  );
+}
+```
+
+### 8.4 API障害対応
 - 複数データソースの使用によるフォールバック機構
 - タイムアウト設定による応答遅延の処理
 - 詳細なエラーログによるデバッグ容易化
 - ユーザーフレンドリーなエラーメッセージ表示
 - データソースの表示によるユーザー通知
 
-### 8.4 ストレージ障害対応（更新版）
+### 8.5 ストレージ障害対応
 - ローカルストレージ失敗時のエラー処理強化
 - データ復号化失敗時のフォールバック処理追加
 - 初期化完了フラグによる重複保存・初期化の防止
@@ -542,55 +709,21 @@ const removeNotification = useCallback((id) => {
 - 適切なエラーメッセージと通知
 - ローカルストレージクリア機能による修復オプション
 
-### 8.5 認証障害対応
+### 8.6 認証障害対応
 - OAuth認証エラーの適切なハンドリング
 - トークン失効時の再認証フロー
 - アクセストークン取得エラーの処理
 - ユーザーフレンドリーな認証エラーメッセージ
 
-### 8.6 アプリケーションエラー対応
+### 8.7 アプリケーションエラー対応
 - エラーバウンダリによる予期しないエラーのキャッチ
 - エラー発生時のUIフォールバック表示
 - リロードボタンによる簡単な回復方法の提供
 - 詳細なエラー情報のログ出力
 
-## 9. 配当情報表示のUI
+## 9. データ永続化と同期
 
-### 9.1 PortfolioSummaryでの配当表示
-- 年間配当金の合計を表示（総資産の上部セクション）
-- ポートフォリオ全体の配当利回りを表示
-- 最高配当利回りの銘柄を表示（詳細セクション）
-- ファンドタイプ別の配当金統計を表示（詳細セクション）
-
-### 9.2 AssetsTableでの配当表示
-- 保有資産テーブルに配当関連の列を追加
-- 配当利回りと配当頻度の表示
-- 配当情報源のバッジ表示（推定値/確定値）
-- 年間配当金の表示（通貨換算対応）
-
-### 9.3 HoldingsEditorでの配当表示
-- 保有資産編集画面に配当情報の列を追加
-- 配当利回りと配当頻度の表示
-- 配当情報源のバッジ表示
-- 年間配当金の表示
-
-### 9.4 配当頻度の表示変換
-```javascript
-// 配当頻度の表示変換
-const formatDividendFrequency = (frequency) => {
-  switch (frequency) {
-    case 'monthly': return '毎月';
-    case 'quarterly': return '四半期';
-    case 'semi-annual': return '半年';
-    case 'annual': return '年1回';
-    default: return '不明';
-  }
-};
-```
-
-## 10. データ永続化と同期（更新版）
-
-### 10.1 データ永続化の仕組み（更新版）
+### 9.1 データ永続化の仕組み
 - **保存対象データ**: ポートフォリオデータ、配当情報、設定値、タイムスタンプ
 - **保存形式**: URIエンコード + Base64暗号化されたJSON
 - **保存場所**: ブラウザのローカルストレージ
@@ -599,7 +732,7 @@ const formatDividendFrequency = (frequency) => {
 - **エラーリカバリ**: 復号化失敗時の適切な処理とフォールバック機能
 - **データ構造検証**: 復号化後のデータ構造を検証し、整合性を確認
 
-### 10.2 データ同期の仕組み（更新版）
+### 9.2 データ同期の仕組み
 - **同期対象**: ローカルストレージとGoogleドライブ
 - **同期タイミング**: 
   - 明示的な同期ボタンクリック時
@@ -611,7 +744,7 @@ const formatDividendFrequency = (frequency) => {
 - **エラーリカバリ**: 同期失敗時の適切な通知と状態維持
 - **通知表示**: 同期状態に関する通知（5秒後に自動消去）
 
-### 10.3 認証連携の仕組み（更新版）
+### 9.3 認証連携の仕組み
 - **認証情報保存**: ローカルストレージにJWTトークン保存
 - **認証状態復元**: アプリケーション起動時にトークン検証
 - **権限スコープ**: ドライブAPI用の適切なスコープ設定
@@ -620,7 +753,7 @@ const formatDividendFrequency = (frequency) => {
 - **アクセストークン取得**: Google Identity Services APIを使用した明示的なトークン取得
 - **認証通知**: 認証状態の変更に関する通知（5秒後に自動消去）
 
-### 10.4 エラー回復機能
+### 9.4 エラー回復機能
 - **ローカルストレージクリア**: データ損傷時にストレージをクリアする機能
 - **エラーバウンダリ**: アプリケーションクラッシュを防止するエラーバウンダリ
 - **リロードボタン**: エラー発生時にアプリケーションを再読み込みする機能
@@ -642,3 +775,4 @@ const formatDividendFrequency = (frequency) => {
 | 9.0 | 2025/03/16 19:20 | データ暗号化/復号化処理の強化、Google Drive API連携改善、エラーバウンダリ導入、認証フロー更新 |  |
 | 10.0 | 2025/03/18 15:45 | 配当情報の管理機能追加、配当情報の表示UI実装、PortfolioSummaryとAssetsTableの配当情報表示追加、Google Drive API連携の安定性向上 |  |
 | 3.1 | 2025/03/19 15:00 | 通知システムの自動消去機能追加（タイプ別）、初期化処理の重複実行防止機能追加、通知スタイルの詳細定義追加 |  |
+| 3.2 | 2025/03/20 10:00 | Yahoo Finance APIフォールバック機能を追加、マルチデータソース対応の実装、API障害時の詳細通知機能強化、日本株ティッカー変換の改善 |  |
