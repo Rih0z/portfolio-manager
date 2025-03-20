@@ -343,6 +343,8 @@ export const PortfolioProvider = ({ children }) => {
       let errorCount = 0;
       let rateLimit = false;
       const errorDetails = [];
+      let fallbackCount = 0;
+      const fallbackDetails = [];
       
       // 全ての保有銘柄の最新データを取得
       const updatedAssets = await Promise.all(
@@ -365,8 +367,26 @@ export const PortfolioProvider = ({ children }) => {
                 errorType: updatedData.errorType
               });
               
+              // フォールバックデータがある場合は記録
+              if (updatedData.data && updatedData.data.source === 'Fallback') {
+                fallbackCount++;
+                fallbackDetails.push({
+                  ticker: asset.ticker,
+                  name: asset.name || asset.ticker,
+                  price: updatedData.data.price
+                });
+              }
+              
               // エラー時でもフォールバックデータがあるため利用可能
               console.log(`Using fallback data for ${asset.ticker} due to error`);
+            } else if (updatedData.data && updatedData.data.source === 'Fallback') {
+              // 成功したがフォールバックデータを使用している場合
+              fallbackCount++;
+              fallbackDetails.push({
+                ticker: asset.ticker,
+                name: asset.name || asset.ticker,
+                price: updatedData.data.price
+              });
             }
             
             // 銘柄タイプの変更を確認
@@ -500,6 +520,22 @@ export const PortfolioProvider = ({ children }) => {
         });
       }
       
+      // フォールバックデータを使用している場合は通知
+      if (fallbackCount > 0) {
+        addNotification(
+          `${fallbackCount}銘柄の株価情報は最新データを取得できず、前回保存した価格データを使用しています。実際の市場価格と異なる可能性があります。`,
+          'warning'
+        );
+        
+        // 最大3件までフォールバック詳細を表示
+        fallbackDetails.slice(0, 3).forEach(detail => {
+          addNotification(
+            `「${detail.name}」(${detail.ticker}): 表示価格 ${detail.price}は最新の市場データではなく、最後に取得できた価格です。投資判断には注意してください。`,
+            'info'
+          );
+        });
+      }
+      
       addNotification(message, 'success');
       
       // 銘柄タイプの変更があった場合は通知
@@ -582,8 +618,13 @@ export const PortfolioProvider = ({ children }) => {
           return { success: false, message: '銘柄の追加に失敗しました' };
         }
         
-        // フォールバックデータを使用する旨を通知
-        addNotification(`推定データを使用して「${ticker}」を追加します`, 'info');
+        // フォールバックデータを使用する旨を明確に通知
+        addNotification(`銘柄「${ticker}」は最新の株価情報を取得できませんでした。保存済みのバックアップデータを使用して追加します。表示価格は実際の市場価格と異なる可能性があります。`, 'warning');
+      }
+      
+      // 成功したけどフォールバックデータを使用している場合
+      if (tickerResult.data && tickerResult.data.source === 'Fallback') {
+        addNotification(`銘柄「${ticker}」の株価情報 (${tickerResult.data.price}) は最新の市場価格ではなく、バックアップデータから取得した推定値です。投資判断には注意してください。`, 'warning');
       }
       
       // 銘柄データ
@@ -668,7 +709,7 @@ export const PortfolioProvider = ({ children }) => {
       
       // データソースの通知（フォールバック値の場合）
       if (tickerData.source === 'Fallback') {
-        addNotification(`「${ticker}」のデータはフォールバック値を使用しています。最新の価格情報ではありません。`, 'warning');
+        addNotification(`「${ticker}」のデータはバックアップ値を使用しています。最新の価格情報ではないため、正確な市場価格を反映していない可能性があります。実際の取引前に最新価格を確認してください。`, 'warning');
       }
       
       // 追加成功の通知
