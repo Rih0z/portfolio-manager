@@ -8,7 +8,8 @@ import {
   estimateDividendYield,
   TICKER_SPECIFIC_FEES,
   TICKER_SPECIFIC_DIVIDENDS,
-  FUND_TYPES
+  FUND_TYPES,
+  US_ETF_LIST
 } from '../utils/fundUtils';
 
 // 環境に応じたベースURL設定
@@ -58,6 +59,27 @@ const DEFAULT_EXCHANGE_RATES = {
 };
 
 /**
+ * ティッカーシンボルをAlpha Vantage API用にフォーマットする
+ * @param {string} ticker - 元のティッカーシンボル
+ * @returns {string} - フォーマットされたティッカーシンボル
+ */
+function formatTickerForAlphaVantage(ticker) {
+  if (!ticker) return '';
+  
+  // 大文字に変換
+  ticker = ticker.toUpperCase();
+  
+  // 日本株の場合（.Tがついている）はそのまま返す
+  if (ticker.includes('.T')) {
+    return ticker;
+  }
+  
+  // 米国ETF/株式の場合は特別な処理
+  // 米国株式市場のシンボルはAlpha Vantageでそのままで使用可能
+  return ticker;
+}
+
+/**
  * 特定ティッカーがETFかどうかを判定する
  * @param {string} ticker - ティッカーシンボル 
  * @returns {boolean} - ETFならtrue
@@ -71,6 +93,17 @@ function isETFFromTickerSpecificList(ticker) {
 }
 
 /**
+ * 米国ETFリストにティッカーが含まれているか確認
+ * @param {string} ticker - ティッカーシンボル
+ * @returns {boolean} - 米国ETFリストに含まれていればtrue
+ */
+function isInUSETFList(ticker) {
+  if (!ticker) return false;
+  ticker = ticker.toUpperCase();
+  return US_ETF_LIST.includes(ticker);
+}
+
+/**
  * 銘柄のファンドタイプを確実に判定する
  * @param {string} ticker - ティッカーシンボル
  * @param {string} name - 銘柄名 
@@ -79,6 +112,14 @@ function isETFFromTickerSpecificList(ticker) {
 function determineFundType(ticker, name) {
   // 大文字に統一
   ticker = ticker.toUpperCase();
+  
+  // 米国ETFリストに明示的に含まれているか確認 (VXUS、IBIT、LQD、GLDなど)
+  if (isInUSETFList(ticker)) {
+    if (ticker === 'IBIT' || ticker === 'GBTC' || ticker === 'ETHE') {
+      return FUND_TYPES.CRYPTO;
+    }
+    return FUND_TYPES.ETF_US;
+  }
   
   // ティッカーが既知のETF/ファンドリストにあるかチェック
   if (isETFFromTickerSpecificList(ticker)) {
@@ -115,7 +156,7 @@ function determineHasDividend(ticker) {
   }
   
   // ETFリストに含まれるものは（上記の例外を除き）配当ありとみなす
-  if (isETFFromTickerSpecificList(ticker)) {
+  if (isETFFromTickerSpecificList(ticker) || isInUSETFList(ticker)) {
     return true;
   }
   
@@ -160,13 +201,20 @@ export async function fetchTickerData(ticker) {
   // ティッカーを大文字に統一
   ticker = ticker.toUpperCase();
   
+  // 対象がUS_ETF_LISTに含まれているかチェック
+  const isUSETF = isInUSETFList(ticker);
+  
+  // Alpha Vantage APIのためにティッカーをフォーマット
+  const formattedTicker = formatTickerForAlphaVantage(ticker);
+  console.log(`Original ticker: ${ticker}, Formatted for Alpha Vantage: ${formattedTicker}, Is US ETF: ${isUSETF}`);
+  
   try {
     // Alpha Vantage APIからデータ取得を試みる（プライマリソース）
-    console.log(`Attempting to fetch data for ${ticker} from Alpha Vantage at: ${ALPHA_VANTAGE_URL}`);
+    console.log(`Attempting to fetch data for ${formattedTicker} from Alpha Vantage at: ${ALPHA_VANTAGE_URL}`);
     const response = await axios.get(ALPHA_VANTAGE_URL, {
       params: {
         function: 'GLOBAL_QUOTE',
-        symbol: ticker
+        symbol: formattedTicker
       },
       timeout: 15000, // 15秒タイムアウト設定
       headers: {
@@ -176,9 +224,12 @@ export async function fetchTickerData(ticker) {
       }
     });
     
+    // レスポンスデータをログ（デバッグ用）
+    console.log(`Response for ${formattedTicker}:`, response.data);
+    
     // APIレート制限のチェック
     if (response.data && response.data.Note && response.data.Note.includes('API call frequency')) {
-      console.warn(`Alpha Vantage API rate limit reached for ${ticker}`);
+      console.warn(`Alpha Vantage API rate limit reached for ${formattedTicker}`);
       return {
         success: false,
         message: 'Alpha Vantage APIのリクエスト制限に達しました。しばらく待ってから再試行してください。',
@@ -198,7 +249,7 @@ export async function fetchTickerData(ticker) {
         
         // 価格が有効な数値かチェック
         if (!isNaN(price) && price > 0) {
-          console.log(`Successfully fetched data for ${ticker} from Alpha Vantage: $${price}`);
+          console.log(`Successfully fetched data for ${formattedTicker} from Alpha Vantage: $${price}`);
           
           // 銘柄名の取得を試みる（短めのフォールバック処理）
           let name = ticker;
@@ -262,14 +313,14 @@ export async function fetchTickerData(ticker) {
             message: '正常に取得しました'
           };
         } else {
-          console.warn(`Invalid price value for ${ticker}: ${price}. Using fallback.`);
+          console.warn(`Invalid price value for ${formattedTicker}: ${price}. Using fallback.`);
         }
       } else {
-        console.warn(`Missing price data for ${ticker} in response. Using fallback.`);
+        console.warn(`Missing price data for ${formattedTicker} in response. Using fallback.`);
       }
     } else if (response.data && response.data['Error Message']) {
       // Alpha Vantage のエラーメッセージがある場合
-      console.error(`Alpha Vantage API error for ${ticker}: ${response.data['Error Message']}`);
+      console.error(`Alpha Vantage API error for ${formattedTicker}: ${response.data['Error Message']}`);
       return {
         success: false,
         message: `銘柄情報の取得エラー: ${response.data['Error Message']}`,
@@ -279,12 +330,12 @@ export async function fetchTickerData(ticker) {
       };
     }
     
-    console.log(`No valid data found for ${ticker} from Alpha Vantage, using fallback`);
+    console.log(`No valid data found for ${formattedTicker} from Alpha Vantage, using fallback`);
     // データが適切な形式でない場合、フォールバック値を使用
     return generateFallbackTickerData(ticker);
     
   } catch (error) {
-    console.error(`Alpha Vantage API error for ${ticker}:`, error.message);
+    console.error(`Alpha Vantage API error for ${formattedTicker}:`, error.message);
     
     // エラーの種類を特定して適切なメッセージを生成
     let errorType = 'UNKNOWN';
@@ -327,14 +378,31 @@ function generateFallbackTickerData(ticker) {
   // ティッカーを大文字に統一
   ticker = ticker.toUpperCase();
   
+  // 米国ETFリストに含まれているか確認
+  const isUSETF = isInUSETFList(ticker);
+  
   // 市場とティッカーから推測されるデフォルト値を使用
   const isJapanese = ticker.includes('.T') || /^\d{4,}$/.test(ticker);
-  const defaultPrice = isJapanese ? 2500 : 150;
+  
+  // 米国ETFの場合は特別な価格を設定
+  let defaultPrice = isJapanese ? 2500 : 150;
+  
+  // 特定のETFに対するカスタムデフォルト価格
+  const etfPrices = {
+    'VXUS': 60.0,
+    'IBIT': 40.0,
+    'LQD': 110.0,
+    'GLD': 200.0
+  };
+  
+  if (etfPrices[ticker]) {
+    defaultPrice = etfPrices[ticker];
+  }
   
   // ファンドタイプを判定（ETFリストを優先）
   const fundType = determineFundType(ticker, ticker);
   
-  // 個別株かどうかを判定（ETFリストに含まれる場合は必ず個別株ではない）
+  // 個別株かどうかを判定
   const isStock = fundType === FUND_TYPES.STOCK;
   
   // 基本情報と手数料情報を取得
@@ -349,6 +417,11 @@ function generateFallbackTickerData(ticker) {
   
   // 手数料情報（個別株は常に0%）
   const annualFee = isStock ? 0 : feeInfo.fee;
+  
+  // 米国ETFの場合、特定の情報をログ
+  if (isUSETF) {
+    console.log(`Using fallback data for US ETF: ${ticker}, Price: ${defaultPrice}, FundType: ${fundType}`);
+  }
   
   return {
     success: false,
