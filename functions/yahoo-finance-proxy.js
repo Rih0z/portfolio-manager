@@ -49,16 +49,29 @@ exports.handler = async function(event, context) {
       };
     }
     
-    console.log(`Requesting Yahoo Finance API for symbols: ${params.symbols}`);
+    // 日本株のティッカー調整（数字のみの場合は.Tを追加）
+    let symbols = params.symbols;
+    const symbolsArray = symbols.split(',').map(symbol => {
+      if (/^\d{4}$/.test(symbol)) {
+        return `${symbol}.T`;
+      }
+      return symbol;
+    });
     
-    // UA文字列とリファラーの設定 - Yahoo Finance からのリクエストに見せる
-    const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36';
+    const adjustedSymbols = symbolsArray.join(',');
+    console.log(`Requesting Yahoo Finance API for symbols: ${adjustedSymbols}`);
     
-    // Yahoo Finance APIにリクエスト - より本物らしいヘッダーを追加
+    // UA文字列とリファラーの設定 - より本物らしいブラウザからのリクエストに見せる
+    const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Safari/537.36';
+    
+    // Yahoo Finance API v7/quote エンドポイントにリクエスト
     const response = await axios({
       method: 'get',
       url: 'https://query1.finance.yahoo.com/v7/finance/quote',
-      params,
+      params: {
+        symbols: adjustedSymbols,
+        fields: 'regularMarketPrice,shortName,longName,currency,regularMarketChange,regularMarketChangePercent'
+      },
       headers: {
         'User-Agent': userAgent,
         'Accept': 'application/json',
@@ -66,7 +79,7 @@ exports.handler = async function(event, context) {
         'Referer': 'https://finance.yahoo.com',
         'Origin': 'https://finance.yahoo.com',
         'X-Requested-With': 'XMLHttpRequest',
-        'sec-ch-ua': '"Google Chrome";v="119", "Chromium";v="119", "Not?A_Brand";v="24"',
+        'sec-ch-ua': '"Chromium";v="92", " Not A;Brand";v="99", "Google Chrome";v="92"',
         'sec-ch-ua-mobile': '?0',
         'sec-ch-ua-platform': '"Windows"'
       },
@@ -81,7 +94,7 @@ exports.handler = async function(event, context) {
         !response.data.quoteResponse || 
         !response.data.quoteResponse.result || 
         response.data.quoteResponse.result.length === 0) {
-      console.warn(`No data found for symbol: ${params.symbols}`);
+      console.warn(`No data found for symbols: ${adjustedSymbols}`);
       return {
         statusCode: 404,
         headers,
@@ -127,6 +140,8 @@ exports.handler = async function(event, context) {
     } else if (error.code === 'ENOTFOUND') {
       statusCode = 502; // Bad Gateway
       errorMessage = 'Yahoo Finance APIへの接続に失敗しました';
+    } else if (statusCode === 401) {
+      errorMessage = 'Yahoo Finance APIへのアクセスが認証エラーで失敗しました。APIの仕様変更の可能性があります。';
     }
     
     // エラーレスポンス
