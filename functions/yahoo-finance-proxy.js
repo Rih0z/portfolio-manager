@@ -1,14 +1,16 @@
-// functions/yahoo-finance-proxy.js
+// functions/yfinance-proxy.js
 
 /**
- * Yahoo Finance APIへのプロキシ関数
- * CORSの問題を回避し、リクエスト制限やIPブロックを軽減するためのサーバーレス関数
+ * Python yfinanceライブラリを使用したデータ取得プロキシ関数
+ * Pythonスクリプトを子プロセスとして実行し、yfinanceライブラリからデータを取得する
  */
-const axios = require('axios');
+const { execFile } = require('child_process');
+const path = require('path');
+const fs = require('fs');
 
 exports.handler = async function(event, context) {
   // リクエスト情報をログ出力
-  console.log('Yahoo Finance Proxy - Request received:');
+  console.log('yfinance Proxy - Request received:');
   console.log('Method:', event.httpMethod);
   console.log('Path:', event.path);
   console.log('Query parameters:', JSON.stringify(event.queryStringParameters));
@@ -36,112 +38,96 @@ exports.handler = async function(event, context) {
     // クエリパラメータを取得
     const params = event.queryStringParameters || {};
     
-    // シンボルは必須
-    if (!params.symbols) {
-      console.error('Missing required parameter: symbols');
+    // シンボルまたは為替レートのどちらかが必要
+    if (!params.symbols && !params.exchange_rate) {
+      console.error('Missing required parameters: symbols or exchange_rate');
       return {
         statusCode: 400,
         headers,
         body: JSON.stringify({ 
-          error: 'symbols parameter is required',
-          message: 'symbols パラメータが必要です'
+          error: 'symbols or exchange_rate parameter is required',
+          message: 'symbols または exchange_rate パラメータが必要です'
         })
       };
     }
     
-    // 日本株のティッカー調整（数字のみの場合は.Tを追加）
-    let symbols = params.symbols;
-    const symbolsArray = symbols.split(',').map(symbol => {
-      if (/^\d{4}$/.test(symbol)) {
-        return `${symbol}.T`;
-      }
-      return symbol;
-    });
+    // Pythonスクリプトのパスを取得
+    const pythonScript = path.join(__dirname, 'python', 'yfinance_fetcher.py');
     
-    const adjustedSymbols = symbolsArray.join(',');
-    console.log(`Requesting Yahoo Finance API for symbols: ${adjustedSymbols}`);
-    
-    // UA文字列とリファラーの設定 - より本物らしいブラウザからのリクエストに見せる
-    const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Safari/537.36';
-    
-    // Yahoo Finance API v7/quote エンドポイントにリクエスト
-    const response = await axios({
-      method: 'get',
-      url: 'https://query1.finance.yahoo.com/v7/finance/quote',
-      params: {
-        symbols: adjustedSymbols,
-        fields: 'regularMarketPrice,shortName,longName,currency,regularMarketChange,regularMarketChangePercent'
-      },
-      headers: {
-        'User-Agent': userAgent,
-        'Accept': 'application/json',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Referer': 'https://finance.yahoo.com',
-        'Origin': 'https://finance.yahoo.com',
-        'X-Requested-With': 'XMLHttpRequest',
-        'sec-ch-ua': '"Chromium";v="92", " Not A;Brand";v="99", "Google Chrome";v="92"',
-        'sec-ch-ua-mobile': '?0',
-        'sec-ch-ua-platform': '"Windows"'
-      },
-      timeout: 15000 // 15秒タイムアウト
-    });
-    
-    // レスポンスをログ出力（開発用）
-    console.log(`Yahoo Finance API response status: ${response.status}`);
-    
-    // 空のレスポンスのチェック
-    if (!response.data || 
-        !response.data.quoteResponse || 
-        !response.data.quoteResponse.result || 
-        response.data.quoteResponse.result.length === 0) {
-      console.warn(`No data found for symbols: ${adjustedSymbols}`);
+    // スクリプトの存在確認
+    if (!fs.existsSync(pythonScript)) {
+      console.error(`Python script not found: ${pythonScript}`);
       return {
-        statusCode: 404,
+        statusCode: 500,
         headers,
         body: JSON.stringify({
-          error: 'No data found',
-          message: `シンボル「${params.symbols}」のデータが見つかりませんでした`,
-          quoteResponse: {
-            result: []
-          }
+          error: 'Python script not found',
+          message: 'サーバー内部のPythonスクリプトが見つかりません'
         })
       };
     }
     
-    // 正常なレスポンス
+    // コマンドライン引数を構築
+    const args = [];
+    if (params.symbols) {
+      args.push('--symbols', params.symbols);
+    } else if (params.exchange_rate) {
+      args.push('--exchange_rate', params.exchange_rate);
+    }
+    
+    console.log(`Executing Python script: ${pythonScript} with args:`, args);
+    
+    // Pythonスクリプトを実行
+    const result = await new Promise((resolve, reject) => {
+      execFile('python3', [pythonScript, ...args], { timeout: 30000 }, (error, stdout, stderr) => {
+        if (error) {
+          console.error('Python execution error:', error);
+          if (stderr) console.error('stderr:', stderr);
+          return reject(error);
+        }
+        
+        if (stderr && stderr.trim()) {
+          console.warn('Python warnings:', stderr);
+        }
+        
+        try {
+          console.log('Python script output:', stdout.substring(0, 1000) + '...');
+          const data = JSON.parse(stdout);
+          resolve(data);
+        } catch (parseError) {
+          console.error('Failed to parse Python output:', parseError);
+          console.error('Raw output sample:', stdout.substring(0, 500));
+          reject(new Error(`Failed to parse Python output: ${parseError.message}`));
+        }
+      });
+    });
+    
+    // 結果を返す
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify(response.data)
+      body: JSON.stringify(result)
     };
   } catch (error) {
     // エラー情報の詳細をログに出力
-    console.error('Yahoo Finance API error:');
+    console.error('yfinance-proxy error:');
     console.error('Error name:', error.name);
     console.error('Error message:', error.message);
-    
-    if (error.response) {
-      // サーバーからのレスポンスがあった場合
-      console.error('Error status:', error.response.status);
-      console.error('Error headers:', JSON.stringify(error.response.headers));
-      console.error('Error data:', JSON.stringify(error.response.data));
-    } else if (error.request) {
-      // リクエストは送信されたがレスポンスがない場合
-      console.error('No response received:', error.request);
-    }
+    console.error('Error stack:', error.stack);
     
     // エラーの種類に応じたレスポンス
-    let statusCode = error.response?.status || 500;
-    let errorMessage = 'Yahoo Finance APIからのデータ取得に失敗しました';
+    let statusCode = 500;
+    let errorMessage = 'Python yfinanceからのデータ取得に失敗しました';
     
-    if (error.code === 'ECONNABORTED') {
+    if (error.code === 'ENOENT') {
+      statusCode = 500;
+      errorMessage = 'Pythonの実行環境が見つかりません';
+    } else if (error.code === 'ETIMEDOUT') {
       statusCode = 504; // Gateway Timeout
-      errorMessage = 'Yahoo Finance APIへのリクエストがタイムアウトしました';
-    } else if (error.code === 'ENOTFOUND') {
-      statusCode = 502; // Bad Gateway
-      errorMessage = 'Yahoo Finance APIへの接続に失敗しました';
-    } else if (statusCode === 401) {
-      errorMessage = 'Yahoo Finance APIへのアクセスが認証エラーで失敗しました。APIの仕様変更の可能性があります。';
+      errorMessage = 'Pythonスクリプトの実行がタイムアウトしました';
+    } else if (error.code === 'EPERM') {
+      statusCode = 500;
+      errorMessage = 'Pythonスクリプトの実行権限がありません';
     }
     
     // エラーレスポンス
@@ -149,9 +135,9 @@ exports.handler = async function(event, context) {
       statusCode,
       headers,
       body: JSON.stringify({
-        error: 'Failed to fetch data from Yahoo Finance API',
+        error: 'Failed to fetch data from Python yfinance',
         message: errorMessage,
-        details: error.response?.data || error.message,
+        details: error.message,
         quoteResponse: {
           result: []
         }
