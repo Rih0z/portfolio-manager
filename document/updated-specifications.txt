@@ -1,6 +1,6 @@
-# ポートフォリオマネージャー 仕様書（更新版3.2）
+# ポートフォリオマネージャー 仕様書（更新版3.3）
 
-**最終更新日時:** 2025/03/20 10:00
+**最終更新日時:** 2025/03/22 12:00
 
 ## 1. プロジェクト概要
 
@@ -16,7 +16,7 @@
 - データインポート/エクスポート
 - ブラウザローカルストレージによるデータ保持（URIエンコード+Base64による安全な暗号化）
 - Google認証・Googleドライブ連携（Google Identity Services API対応）
-- 市場データの自動取得（マルチソース対応：Alpha Vantage → Yahoo Finance → フォールバック値の順で試行）
+- 市場データの自動取得（マルチソース対応：Alpha Vantage → Python yfinance → フォールバック値の順で試行）
 - iOS風タブバーによるナビゲーション
 - 自動消去機能付き通知システム
 - エラーバウンダリによるアプリケーション耐障害性向上
@@ -36,7 +36,7 @@
 - **デプロイ**: Netlify
 - **データ永続化**: ローカルストレージ（URIエンコード+Base64暗号化）
 - **クラウド連携**: Google Drive API v3
-- **市場データ取得**: Alpha Vantage API, Yahoo Finance API（フォールバック）
+- **市場データ取得**: Alpha Vantage API, Python yfinance（フォールバック）
 
 ## 2. 環境設定
 
@@ -49,6 +49,8 @@
 - **src/setupProxy.js**: プロキシ設定（API連携用）
 - **src/utils/fundUtils.js**: ファンドタイプと手数料情報、配当情報のユーティリティ関数
 - **public/index.html**: 基本HTMLとGoogle APIスクリプトの読み込み
+- **functions/python/requirements.txt**: Python依存関係（yfinanceなど）
+- **functions/python/yfinance_fetcher.py**: Python yfinanceスクリプト
 
 ### 2.2 環境変数
 ```
@@ -92,10 +94,10 @@ netlify.toml（最新版）:
   status = 200
   force = true
 
-# Yahoo Financeプロキシ向けのリダイレクト（新規追加）
+# Python yfinanceプロキシ向けのリダイレクト（更新）
 [[redirects]]
-  from = "/api/yahoo-finance-proxy"
-  to = "/.netlify/functions/yahoo-finance-proxy"
+  from = "/api/yfinance-proxy"
+  to = "/.netlify/functions/yfinance-proxy"
   status = 200
   force = true
 
@@ -110,6 +112,10 @@ netlify.toml（最新版）:
   directory = "functions"
   node_bundler = "esbuild"
   included_files = ["functions/**"]
+
+# Python関数の設定（新規追加）
+[functions."yfinance-proxy"]
+  runtime = "python3.9"
 ```
 
 ## 3. アプリケーションの構造
@@ -177,8 +183,11 @@ portfolio-manager/
 │   └── index.css
 ├── functions/
 │   ├── alpha-vantage-proxy.js
-│   ├── yahoo-finance-proxy.js             # Yahoo Finance APIプロキシ（新規追加）
-│   └── mof-exchange-rate-proxy.js
+│   ├── yfinance-proxy.js                 # yfinance APIプロキシ（更新）
+│   ├── mof-exchange-rate-proxy.js
+│   └── python/                           # Python関連ファイル（新規追加）
+│       ├── requirements.txt              # Python依存関係
+│       └── yfinance_fetcher.py           # yfinance実行スクリプト
 ├── package.json
 ├── tailwind.config.js
 ├── postcss.config.js
@@ -196,9 +205,11 @@ portfolio-manager/
 - **utils/fundUtils.js**: ファンドタイプ判定、手数料率推定、配当情報推定のユーティリティ関数
 - **setupProxy.js**: 開発環境用APIプロキシ設定
 - **services/api.js**: 市場データ取得とGoogle Drive API連携、配当データ取得
-- **services/marketDataService.js**: 銘柄データと配当情報の取得、マルチデータソース対応（Alpha Vantage→Yahoo Finance→フォールバック値）
+- **services/marketDataService.js**: 銘柄データと配当情報の取得、マルチデータソース対応（Alpha Vantage→Python yfinance→フォールバック値）
 - **functions/alpha-vantage-proxy.js**: Alpha Vantage APIプロキシ
-- **functions/yahoo-finance-proxy.js**: Yahoo Finance APIプロキシ（フォールバック用）
+- **functions/yfinance-proxy.js**: Python yfinanceスクリプトを呼び出すプロキシ関数（更新）
+- **functions/python/yfinance_fetcher.py**: 実際のyfinanceライブラリを使用するPythonスクリプト（新規）
+- **functions/python/requirements.txt**: Pythonの依存関係定義ファイル（新規）
 - **components/common/ErrorBoundary.jsx**: アプリケーションエラーのキャッチと表示
 - **components/common/ToastNotification.jsx**: 通知メッセージ表示システム（自動消去機能付き）
 - **components/dashboard/PortfolioSummary.jsx**: 資産概要と配当情報サマリーの表示
@@ -225,7 +236,7 @@ interface Asset {
   feeIsEstimated: boolean; // 手数料情報が推定値かどうか
   region?: string; // 対象地域 ('日本', '米国', 'グローバル', '不明')
   lastUpdated?: string; // 最終更新日時
-  source?: string; // データソース ('Alpha Vantage', 'Yahoo Finance', 'Fallback')
+  source?: string; // データソース ('Alpha Vantage', 'Python yfinance', 'Fallback')
   // 配当情報の追加
   dividendYield: number; // 配当利回り（%）
   hasDividend: boolean; // 配当があるかどうか
@@ -395,11 +406,11 @@ const removeNotification = useCallback((id) => {
 
 ## 6. 市場データ取得と配当情報管理（更新版）
 
-### 6.1 マルチデータソース対応（新規）
+### 6.1 マルチデータソース対応（更新版）
 - **データソースの優先順位**:
   1. Alpha Vantage API（プライマリソース）
-  2. Yahoo Finance API（フォールバックソース）
-  3. フォールバック値（両方のAPIが失敗した場合）
+  2. Python yfinance（フォールバックソース）
+  3. フォールバック値（両方のソースが失敗した場合）
 
 - **データソース切り替え条件**:
   - Alpha Vantageがレート制限に達した場合
@@ -407,7 +418,7 @@ const removeNotification = useCallback((id) => {
   - Alpha Vantageへのリクエストがエラーになった場合
 
 - **データソース表示**:
-  - 各銘柄データにソース情報を付加（'Alpha Vantage', 'Yahoo Finance', 'Fallback'）
+  - 各銘柄データにソース情報を付加（'Alpha Vantage', 'Python yfinance', 'Fallback'）
   - 全体の統計情報を通知でユーザーに表示
 
 ```javascript
@@ -422,8 +433,8 @@ let message = '市場データを更新しました';
 if (sourceCounts['Alpha Vantage']) {
   message += ` (Alpha Vantage: ${sourceCounts['Alpha Vantage']}件`;
 }
-if (sourceCounts['Yahoo Finance']) {
-  message += `, Yahoo Finance: ${sourceCounts['Yahoo Finance']}件`;
+if (sourceCounts['Python yfinance']) {
+  message += `, Python yfinance: ${sourceCounts['Python yfinance']}件`;
 }
 if (sourceCounts['Fallback']) {
   message += `, フォールバック: ${sourceCounts['Fallback']}件`;
@@ -431,15 +442,162 @@ if (sourceCounts['Fallback']) {
 message += ')';
 ```
 
-### 6.2 Yahoo Finance APIプロキシ（新規）
-- **プロキシエンドポイント**: `/api/yahoo-finance-proxy`
-- **対応API**: Yahoo Finance API v7/quote
-- **ヘッダー設定**: より本物らしいブラウザからのリクエストに見せるために、User-Agent、Referer、Origin等のヘッダーを適切に設定
+### 6.2 Python yfinanceの実装（新規）
+- **プロキシエンドポイント**: `/api/yfinance-proxy`
+- **Pythonスクリプト**: `functions/python/yfinance_fetcher.py`
+- **依存ライブラリ**: yfinance, pandas, json
+- **引数渡し**: クエリパラメータでティッカーシンボルや取得データの種類を指定
 - **日本株対応**: 4桁の数字のティッカーに自動的に`.T`を追加
-- **レスポンス形式**: 標準化された形式に変換
-- **エラーハンドリング**: 認証エラー（401）や接続エラーに対して適切なエラーメッセージを返す
+- **為替レート対応**: 組み込みの通貨変換機能を活用
+- **レスポンス形式**: 標準化されたJSON形式
+- **エラーハンドリング**: Pythonスクリプト内での例外処理と詳細なエラーメッセージ
 
-### 6.3 銘柄タイプ判定ロジック
+**Pythonスクリプト構成（概要）**:
+```python
+# yfinance_fetcher.py
+import yfinance as yf
+import pandas as pd
+import json
+import sys
+import os
+
+def format_ticker(ticker):
+    # 4桁数字の場合、.Tを追加
+    if ticker.isdigit() and len(ticker) == 4:
+        return f"{ticker}.T"
+    return ticker
+
+def fetch_market_data(tickers):
+    result = {}
+    try:
+        # ティッカーの前処理
+        formatted_tickers = [format_ticker(t) for t in tickers.split(',')]
+        
+        # yfinanceでデータ取得
+        data = yf.download(
+            formatted_tickers,
+            period="1d",
+            progress=False,
+            group_by="ticker"
+        )
+        
+        # 結果の整形
+        for ticker in formatted_tickers:
+            # データ処理ロジック
+            pass
+            
+        return {"success": True, "data": result}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+def fetch_exchange_rate(from_currency, to_currency):
+    try:
+        # 通貨ペアのティッカー形式
+        ticker = f"{from_currency}{to_currency}=X"
+        data = yf.Ticker(ticker)
+        rate = data.history(period="1d")["Close"].iloc[-1]
+        return {"success": True, "rate": rate}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+# メイン処理（コマンドライン引数から処理タイプを判断）
+if __name__ == "__main__":
+    # 引数処理
+    # 結果をJSON形式で標準出力
+    pass
+```
+
+### 6.3 yfinanceプロキシの実装概要（新規）
+- **サーバーレス関数**: JavaScript から Python スクリプトを実行
+- **プロセス管理**: 子プロセスとして Python スクリプトを実行
+- **パラメータ渡し**: コマンドライン引数として Python スクリプトにパラメータを渡す
+- **レスポンス処理**: Python スクリプトの標準出力を JSON としてパース
+- **エラーハンドリング**: Python プロセスのエラー出力を処理
+- **タイムアウト設定**: 実行時間制限を設定（30秒程度）
+
+```javascript
+// functions/yfinance-proxy.js の概要
+const { execFile } = require('child_process');
+const path = require('path');
+
+exports.handler = async function(event, context) {
+  // CORSヘッダー
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Content-Type': 'application/json'
+  };
+  
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 204, headers, body: '' };
+  }
+  
+  const params = event.queryStringParameters || {};
+  
+  if (!params.symbols && !params.exchange_rate) {
+    return {
+      statusCode: 400,
+      headers,
+      body: JSON.stringify({ error: 'Missing required parameters' })
+    };
+  }
+  
+  try {
+    const pythonScript = path.join(__dirname, 'python', 'yfinance_fetcher.py');
+    
+    // パラメータをコマンドライン引数として構築
+    const args = [];
+    if (params.symbols) {
+      args.push('--symbols', params.symbols);
+    } else if (params.exchange_rate) {
+      args.push('--exchange_rate', params.exchange_rate);
+    }
+    
+    // Pythonスクリプトを実行
+    const result = await new Promise((resolve, reject) => {
+      execFile('python3', [pythonScript, ...args], { timeout: 30000 }, (error, stdout, stderr) => {
+        if (error) {
+          console.error('Python execution error:', error);
+          console.error('stderr:', stderr);
+          return reject(error);
+        }
+        
+        if (stderr) {
+          console.warn('Python warning:', stderr);
+        }
+        
+        try {
+          const data = JSON.parse(stdout);
+          resolve(data);
+        } catch (e) {
+          reject(new Error(`Failed to parse Python output: ${e.message}`));
+        }
+      });
+    });
+    
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify(result)
+    };
+  } catch (error) {
+    console.error('yfinance-proxy error:', error);
+    
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({
+        error: 'Failed to fetch data from yfinance',
+        message: error.message,
+        details: error.stack
+      })
+    };
+  }
+};
+```
+
+### 6.4 銘柄タイプ判定ロジック
 銘柄のティッカーシンボルや名前からファンドタイプを判定する機能を実装しています：
 
 - **個別株の判定**:
@@ -457,7 +615,7 @@ message += ')';
 - **REITの判定**:
   - 名前に「REIT」「リート」「不動産投資」などを含む
 
-### 6.4 手数料率推定ロジック
+### 6.5 手数料率推定ロジック
 銘柄タイプに基づいて年間手数料率を推定します：
 
 - 個別株: 常に0%（ユーザーによる変更不可）
@@ -472,7 +630,7 @@ message += ')';
 - REIT: 0.5-0.6%
 - その他: 0.5%（デフォルト値）
 
-### 6.5 配当情報推定ロジック
+### 6.6 配当情報推定ロジック
 銘柄タイプや名前から配当情報を推定します：
 
 - **配当利回り推定**:
@@ -496,7 +654,7 @@ message += ')';
   - 名前に基づいて推定（「monthly」「quarterly」など）
   - デフォルト: 四半期（quarterly）
 
-### 6.6 年間配当金の計算
+### 6.7 年間配当金の計算
 保有資産ごとの年間配当金を計算し、合計します：
 
 ```javascript
@@ -524,25 +682,27 @@ const annualDividends = currentAssets.reduce((sum, asset) => {
 
 ## 7. エラー処理とフォールバックメカニズム（更新版）
 
-### 7.1 マルチレベルフォールバック（新規）
-- **フォールバックレベル1**: Alpha Vantage APIが失敗した場合、Yahoo Finance APIを試行
-- **フォールバックレベル2**: Yahoo Finance APIも失敗した場合、フォールバック値を使用
+### 7.1 マルチレベルフォールバック（更新版）
+- **フォールバックレベル1**: Alpha Vantage APIが失敗した場合、Python yfinanceを試行
+- **フォールバックレベル2**: Python yfinanceも失敗した場合、フォールバック値を使用
 - **使用状況の通知**: 各データソースの使用状況をユーザーに通知
 - **フォールバック詳細の記録**: 各銘柄ごとにフォールバックの使用状況を記録
 
 ```javascript
-// Yahoo Financeの利用状況に関する通知
-if (yahooFinanceTriedCount > 0) {
-  const yahooMessage = `Alpha Vantageでの取得に失敗した${yahooFinanceTriedCount}銘柄について、Yahoo Financeを使用しました（成功: ${yahooFinanceSuccessCount}件）`;
-  addNotification(yahooMessage, 'info');
+// Python yfinanceの利用状況に関する通知
+if (yfinanceTriedCount > 0) {
+  const yfinanceMessage = `Alpha Vantageでの取得に失敗した${yfinanceTriedCount}銘柄について、Python yfinanceを使用しました（成功: ${yfinanceSuccessCount}件）`;
+  addNotification(yfinanceMessage, 'info');
 }
 ```
 
 ### 7.2 API障害対応
 - **エラータイプの識別**: レート制限、ネットワークエラー、認証エラーなど、異なるタイプのエラーを区別
 - **エラー詳細のログ**: より詳細なエラー情報をコンソールに記録
-- **タイムアウト設定**: 各APIリクエストに対して15秒のタイムアウトを設定
-- **認証エラー対策**: Yahoo Finance APIの認証エラー（401）に対応するためのヘッダー設定
+- **タイムアウト設定**: 各APIリクエストに対して適切なタイムアウトを設定
+  - Alpha Vantage API: 15秒
+  - Python yfinance: 30秒
+- **Pythonプロセスエラー処理**: Pythonスクリプト実行時のエラーを適切に処理
 
 ### 7.3 フォールバック値の生成ロジック
 - **ファンドタイプ別のデフォルト価格**: 日本株・米国株・ETFなど、タイプに応じた適切なデフォルト価格を設定
@@ -570,21 +730,23 @@ if (fallbackCount > 0) {
 ## 8. 主要コンポーネントの実装詳細（更新版）
 
 ### 8.1 市場データサービス（marketDataService.js）（更新版）
-- マルチソースのデータ取得（Alpha Vantage→Yahoo Finance→フォールバック）
+- マルチソースのデータ取得（Alpha Vantage→Python yfinance→フォールバック）
 - 日本株・米国株に対応したティッカーフォーマット処理
 - API障害時のフォールバックメカニズム
 - 取得結果の詳細な記録と統計
 - データソース情報の付加と表示
 
-### 8.2 Yahoo Financeプロキシ（yahoo-finance-proxy.js）（新規）
-- Yahoo Finance APIへの最適化されたリクエスト設定
-- 認証エラー回避のためのヘッダー調整
-- 日本株ティッカー自動変換機能（.T付加）
-- 詳細なエラーハンドリングとログ出力
+### 8.2 Python yfinance統合（新規）
+- **Python環境**: Netlify Functions内でのPython 3.9実行環境
+- **依存ライブラリ管理**: requirements.txtによるyfinanceとその依存ライブラリの管理
+- **データフォーマット**: Pythonの出力をJSONに変換して標準化
+- **処理の最適化**: バッチ処理による複数銘柄の同時取得
+- **為替レート取得**: 通貨ペア（USDJPY=X）を使った為替レート取得
+- **日本市場対応**: 4桁数字の銘柄に.Tを自動付加
 
 ### 8.3 ポートフォリオコンテキスト（PortfolioContext.js）（更新版）
 - データソース統計の記録と通知機能強化
-- Yahoo Finance利用状態の追跡と詳細表示
+- Python yfinance利用状態の追跡と詳細表示
 - 障害発生時のエラー通知改善
 - より詳細な通知メッセージの生成
 
@@ -599,7 +761,7 @@ if (fallbackCount > 0) {
 ### 9.1 市場データ更新フロー（更新版）
 1. ユーザーが更新ボタンをクリック
 2. Alpha Vantage APIから最新価格データを取得
-3. 取得失敗またはレート制限に達した場合、Yahoo Finance APIを自動試行
+3. 取得失敗またはレート制限に達した場合、Python yfinanceを自動試行
 4. それも失敗した場合はフォールバック値を使用
 5. 銘柄タイプの確認と手数料情報の更新
 6. 配当情報の更新
@@ -613,8 +775,8 @@ let message = '市場データを更新しました';
 if (sourceCounts['Alpha Vantage']) {
   message += ` (Alpha Vantage: ${sourceCounts['Alpha Vantage']}件`;
 }
-if (sourceCounts['Yahoo Finance']) {
-  message += `, Yahoo Finance: ${sourceCounts['Yahoo Finance']}件`;
+if (sourceCounts['Python yfinance']) {
+  message += `, Python yfinance: ${sourceCounts['Python yfinance']}件`;
 }
 if (sourceCounts['Fallback']) {
   message += `, フォールバック: ${sourceCounts['Fallback']}件`;
@@ -622,10 +784,10 @@ if (sourceCounts['Fallback']) {
 message += ')';
 addNotification(message, 'success');
 
-// Yahoo Financeの利用状況に関する通知
-if (yahooFinanceTriedCount > 0) {
-  const yahooMessage = `Alpha Vantageでの取得に失敗した${yahooFinanceTriedCount}銘柄について、Yahoo Financeを使用しました（成功: ${yahooFinanceSuccessCount}件）`;
-  addNotification(yahooMessage, 'info');
+// Python yfinanceの利用状況に関する通知
+if (yfinanceTriedCount > 0) {
+  const yfinanceMessage = `Alpha Vantageでの取得に失敗した${yfinanceTriedCount}銘柄について、Python yfinanceを使用しました（成功: ${yfinanceSuccessCount}件）`;
+  addNotification(yfinanceMessage, 'info');
 }
 ```
 
@@ -633,7 +795,7 @@ if (yahooFinanceTriedCount > 0) {
 1. ユーザーが銘柄シンボルを入力
 2. addTicker関数を呼び出し
 3. Alpha Vantage APIからデータ取得
-4. 取得失敗時はYahoo Finance APIを自動試行
+4. 取得失敗時はPython yfinanceを自動試行
 5. それも失敗した場合はフォールバック値を使用
 6. 銘柄タイプを判定し、手数料情報を推定
 7. 配当情報を推定
@@ -642,9 +804,9 @@ if (yahooFinanceTriedCount > 0) {
 10. データソースや使用状況を通知
 11. データをローカルストレージに自動保存
 
-### 9.3 エラーおよびフォールバック通知フロー（新規）
+### 9.3 エラーおよびフォールバック通知フロー（更新版）
 1. データ更新または銘柄追加時にエラーが発生
-2. エラータイプを判別（レート制限、認証エラー、ネットワークエラーなど）
+2. エラータイプを判別（レート制限、認証エラー、ネットワークエラー、Pythonプロセスエラーなど）
 3. 次のフォールバックデータソースを自動試行
 4. すべてのソースが失敗した場合はフォールバック値を生成
 5. エラーの詳細をコンソールに記録
@@ -686,3 +848,4 @@ if (errorCount > 0) {
 | 10.0 | 2025/03/18 15:30 | 配当情報の管理機能追加、銘柄タイプ判定ロジック強化、PortfolioSummaryとAssetsTableの配当情報表示追加、Google Drive API連携の安定性向上 |  |
 | 3.1 | 2025/03/19 15:15 | 通知システムの自動消去機能追加（タイプ別）、初期化処理の重複実行防止機能追加、通知表示フローの詳細定義追加 |  |
 | 3.2 | 2025/03/20 10:00 | Yahoo Finance APIフォールバック機能の追加、マルチデータソース対応の実装、API障害時の詳細通知機能強化、日本株ティッカー変換改善 |  |
+| 3.3 | 2025/03/22 12:00 | Python yfinanceライブラリを使用したマルチデータソース対応の実装、Yahoo Finance APIプロキシからPython yfinanceプロセス実行方式への変更、為替および株価データの取得方法を改善、Netlify Functionsでのランタイム変更 |  |
