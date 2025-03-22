@@ -1,16 +1,14 @@
-// functions/yfinance-proxy.js
+// functions/yahoo-finance-proxy.js
 
 /**
- * Python yfinanceライブラリを使用したデータ取得プロキシ関数
- * Pythonスクリプトを子プロセスとして実行し、yfinanceライブラリからデータを取得する
+ * Yahoo Finance APIへのプロキシ関数
+ * Pythonを使わずに株価データを取得する
  */
-const { execFile } = require('child_process');
-const path = require('path');
-const fs = require('fs');
+const axios = require('axios');
 
 exports.handler = async function(event, context) {
   // リクエスト情報をログ出力
-  console.log('yfinance Proxy - Request received:');
+  console.log('Yahoo Finance Proxy - Request received:');
   console.log('Method:', event.httpMethod);
   console.log('Path:', event.path);
   console.log('Query parameters:', JSON.stringify(event.queryStringParameters));
@@ -38,9 +36,8 @@ exports.handler = async function(event, context) {
     // クエリパラメータを取得
     const params = event.queryStringParameters || {};
     
-    // シンボルまたは為替レートのどちらかが必要
+    // シンボルまたは為替レートのパラメータが必要
     if (!params.symbols && !params.exchange_rate) {
-      console.error('Missing required parameters: symbols or exchange_rate');
       return {
         statusCode: 400,
         headers,
@@ -51,97 +48,295 @@ exports.handler = async function(event, context) {
       };
     }
     
-    // Pythonスクリプトのパスを取得
-    const pythonScript = path.join(__dirname, 'python', 'yfinance_fetcher.py');
-    
-    // スクリプトの存在確認
-    if (!fs.existsSync(pythonScript)) {
-      console.error(`Python script not found: ${pythonScript}`);
-      return {
-        statusCode: 500,
-        headers,
-        body: JSON.stringify({
-          error: 'Python script not found',
-          message: 'サーバー内部のPythonスクリプトが見つかりません'
-        })
-      };
-    }
-    
-    // コマンドライン引数を構築
-    const args = [];
+    // 株価データを取得
     if (params.symbols) {
-      args.push('--symbols', params.symbols);
-    } else if (params.exchange_rate) {
-      args.push('--exchange_rate', params.exchange_rate);
+      return await handleStockData(params.symbols, headers);
     }
     
-    console.log(`Executing Python script: ${pythonScript} with args:`, args);
+    // 為替レートを取得
+    if (params.exchange_rate) {
+      return await handleExchangeRate(params.exchange_rate, headers);
+    }
     
-    // Pythonスクリプトを実行
-    const result = await new Promise((resolve, reject) => {
-      execFile('python3', [pythonScript, ...args], { timeout: 30000 }, (error, stdout, stderr) => {
-        if (error) {
-          console.error('Python execution error:', error);
-          if (stderr) console.error('stderr:', stderr);
-          return reject(error);
-        }
-        
-        if (stderr && stderr.trim()) {
-          console.warn('Python warnings:', stderr);
-        }
-        
-        try {
-          console.log('Python script output:', stdout.substring(0, 1000) + '...');
-          const data = JSON.parse(stdout);
-          resolve(data);
-        } catch (parseError) {
-          console.error('Failed to parse Python output:', parseError);
-          console.error('Raw output sample:', stdout.substring(0, 500));
-          reject(new Error(`Failed to parse Python output: ${parseError.message}`));
-        }
-      });
-    });
-    
-    // 結果を返す
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify(result)
-    };
   } catch (error) {
-    // エラー情報の詳細をログに出力
-    console.error('yfinance-proxy error:');
-    console.error('Error name:', error.name);
-    console.error('Error message:', error.message);
-    console.error('Error stack:', error.stack);
+    console.error('Yahoo Finance proxy error:', error);
     
-    // エラーの種類に応じたレスポンス
-    let statusCode = 500;
-    let errorMessage = 'Python yfinanceからのデータ取得に失敗しました';
-    
-    if (error.code === 'ENOENT') {
-      statusCode = 500;
-      errorMessage = 'Pythonの実行環境が見つかりません';
-    } else if (error.code === 'ETIMEDOUT') {
-      statusCode = 504; // Gateway Timeout
-      errorMessage = 'Pythonスクリプトの実行がタイムアウトしました';
-    } else if (error.code === 'EPERM') {
-      statusCode = 500;
-      errorMessage = 'Pythonスクリプトの実行権限がありません';
-    }
-    
-    // エラーレスポンス
     return {
-      statusCode,
+      statusCode: 500,
       headers,
       body: JSON.stringify({
-        error: 'Failed to fetch data from Python yfinance',
-        message: errorMessage,
-        details: error.message,
-        quoteResponse: {
-          result: []
-        }
+        success: false,
+        error: 'Failed to fetch data from Yahoo Finance',
+        message: error.message || 'Unknown error',
+        details: error.stack
       })
     };
   }
 };
+
+/**
+ * 株価データを取得する
+ * @param {string} symbols - カンマ区切りのティッカーシンボル
+ * @param {Object} headers - レスポンスヘッダー
+ * @returns {Object} - レスポンスオブジェクト
+ */
+async function handleStockData(symbols, headers) {
+  // カンマ区切りのシンボルを配列に変換
+  const symbolsList = symbols.split(',').map(s => s.trim());
+  
+  // 日本株の場合は.Tを追加
+  const formattedSymbols = symbolsList.map(symbol => {
+    if (/^\d{4}$/.test(symbol) && !symbol.includes('.T')) {
+      return `${symbol}.T`;
+    }
+    return symbol;
+  });
+  
+  try {
+    // Yahoo Financeの非公式APIを呼び出す
+    const yahooUrl = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${formattedSymbols.join(',')}`;
+    
+    console.log(`Requesting Yahoo Finance API: ${yahooUrl}`);
+    
+    const response = await axios.get(yahooUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      },
+      timeout: 15000 // 15秒タイムアウト
+    });
+    
+    // データの存在を確認
+    if (response.data && response.data.quoteResponse && response.data.quoteResponse.result) {
+      const quotes = response.data.quoteResponse.result;
+      
+      // 結果を整形
+      const result = {};
+      quotes.forEach(quote => {
+        const ticker = quote.symbol;
+        result[ticker] = {
+          ticker: ticker,
+          price: quote.regularMarketPrice || quote.ask || quote.bid || 0,
+          name: quote.shortName || quote.longName || ticker,
+          currency: quote.currency || (ticker.includes('.T') ? 'JPY' : 'USD'),
+          lastUpdated: new Date().toISOString()
+        };
+      });
+      
+      // データが見つからなかったシンボルをログ
+      const foundSymbols = Object.keys(result);
+      const notFoundSymbols = formattedSymbols.filter(s => !foundSymbols.includes(s));
+      
+      if (notFoundSymbols.length > 0) {
+        console.log(`No data found for symbols: ${notFoundSymbols.join(', ')}`);
+      }
+      
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          success: true,
+          data: result
+        })
+      };
+    } else {
+      console.log('Invalid response from Yahoo Finance API');
+      
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          error: 'Invalid response from Yahoo Finance API',
+          message: '株価データを取得できませんでした'
+        })
+      };
+    }
+  } catch (error) {
+    console.error('Error fetching stock data:', error);
+    
+    // フォールバックデータを生成
+    const result = {};
+    formattedSymbols.forEach(symbol => {
+      result[symbol] = {
+        ticker: symbol,
+        price: defaultPrice(symbol),
+        name: symbol,
+        currency: symbol.includes('.T') ? 'JPY' : 'USD',
+        lastUpdated: new Date().toISOString()
+      };
+    });
+    
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({
+        success: false,
+        error: 'Failed to fetch stock data',
+        message: error.message || 'Unknown error',
+        data: result
+      })
+    };
+  }
+}
+
+/**
+ * 為替レートを取得する
+ * @param {string} exchangeRate - 通貨ペア（例: USDJPY）
+ * @param {Object} headers - レスポンスヘッダー
+ * @returns {Object} - レスポンスオブジェクト
+ */
+async function handleExchangeRate(exchangeRate, headers) {
+  // 通貨ペアを解析
+  if (exchangeRate.length < 6) {
+    return {
+      statusCode: 400,
+      headers,
+      body: JSON.stringify({
+        success: false,
+        error: 'Invalid exchange rate format',
+        message: '無効な為替レート形式です。USDJPY のような形式を使用してください。'
+      })
+    };
+  }
+  
+  const fromCurrency = exchangeRate.substring(0, 3);
+  const toCurrency = exchangeRate.substring(3, 6);
+  
+  // 同一通貨の場合は1を返す
+  if (fromCurrency === toCurrency) {
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({
+        success: true,
+        rate: 1.0,
+        source: 'Direct',
+        lastUpdated: new Date().toISOString()
+      })
+    };
+  }
+  
+  try {
+    // Yahoo Financeの為替レートSymbolを作成（例: USDJPY=X）
+    const symbol = `${fromCurrency}${toCurrency}=X`;
+    
+    // Yahoo Financeの非公式APIを呼び出す
+    const yahooUrl = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${symbol}`;
+    
+    console.log(`Requesting Yahoo Finance API for exchange rate: ${yahooUrl}`);
+    
+    const response = await axios.get(yahooUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      },
+      timeout: 15000 // 15秒タイムアウト
+    });
+    
+    // データの存在を確認
+    if (response.data && 
+        response.data.quoteResponse && 
+        response.data.quoteResponse.result && 
+        response.data.quoteResponse.result.length > 0) {
+      
+      const quote = response.data.quoteResponse.result[0];
+      const rate = quote.regularMarketPrice || quote.ask || quote.bid || 0;
+      
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          success: true,
+          rate: rate,
+          source: 'Yahoo Finance',
+          lastUpdated: new Date().toISOString()
+        })
+      };
+    } else {
+      console.log('Invalid response from Yahoo Finance API for exchange rate');
+      
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          rate: defaultExchangeRate(fromCurrency, toCurrency),
+          source: 'Fallback',
+          error: 'Invalid response from Yahoo Finance API',
+          message: '為替レートを取得できませんでした',
+          lastUpdated: new Date().toISOString()
+        })
+      };
+    }
+  } catch (error) {
+    console.error('Error fetching exchange rate:', error);
+    
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({
+        success: false,
+        rate: defaultExchangeRate(fromCurrency, toCurrency),
+        source: 'Fallback',
+        error: 'Failed to fetch exchange rate',
+        message: error.message || 'Unknown error',
+        lastUpdated: new Date().toISOString()
+      })
+    };
+  }
+}
+
+/**
+ * ティッカーシンボルに基づいたデフォルト価格を返す
+ * @param {string} symbol - ティッカーシンボル
+ * @returns {number} - デフォルト価格
+ */
+function defaultPrice(symbol) {
+  // 日本株の場合は2500円をデフォルト価格とする
+  if (symbol.includes('.T')) {
+    return 2500;
+  }
+  
+  // 特定のETFに対するカスタムデフォルト価格
+  const etfPrices = {
+    'VXUS': 60.0,
+    'IBIT': 40.0,
+    'LQD': 110.0,
+    'GLD': 200.0,
+    'SPY': 500.0,
+    'VOO': 450.0,
+    'VTI': 250.0,
+    'QQQ': 400.0
+  };
+  
+  if (etfPrices[symbol]) {
+    return etfPrices[symbol];
+  }
+  
+  // その他の米国株は150ドルをデフォルト価格とする
+  return 150;
+}
+
+/**
+ * 通貨ペアに基づいたデフォルト為替レートを返す
+ * @param {string} fromCurrency - 変換元通貨
+ * @param {string} toCurrency - 変換先通貨
+ * @returns {number} - デフォルト為替レート
+ */
+function defaultExchangeRate(fromCurrency, toCurrency) {
+  // よく使われる通貨ペアのデフォルト値
+  const defaultRates = {
+    'USDJPY': 150.0,
+    'JPYUSD': 1/150.0,
+    'EURJPY': 160.0,
+    'EURUSD': 1.1
+  };
+  
+  const pair = `${fromCurrency}${toCurrency}`;
+  
+  if (defaultRates[pair]) {
+    return defaultRates[pair];
+  }
+  
+  // その他の通貨ペアは1をデフォルト値とする
+  return 1.0;
+}
