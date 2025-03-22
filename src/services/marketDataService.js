@@ -61,6 +61,88 @@ const DEFAULT_EXCHANGE_RATES = {
 };
 
 /**
+ * 日本の銘柄かどうかを判定する
+ * @param {string} ticker - ティッカーシンボル
+ * @param {string} name - 銘柄名
+ * @returns {boolean} - 日本の銘柄ならtrue
+ */
+function isJapanese(ticker) {
+  if (!ticker) return false;
+  ticker = ticker.toUpperCase();
+  // .Tで終わるか、4桁の数字で構成されている場合は日本株と判定
+  return ticker.includes('.T') || /^\d{4}$/.test(ticker);
+}
+
+/**
+ * REITかどうかを判定する
+ * @param {string} name - 銘柄名
+ * @returns {boolean} - REITならtrue
+ */
+function isREIT(name) {
+  if (!name) return false;
+  const lowerName = name.toLowerCase();
+  return lowerName.includes('reit') || 
+         lowerName.includes('リート') || 
+         lowerName.includes('不動産投資') ||
+         lowerName.includes('不動産信託');
+}
+
+/**
+ * 暗号資産関連銘柄かどうかを判定する
+ * @param {string} name - 銘柄名
+ * @param {string} ticker - ティッカーシンボル
+ * @returns {boolean} - 暗号資産関連ならtrue
+ */
+function isCrypto(name, ticker) {
+  if (!name && !ticker) return false;
+  
+  // 特定の暗号資産関連ティッカー
+  const cryptoTickers = ['IBIT', 'GBTC', 'ETHE', 'BITO', 'COIN', 'MSTR'];
+  
+  if (ticker && cryptoTickers.includes(ticker.toUpperCase())) {
+    return true;
+  }
+  
+  if (!name) return false;
+  
+  const lowerName = name.toLowerCase();
+  return lowerName.includes('bitcoin') || 
+         lowerName.includes('ビットコイン') || 
+         lowerName.includes('暗号資産') || 
+         lowerName.includes('仮想通貨') ||
+         lowerName.includes('crypto') ||
+         lowerName.includes('ethereum') ||
+         lowerName.includes('イーサリアム');
+}
+
+/**
+ * 債券関連銘柄かどうかを判定する
+ * @param {string} name - 銘柄名
+ * @param {string} ticker - ティッカーシンボル
+ * @returns {boolean} - 債券関連ならtrue
+ */
+function isBond(name, ticker) {
+  if (!name && !ticker) return false;
+  
+  // 特定の債券関連ティッカー
+  const bondTickers = ['LQD', 'BND', 'AGG', 'TLT', 'IEF', 'GOVT'];
+  
+  if (ticker && bondTickers.includes(ticker.toUpperCase())) {
+    return true;
+  }
+  
+  if (!name) return false;
+  
+  const lowerName = name.toLowerCase();
+  return lowerName.includes('bond') || 
+         lowerName.includes('債券') || 
+         lowerName.includes('ボンド') ||
+         lowerName.includes('国債') ||
+         lowerName.includes('社債') ||
+         lowerName.includes('fixed income');
+}
+
+/**
  * ティッカーシンボルをAlpha Vantage API用にフォーマットする
  * @param {string} ticker - 元のティッカーシンボル
  * @returns {string} - フォーマットされたティッカーシンボル
@@ -146,7 +228,7 @@ function determineFundType(ticker, name) {
   if (isETFFromTickerSpecificList(ticker)) {
     // 特定のETFかどうかをチェック
     if (isREIT(name)) {
-      return isJapanese ? FUND_TYPES.REIT_JP : FUND_TYPES.REIT_US;
+      return isJapanese(ticker) ? FUND_TYPES.REIT_JP : FUND_TYPES.REIT_US;
     } else if (isCrypto(name, ticker)) {
       return FUND_TYPES.CRYPTO;
     } else if (isBond(name, ticker)) {
@@ -550,10 +632,10 @@ function generateFallbackTickerData(ticker) {
   const isUSETF = isInUSETFList(ticker);
   
   // 市場とティッカーから推測されるデフォルト値を使用
-  const isJapanese = ticker.includes('.T') || /^\d{4,}$/.test(ticker);
+  const isJapaneseStock = isJapanese(ticker);
   
   // 米国ETFの場合は特別な価格を設定
-  let defaultPrice = isJapanese ? 2500 : 150;
+  let defaultPrice = isJapaneseStock ? 2500 : 150;
   
   // 特定のETFに対するカスタムデフォルト価格
   const etfPrices = {
@@ -597,9 +679,9 @@ function generateFallbackTickerData(ticker) {
       id: ticker,
       name: ticker,
       ticker: ticker,
-      exchangeMarket: isJapanese ? 'Japan' : 'US',
+      exchangeMarket: isJapaneseStock ? 'Japan' : 'US',
       price: defaultPrice,
-      currency: isJapanese ? 'JPY' : 'USD',
+      currency: isJapaneseStock ? 'JPY' : 'USD',
       holdings: 0,
       annualFee: annualFee,
       fundType: fundType,
