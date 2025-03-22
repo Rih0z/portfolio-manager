@@ -43,12 +43,16 @@ const YFINANCE_URL = isLocalhost
 // 環境変数または固定値からAPIキーを取得
 const ALPHA_VANTAGE_KEY = process.env.REACT_APP_ALPHA_VANTAGE_API_KEY || 'GC4EBI5YHFKOJEXY';
 
+// yfinance APIの利用可能フラグ（一時的に無効化する場合はfalse）
+const ENABLE_YFINANCE_API = true; // 必要に応じてfalseに変更可能
+
 // 設定情報をログ出力（開発時の確認用）
 console.log(`API Configuration:
 - Environment: ${isLocalhost ? 'Local development' : 'Production'}
 - Base URL: ${BASE_URL || '(using proxy)'}
 - Alpha Vantage API (Primary): ${ALPHA_VANTAGE_URL}
 - Python yfinance API (Fallback): ${YFINANCE_URL}
+- Python yfinance API Enabled: ${ENABLE_YFINANCE_API}
 - Alpha Vantage Key: ${ALPHA_VANTAGE_KEY.substring(0, 4)}...
 `);
 
@@ -297,6 +301,12 @@ function determineHasDividend(ticker) {
  * @returns {Promise<Object>} - Python yfinanceからのデータまたはnull
  */
 async function fetchFromPythonYfinance(ticker) {
+  // yfinance APIが無効化されている場合は直接nullを返す
+  if (!ENABLE_YFINANCE_API) {
+    console.log(`Python yfinance API is disabled. Skipping fetch for ${ticker}`);
+    return null;
+  }
+  
   try {
     // yfinance用にティッカーをフォーマット
     const formattedTicker = formatTickerForYfinance(ticker);
@@ -307,8 +317,18 @@ async function fetchFromPythonYfinance(ticker) {
       params: { 
         symbols: formattedTicker 
       },
-      timeout: 30000 // 30秒タイムアウト
+      timeout: 30000, // 30秒タイムアウト
+      validateStatus: function (status) {
+        // 全てのステータスコードを許可して、エラー時にPromiseをリジェクトしないようにする
+        return true;
+      }
     });
+    
+    // ステータスコードをチェック
+    if (response.status !== 200) {
+      console.log(`Python yfinance returned status code ${response.status} for ${formattedTicker}`);
+      return null;
+    }
     
     // レスポンスデータをログ（デバッグ用）
     console.log(`Python yfinance response for ${formattedTicker}:`, response.data);
@@ -445,21 +465,25 @@ export async function fetchTickerData(ticker) {
     if (response.data && response.data.Note && response.data.Note.includes('API call frequency')) {
       console.warn(`Alpha Vantage API rate limit reached for ${formattedTicker}, trying Python yfinance`);
       
-      // Python yfinanceをフォールバックとして試行
-      usedYfinance = true;
-      const yfinanceResult = await fetchFromPythonYfinance(ticker);
-      if (yfinanceResult && yfinanceResult.success) {
-        yfinanceSuccess = true;
-        return yfinanceResult;
+      // Python yfinanceをフォールバックとして試行 - APIが有効化されている場合のみ
+      if (ENABLE_YFINANCE_API) {
+        usedYfinance = true;
+        const yfinanceResult = await fetchFromPythonYfinance(ticker);
+        if (yfinanceResult && yfinanceResult.success) {
+          yfinanceSuccess = true;
+          return yfinanceResult;
+        }
+      } else {
+        console.log('Python yfinance API is disabled. Using fallback data directly.');
       }
       
       // Python yfinanceも失敗した場合はフォールバック値を使用
       return {
         success: false,
-        message: 'Alpha Vantage APIのリクエスト制限に達し、Python yfinanceからも取得できませんでした。フォールバック値を使用します。',
+        message: 'Alpha Vantage APIのリクエスト制限に達し、フォールバック値を使用します。',
         error: true,
         errorType: 'RATE_LIMIT',
-        yfinanceTried: true,
+        yfinanceTried: usedYfinance,
         yfinanceSuccess: false,
         data: generateFallbackTickerData(ticker).data
       };
@@ -550,21 +574,25 @@ export async function fetchTickerData(ticker) {
       console.log(`Attempting fallback to Python yfinance for ${ticker}`);
     }
     
-    // Alpha Vantageからデータを取得できなかった場合、Python yfinanceを試行
-    console.log(`No valid data found for ${formattedTicker} from Alpha Vantage, trying Python yfinance`);
-    usedYfinance = true;
-    const yfinanceResult = await fetchFromPythonYfinance(ticker);
-    if (yfinanceResult && yfinanceResult.success) {
-      yfinanceSuccess = true;
-      return yfinanceResult;
+    // Alpha Vantageからデータを取得できなかった場合、Python yfinanceを試行 - APIが有効化されている場合のみ
+    if (ENABLE_YFINANCE_API) {
+      console.log(`No valid data found for ${formattedTicker} from Alpha Vantage, trying Python yfinance`);
+      usedYfinance = true;
+      const yfinanceResult = await fetchFromPythonYfinance(ticker);
+      if (yfinanceResult && yfinanceResult.success) {
+        yfinanceSuccess = true;
+        return yfinanceResult;
+      }
+    } else {
+      console.log('Python yfinance API is disabled. Using fallback data directly.');
     }
     
     // Python yfinanceも失敗した場合、フォールバック値を使用
-    console.log(`Python yfinance also failed for ${ticker}, using fallback data`);
+    console.log(`Using fallback data for ${ticker}`);
     const fallbackData = generateFallbackTickerData(ticker);
     return {
       ...fallbackData,
-      yfinanceTried: true,
+      yfinanceTried: usedYfinance,
       yfinanceSuccess: false
     };
     
@@ -573,37 +601,41 @@ export async function fetchTickerData(ticker) {
     
     // エラーの種類を特定して適切なメッセージを生成
     let errorType = 'UNKNOWN';
-    let errorMessage = 'データの取得に失敗しました。Python yfinanceを試行します。';
+    let errorMessage = 'データの取得に失敗しました。フォールバック値を使用します。';
     
     if (error.response) {
       // サーバーからのレスポンスがある場合
       if (error.response.status === 429) {
         errorType = 'RATE_LIMIT';
-        errorMessage = 'APIリクエスト制限に達しました。Python yfinanceを試行します。';
+        errorMessage = 'APIリクエスト制限に達しました。フォールバック値を使用します。';
       } else {
         errorType = 'API_ERROR';
-        errorMessage = `API エラー (${error.response.status}): ${error.response.data?.message || error.message}. Python yfinanceを試行します。`;
+        errorMessage = `API エラー (${error.response.status}): ${error.response.data?.message || error.message}. フォールバック値を使用します。`;
       }
     } else if (error.code === 'ECONNABORTED') {
       errorType = 'TIMEOUT';
-      errorMessage = 'リクエストのタイムアウトが発生しました。Python yfinanceを試行します。';
+      errorMessage = 'リクエストのタイムアウトが発生しました。フォールバック値を使用します。';
     } else if (error.code === 'ERR_NETWORK') {
       errorType = 'NETWORK';
-      errorMessage = 'ネットワークエラーが発生しました。Python yfinanceを試行します。';
+      errorMessage = 'ネットワークエラーが発生しました。フォールバック値を使用します。';
     }
     
     console.log(errorMessage);
     
-    // Alpha Vantageが失敗した場合、Python yfinanceを試行
-    try {
-      usedYfinance = true;
-      const yfinanceResult = await fetchFromPythonYfinance(ticker);
-      if (yfinanceResult && yfinanceResult.success) {
-        yfinanceSuccess = true;
-        return yfinanceResult;
+    // Alpha Vantageが失敗した場合、Python yfinanceを試行 - APIが有効化されている場合のみ
+    if (ENABLE_YFINANCE_API) {
+      try {
+        usedYfinance = true;
+        const yfinanceResult = await fetchFromPythonYfinance(ticker);
+        if (yfinanceResult && yfinanceResult.success) {
+          yfinanceSuccess = true;
+          return yfinanceResult;
+        }
+      } catch (yfinanceError) {
+        console.error(`Python yfinance also failed for ${ticker}:`, yfinanceError.message);
       }
-    } catch (yfinanceError) {
-      console.error(`Python yfinance also failed for ${ticker}:`, yfinanceError.message);
+    } else {
+      console.log('Python yfinance API is disabled. Using fallback data directly.');
     }
     
     // フォールバックデータを生成して返す
@@ -612,9 +644,9 @@ export async function fetchTickerData(ticker) {
     return {
       ...fallbackResult,
       errorType: errorType,
-      yfinanceTried: true,
+      yfinanceTried: usedYfinance,
       yfinanceSuccess: false,
-      message: `Alpha VantageとPython yfinanceからのデータ取得に失敗しました: ${error.message}. フォールバック値を使用します。`
+      message: `データ取得に失敗しました: ${error.message}. フォールバック値を使用します。`
     };
   }
 }
@@ -792,7 +824,11 @@ export async function fetchMultipleTickerData(tickers) {
   return resultInfo;
 }
 
-// 以下の関数はそのまま利用
+/**
+ * 配当データを取得する
+ * @param {string} ticker - ティッカーシンボル
+ * @returns {Promise<Object>} - 配当データとステータス
+ */
 export const fetchDividendData = async function(ticker) {
   // 既存のコードをそのまま維持
   try {
@@ -841,7 +877,12 @@ export const fetchDividendData = async function(ticker) {
   }
 };
 
-// 以下の関数もそのまま利用
+/**
+ * ファンド情報を取得する
+ * @param {string} ticker - ティッカーシンボル
+ * @param {string} name - 銘柄名（省略可）
+ * @returns {Promise<Object>} - ファンド情報とステータス
+ */
 export const fetchFundInfo = async function(ticker, name = '') {
   // 既存のコードをそのまま維持
   try {
@@ -899,7 +940,12 @@ export const fetchFundInfo = async function(ticker, name = '') {
   }
 };
 
-// 為替レート取得関数を更新
+/**
+ * 為替レートを取得する
+ * @param {string} fromCurrency - 変換元通貨
+ * @param {string} toCurrency - 変換先通貨
+ * @returns {Promise<Object>} - 為替レートデータとステータス
+ */
 export const fetchExchangeRate = async function(fromCurrency, toCurrency) {
   try {
     // 同一通貨の場合は1を返す
@@ -945,29 +991,42 @@ export const fetchExchangeRate = async function(fromCurrency, toCurrency) {
     
     console.log(`No valid exchange rate data for ${fromCurrency}/${toCurrency} from Alpha Vantage, trying Python yfinance`);
     
-    // Python yfinanceを使った為替レート取得を試行
-    try {
-      const yfinanceResponse = await axios.get(YFINANCE_URL, {
-        params: {
-          exchange_rate: `${fromCurrency}${toCurrency}`
-        },
-        timeout: 30000 // 30秒タイムアウト
-      });
-      
-      if (yfinanceResponse.data && yfinanceResponse.data.success && yfinanceResponse.data.rate) {
-        const rate = yfinanceResponse.data.rate;
-        console.log(`Successfully fetched exchange rate for ${fromCurrency}/${toCurrency} from Python yfinance: ${rate}`);
+    // Python yfinanceを使った為替レート取得を試行 - APIが有効化されている場合のみ
+    if (ENABLE_YFINANCE_API) {
+      try {
+        const yfinanceResponse = await axios.get(YFINANCE_URL, {
+          params: {
+            exchange_rate: `${fromCurrency}${toCurrency}`
+          },
+          timeout: 30000, // 30秒タイムアウト
+          validateStatus: function (status) {
+            // 全てのステータスコードを許可して、エラー時にPromiseをリジェクトしないようにする
+            return true;
+          }
+        });
         
-        return {
-          success: true,
-          rate: rate,
-          source: DATA_SOURCES.PYTHON_YFINANCE,
-          message: 'Python yfinanceから正常に取得しました',
-          lastUpdated: new Date().toISOString()
-        };
+        // ステータスコードをチェック
+        if (yfinanceResponse.status === 200) {
+          if (yfinanceResponse.data && yfinanceResponse.data.success && yfinanceResponse.data.rate) {
+            const rate = yfinanceResponse.data.rate;
+            console.log(`Successfully fetched exchange rate for ${fromCurrency}/${toCurrency} from Python yfinance: ${rate}`);
+            
+            return {
+              success: true,
+              rate: rate,
+              source: DATA_SOURCES.PYTHON_YFINANCE,
+              message: 'Python yfinanceから正常に取得しました',
+              lastUpdated: new Date().toISOString()
+            };
+          }
+        } else {
+          console.log(`Python yfinance returned status code ${yfinanceResponse.status} for exchange rate ${fromCurrency}${toCurrency}`);
+        }
+      } catch (yfinanceError) {
+        console.error(`Python yfinance exchange rate error:`, yfinanceError);
       }
-    } catch (yfinanceError) {
-      console.error(`Python yfinance exchange rate error:`, yfinanceError);
+    } else {
+      console.log('Python yfinance API is disabled. Using fallback exchange rate directly.');
     }
     
     // すべての取得方法が失敗した場合はデフォルト値を使用
@@ -975,31 +1034,44 @@ export const fetchExchangeRate = async function(fromCurrency, toCurrency) {
     
   } catch (error) {
     console.error('Exchange rate fetch error:', error);
-    console.log(`Error fetching exchange rate for ${fromCurrency}/${toCurrency}, trying Python yfinance`);
+    console.log(`Error fetching exchange rate for ${fromCurrency}/${toCurrency}, using fallback value`);
     
-    // Python yfinanceを使った為替レート取得を試行
-    try {
-      const yfinanceResponse = await axios.get(YFINANCE_URL, {
-        params: {
-          exchange_rate: `${fromCurrency}${toCurrency}`
-        },
-        timeout: 30000 // 30秒タイムアウト
-      });
-      
-      if (yfinanceResponse.data && yfinanceResponse.data.success && yfinanceResponse.data.rate) {
-        const rate = yfinanceResponse.data.rate;
-        console.log(`Successfully fetched exchange rate for ${fromCurrency}/${toCurrency} from Python yfinance: ${rate}`);
+    // Python yfinanceを使った為替レート取得を試行 - APIが有効化されている場合のみ
+    if (ENABLE_YFINANCE_API) {
+      try {
+        const yfinanceResponse = await axios.get(YFINANCE_URL, {
+          params: {
+            exchange_rate: `${fromCurrency}${toCurrency}`
+          },
+          timeout: 30000, // 30秒タイムアウト
+          validateStatus: function (status) {
+            // 全てのステータスコードを許可して、エラー時にPromiseをリジェクトしないようにする
+            return true;
+          }
+        });
         
-        return {
-          success: true,
-          rate: rate,
-          source: DATA_SOURCES.PYTHON_YFINANCE,
-          message: 'Python yfinanceから正常に取得しました',
-          lastUpdated: new Date().toISOString()
-        };
+        // ステータスコードをチェック
+        if (yfinanceResponse.status === 200) {
+          if (yfinanceResponse.data && yfinanceResponse.data.success && yfinanceResponse.data.rate) {
+            const rate = yfinanceResponse.data.rate;
+            console.log(`Successfully fetched exchange rate for ${fromCurrency}/${toCurrency} from Python yfinance: ${rate}`);
+            
+            return {
+              success: true,
+              rate: rate,
+              source: DATA_SOURCES.PYTHON_YFINANCE,
+              message: 'Python yfinanceから正常に取得しました',
+              lastUpdated: new Date().toISOString()
+            };
+          }
+        } else {
+          console.log(`Python yfinance returned status code ${yfinanceResponse.status} for exchange rate ${fromCurrency}${toCurrency}`);
+        }
+      } catch (yfinanceError) {
+        console.error(`Python yfinance exchange rate error:`, yfinanceError);
       }
-    } catch (yfinanceError) {
-      console.error(`Python yfinance exchange rate error:`, yfinanceError);
+    } else {
+      console.log('Python yfinance API is disabled. Using fallback exchange rate directly.');
     }
     
     // フォールバック値を返す
@@ -1007,7 +1079,12 @@ export const fetchExchangeRate = async function(fromCurrency, toCurrency) {
   }
 };
 
-// フォールバック為替レート生成関数はそのまま利用（データソース定数を更新）
+/**
+ * フォールバック為替レートを生成する
+ * @param {string} fromCurrency - 変換元通貨
+ * @param {string} toCurrency - 変換先通貨
+ * @returns {Object} - フォールバック為替レートデータとステータス
+ */
 function generateFallbackExchangeRate(fromCurrency, toCurrency) {
   const pair = `${fromCurrency}/${toCurrency}`;
   let rate;
@@ -1036,7 +1113,12 @@ function generateFallbackExchangeRate(fromCurrency, toCurrency) {
   };
 }
 
-// データ更新状態チェック関数はそのまま利用
+/**
+ * データの鮮度を確認する
+ * @param {Array<Object>} assets - 資産データの配列
+ * @param {number} staleThresholdHours - 古いとみなす時間（時間単位）
+ * @returns {Object} - データの鮮度情報
+ */
 export const checkDataFreshness = function(assets, staleThresholdHours = 24) {
   if (!assets || !assets.length) {
     return {
