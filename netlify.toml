@@ -25,10 +25,10 @@
   status = 200
   force = true
 
-# Yahoo Financeプロキシ向けのリダイレクト（新規追加）
+# Python yfinanceプロキシ向けのリダイレクト（更新）
 [[redirects]]
-  from = "/api/yahoo-finance-proxy"
-  to = "/.netlify/functions/yahoo-finance-proxy"
+  from = "/api/yfinance-proxy"
+  to = "/.netlify/functions/yfinance-proxy"
   status = 200
   force = true
 
@@ -43,3 +43,7 @@
   directory = "functions"
   node_bundler = "esbuild"
   included_files = ["functions/**"]
+
+# Python関数の設定（新規追加）
+[functions."yfinance-proxy"]
+  runtime = "python3.9"
