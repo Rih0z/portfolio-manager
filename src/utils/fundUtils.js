@@ -2,6 +2,20 @@
  * ファンドの種類と手数料推定のためのユーティリティ関数
  */
 
+// データソース定数（新規追加）
+export const DATA_SOURCES = {
+  ALPHA_VANTAGE: 'Alpha Vantage',
+  PYTHON_YFINANCE: 'Python yfinance',
+  FALLBACK: 'Fallback'
+};
+
+// データソース優先順位（新規追加）
+export const SOURCE_PRIORITY = [
+  DATA_SOURCES.ALPHA_VANTAGE, // プライマリソース
+  DATA_SOURCES.PYTHON_YFINANCE, // セカンダリソース
+  DATA_SOURCES.FALLBACK // 最終フォールバック
+];
+
 // ファンドタイプのマッピング
 export const FUND_TYPES = {
   INDEX_JP: 'インデックス（日本）',
