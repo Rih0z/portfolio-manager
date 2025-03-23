@@ -1,0 +1,811 @@
+# 市場データ取得API仕様書（更新版）
+
+**最終更新日時:** 2025/03/25 17:15
+
+## 1. 概要
+
+この仕様書は、ポートフォリオマネージャーアプリケーションで使用する市場データ取得APIについて定義します。株価データと為替レートデータの取得方法、API連携、エラーハンドリングについて説明します。
+
+## 2. データソース構成
+
+### 2.1 株価データ取得API
+- **米国株**: Alpaca API（主要ソース）
+- **日本株**: J-Quants API（主要ソース）
+- **共通バックアップ**: Yahoo Finance API（フォールバック用）
+
+### 2.2 為替レートデータ取得API
+- **主要ソース**: exchangerate.host
+- **バックアップ**: 環境変数のデフォルト値
+
+## 3. Alpaca API（米国株）
+
+### 3.1 概要
+Alpaca Market Data APIを使用して米国株の株価データを取得します。ティックデータから日足データまで、幅広いデータを取得できます。
+
+### 3.2 エンドポイント
+- **ベースURL**: `https://data.alpaca.markets/v2`
+- **最新株価取得**: `/stocks/{symbol}/quotes/latest`
+- **日足データ取得**: `/stocks/{symbol}/bars?timeframe=1D&start={start}&end={end}`
+
+### 3.3 認証
+- **API Key**: `APCA-API-KEY-ID` ヘッダー
+- **API Secret**: `APCA-API-SECRET-KEY` ヘッダー
+- 環境変数: `ALPACA_API_KEY`, `ALPACA_API_SECRET`
+
+### 3.4 リクエスト例
+```javascript
+// 最新株価の取得
+const response = await axios.get(`https://data.alpaca.markets/v2/stocks/${symbol}/quotes/latest`, {
+  headers: {
+    'APCA-API-KEY-ID': process.env.ALPACA_API_KEY,
+    'APCA-API-SECRET-KEY': process.env.ALPACA_API_SECRET
+  },
+  timeout: 10000
+});
+
+// 日足データの取得
+const response = await axios.get(`https://data.alpaca.markets/v2/stocks/${symbol}/bars`, {
+  params: {
+    timeframe: '1D',
+    start: '2025-03-18T00:00:00Z',
+    end: '2025-03-25T00:00:00Z'
+  },
+  headers: {
+    'APCA-API-KEY-ID': process.env.ALPACA_API_KEY,
+    'APCA-API-SECRET-KEY': process.env.ALPACA_API_SECRET
+  },
+  timeout: 10000
+});
+```
+
+### 3.5 レスポンス例
+```json
+// 最新株価
+{
+  "symbol": "AAPL",
+  "quote": {
+    "ap": 174.79,
+    "as": 100,
+    "bp": 174.77,
+    "bs": 200,
+    "t": "2025-03-25T14:34:12.456789Z"
+  }
+}
+
+// 日足データ
+{
+  "bars": [
+    {
+      "t": "2025-03-18T00:00:00Z",
+      "o": 170.22,
+      "h": 174.60,
+      "l": 169.95,
+      "c": 172.25,
+      "v": 76234500
+    },
+    // ...
+  ],
+  "symbol": "AAPL",
+  "next_page_token": null
+}
+```
+
+### 3.6 制限事項
+- **無料プラン**: 米国株市場データのみ、リアルタイムデータなし、制限あり
+- **有料プラン**: 拡張データアクセス、高頻度リクエスト許可
+- **対応市場**: 米国市場のみ（日本株は対応していない）
+
+## 4. J-Quants API（日本株）
+
+### 4.1 概要
+J-Quants APIは日本取引所グループ(JPX)が提供する公式APIで、東証上場の日本株の株価データを取得できます。IDトークンベースの認証が必要です。
+
+### 4.2 エンドポイント
+- **ベースURL**: `https://api.jpx-jquants.com/v1`
+- **認証**: `/token/auth_user`
+- **IDトークン更新**: `/token/auth_refresh`
+- **日足株価データ**: `/prices/daily_quotes`
+- **銘柄情報**: `/listed/info`
+
+### 4.3 認証フロー
+1. **ユーザー認証**:
+   ```javascript
+   const authResponse = await axios.post(`${BASE_URL}/token/auth_user`, {
+     mailaddress: process.env.JQUANTS_EMAIL,
+     password: process.env.JQUANTS_PASSWORD
+   });
+   // refreshTokenを保存
+   const refreshToken = authResponse.data.refreshToken;
+   ```
+
+2. **IDトークン取得**:
+   ```javascript
+   const tokenResponse = await axios.post(`${BASE_URL}/token/auth_refresh`, {
+     refreshtoken: refreshToken
+   });
+   // idTokenを保存して使用
+   const idToken = tokenResponse.data.idToken;
+   ```
+
+3. **API呼び出し**:
+   ```javascript
+   const response = await axios.get(`${BASE_URL}/prices/daily_quotes`, {
+     headers: {
+       Authorization: `Bearer ${idToken}`
+     },
+     params: {
+       code: '7203' // トヨタ自動車の証券コード
+     }
+   });
+   ```
+
+### 4.4 リクエスト例
+```javascript
+// 日本株の株価取得
+async function getJapaneseStockPrice(code) {
+  // IDトークンを取得（有効期限チェックと更新処理を含む）
+  const idToken = await getValidIdToken();
+  
+  const response = await axios.get(`https://api.jpx-jquants.com/v1/prices/daily_quotes`, {
+    headers: {
+      Authorization: `Bearer ${idToken}`
+    },
+    params: {
+      code: code, // 証券コード
+      date: '2025-03-25' // YYYY-MM-DD形式、省略時は最新
+    },
+    timeout: 10000
+  });
+  
+  return response.data;
+}
+```
+
+### 4.5 レスポンス例
+```json
+{
+  "daily_quotes": [
+    {
+      "Code": "7203",
+      "Date": "2025-03-25",
+      "Open": 2520,
+      "High": 2548,
+      "Low": 2510,
+      "Close": 2540,
+      "Volume": 8432600,
+      "TurnoverValue": 21352722000,
+      "AdjustmentFactor": 1,
+      "AdjustmentOpen": 2520,
+      "AdjustmentHigh": 2548,
+      "AdjustmentLow": 2510,
+      "AdjustmentClose": 2540,
+      "AdjustmentVolume": 8432600
+    }
+  ]
+}
+```
+
+### 4.6 制限事項
+- **アカウント登録**: 利用にはJ-Quantsへの登録が必要
+- **トークン有効期限**: IDトークンは24時間有効、リフレッシュトークンは30日有効
+- **リクエスト制限**: 1日あたりの制限あり（具体的な数値は公式サイトを参照）
+- **データ鮮度**: データは日次更新（リアルタイムデータではない）
+
+## 5. Yahoo Finance API（フォールバック用）
+
+### 5.1 概要
+Yahoo Finance非公式APIは、Alpaca APIやJ-Quants APIが利用できない場合のフォールバックとして使用します。米国株と日本株の両方をカバーしています。
+
+### 5.2 エンドポイント
+- **ベースURL**: `https://query1.finance.yahoo.com/v7/finance/quote`
+- **パラメータ**: `symbols=AAPL,MSFT,7203.T` (カンマ区切りで複数銘柄指定可能)
+
+### 5.3 認証
+- 認証不要（パブリックAPI）
+- ただし、大量リクエストはブロックされる可能性あり
+
+### 5.4 リクエスト例
+```javascript
+// 複数銘柄の例（米国株と日本株を混在可能）
+const response = await axios.get('https://query1.finance.yahoo.com/v7/finance/quote', {
+  params: { symbols: 'AAPL,MSFT,7203.T' },
+  headers: {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+  },
+  timeout: 10000
+});
+```
+
+### 5.5 レスポンス例
+```json
+{
+  "quoteResponse": {
+    "result": [
+      {
+        "symbol": "AAPL",
+        "shortName": "Apple Inc.",
+        "regularMarketPrice": 174.79,
+        "currency": "USD"
+      },
+      {
+        "symbol": "7203.T",
+        "shortName": "トヨタ自動車(株)",
+        "regularMarketPrice": 2540,
+        "currency": "JPY"
+      }
+    ],
+    "error": null
+  }
+}
+```
+
+### 5.6 日本株のティッカー形式
+- 証券コードの後に `.T` を付加（例: `7203.T` for トヨタ自動車）
+- 自動変換関数を実装
+```javascript
+function formatJapaneseTickerForYahoo(code) {
+  // 4桁の数字のみの場合は.Tを付加
+  if (/^\d{4}$/.test(code)) {
+    return `${code}.T`;
+  }
+  return code;
+}
+```
+
+## 6. exchangerate.host（為替レート取得）
+
+### 6.1 概要
+exchangerate.hostは無料で為替レートデータを提供するAPIです。USD/JPYなどの通貨ペアのレートを取得できます。
+
+### 6.2 エンドポイント
+- **ベースURL**: `https://api.exchangerate.host/latest`
+- **パラメータ**: 
+  - `base=USD` (基準通貨)
+  - `symbols=JPY` (対象通貨)
+
+### 6.3 認証
+- 認証不要（パブリックAPI）
+
+### 6.4 リクエスト例
+```javascript
+const response = await axios.get('https://api.exchangerate.host/latest', {
+  params: {
+    base: 'USD',
+    symbols: 'JPY'
+  },
+  timeout: 5000
+});
+```
+
+### 6.5 レスポンス例
+```json
+{
+  "success": true,
+  "timestamp": 1618295587,
+  "base": "USD",
+  "date": "2021-04-12",
+  "rates": {
+    "JPY": 109.64
+  }
+}
+```
+
+### 6.6 フォールバック処理
+- API障害時は環境変数 `DEFAULT_EXCHANGE_RATE` の値（デフォルト: 150.0）を使用
+
+## 7. API連携実装（サーバーレス関数）
+
+### 7.1 Alpaca API プロキシ
+
+```javascript
+// functions/alpaca-api-proxy.js
+const axios = require('axios');
+
+exports.handler = async function(event, context) {
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Content-Type': 'application/json'
+  };
+  
+  // OPTIONSリクエストの処理
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 204,
+      headers,
+      body: ''
+    };
+  }
+
+  // シンボルパラメータの取得
+  const { symbol } = event.queryStringParameters || {};
+  
+  if (!symbol) {
+    return {
+      statusCode: 400,
+      headers,
+      body: JSON.stringify({
+        success: false,
+        message: 'シンボルパラメータが必要です'
+      })
+    };
+  }
+
+  try {
+    // Alpaca APIを呼び出す
+    const response = await axios.get(`https://data.alpaca.markets/v2/stocks/${symbol}/quotes/latest`, {
+      headers: {
+        'APCA-API-KEY-ID': process.env.ALPACA_API_KEY,
+        'APCA-API-SECRET-KEY': process.env.ALPACA_API_SECRET
+      },
+      timeout: 10000
+    });
+    
+    // レスポンスからデータを抽出
+    const quoteData = response.data;
+    
+    if (!quoteData || !quoteData.quote || !quoteData.quote.ap) {
+      return {
+        statusCode: 404,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          message: `${symbol}の株価データが見つかりません`
+        })
+      };
+    }
+    
+    // 結果を整形
+    const result = {
+      ticker: symbol,
+      price: quoteData.quote.ap, // 気配値（ask price）
+      name: symbol, // Alpaca APIは銘柄名を直接提供しないため
+      currency: 'USD',
+      lastUpdated: new Date().toISOString(),
+      source: 'Alpaca'
+    };
+    
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({
+        success: true,
+        data: result
+      })
+    };
+  } catch (error) {
+    console.error(`Alpaca API error for ${symbol}:`, error);
+    
+    return {
+      statusCode: error.response?.status || 500,
+      headers,
+      body: JSON.stringify({
+        success: false,
+        message: `Alpaca APIからの取得に失敗しました: ${error.message}`,
+        error: {
+          status: error.response?.status,
+          data: error.response?.data
+        }
+      })
+    };
+  }
+};
+```
+
+### 7.2 J-Quants API プロキシ
+
+```javascript
+// functions/jquants-api-proxy.js
+const axios = require('axios');
+
+// トークン情報を保持する変数
+let tokenInfo = {
+  refreshToken: null,
+  idToken: null,
+  idTokenExpiry: null // Unix timestamp
+};
+
+// 有効なIDトークンを取得する関数
+async function getValidIdToken() {
+  const now = Math.floor(Date.now() / 1000);
+  
+  // IDトークンが存在し、有効期限内なら再利用
+  if (tokenInfo.idToken && tokenInfo.idTokenExpiry && now < tokenInfo.idTokenExpiry) {
+    return tokenInfo.idToken;
+  }
+  
+  // リフレッシュトークンがなければ新規認証
+  if (!tokenInfo.refreshToken) {
+    const authResponse = await axios.post('https://api.jpx-jquants.com/v1/token/auth_user', {
+      mailaddress: process.env.JQUANTS_EMAIL,
+      password: process.env.JQUANTS_PASSWORD
+    });
+    
+    if (!authResponse.data.refreshToken) {
+      throw new Error('認証に失敗しました');
+    }
+    
+    tokenInfo.refreshToken = authResponse.data.refreshToken;
+  }
+  
+  // IDトークンの取得
+  try {
+    const tokenResponse = await axios.post('https://api.jpx-jquants.com/v1/token/auth_refresh', {
+      refreshtoken: tokenInfo.refreshToken
+    });
+    
+    if (!tokenResponse.data.idToken) {
+      throw new Error('IDトークンの取得に失敗しました');
+    }
+    
+    tokenInfo.idToken = tokenResponse.data.idToken;
+    // IDトークンの有効期限は24時間（86400秒）
+    tokenInfo.idTokenExpiry = now + 86400;
+    
+    return tokenInfo.idToken;
+  } catch (error) {
+    // リフレッシュトークンが無効な場合、再認証
+    console.error('IDトークン取得エラー:', error);
+    tokenInfo.refreshToken = null;
+    return getValidIdToken(); // 再帰呼び出し
+  }
+}
+
+exports.handler = async function(event, context) {
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Content-Type': 'application/json'
+  };
+  
+  // OPTIONSリクエストの処理
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 204,
+      headers,
+      body: ''
+    };
+  }
+
+  // 証券コードパラメータの取得
+  const { code, date } = event.queryStringParameters || {};
+  
+  if (!code) {
+    return {
+      statusCode: 400,
+      headers,
+      body: JSON.stringify({
+        success: false,
+        message: '証券コードパラメータが必要です'
+      })
+    };
+  }
+
+  try {
+    // IDトークンを取得
+    const idToken = await getValidIdToken();
+    
+    // J-Quants APIを呼び出す
+    const requestParams = { code };
+    if (date) {
+      requestParams.date = date;
+    }
+    
+    const response = await axios.get('https://api.jpx-jquants.com/v1/prices/daily_quotes', {
+      headers: {
+        Authorization: `Bearer ${idToken}`
+      },
+      params: requestParams,
+      timeout: 10000
+    });
+    
+    // データを確認
+    const quoteData = response.data;
+    
+    if (!quoteData.daily_quotes || quoteData.daily_quotes.length === 0) {
+      return {
+        statusCode: 404,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          message: `証券コード ${code} の株価データが見つかりません`
+        })
+      };
+    }
+    
+    // 最新の価格データを取得
+    const latestQuote = quoteData.daily_quotes[0];
+    
+    // 銘柄情報を取得（オプション）
+    let stockName = `${code}`;
+    try {
+      const infoResponse = await axios.get('https://api.jpx-jquants.com/v1/listed/info', {
+        headers: {
+          Authorization: `Bearer ${idToken}`
+        },
+        params: { code },
+        timeout: 5000
+      });
+      
+      if (infoResponse.data.info && infoResponse.data.info.length > 0) {
+        stockName = infoResponse.data.info[0].CompanyName || stockName;
+      }
+    } catch (infoError) {
+      console.warn(`銘柄情報取得エラー: ${infoError.message}`);
+    }
+    
+    // 結果を整形
+    const result = {
+      ticker: code,
+      price: latestQuote.Close,
+      name: stockName,
+      currency: 'JPY',
+      lastUpdated: latestQuote.Date,
+      source: 'J-Quants',
+      open: latestQuote.Open,
+      high: latestQuote.High,
+      low: latestQuote.Low,
+      volume: latestQuote.Volume
+    };
+    
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({
+        success: true,
+        data: result
+      })
+    };
+  } catch (error) {
+    console.error(`J-Quants API error for ${code}:`, error);
+    
+    return {
+      statusCode: error.response?.status || 500,
+      headers,
+      body: JSON.stringify({
+        success: false,
+        message: `J-Quants APIからの取得に失敗しました: ${error.message}`,
+        error: {
+          status: error.response?.status,
+          data: error.response?.data
+        }
+      })
+    };
+  }
+};
+```
+
+### 7.3 Yahoo Finance プロキシ（フォールバック用）
+
+```javascript
+// functions/yahoo-finance-proxy.js
+const axios = require('axios');
+
+exports.handler = async function(event, context) {
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Content-Type': 'application/json'
+  };
+
+  // OPTIONSリクエストの処理
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 204,
+      headers,
+      body: ''
+    };
+  }
+
+  // クエリパラメータからシンボルを取得
+  const { symbols } = event.queryStringParameters || {};
+  
+  if (!symbols) {
+    return {
+      statusCode: 400,
+      headers,
+      body: JSON.stringify({
+        success: false,
+        message: 'シンボルパラメータが必要です'
+      })
+    };
+  }
+
+  // 日本株の場合は.Tを追加
+  const formattedSymbols = symbols.split(',').map(symbol => {
+    if (/^\d{4}$/.test(symbol) && !symbol.includes('.T')) {
+      return `${symbol}.T`;
+    }
+    return symbol.trim();
+  });
+  
+  try {
+    // Yahoo Finance APIを呼び出す
+    const yahooUrl = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${formattedSymbols.join(',')}`;
+    const response = await axios.get(yahooUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
+    
+    // 結果を整形
+    const result = {};
+    response.data.quoteResponse.result.forEach(quote => {
+      const ticker = quote.symbol;
+      result[ticker] = {
+        ticker: ticker,
+        price: quote.regularMarketPrice,
+        name: quote.shortName || quote.longName || ticker,
+        currency: quote.currency,
+        lastUpdated: new Date().toISOString(),
+        source: 'Yahoo Finance'
+      };
+    });
+    
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({
+        success: true,
+        data: result
+      })
+    };
+  } catch (error) {
+    console.error(`Yahoo Finance API error for ${symbols}:`, error);
+    
+    return {
+      statusCode: error.response?.status || 500,
+      headers,
+      body: JSON.stringify({
+        success: false,
+        message: `Yahoo Finance APIからの取得に失敗しました: ${error.message}`,
+        error: {
+          status: error.response?.status,
+          data: error.response?.data
+        }
+      })
+    };
+  }
+};
+```
+
+### 7.4 exchangerate.host プロキシ
+
+```javascript
+// functions/exchangerate-proxy.js
+const axios = require('axios');
+
+exports.handler = async function(event, context) {
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Content-Type': 'application/json'
+  };
+
+  // デフォルトでUSD/JPYレートを取得
+  const base = event.queryStringParameters?.base || 'USD';
+  const symbols = event.queryStringParameters?.symbols || 'JPY';
+  
+  try {
+    // exchangerate.host APIを呼び出す
+    const response = await axios.get('https://api.exchangerate.host/latest', {
+      params: {
+        base: base,
+        symbols: symbols
+      },
+      timeout: 5000
+    });
+    
+    const data = response.data;
+    
+    if (!data || !data.rates || !data.rates[symbols]) {
+      return {
+        statusCode: 404,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          message: `為替レートが見つかりません`,
+          data: {
+            rate: parseFloat(process.env.DEFAULT_EXCHANGE_RATE) || 150.0,
+            source: 'Fallback',
+            timestamp: new Date().toISOString()
+          }
+        })
+      };
+    }
+    
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({
+        success: true,
+        data: {
+          rate: data.rates[symbols],
+          source: 'exchangerate.host',
+          base: data.base,
+          currency: symbols,
+          timestamp: data.date || new Date().toISOString()
+        }
+      })
+    };
+  } catch (error) {
+    console.error('Exchange rate API error:', error);
+    
+    // エラー時はフォールバック値を返す
+    return {
+      statusCode: 200, // エラーでもクライアントには200を返す
+      headers,
+      body: JSON.stringify({
+        success: true,
+        message: `為替レートの取得に失敗したため、デフォルト値を使用します: ${error.message}`,
+        data: {
+          rate: parseFloat(process.env.DEFAULT_EXCHANGE_RATE) || 150.0,
+          source: 'Fallback',
+          timestamp: new Date().toISOString()
+        }
+      })
+    };
+  }
+};
+```
+
+## 8. エラーハンドリングとフォールバック
+
+### 8.1 エラーコード別対応
+- **400 Bad Request**: パラメータ不正、「銘柄パラメータが必要です」として通知
+- **401/403 Unauthorized/Forbidden**: 認証エラー、「APIキーが無効です」として通知
+- **404 Not Found**: 銘柄不明、「銘柄が見つかりません」として通知
+- **429 Too Many Requests**: レート制限、「API使用制限に達しました」として通知
+- **500 Server Error**: サーバーエラー、「APIサーバーでエラーが発生しました」として通知
+- **Network Error**: 接続エラー、「ネットワーク接続に問題があります」として通知
+- **Timeout**: タイムアウト、「APIからの応答がタイムアウトしました」として通知
+
+### 8.2 フロントエンド通知
+- **成功通知**: 「市場データを更新しました: Alpaca: X件, J-Quants: Y件」（自動消去）
+- **警告通知**: 「Z銘柄のデータは取得できず、フォールバック値を使用しています」（自動消去）
+- **エラー通知**: 「データ取得中にエラーが発生しました: [詳細エラー]」（手動消去）
+
+### 8.3 フォールバック機構
+1. 米国株はAlpaca APIで取得を試行
+2. 日本株はJ-Quants APIで取得を試行
+3. いずれも失敗した場合、Yahoo Finance APIを使用
+4. それも失敗した場合、以前保存されたデータまたはデフォルト値を使用
+
+## 9. 環境変数
+
+```
+# Alpaca API（米国株取得用）
+ALPACA_API_KEY=あなたのAPIキー
+ALPACA_API_SECRET=あなたのAPIシークレット
+
+# J-Quants API（日本株取得用）
+JQUANTS_EMAIL=あなたの登録メールアドレス
+JQUANTS_PASSWORD=あなたのパスワード
+
+# デフォルト為替レート（API障害時のフォールバック用）
+DEFAULT_EXCHANGE_RATE=150.0
+```
+
+## 10. 注意事項
+
+1. **Alpaca APIについて**
+   - 無料プランではカバー範囲と機能に制限があります
+   - 主に米国株市場のデータに限定されています
+   - 商用利用には有料プランが必要な場合があります
+
+2. **J-Quants APIについて**
+   - 利用するにはアカウント登録が必要です（https://jpx-jquants.com/）
+   - IDトークンは24時間、リフレッシュトークンは30日で有効期限が切れます
+   - データは日次更新であり、リアルタイムではありません
+   - APIの利用制限や規約を確認してください
+
+3. **Yahoo Finance APIについて**
+   - 非公式APIであり、仕様変更の可能性があります
+   - 商用利用には別途ライセンスが必要な場合があります
+   - フォールバック用途でのみ使用し、スクレイピング的な大量アクセスは避けてください
+
+4. **exchangerate.hostについて**
+   - 無料APIですが、商用利用の場合は規約を確認してください
+   - 為替レートの更新頻度は日次レベルであり、リアルタイムではありません
