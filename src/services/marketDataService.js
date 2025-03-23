@@ -36,10 +36,10 @@ const YAHOO_FINANCE_URL = isLocalhost
   ? '/api/yahoo-finance-proxy' // ローカル環境では直接プロキシ経由
   : `${BASE_URL}/api/yahoo-finance-proxy`; // 本番環境
 
-// 為替レート取得APIエンドポイント
+// 為替レート取得APIエンドポイント（代替APIに変更）
 const EXCHANGERATE_API_URL = isLocalhost
-  ? '/api/exchangerate-proxy' // ローカル環境では直接プロキシ経由
-  : `${BASE_URL}/api/exchangerate-proxy`; // 本番環境
+  ? '/api/alternative-exchangerate-proxy' // 代替APIを使用
+  : `${BASE_URL}/api/alternative-exchangerate-proxy`; // 本番環境
 
 // API有効フラグ
 const ENABLE_YAHOO_FINANCE_API = true;
@@ -48,7 +48,7 @@ const ENABLE_ALPACA_API = true;
 // タイムアウト設定
 const ALPACA_API_TIMEOUT = 10000; // 10秒
 const YAHOO_FINANCE_API_TIMEOUT = 15000; // 15秒
-const EXCHANGERATE_API_TIMEOUT = 5000; // 5秒
+const EXCHANGERATE_API_TIMEOUT = 10000; // 10秒（増加）
 
 // 設定情報をログ出力（開発時の確認用）
 console.log(`API Configuration:
@@ -56,7 +56,7 @@ console.log(`API Configuration:
 - Base URL: ${BASE_URL || '(using proxy)'}
 - Alpaca API (米国株向け): ${ALPACA_API_URL}
 - Yahoo Finance API (日本株・投資信託向け): ${YAHOO_FINANCE_URL}
-- Exchange Rate API: ${EXCHANGERATE_API_URL}
+- Exchange Rate API: ${EXCHANGERATE_API_URL} (Alternative version)
 - Alpaca API Enabled: ${ENABLE_ALPACA_API}
 - Yahoo Finance API Enabled: ${ENABLE_YAHOO_FINANCE_API}
 `);
@@ -351,21 +351,51 @@ async function fetchFromAlpaca(ticker) {
     
     console.log(`Attempting to fetch data for ${formattedTicker} from Alpaca API at: ${ALPACA_API_URL}`);
     
-    // Alpaca APIプロキシにリクエスト
-    const response = await axios.get(ALPACA_API_URL, {
-      params: { 
-        symbol: formattedTicker 
-      },
-      timeout: ALPACA_API_TIMEOUT,
-      validateStatus: function (status) {
-        // 全てのステータスコードを許可して、エラー時にPromiseをリジェクトしないようにする
-        return true;
-      }
-    });
+    // Alpaca APIプロキシにリクエスト - リトライメカニズム追加
+    let retries = 2; // 最大3回試行（初回 + 2回リトライ）
+    let response = null;
+    let error = null;
     
-    // ステータスコードをチェック
-    if (response.status !== 200) {
-      console.log(`Alpaca API returned status code ${response.status} for ${formattedTicker}`);
+    while (retries >= 0) {
+      try {
+        response = await axios.get(ALPACA_API_URL, {
+          params: { 
+            symbol: formattedTicker 
+          },
+          timeout: ALPACA_API_TIMEOUT + (2 - retries) * 2000, // リトライごとにタイムアウトを延長
+          validateStatus: function (status) {
+            // 全てのステータスコードを許可して、エラー時にPromiseをリジェクトしないようにする
+            return true;
+          }
+        });
+        
+        // 成功した場合はループを抜ける
+        if (response.status === 200 && response.data && response.data.success) {
+          break;
+        }
+        
+        // 429エラー（レート制限）の場合は少し待ってからリトライ
+        if (response.status === 429) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        
+        retries--;
+        if (retries >= 0) {
+          console.log(`Retrying Alpaca API for ${formattedTicker}, attempts left: ${retries}`);
+        }
+      } catch (e) {
+        error = e;
+        retries--;
+        if (retries >= 0) {
+          console.log(`Error fetching from Alpaca API, retrying... (${retries} attempts left)`);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+    }
+    
+    // 最終的なレスポンスをチェック
+    if (!response || response.status !== 200) {
+      console.log(`Alpaca API failed after all attempts for ${formattedTicker}`);
       return null;
     }
     
@@ -470,21 +500,52 @@ async function fetchFromYahoo(ticker) {
     console.log(`Formatted ticker for Yahoo Finance: ${formattedTicker}`);
     console.log(`Attempting to fetch data for ${formattedTicker} from Yahoo Finance at: ${YAHOO_FINANCE_URL}`);
     
-    // Yahoo Financeプロキシにリクエスト
-    const response = await axios.get(YAHOO_FINANCE_URL, {
-      params: { 
-        symbols: formattedTicker 
-      },
-      timeout: YAHOO_FINANCE_API_TIMEOUT,
-      validateStatus: function (status) {
-        // 全てのステータスコードを許可して、エラー時にPromiseをリジェクトしないようにする
-        return true;
+    // Yahoo Financeプロキシにリクエスト - リトライメカニズム追加
+    let retries = 2; // 最大3回試行（初回 + 2回リトライ）
+    let response = null;
+    let error = null;
+    
+    while (retries >= 0) {
+      try {
+        response = await axios.get(YAHOO_FINANCE_URL, {
+          params: { 
+            symbols: formattedTicker 
+          },
+          timeout: YAHOO_FINANCE_API_TIMEOUT + (2 - retries) * 3000, // リトライごとにタイムアウトを延長
+          validateStatus: function (status) {
+            // 全てのステータスコードを許可して、エラー時にPromiseをリジェクトしないようにする
+            return true;
+          }
+        });
+        
+        // 成功した場合はループを抜ける
+        if (response.status === 200 && response.data && response.data.success) {
+          // データが含まれていることも確認
+          const quoteData = response.data.data && response.data.data[formattedTicker];
+          if (quoteData && quoteData.price) {
+            break;
+          }
+        }
+        
+        retries--;
+        if (retries >= 0) {
+          console.log(`Retrying Yahoo Finance API for ${formattedTicker}, attempts left: ${retries}`);
+          // 次の試行前に短い遅延を入れる
+          await new Promise(resolve => setTimeout(resolve, 1500));
+        }
+      } catch (e) {
+        error = e;
+        retries--;
+        if (retries >= 0) {
+          console.log(`Error fetching from Yahoo Finance API, retrying... (${retries} attempts left)`);
+          await new Promise(resolve => setTimeout(resolve, 1500));
+        }
       }
-    });
+    }
     
     // ステータスコードをチェック
-    if (response.status !== 200) {
-      console.log(`Yahoo Finance returned status code ${response.status} for ${formattedTicker}`);
+    if (!response || response.status !== 200) {
+      console.log(`Yahoo Finance returned status code ${response?.status || 'unknown'} for ${formattedTicker}`);
       return null;
     }
     
@@ -1139,7 +1200,7 @@ export const fetchFundInfo = async function(ticker, name = '') {
 };
 
 /**
- * 為替レートを取得する
+ * 為替レートを取得する（改善版）
  * @param {string} fromCurrency - 変換元通貨
  * @param {string} toCurrency - 変換先通貨
  * @returns {Promise<Object>} - 為替レートデータとステータス
@@ -1157,33 +1218,61 @@ export const fetchExchangeRate = async function(fromCurrency, toCurrency) {
       };
     }
     
-    console.log(`Attempting to fetch exchange rate for ${fromCurrency}/${toCurrency} from exchangerate.host`);
+    console.log(`Attempting to fetch exchange rate for ${fromCurrency}/${toCurrency} from alternative exchangerate API`);
     
-    // exchangerate.host APIを呼び出す
-    const response = await axios.get(EXCHANGERATE_API_URL, {
-      params: {
-        base: fromCurrency,
-        symbols: toCurrency
-      },
-      timeout: EXCHANGERATE_API_TIMEOUT
-    });
+    // リトライメカニズムを実装
+    let retries = 2; // 最大3回試行（初回 + 2回リトライ）
+    let response = null;
+    let error = null;
+    
+    while (retries >= 0) {
+      try {
+        // 代替exchangerate APIを呼び出す
+        response = await axios.get(EXCHANGERATE_API_URL, {
+          params: {
+            base: fromCurrency,
+            symbols: toCurrency
+          },
+          timeout: EXCHANGERATE_API_TIMEOUT + (2 - retries) * 2000 // リトライごとにタイムアウトを延長
+        });
+        
+        // 成功した場合はループを抜ける
+        if (response.status === 200 && response.data && response.data.success) {
+          break;
+        }
+        
+        retries--;
+        if (retries >= 0) {
+          console.log(`Retrying exchange rate API for ${fromCurrency}/${toCurrency}, attempts left: ${retries}`);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      } catch (e) {
+        error = e;
+        retries--;
+        if (retries >= 0) {
+          console.log(`Error fetching from exchange rate API, retrying... (${retries} attempts left)`);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+    }
     
     // データの存在確認
-    if (response.data && response.data.success && response.data.data) {
+    if (response && response.data && response.data.success && response.data.data) {
       const rate = response.data.data.rate;
+      const source = response.data.data.source || DATA_SOURCES.EXCHANGERATE;
       
-      console.log(`Successfully fetched exchange rate for ${fromCurrency}/${toCurrency} from exchangerate.host: ${rate}`);
+      console.log(`Successfully fetched exchange rate for ${fromCurrency}/${toCurrency} from ${source}: ${rate}`);
       
       return {
         success: true,
         rate: rate,
-        source: DATA_SOURCES.EXCHANGERATE,
+        source: source,
         message: '正常に取得しました',
         lastUpdated: new Date().toISOString()
       };
     }
     
-    console.log(`No valid exchange rate data from exchangerate.host, using fallback value`);
+    console.log(`No valid exchange rate data from API, using fallback value`);
     
     // データがない場合はフォールバック値を使用
     return generateFallbackExchangeRate(fromCurrency, toCurrency);
@@ -1211,7 +1300,7 @@ function generateFallbackExchangeRate(fromCurrency, toCurrency) {
   if (DEFAULT_EXCHANGE_RATES[pair]) {
     rate = DEFAULT_EXCHANGE_RATES[pair];
   } else if (fromCurrency === 'JPY' && toCurrency === 'USD') {
-    rate = 1 / 150.0; // 円からドル
+    rate = 1 / 150.0; // 円からドル (約0.0067)
   } else if (fromCurrency === 'USD' && toCurrency === 'JPY') {
     rate = 150.0; // ドルから円
   } else {
