@@ -13,10 +13,7 @@
 ### 処理フロー図
 
 ![株価取得システムのフロー図](./images/stock-price-fetching-diagram.svg)
-![株価取得システムのフロー図](./images/stock-price-fetching-diagram.svg)
-<div align="center">
-  <img src="./images/stock-price-fetching-diagram.svg" alt="株価取得システムのフロー図" width="800">
-</div>
+
 ### 主な機能
 
 1. **銘柄タイプの自動判定**
