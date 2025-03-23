@@ -98,13 +98,25 @@ const DEFAULT_EXCHANGE_RATES = {
 };
 
 /**
- * 投資信託かどうかを判定する関数
+ * 投資信託かどうかを判定する関数（改善版）
  * @param {string} ticker - ティッカーシンボル
  * @returns {boolean} 投資信託の場合はtrue
  */
 function isMutualFund(ticker) {
   if (!ticker) return false;
-  return /^\d{7,8}C(\.T)?$/.test(ticker.toString());
+  ticker = ticker.toString().toUpperCase();
+  
+  // パターン1: 7-8桁の数字 + C (+ .T)
+  if (/^\d{7,8}C(\.T)?$/.test(ticker)) {
+    return true;
+  }
+  
+  // パターン2: 7-8桁の数字 (投資信託コードのCなし)
+  if (/^\d{7,8}$/.test(ticker)) {
+    return true;
+  }
+  
+  return false;
 }
 
 /**
@@ -224,7 +236,7 @@ function formatTickerForAlpaca(ticker) {
 }
 
 /**
- * ティッカーシンボルをYahoo Finance用にフォーマットする
+ * ティッカーシンボルをYahoo Finance用にフォーマットする（改善版）
  * @param {string} ticker - 元のティッカーシンボル
  * @returns {string} - フォーマットされたティッカーシンボル
  */
@@ -234,13 +246,29 @@ function formatTickerForYahoo(ticker) {
   // 大文字に変換
   ticker = ticker.toUpperCase();
   
-  // 4桁数字で.Tが付いていない日本株の場合は.Tを追加
-  if (/^\d{4}$/.test(ticker) && !ticker.includes('.T')) {
+  // 投資信託コードの場合
+  if (isMutualFund(ticker)) {
+    // 既にC.Tが付いているか確認
+    if (ticker.endsWith('.T')) {
+      // CがついているかCを追加
+      if (ticker.indexOf('C') === -1) {
+        // .Tの前にCを挿入
+        return ticker.replace(/\.T$/, 'C.T');
+      }
+      return ticker;
+    }
+    
+    // Cがついているか確認
+    if (ticker.indexOf('C') === -1) {
+      return `${ticker}C.T`;
+    }
+    
+    // Cはあるが.Tがない
     return `${ticker}.T`;
   }
   
-  // 投資信託コードで.Tが付いていない場合は.Tを追加
-  if (/^\d{7,8}C$/i.test(ticker) && !ticker.includes('.T')) {
+  // 4桁数字で.Tが付いていない日本株の場合は.Tを追加
+  if (/^\d{4}$/.test(ticker) && !ticker.includes('.T')) {
     return `${ticker}.T`;
   }
   
@@ -263,7 +291,7 @@ function formatCodeForJPStockScraping(ticker) {
 }
 
 /**
- * ファンドコードを投資信託スクレイピングプロキシ用にフォーマットする
+ * ファンドコードを投資信託スクレイピングプロキシ用にフォーマットする（改善版）
  * @param {string} ticker - 元のティッカーシンボル
  * @returns {string} - フォーマットされたファンドコード
  */
@@ -276,10 +304,10 @@ function formatCodeForMutualFundScraping(ticker) {
   // .Tを取り除く
   ticker = ticker.replace(/\.T$/, '');
   
-  // 末尾のCを取り除く（一部のAPIでは必要）
+  // Cがあってもなくても良いように正規化
+  // （スクレイピングプロキシ側でCの付け外しを適切に処理する）
   return ticker.replace(/C$/, '');
 }
-
 /**
  * 銘柄のファンドタイプを確実に判定する
  * @param {string} ticker - ティッカーシンボル
