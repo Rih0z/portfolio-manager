@@ -1,6 +1,6 @@
-# ポートフォリオマネージャー 仕様書（更新版4.0）
+# ポートフォリオマネージャー 仕様書（更新版4.1）
 
-**最終更新日時:** 2025/03/25 14:30
+**最終更新日時:** 2025/03/27 19:00
 
 ## 1. プロジェクト概要
 
@@ -8,15 +8,15 @@
 
 ### 1.1 主要機能
 - 資産管理（保有数の小数点以下4桁対応）
-- 銘柄タイプ自動判定（個別株、ETF、インデックスファンドなど）
-- 年間手数料率の自動推定と計算（個別株は0%固定）
+- 銘柄タイプ自動判定（個別株、ETF、インデックスファンド、投資信託など）
+- 年間手数料率の自動推定と計算（個別株は0%固定、投資信託は信託報酬として表示）
 - 年間配当金の計算と配当情報の管理
 - 理想ポートフォリオ配分設定
 - 資金配分シミュレーション
 - データインポート/エクスポート
 - ブラウザローカルストレージによるデータ保持（URIエンコード+Base64による安全な暗号化）
 - Google認証・Googleドライブ連携（Google Identity Services API対応）
-- 市場データの自動取得（マルチソース対応：Alpaca API、JPX API、exchangerate.host）
+- 市場データの自動取得（マルチソース対応：Alpaca API、Yahoo Finance、exchangerate.host）
 - iOS風タブバーによるナビゲーション
 - 自動消去機能付き通知システム
 - エラーバウンダリによるアプリケーション耐障害性の向上
@@ -38,7 +38,7 @@
 - **クラウド連携**: Google Drive API v3
 - **市場データ取得**: 
   - 米国株: Alpaca API
-  - 日本株: JPX API（日本取引所グループ）
+  - 日本株と投資信託: Yahoo Finance API
   - 為替レート: exchangerate.host
 
 ## 2. 環境設定
@@ -53,7 +53,7 @@
 - **src/utils/fundUtils.js**: ファンドタイプと手数料情報、配当情報のユーティリティ関数
 - **public/index.html**: 基本HTMLとGoogle APIスクリプトの読み込み
 - **functions/alpaca-api-proxy.js**: Alpaca APIプロキシ（米国株向け）
-- **functions/jpx-api-proxy.js**: JPX APIプロキシ（日本株向け）
+- **functions/yfinance-api-proxy.js**: Yahoo Finance APIプロキシ（日本株・投資信託向け）
 - **functions/exchangerate-proxy.js**: exchangerate.host APIプロキシ（為替レート向け）
 
 ### 2.2 環境変数
@@ -64,14 +64,11 @@ REACT_APP_GOOGLE_CLIENT_ID=<YOUR_GOOGLE_CLIENT_ID>
 # Google API Key
 REACT_APP_GOOGLE_API_KEY=<YOUR_GOOGLE_API_KEY>
 
-# Alpaca API
+# Alpaca API（米国株データ取得用）
 ALPACA_API_KEY=<YOUR_ALPACA_API_KEY>
 ALPACA_API_SECRET=<YOUR_ALPACA_API_SECRET>
 
-# JPX API
-JPX_API_KEY=<YOUR_JPX_API_KEY>
-
-# デフォルト通貨レート（API障害時のフォールバック用）
+# デフォルト為替レート（API障害時のフォールバック用）
 DEFAULT_EXCHANGE_RATE=150.0
 ```
 
@@ -112,10 +109,10 @@ netlify.toml（更新版）:
   status = 200
   force = true
 
-# JPX APIプロキシ向けのリダイレクト
+# Yahoo Finance APIプロキシ向けのリダイレクト
 [[redirects]]
-  from = "/api/jpx-api-proxy"
-  to = "/.netlify/functions/jpx-api-proxy"
+  from = "/api/yfinance-api-proxy"
+  to = "/.netlify/functions/yfinance-api-proxy"
   status = 200
   force = true
 
@@ -180,6 +177,7 @@ portfolio-manager/
 │   │       ├── Modal.jsx
 │   │       ├── ToastNotification.jsx       # 自動消去機能を追加
 │   │       ├── DataSourceBadge.jsx         # 更新されたデータソースを表示
+│   │       ├── PriceDisplay.jsx            # 株価/基準価額表示コンポーネント
 │   │       └── ErrorBoundary.jsx          
 │   ├── context/
 │   │   ├── AuthContext.js                 # 認証フロー改善
@@ -197,14 +195,14 @@ portfolio-manager/
 │   │   └── marketDataService.js           # 更新された複数データソース対応、フォールバック機能
 │   ├── utils/
 │   │   ├── formatters.js
-│   │   └── fundUtils.js                   # 配当情報推定機能追加
+│   │   └── fundUtils.js                   # 配当情報推定機能追加、投資信託判定機能追加
 │   ├── App.jsx                            
 │   ├── index.js
 │   ├── setupProxy.js
 │   └── index.css
 ├── functions/
 │   ├── alpaca-api-proxy.js               # Alpaca APIプロキシ（米国株向け）
-│   ├── jpx-api-proxy.js                  # JPX APIプロキシ（日本株向け）
+│   ├── yfinance-api-proxy.js             # Yahoo Finance APIプロキシ（日本株・投資信託向け）
 │   ├── exchangerate-proxy.js             # exchangerate.host APIプロキシ（為替レート向け）
 ├── package.json
 ├── tailwind.config.js
@@ -220,16 +218,17 @@ portfolio-manager/
 - **context/PortfolioContext.js**: ポートフォリオ状態・ロジック管理、配当情報処理、通知自動消去機能、初期化の最適化
 - **hooks/useAuth.js**: 認証状態管理フック
 - **hooks/usePortfolioContext.js**: ポートフォリオコンテキスト使用フック
-- **utils/fundUtils.js**: ファンドタイプ判定、手数料率推定、配当情報推定のユーティリティ関数
+- **utils/fundUtils.js**: ファンドタイプ判定、手数料率推定、配当情報推定、投資信託判定のユーティリティ関数
 - **setupProxy.js**: 開発環境用APIプロキシ設定
 - **services/api.js**: 市場データ取得とGoogle Drive API連携、配当データ取得
-- **services/marketDataService.js**: 銘柄データと配当情報の取得、マルチデータソース対応（Alpaca/JPX/exchangerate.host）
+- **services/marketDataService.js**: 銘柄データと配当情報の取得、マルチデータソース対応（Alpaca/Yahoo Finance/exchangerate.host）
 - **functions/alpaca-api-proxy.js**: Alpaca APIプロキシ（米国株向け）
-- **functions/jpx-api-proxy.js**: JPX APIプロキシ（日本株向け）
+- **functions/yfinance-api-proxy.js**: Yahoo Finance APIプロキシ（日本株・投資信託向け）
 - **functions/exchangerate-proxy.js**: exchangerate.host APIプロキシ（為替レート向け）
 - **components/common/ErrorBoundary.jsx**: アプリケーションエラーのキャッチと表示
 - **components/common/ToastNotification.jsx**: 通知メッセージ表示システム（自動消去機能付き）
 - **components/common/DataSourceBadge.jsx**: 更新されたデータソース情報の表示
+- **components/common/PriceDisplay.jsx**: 株価または基準価額を適切に表示するコンポーネント
 - **components/dashboard/PortfolioSummary.jsx**: 資産概要と配当情報サマリーの表示
 - **components/dashboard/AssetsTable.jsx**: 資産詳細と配当情報の表示
 - **public/index.html**: Google API Client Libraryを読み込み
@@ -249,16 +248,17 @@ interface Asset {
   annualFee: number; // 年間手数料率（%）- 個別株は常に0%
   fundType: string; // ファンドの種類 (ETF_JP, INDEX_US, STOCK など)
   isStock: boolean; // 個別株かどうかのフラグ
-  feeSource: string; // 手数料情報の出所 ('個別株', 'ティッカー固有の情報', 'ファンドタイプからの推定')
+  isMutualFund: boolean; // 投資信託かどうかのフラグ
+  feeSource: string; // 手数料情報の出所 ('個別株', '投資信託', 'ティッカー固有の情報', 'ファンドタイプからの推定', 'ユーザー設定')
   feeIsEstimated: boolean; // 手数料情報が推定値かどうか
   region?: string; // 対象地域 ('日本', '米国', 'グローバル', '不明')
   lastUpdated?: string; // 最終更新日時
-  source?: string; // 'Alpaca' | 'JPX' | 'Fallback'
-  // 配当情報の追加
+  source?: string; // 'Alpaca' | 'Yahoo Finance' | 'Fallback'
   dividendYield: number; // 配当利回り（%）
   hasDividend: boolean; // 配当があるかどうか
   dividendFrequency: string; // 配当頻度 ('monthly', 'quarterly', 'semi-annual', 'annual')
   dividendIsEstimated: boolean; // 配当情報が推定値かどうか
+  priceLabel?: string; // 価格表示ラベル ('株価' | '基準価額')
 }
 ```
 
@@ -315,6 +315,7 @@ enum FundTypes {
   CRYPTO = '暗号資産関連',
   BOND = '債券',
   STOCK = '個別株',
+  MUTUAL_FUND = '投資信託',
   UNKNOWN = '不明'
 }
 ```
@@ -323,550 +324,387 @@ enum FundTypes {
 ```typescript
 enum DataSources {
   ALPACA = 'Alpaca', // 米国株プライマリソース
-  JPX = 'JPX',       // 日本株プライマリソース
+  YFINANCE = 'Yahoo Finance', // 日本株と投資信託プライマリソース
   EXCHANGERATE = 'exchangerate.host', // 為替レートソース
   FALLBACK = 'Fallback' // フォールバック値
 }
 ```
 
-## 5. データ永続化と認証連携
+## 5. マルチデータソース対応（更新版）
 
-### 5.1 ローカルストレージによるデータ保持
-- **データ暗号化**: URIエンコード + Base64エンコーディングによる安全な暗号化
-- **保存タイミング**: 
-  - ユーザーアクションによるデータ変更時（自動保存）
-  - 明示的な保存操作時
-  - Google Driveとの同期時
-- **読み込みタイミング**:
-  - アプリケーション初期化時
-  - ユーザーによる明示的な読み込み操作時
-- **フォールバック処理**: 新形式で復号化に失敗した場合、古い形式での復号化を試行
-- **データ構造検証**: 復号化後のデータ構造を検証し、有効性を確認
-- **重複初期化防止**: 初期化済みフラグによる重複実行の回避
+### 5.1 データソース構成
+- **米国株**: Alpaca API（プライマリソース）
+- **日本株と投資信託**: Yahoo Finance API（プライマリソース）
+- **為替レート**: exchangerate.host
+- **フォールバック**: 各銘柄タイプに応じたデフォルト値
 
-### 5.2 Google認証とデータ同期
-- **認証フロー**: Google Identity Services APIを使用した最新のOAuth 2.0認証
-- **認証情報の保存**: ローカルストレージにJWTトークンを保存
-- **有効期限チェック**: トークン有効期限の確認と自動ログアウト
-- **コンテキスト連携**: AuthContextとPortfolioContextの相互参照
-- **アクセストークン管理**: Drive API用のアクセストークンを別途管理
-- **データソース管理**:
-  - ログイン時: クラウドデータを優先
-  - ログアウト時: ローカルデータを使用
-  - データ競合時: 最新のタイムスタンプを持つデータを優先
-
-### 5.3 通知システムの実装
-- **通知メッセージの構造**: ID、メッセージ内容、タイプ（情報、成功、警告、エラー）
-- **表示位置**: 画面右下に固定表示（z-index: 50）
-- **スタイリング**: タイプごとに異なる背景色とテキスト色
-- **自動消去機能**: エラー以外の通知は5秒後に自動的に消去
-- **手動消去ボタン**: すべての通知に×ボタンを表示
-- **通知スタック**: 新しい通知が下に追加されるスタック表示
-
-## 6. 市場データ取得と配当情報管理（更新版）
-
-### 6.1 マルチデータソース対応（更新版）
-- **米国株の取得**:
-  - Alpaca API: プライマリソース
-  - フォールバック値: API障害時
-
-- **日本株の取得**:
-  - JPX API: プライマリソース
-  - フォールバック値: API障害時
-
-- **為替レートの取得**:
-  - exchangerate.host: プライマリソース
-  - フォールバック値: 定数 DEFAULT_EXCHANGE_RATE （150.0円/$）
-
-- **データソース切り替え条件**:
-  - API呼び出しがエラーを返した場合
-  - API呼び出しがタイムアウトした場合
-  - APIからのレスポンスが無効なデータだった場合
-
-- **データソース表示**:
-  - 各銘柄データにソース情報を付加（'Alpaca', 'JPX', 'Fallback'）
-  - 為替レートにソース情報を付加（'exchangerate.host', 'Fallback'）
-  - 全体の統計情報を通知でユーザーに表示
-
+### 5.2 銘柄タイプ判定と処理
 ```javascript
-// データソースの統計を計算
-const sourceCounts = validatedAssets.reduce((acc, asset) => {
-  acc[asset.source] = (acc[asset.source] || 0) + 1;
-  return acc;
-}, {});
-
-// 通知メッセージを作成
-let message = '市場データを更新しました';
-if (sourceCounts['Alpaca']) {
-  message += ` (Alpaca: ${sourceCounts['Alpaca']}件`;
+/**
+ * 投資信託かどうかを判定する関数
+ * @param {string} ticker - ティッカーシンボル
+ * @returns {boolean} 投資信託の場合はtrue
+ */
+function isMutualFund(ticker) {
+  return /^\d{7,8}C(\.T)?$/.test(ticker);
 }
-if (sourceCounts['JPX']) {
-  message += `, JPX: ${sourceCounts['JPX']}件`;
+
+/**
+ * 日本株かどうかを判定する関数
+ * @param {string} ticker - ティッカーシンボル
+ * @returns {boolean} 日本株の場合はtrue
+ */
+function isJapaneseStock(ticker) {
+  return /^\d{4}(\.T)?$/.test(ticker) || ticker.endsWith('.T');
 }
-if (sourceCounts['Fallback']) {
-  message += `, フォールバック: ${sourceCounts['Fallback']}件`;
-}
-message += ')';
-```
 
-### 6.2 Alpaca API連携（新規）
-- **プロキシエンドポイント**: `/api/alpaca-api-proxy`
-- **Netlify Function**: `functions/alpaca-api-proxy.js`
-- **Alpaca API URL**: `https://data.alpaca.markets/v2/stocks/{symbol}/quotes/latest`
-- **機能**: 米国株の価格データ取得
-- **認証**: Alpaca API Key と Secret Key を使用
-- **パラメータ**:
-  - 株価データ取得: `symbol=AAPL` など米国株のティッカーシンボル
-- **タイムアウト設定**: 10秒
-- **エラーハンドリング**: API障害時のフォールバック値生成機能
-
-**Alpaca API Proxy実装例**:
-```javascript
-// functions/alpaca-api-proxy.js の主要部分
-const axios = require('axios');
-
-exports.handler = async function(event, context) {
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Content-Type': 'application/json'
-  };
-
-  // クエリパラメータからティッカーシンボルを取得
-  const { symbol } = event.queryStringParameters || {};
+/**
+ * 銘柄タイプに基づいてデータソースを選択する関数
+ * @param {string} ticker - ティッカーシンボル
+ * @returns {string} データソース名
+ */
+function selectDataSourceForTicker(ticker) {
+  // 投資信託の判定
+  if (isMutualFund(ticker)) {
+    return 'Yahoo Finance';
+  }
   
-  if (!symbol) {
-    return {
-      statusCode: 400,
-      headers,
-      body: JSON.stringify({
-        success: false,
-        message: 'シンボルパラメータが必要です'
-      })
-    };
+  // 日本株の判定
+  if (isJapaneseStock(ticker)) {
+    return 'Yahoo Finance';
   }
-
-  try {
-    // Alpaca APIを呼び出す
-    const response = await axios.get(`https://data.alpaca.markets/v2/stocks/${symbol}/quotes/latest`, {
-      headers: {
-        'APCA-API-KEY-ID': process.env.ALPACA_API_KEY,
-        'APCA-API-SECRET-KEY': process.env.ALPACA_API_SECRET
-      },
-      timeout: 10000
-    });
-    
-    // レスポンスからデータを抽出
-    const quoteData = response.data;
-    
-    if (!quoteData || !quoteData.quote || !quoteData.quote.ap) {
-      return {
-        statusCode: 404,
-        headers,
-        body: JSON.stringify({
-          success: false,
-          message: `${symbol}の株価データが見つかりません`
-        })
-      };
-    }
-    
-    // 結果を整形
-    const result = {
-      ticker: symbol,
-      price: quoteData.quote.ap, // 気配値（ask price）
-      name: symbol, // Alpaca APIは銘柄名を直接提供しないため
-      currency: 'USD',
-      lastUpdated: new Date().toISOString(),
-      source: 'Alpaca'
-    };
-    
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({
-        success: true,
-        data: result
-      })
-    };
-  } catch (error) {
-    console.error(`Alpaca API error for ${symbol}:`, error);
-    
-    return {
-      statusCode: error.response?.status || 500,
-      headers,
-      body: JSON.stringify({
-        success: false,
-        message: `Alpaca APIからの取得に失敗しました: ${error.message}`,
-        error: {
-          status: error.response?.status,
-          data: error.response?.data
-        }
-      })
-    };
-  }
-};
-```
-
-### 6.3 JPX API連携（新規）
-- **プロキシエンドポイント**: `/api/jpx-api-proxy`
-- **Netlify Function**: `functions/jpx-api-proxy.js`
-- **JPX API URL**: `https://api.jpx.co.jp/v1/prices/quotes/{ticker}`
-- **機能**: 日本株の価格データ取得
-- **認証**: JPX API Keyを使用
-- **パラメータ**:
-  - 株価データ取得: `ticker=1301` など日本株の銘柄コード
-- **タイムアウト設定**: 10秒
-- **エラーハンドリング**: API障害時のフォールバック値生成機能
-
-**JPX API Proxy実装例**:
-```javascript
-// functions/jpx-api-proxy.js の主要部分
-const axios = require('axios');
-
-exports.handler = async function(event, context) {
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Content-Type': 'application/json'
-  };
-
-  // クエリパラメータから銘柄コードを取得
-  const { ticker } = event.queryStringParameters || {};
   
-  if (!ticker) {
-    return {
-      statusCode: 400,
-      headers,
-      body: JSON.stringify({
-        success: false,
-        message: '銘柄コードパラメータが必要です'
-      })
-    };
-  }
-
-  // 銘柄コードから.Tを削除（もしあれば）
-  const cleanedTicker = ticker.replace(/\.T$/, '');
-
-  try {
-    // JPX APIを呼び出す
-    const response = await axios.get(`https://api.jpx.co.jp/v1/prices/quotes/${cleanedTicker}`, {
-      headers: {
-        'X-API-KEY': process.env.JPX_API_KEY
-      },
-      timeout: 10000
-    });
-    
-    // レスポンスからデータを抽出
-    const quoteData = response.data;
-    
-    if (!quoteData || !quoteData.price || !quoteData.stock_name) {
-      return {
-        statusCode: 404,
-        headers,
-        body: JSON.stringify({
-          success: false,
-          message: `${ticker}の株価データが見つかりません`
-        })
-      };
-    }
-    
-    // 結果を整形
-    const result = {
-      ticker: ticker,
-      price: quoteData.price,
-      name: quoteData.stock_name,
-      currency: 'JPY',
-      lastUpdated: new Date().toISOString(),
-      source: 'JPX'
-    };
-    
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({
-        success: true,
-        data: result
-      })
-    };
-  } catch (error) {
-    console.error(`JPX API error for ${ticker}:`, error);
-    
-    return {
-      statusCode: error.response?.status || 500,
-      headers,
-      body: JSON.stringify({
-        success: false,
-        message: `JPX APIからの取得に失敗しました: ${error.message}`,
-        error: {
-          status: error.response?.status,
-          data: error.response?.data
-        }
-      })
-    };
-  }
-};
-```
-
-### 6.4 exchangerate.host API連携（新規）
-- **プロキシエンドポイント**: `/api/exchangerate-proxy`
-- **Netlify Function**: `functions/exchangerate-proxy.js`
-- **exchangerate.host URL**: `https://api.exchangerate.host/latest`
-- **機能**: 為替レートの取得
-- **認証**: 不要（無料公開API）
-- **パラメータ**:
-  - 通貨ペア（例：'USD/JPY'の場合）: `base=USD&symbols=JPY`
-- **タイムアウト設定**: 5秒
-- **エラーハンドリング**: API障害時のフォールバック値使用（DEFAULT_EXCHANGE_RATE）
-
-**exchangerate.host Proxy実装例**:
-```javascript
-// functions/exchangerate-proxy.js の主要部分
-const axios = require('axios');
-
-exports.handler = async function(event, context) {
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Content-Type': 'application/json'
-  };
-
-  // デフォルトでUSD/JPYレートを取得
-  const base = event.queryStringParameters?.base || 'USD';
-  const symbols = event.queryStringParameters?.symbols || 'JPY';
-
-  try {
-    // exchangerate.host APIを呼び出す
-    const response = await axios.get(`https://api.exchangerate.host/latest`, {
-      params: {
-        base: base,
-        symbols: symbols
-      },
-      timeout: 5000
-    });
-    
-    const data = response.data;
-    
-    if (!data || !data.rates || !data.rates[symbols]) {
-      return {
-        statusCode: 404,
-        headers,
-        body: JSON.stringify({
-          success: false,
-          message: `為替レートが見つかりません`,
-          data: {
-            rate: parseFloat(process.env.DEFAULT_EXCHANGE_RATE) || 150.0,
-            source: 'Fallback',
-            timestamp: new Date().toISOString()
-          }
-        })
-      };
-    }
-    
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({
-        success: true,
-        data: {
-          rate: data.rates[symbols],
-          source: 'exchangerate.host',
-          base: data.base,
-          currency: symbols,
-          timestamp: data.date || new Date().toISOString()
-        }
-      })
-    };
-  } catch (error) {
-    console.error('Exchange rate API error:', error);
-    
-    // エラー時はフォールバック値を返す
-    return {
-      statusCode: 200, // エラーでもクライアントには200を返す
-      headers,
-      body: JSON.stringify({
-        success: true,
-        message: `為替レートの取得に失敗したため、デフォルト値を使用します: ${error.message}`,
-        data: {
-          rate: parseFloat(process.env.DEFAULT_EXCHANGE_RATE) || 150.0,
-          source: 'Fallback',
-          timestamp: new Date().toISOString()
-        }
-      })
-    };
-  }
-};
-```
-
-## 7. エラー処理とフォールバックメカニズム（更新版）
-
-### 7.1 マルチレベルフォールバック（更新版）
-- **米国株取得のフォールバック**: Alpaca API失敗時→フォールバック値
-- **日本株取得のフォールバック**: JPX API失敗時→フォールバック値
-- **為替レート取得のフォールバック**: exchangerate.host失敗時→デフォルト値（DEFAULT_EXCHANGE_RATE）
-- **使用状況の通知**: 各データソースの使用状況をユーザーに通知
-- **フォールバック詳細の記録**: 各銘柄ごとにフォールバックの使用状況を記録
-
-```javascript
-// フォールバック値使用の通知
-if (fallbackCount > 0) {
-  addNotification(
-    `${fallbackCount}銘柄のデータはAPIから取得できず、フォールバック値を使用しています。実際の市場価格と異なる可能性があります。`,
-    'warning'
-  );
+  // それ以外は米国株と判断
+  return 'Alpaca';
 }
 ```
 
-### 7.2 API障害対応（更新版）
-- **エラータイプの識別**: 詳細なエラーコードと説明に基づくエラー種別の判別
-  - 認証エラー（401/403）: API認証情報の問題
-  - 見つからないエラー（404）: 存在しない銘柄
-  - レート制限エラー（429）: API使用回数制限
-  - サーバーエラー（500系）: APIサーバーの問題
-  - タイムアウトエラー: レスポンス待機時間超過
-  - ネットワークエラー: 接続の問題
+### 5.3 Yahoo Finance（日本株・投資信託）API連携
+- **エンドポイント**: `yfinance-api-proxy` (Netlify Functions経由)
+- **機能**: 日本株と投資信託の市場データ取得
+- **Yahoo Finance非公式API**: `https://query1.finance.yahoo.com/v7/finance/quote`
+- **パラメータ**:
+  - 株価データ取得: `symbols=AAPL,MSFT,1301.T,8630042C.T`
+- **日本株と投資信託の対応**:
+  - 日本株: 4桁数字の銘柄に自動的に `.T` を追加
+  - 投資信託: 7-8桁数字+Cの形式に自動的に `.T` を追加
+- **タイムアウト設定**: 15秒
+- **エラーハンドリング**: 投資信託用の専用エラーメッセージ対応
 
-- **エラーメッセージの詳細化**:
-  - **認証エラー**: 「APIキーが無効または期限切れです。API設定を確認してください。」
-  - **見つからないエラー**: 「銘柄 {ticker} はAPIで見つかりませんでした。銘柄コードを確認してください。」
-  - **レート制限エラー**: 「APIの使用制限に達しました。しばらく時間をおいて再試行してください。」
-  - **サーバーエラー**: 「APIサーバーでエラーが発生しました。しばらく時間をおいて再試行してください。」
-  - **タイムアウトエラー**: 「APIからの応答がタイムアウトしました。接続状況を確認してください。」
-  - **ネットワークエラー**: 「ネットワーク接続に問題があります。インターネット接続を確認してください。」
+### 5.4 Alpaca API連携
+- **エンドポイント**: `alpaca-api-proxy` (Netlify Functions経由)
+- **機能**: 米国株の市場データ取得
+- **APIキー**: 環境変数 `ALPACA_API_KEY` と `ALPACA_API_SECRET` で設定
+- **タイムアウト設定**: 10秒
+- **フォールバック**: 米国株用のフォールバックメカニズムで対応
 
-- **タイムアウト設定**: 各APIリクエストに対して適切なタイムアウトを設定
-  - Alpaca API: 10秒
-  - JPX API: 10秒
-  - exchangerate.host: 5秒
+### 5.5 exchangerate.host連携
+- **エンドポイント**: `exchangerate-proxy` (Netlify Functions経由)
+- **機能**: USD/JPY為替レートの取得
+- **データソース**: exchangerate.host
+- **レート制限対応**: フォールバック値（DEFAULT_EXCHANGE_RATE=150.0）の使用
+- **更新頻度**: 基準通貨変更時、明示的な更新ボタンクリック時
 
-- **詳細なエラーログ**: APIからのエラーレスポンスを詳細にログに記録
-  ```javascript
-  console.error(`Alpaca API error for ${symbol}:`, {
-    status: error.response?.status,
-    data: error.response?.data,
-    message: error.message
-  });
-  ```
+## 6. エラーハンドリングとフォールバック
 
-### 7.3 フォールバック値の生成ロジック
-- **前回取得値の使用**: 直近のデータがある場合はそれを優先して使用
-- **ファンドタイプ別のデフォルト価格**: 日本株・米国株・ETFなど、タイプに応じた適切なデフォルト価格を設定
-- **特定銘柄のカスタマイズ**: 人気ETFなどに対しては、より現実的なデフォルト価格を設定
-- **地域判定**: ティッカー形式（.Tの有無など）から地域と通貨を判定
-- **フォールバック情報の明示**: データがフォールバック値であることを明示し、投資判断の際に注意を促す
+### 6.1 銘柄タイプ別のエラーメッセージ
+- **米国株**:
+  - `銘柄 ${ticker} はAlpaca APIで見つかりませんでした。銘柄コードを確認してください。`
+- **日本株**:
+  - `銘柄 ${ticker} はYahoo Finance APIで見つかりませんでした。銘柄コードを確認してください。`
+- **投資信託**:
+  - `投資信託 ${ticker} の基準価額データが見つかりません。ファンドコードを確認してください。`
 
+### 6.2 フォールバック値の生成
 ```javascript
-// フォールバック値の生成関数
-function generateFallbackData(ticker, lastKnownData = null) {
-  // 前回のデータがあればそれを使用
-  if (lastKnownData && lastKnownData.price) {
+/**
+ * フォールバックデータを生成する関数
+ * @param {string} ticker - ティッカーシンボル
+ * @param {Object|null} lastData - 前回のデータ
+ * @returns {Object} フォールバックデータ
+ */
+function generateFallbackData(ticker, lastData = null) {
+  // 前回のデータがあれば優先して使用
+  if (lastData && lastData.price) {
     return {
-      ticker: ticker,
-      price: lastKnownData.price,
-      name: lastKnownData.name || ticker,
-      currency: lastKnownData.currency || detectCurrency(ticker),
-      lastUpdated: lastKnownData.lastUpdated || new Date().toISOString(),
+      ...lastData,
+      lastUpdated: new Date().toISOString(),
       source: 'Fallback'
     };
   }
   
-  // 日本株か米国株かを判定
-  const isJapaneseStock = ticker.endsWith('.T') || /^\d{4}$/.test(ticker);
+  // 投資信託の場合
+  if (isMutualFund(ticker)) {
+    return {
+      ticker: ticker,
+      price: 10000, // 投資信託の基準価額デフォルト値
+      name: `投資信託 ${ticker}`,
+      currency: 'JPY',
+      lastUpdated: new Date().toISOString(),
+      source: 'Fallback',
+      isStock: false,
+      isMutualFund: true,
+      fundType: '投資信託',
+      priceLabel: '基準価額'
+    };
+  }
   
-  // デフォルト値を設定
-  const defaultPrice = isJapaneseStock ? 1000 : 100;
-  const currency = isJapaneseStock ? 'JPY' : 'USD';
+  // 日本株の場合
+  if (isJapaneseStock(ticker)) {
+    return {
+      ticker: ticker,
+      price: 1000, // 日本株のデフォルト価格
+      name: `日本株 ${ticker.replace(/\.T$/, '')}`,
+      currency: 'JPY',
+      lastUpdated: new Date().toISOString(),
+      source: 'Fallback',
+      isStock: true,
+      isMutualFund: false
+    };
+  }
   
+  // 米国株の場合
   return {
     ticker: ticker,
-    price: defaultPrice,
+    price: 100, // 米国株のデフォルト価格
     name: ticker,
-    currency: currency,
+    currency: 'USD',
     lastUpdated: new Date().toISOString(),
-    source: 'Fallback'
+    source: 'Fallback',
+    isStock: true,
+    isMutualFund: false
   };
 }
 ```
 
-### 7.4 ユーザー通知メカニズム（更新版）
-- **ソース別詳細情報**: データソースごとの成功・失敗件数を通知
-  ```javascript
-  // データソースごとの結果を集計
-  const results = {
-    Alpaca: { success: 0, failed: 0 },
-    JPX: { success: 0, failed: 0 },
-    Fallback: 0
-  };
-  
-  // 更新結果を集計
-  assets.forEach(asset => {
-    if (asset.source === 'Alpaca') {
-      results.Alpaca.success++;
-    } else if (asset.source === 'JPX') {
-      results.JPX.success++;
-    } else if (asset.source === 'Fallback') {
-      results.Fallback++;
+### 6.3 通知出力フロー
+```javascript
+// データソースの統計を計算
+const stats = {
+  Alpaca: { success: 0, failed: 0 },
+  Yahoo: { 
+    success: 0, 
+    failed: 0,
+    stocks: 0,  // 日本株
+    funds: 0    // 投資信託
+  },
+  Fallback: 0
+};
+
+// 更新後に統計情報を集計
+assets.forEach(asset => {
+  if (asset.source === 'Alpaca') {
+    stats.Alpaca.success++;
+  } else if (asset.source === 'Yahoo Finance') {
+    stats.Yahoo.success++;
+    if (asset.isMutualFund) {
+      stats.Yahoo.funds++;
+    } else {
+      stats.Yahoo.stocks++;
     }
-  });
-  
-  // 通知メッセージを構築
-  let message = '市場データを更新しました: ';
-  message += `Alpaca: ${results.Alpaca.success}件, `;
-  message += `JPX: ${results.JPX.success}件`;
-  
-  if (results.Fallback > 0) {
-    message += `, フォールバック: ${results.Fallback}件`;
+  } else if (asset.source === 'Fallback') {
+    stats.Fallback++;
+  }
+});
+
+// 通知メッセージを作成
+let message = '市場データを更新しました: ';
+if (stats.Alpaca.success > 0) {
+  message += `Alpaca: ${stats.Alpaca.success}件`;
+  if (stats.Yahoo.success > 0) message += ', ';
+}
+if (stats.Yahoo.success > 0) {
+  message += `Yahoo Finance: ${stats.Yahoo.success}件`;
+  if (stats.Yahoo.stocks > 0 || stats.Yahoo.funds > 0) {
+    message += ' (';
+    if (stats.Yahoo.stocks > 0) {
+      message += `日本株: ${stats.Yahoo.stocks}件`;
+      if (stats.Yahoo.funds > 0) message += '、';
+    }
+    if (stats.Yahoo.funds > 0) {
+      message += `投資信託: ${stats.Yahoo.funds}件`;
+    }
+    message += ')';
+  }
+}
+if (stats.Fallback > 0) {
+  message += `, Fallback: ${stats.Fallback}件`;
+}
+addNotification(message, stats.Fallback > 0 ? 'warning' : 'success');
+```
+
+## 7. 投資信託特有の処理
+
+### 7.1 投資信託の判定
+```javascript
+/**
+ * 投資信託かどうかを判定する関数
+ * @param {string} ticker - ティッカーシンボル
+ * @returns {boolean} 投資信託の場合はtrue
+ */
+function isMutualFund(ticker) {
+  return /^\d{7,8}C(\.T)?$/.test(ticker);
+}
+
+/**
+ * Yahoo Finance用にティッカーをフォーマットする関数
+ * @param {string} ticker - 元のティッカー
+ * @returns {string} フォーマット済みティッカー
+ */
+function formatTickerForYahoo(ticker) {
+  // すでに.Tが付いている場合はそのまま返す
+  if (ticker.endsWith('.T')) {
+    return ticker;
   }
   
-  // 通知を表示
-  addNotification(message, results.Fallback > 0 ? 'warning' : 'success');
-  ```
-
-- **為替レート通知**: 為替レートのソース情報を通知
-  ```javascript
-  // 為替レート取得結果の通知
-  addNotification(
-    `為替レート(USD/JPY)を更新しました: ${exchangeRate.rate}円/${exchangeRate.source}`,
-    exchangeRate.source === 'Fallback' ? 'warning' : 'info'
-  );
-  ```
-
-- **エラー通知の階層化**: APIごとに異なるエラー通知を表示
-  ```javascript
-  // Alpaca APIエラー通知
-  if (alpacaErrors.length > 0) {
-    addNotification(`Alpaca APIで${alpacaErrors.length}件のエラーが発生しました`, 'warning');
-    // 最初の3件のみ詳細を表示
-    alpacaErrors.slice(0, 3).forEach(error => {
-      addNotification(`Alpaca API - ${error.ticker}: ${error.message}`, 'warning');
-    });
+  // 投資信託の場合（7〜8桁数字+C）
+  if (/^\d{7,8}C$/.test(ticker)) {
+    return `${ticker}.T`;
   }
   
-  // JPX APIエラー通知
-  if (jpxErrors.length > 0) {
-    addNotification(`JPX APIで${jpxErrors.length}件のエラーが発生しました`, 'warning');
-    // 最初の3件のみ詳細を表示
-    jpxErrors.slice(0, 3).forEach(error => {
-      addNotification(`JPX API - ${error.ticker}: ${error.message}`, 'warning');
-    });
+  // 日本株の場合（4桁数字）
+  if (/^\d{4}$/.test(ticker)) {
+    return `${ticker}.T`;
   }
-  ```
+  
+  // それ以外はそのまま返す
+  return ticker;
+}
+```
 
-- **自動消去タイマー**: 情報・成功・警告通知は5秒後に自動消去
-- **エラー永続表示**: エラー通知のみ手動消去まで表示を維持
-- **タイプ別視覚表示**: 通知の種類に応じた色分け表示
-
-## 8. 主要コンポーネントの実装詳細（更新版）
-
-### 8.1 市場データサービス（marketDataService.js）（更新版）
-- 米国株と日本株の自動識別と適切なAPI選択
-- 為替レート取得機能の強化
-- API障害時のフォールバックメカニズム
-- 取得結果の詳細な記録と統計
-- データソース情報の付加と表示
-
-### 8.2 DataSourceBadge コンポーネント（更新版）
+### 7.2 価格表示コンポーネント
 ```jsx
-const DataSourceBadge = ({ source }) => {
+/**
+ * 価格表示コンポーネント
+ * @param {Object} props - コンポーネントのプロパティ
+ * @param {Object} props.asset - 資産データ
+ * @returns {JSX.Element} UIコンポーネント
+ */
+function PriceDisplay({ asset }) {
+  const { price, currency, isMutualFund } = asset;
+  const label = isMutualFund ? '基準価額' : '株価';
+  
+  return (
+    <div className="flex flex-col">
+      <span className="text-xs text-gray-500">{label}</span>
+      <span className="font-medium">{formatCurrency(price, currency)}</span>
+    </div>
+  );
+}
+```
+
+### 7.3 投資信託の手数料処理
+```javascript
+/**
+ * 投資信託の信託報酬を設定
+ * @param {string} id - 資産ID
+ * @param {number} fee - 信託報酬率
+ * @param {boolean} isUserSet - ユーザー設定かどうか
+ */
+function updateMutualFundFee(id, fee, isUserSet = false) {
+  setCurrentAssets(prev => 
+    prev.map(item => {
+      if (item.id === id) {
+        return {
+          ...item,
+          annualFee: parseFloat(parseFloat(fee).toFixed(2)) || 0,
+          feeSource: isUserSet ? 'ユーザー設定' : '投資信託',
+          feeIsEstimated: !isUserSet
+        };
+      }
+      return item;
+    })
+  );
+}
+```
+
+### 7.4 投資信託のPriceLabel
+```javascript
+/**
+ * 価格表示ラベルを取得する関数
+ * @param {boolean} isMutualFund - 投資信託かどうか
+ * @returns {string} 表示ラベル
+ */
+function getPriceLabel(isMutualFund) {
+  return isMutualFund ? '基準価額' : '株価';
+}
+```
+
+## 8. 通知システム
+
+### 8.1 通知コンポーネント
+```jsx
+/**
+ * 通知メッセージコンポーネント
+ * @param {Object} props - コンポーネントのプロパティ
+ * @param {Array} props.notifications - 通知メッセージの配列
+ * @param {Function} props.removeNotification - 通知削除関数
+ * @returns {JSX.Element} UIコンポーネント
+ */
+function NotificationSystem({ notifications, removeNotification }) {
+  if (!notifications || notifications.length === 0) return null;
+  
+  return (
+    <div className="fixed bottom-16 right-4 z-50 flex flex-col space-y-2">
+      {notifications.map(notification => (
+        <div 
+          key={notification.id}
+          className={`p-3 rounded-md shadow-md text-sm ${
+            notification.type === 'error' ? 'bg-red-100 text-red-700' :
+            notification.type === 'warning' ? 'bg-yellow-100 text-yellow-700' :
+            notification.type === 'success' ? 'bg-green-100 text-green-700' :
+            'bg-blue-100 text-blue-700'
+          }`}
+        >
+          <div className="flex justify-between items-start">
+            <span>{notification.message}</span>
+            <button 
+              onClick={() => removeNotification(notification.id)}
+              className="ml-2 text-gray-500 hover:text-gray-700"
+            >
+              &times;
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+### 8.2 通知追加関数
+```javascript
+/**
+ * 通知を追加する関数
+ * @param {string} message - 通知メッセージ
+ * @param {string} type - 通知タイプ ('info' | 'success' | 'warning' | 'error')
+ * @returns {number} 通知ID
+ */
+const addNotification = useCallback((message, type = 'info') => {
+  const id = Date.now();
+  setNotifications(prev => [...prev, { id, message, type }]);
+  
+  // エラー以外の通知は5秒後に自動消去
+  if (type !== 'error') {
+    setTimeout(() => {
+      removeNotification(id);
+    }, 5000);
+  }
+  
+  return id;
+}, [removeNotification]);
+```
+
+## 9. データソースバッジ
+
+```jsx
+/**
+ * データソースバッジコンポーネント
+ * @param {Object} props - コンポーネントのプロパティ
+ * @param {string} props.source - データソース名
+ * @returns {JSX.Element} UIコンポーネント
+ */
+function DataSourceBadge({ source }) {
   let badgeClass = "text-xs px-1.5 py-0.5 rounded ";
   let badgeText = source;
 
@@ -874,8 +712,9 @@ const DataSourceBadge = ({ source }) => {
     case 'Alpaca':
       badgeClass += "bg-blue-100 text-blue-800";
       break;
-    case 'JPX':
+    case 'Yahoo Finance':
       badgeClass += "bg-green-100 text-green-800";
+      badgeText = "YFinance";
       break;
     case 'exchangerate.host':
       badgeClass += "bg-purple-100 text-purple-800";
@@ -892,135 +731,70 @@ const DataSourceBadge = ({ source }) => {
       {badgeText}
     </span>
   );
-};
+}
 ```
 
-### 8.3 ポートフォリオコンテキスト（PortfolioContext.js）（更新版）
-- 異なるAPIごとのエラー追跡と統計
-- フォールバック使用状況の詳細記録
-- より詳細な通知メッセージの生成
-- 米国株と日本株の自動処理
+## 10. エラーバウンダリ
 
-### 8.4 API連携の改善
-- 米国株と日本株の自動判別による適切なAPI選択
-  ```javascript
-  // 銘柄の地域を判定し、適切なAPIを選択
-  function selectApiForTicker(ticker) {
-    // 日本株の判定
-    if (ticker.endsWith('.T') || /^\d{4}$/.test(ticker)) {
-      return 'JPX';
-    }
-    // それ以外は米国株と判断
-    return 'Alpaca';
+```jsx
+/**
+ * アプリケーション全体のエラーバウンダリ
+ */
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
   }
   
-  // 適切なAPIを使用してデータを取得
-  async function fetchStockData(ticker) {
-    const api = selectApiForTicker(ticker);
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  
+  componentDidCatch(error, errorInfo) {
+    console.error('アプリケーションエラー:', error, errorInfo);
+  }
+  
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-100">
+          <div className="bg-white p-6 rounded-lg shadow-md max-w-md">
+            <h2 className="text-red-600 text-xl mb-4">エラーが発生しました</h2>
+            <p className="mb-2">申し訳ありませんが、アプリケーションにエラーが発生しました。</p>
+            <p className="text-gray-700 mb-4">詳細: {this.state.error?.message || '不明なエラー'}</p>
+            <button
+              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+              onClick={() => window.location.reload()}
+            >
+              リロードする
+            </button>
+          </div>
+        </div>
+      );
+    }
     
-    if (api === 'JPX') {
-      return fetchFromJpx(ticker);
-    } else {
-      return fetchFromAlpaca(ticker);
-    }
+    return this.props.children;
   }
-  ```
-
-## 9. UI操作フロー（更新版）
-
-### 9.1 市場データ更新フロー（更新版）
-1. ユーザーが更新ボタンをクリック
-2. 現在の保有銘柄リストを取得
-3. 米国株と日本株を自動分類
-4. 米国株はAlpaca APIから取得
-5. 日本株はJPX APIから取得
-6. 為替レートはexchangerate.hostから取得
-7. API失敗時はフォールバック値を使用
-8. 銘柄ごとに最新の価格、手数料情報、配当情報を更新
-9. 個別株は常に手数料率0%を維持
-10. データソースの統計情報を計算（各ソースの使用銘柄数）
-11. 各APIの成功・失敗統計を表示
-12. フォールバック値を使用している場合は警告通知
-13. データをローカルストレージに自動保存
-14. 通知は5秒後に自動消去（エラー以外）
-
-```javascript
-// APIごとの結果を集計
-let summary = '市場データを更新しました: ';
-if (results.Alpaca.success > 0) {
-  summary += `Alpaca: ${results.Alpaca.success}件${results.Alpaca.failed > 0 ? ` (失敗: ${results.Alpaca.failed}件)` : ''}, `;
-}
-if (results.JPX.success > 0) {
-  summary += `JPX: ${results.JPX.success}件${results.JPX.failed > 0 ? ` (失敗: ${results.JPX.failed}件)` : ''}, `;
-}
-if (results.Fallback > 0) {
-  summary += `フォールバック: ${results.Fallback}件, `;
-}
-// 末尾のカンマとスペースを削除
-summary = summary.replace(/, $/, '');
-
-// 通知を表示（フォールバック値を使用している場合は警告として表示）
-addNotification(
-  summary,
-  results.Fallback > 0 ? 'warning' : 'success'
-);
-```
-
-### 9.2 銘柄追加フロー（更新版）
-1. ユーザーが銘柄シンボルを入力
-2. addTicker関数を呼び出し
-3. 米国株/日本株を自動判別
-4. 適切なAPI（Alpaca/JPX）からデータ取得を試行
-5. 取得失敗時はフォールバック値を使用
-6. 銘柄タイプを判定し、手数料情報を推定
-7. 配当情報を推定
-8. 個別株の場合は手数料を0%に設定
-9. 保有資産と目標配分リストに追加
-10. データソースや使用状況を通知
-11. データをローカルストレージに自動保存
-
-### 9.3 エラーおよびフォールバック通知フロー（更新版）
-1. データ更新または銘柄追加時にエラーが発生
-2. API別にエラータイプを判別
-3. エラー詳細をコンソールに記録
-4. 特定のエラーコード（401, 403, 404, 429, 500など）に基づいて具体的なエラーメッセージを生成
-5. フォールバック値を生成して使用
-6. エラー統計を集計（API別の成功・失敗数）
-7. ユーザーに適切な通知を表示
-8. 重要なエラーメッセージは手動消去が必要な「エラー」として表示
-9. 軽微なエラーは自動消去される「警告」として表示
-
-```javascript
-// エラーに応じた具体的なメッセージを生成
-function getErrorMessage(error, ticker) {
-  const status = error.response?.status;
-  
-  if (status === 401 || status === 403) {
-    return 'APIキーが無効または期限切れです。API設定を確認してください。';
-  } else if (status === 404) {
-    return `銘柄 ${ticker} はAPIで見つかりませんでした。銘柄コードを確認してください。`;
-  } else if (status === 429) {
-    return 'APIの使用制限に達しました。しばらく時間をおいて再試行してください。';
-  } else if (status >= 500) {
-    return 'APIサーバーでエラーが発生しました。しばらく時間をおいて再試行してください。';
-  } else if (error.code === 'ECONNABORTED') {
-    return 'APIからの応答がタイムアウトしました。接続状況を確認してください。';
-  } else if (error.message.includes('Network Error')) {
-    return 'ネットワーク接続に問題があります。インターネット接続を確認してください。';
-  }
-  
-  return `データ取得でエラーが発生しました: ${error.message}`;
 }
 ```
 
 ## 改訂履歴
+
 | バージョン | 日付 | 内容 | 担当者 |
 |---|---|---|---|
 | 1.0 | 2025/03/6 | 初版作成 |  |
-| 2.0 | 2025/03/7 | 環境設定と依存関係の更新 |  |
-| 3.0 | 2025/03/8 | jwt-decode対応・プロキシ設定・ESLint設定の改訂 |  |
-| 3.1 | 2025/03/19 | 通知システムの自動消去機能追加、初期化処理の重複実行防止機能追加、通知表示フローの詳細定義追加 |  |
-| 3.2 | 2025/03/20 | Yahoo Finance APIフォールバック機能の追加、マルチデータソース対応の実装、API障害時の詳細通知機能強化、日本株ティッカー変換改善 |  |
-| 3.3 | 2025/03/22 | Python yfinanceライブラリを使用したマルチデータソース対応の実装、為替および株価データの取得方法を改善 |  |
-| 3.4 | 2025/03/23 | Python依存をなくすためYahoo Finance APIをJavaScript実装に変更、Yahoo Finance APIの技術詳細を追加、データソース名と優先順位の更新 |  |
-| 4.0 | 2025/03/25 | データソースをAlpaca API（米国株）、JPX API（日本株）、exchangerate.host（為替）に変更、エラーメッセージングの詳細化、データソース表示の更新、フォールバック機構の改良 |  |
+| 2.0 | 2025/03/7 | jwt-decode対応、アクセシビリティ対応、プロキシ設定更新 |  |
+| 3.0 | 2025/03/07 10:20 | Alpha Vantage API連携強化、環境変数名統一、マルチソースデータ取得フロー実装 |  |
+| 4.0 | 2025/03/09 13:40 | Yahoo Finance API無効化、Alpha Vantageをプライマリソースに変更、401認証エラー問題対応 |  |
+| 5.0 | 2025/03/10 14:35 | 銘柄タイプ自動判定と年間手数料の自動推定機能追加 |  |
+| 6.0 | 2025/03/11 17:20 | 個別株の手数料固定（0%）とファンド手数料計算ロジックの修正 |  |
+| 7.0 | 2025/03/12 10:45 | 人気銘柄リストの更新 |  |
+| 8.0 | 2025/03/13 16:15 | ローカルストレージによるデータ永続化とGoogle認証連携強化 |  |
+| 9.0 | 2025/03/16 19:20 | データ暗号化/復号化処理の強化、Google Drive API連携改善、エラーバウンダリ導入、認証フロー更新 |  |
+| 10.0 | 2025/03/18 15:45 | 配当情報の管理機能追加、配当情報の表示UI実装、PortfolioSummaryとAssetsTableの配当情報表示追加、Google Drive API連携の安定性向上 |  |
+| 3.1 | 2025/03/19 15:00 | 通知システムの自動消去機能追加（タイプ別）、初期化処理の重複実行防止機能追加、通知スタイルの詳細定義追加 |  |
+| 3.2 | 2025/03/20 10:00 | Yahoo Finance APIフォールバック機能を追加、マルチデータソース対応の実装、API障害時の詳細通知機能強化、日本株ティッカー変換の改善 |  |
+| 3.3 | 2025/03/22 12:00 | Yahoo FinanceをPython yfinanceライブラリに変更、プロキシ実装をJavaScriptからPythonスクリプト実行方式に変更、為替および株価データの取得フローを改善、Netlify Functions Python実行環境対応 |  |
+| 3.4 | 2025/03/23 09:45 | Python依存をなくすためYahoo Finance APIをJavaScript実装に変更、Python yfinanceコードは残しつつ実際はyahoo-finance-proxyを使用、データソース名とフォールバック処理の更新 |  |
+| 4.0 | 2025/03/25 14:30 | データソースをAlpaca API（米国株）、JPX API（日本株）、exchangerate.host（為替）に変更、エラーハンドリングとフォールバック処理の強化、データソース関連の命名規則とコード例の更新、フォールバックメカニズムの標準化 |  |
+| 4.1 | 2025/03/27 19:00 | データソースをAlpaca API（米国株）、Yahoo Finance（日本株・投資信託）、exchangerate.host（為替）に変更、投資信託対応の強化、エラーハンドリングとフォールバック処理の更新、命名規則とコンポーネント例の更新 |  |
