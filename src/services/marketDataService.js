@@ -1,5 +1,5 @@
 // src/services/marketDataService.js
-// 市場データ取得サービス（新仕様対応版）
+// 市場データ取得サービス（スクレイピングベース版）
 
 import axios from 'axios';
 import { 
@@ -13,6 +13,16 @@ import {
   US_ETF_LIST,
   DATA_SOURCES
 } from '../utils/fundUtils';
+
+// データソース定数を更新（スクレイピングソースを追加）
+export const SCRAPING_DATA_SOURCES = {
+  ...DATA_SOURCES,
+  YAHOO_JAPAN: 'Yahoo Finance Japan',
+  MINKABU: 'Minkabu',
+  KABUTAN: 'Kabutan',
+  TOUSHIN_LIB: '投資信託協会',
+  MORNINGSTAR: 'Morningstar Japan'
+};
 
 // 環境に応じたベースURL設定
 const isLocalhost = 
@@ -31,7 +41,17 @@ const ALPACA_API_URL = isLocalhost
   ? '/api/alpaca-api-proxy' // ローカル環境では直接プロキシ経由
   : `${BASE_URL}/api/alpaca-api-proxy`; // 本番環境
 
-// Yahoo Finance APIエンドポイント（日本株・投資信託のプライマリソース）
+// スクレイピングベースの日本株データ取得プロキシ - 新規追加
+const JP_STOCK_SCRAPING_URL = isLocalhost
+  ? '/api/jp-stock-scraping-proxy' // ローカル環境では直接プロキシ経由
+  : `${BASE_URL}/api/jp-stock-scraping-proxy`; // 本番環境
+
+// スクレイピングベースの投資信託データ取得プロキシ - 新規追加
+const MUTUAL_FUND_SCRAPING_URL = isLocalhost
+  ? '/api/mutual-fund-scraping-proxy' // ローカル環境では直接プロキシ経由
+  : `${BASE_URL}/api/mutual-fund-scraping-proxy`; // 本番環境
+
+// Yahoo Finance APIエンドポイント（米国株のバックアップソース）
 const YAHOO_FINANCE_URL = isLocalhost
   ? '/api/yahoo-finance-proxy' // ローカル環境では直接プロキシ経由
   : `${BASE_URL}/api/yahoo-finance-proxy`; // 本番環境
@@ -44,20 +64,28 @@ const EXCHANGERATE_API_URL = isLocalhost
 // API有効フラグ
 const ENABLE_YAHOO_FINANCE_API = true;
 const ENABLE_ALPACA_API = true;
+const ENABLE_JP_STOCK_SCRAPING = true;
+const ENABLE_MUTUAL_FUND_SCRAPING = true;
 
 // タイムアウト設定
 const ALPACA_API_TIMEOUT = 10000; // 10秒
 const YAHOO_FINANCE_API_TIMEOUT = 15000; // 15秒
-const EXCHANGERATE_API_TIMEOUT = 10000; // 10秒（増加）
+const JP_STOCK_SCRAPING_TIMEOUT = 20000; // 20秒 (スクレイピングは時間がかかる場合がある)
+const MUTUAL_FUND_SCRAPING_TIMEOUT = 20000; // 20秒
+const EXCHANGERATE_API_TIMEOUT = 10000; // 10秒
 
 // 設定情報をログ出力（開発時の確認用）
 console.log(`API Configuration:
 - Environment: ${isLocalhost ? 'Local development' : 'Production'}
 - Base URL: ${BASE_URL || '(using proxy)'}
 - Alpaca API (米国株向け): ${ALPACA_API_URL}
-- Yahoo Finance API (日本株・投資信託向け): ${YAHOO_FINANCE_URL}
+- JP Stock Scraping (日本株向け): ${JP_STOCK_SCRAPING_URL}
+- Mutual Fund Scraping (投資信託向け): ${MUTUAL_FUND_SCRAPING_URL}
+- Yahoo Finance API (バックアップソース): ${YAHOO_FINANCE_URL}
 - Exchange Rate API: ${EXCHANGERATE_API_URL} (Alternative version)
 - Alpaca API Enabled: ${ENABLE_ALPACA_API}
+- JP Stock Scraping Enabled: ${ENABLE_JP_STOCK_SCRAPING}
+- Mutual Fund Scraping Enabled: ${ENABLE_MUTUAL_FUND_SCRAPING}
 - Yahoo Finance API Enabled: ${ENABLE_YAHOO_FINANCE_API}
 `);
 
@@ -217,6 +245,39 @@ function formatTickerForYahoo(ticker) {
   }
   
   return ticker;
+}
+
+/**
+ * 証券コードを日本株スクレイピングプロキシ用にフォーマットする
+ * @param {string} ticker - 元のティッカーシンボル
+ * @returns {string} - フォーマットされた証券コード
+ */
+function formatCodeForJPStockScraping(ticker) {
+  if (!ticker) return '';
+  
+  // 大文字に変換
+  ticker = ticker.toUpperCase();
+  
+  // .Tを取り除く
+  return ticker.replace(/\.T$/, '');
+}
+
+/**
+ * ファンドコードを投資信託スクレイピングプロキシ用にフォーマットする
+ * @param {string} ticker - 元のティッカーシンボル
+ * @returns {string} - フォーマットされたファンドコード
+ */
+function formatCodeForMutualFundScraping(ticker) {
+  if (!ticker) return '';
+  
+  // 大文字に変換
+  ticker = ticker.toUpperCase();
+  
+  // .Tを取り除く
+  ticker = ticker.replace(/\.T$/, '');
+  
+  // 末尾のCを取り除く（一部のAPIでは必要）
+  return ticker.replace(/C$/, '');
 }
 
 /**
@@ -483,6 +544,305 @@ async function fetchFromAlpaca(ticker) {
 }
 
 /**
+ * 日本株スクレイピングプロキシからデータを取得する（新規追加）
+ * @param {string} ticker - ティッカーシンボル
+ * @returns {Promise<Object>} - 日本株データまたはnull
+ */
+async function fetchFromJPStockScraping(ticker) {
+  // 日本株スクレイピングが無効化されている場合は直接nullを返す
+  if (!ENABLE_JP_STOCK_SCRAPING) {
+    console.log(`JP Stock Scraping is disabled. Skipping fetch for ${ticker}`);
+    return null;
+  }
+  
+  // 日本株でない場合は処理しない
+  if (!isJapaneseStock(ticker)) {
+    console.log(`${ticker} is not a Japanese stock. Skipping JP Stock Scraping.`);
+    return null;
+  }
+  
+  try {
+    // 日本株スクレイピング用に証券コードをフォーマット
+    const stockCode = formatCodeForJPStockScraping(ticker);
+    console.log(`Formatted code for JP Stock Scraping: ${stockCode}`);
+    
+    console.log(`Attempting to fetch data for ${stockCode} from JP Stock Scraping at: ${JP_STOCK_SCRAPING_URL}`);
+    
+    // スクレイピングプロキシにリクエスト - リトライメカニズム追加
+    let retries = 2; // 最大3回試行（初回 + 2回リトライ）
+    let response = null;
+    let error = null;
+    
+    while (retries >= 0) {
+      try {
+        response = await axios.get(JP_STOCK_SCRAPING_URL, {
+          params: { 
+            code: stockCode 
+          },
+          timeout: JP_STOCK_SCRAPING_TIMEOUT + (2 - retries) * 3000, // リトライごとにタイムアウトを延長
+          validateStatus: function (status) {
+            // 全てのステータスコードを許可して、エラー時にPromiseをリジェクトしないようにする
+            return true;
+          }
+        });
+        
+        // 成功した場合はループを抜ける
+        if (response.status === 200 && response.data && response.data.success) {
+          break;
+        }
+        
+        retries--;
+        if (retries >= 0) {
+          console.log(`Retrying JP Stock Scraping for ${stockCode}, attempts left: ${retries}`);
+          // 次の試行前に短い遅延を入れる（スクレイピングは時間がかかることがあるため）
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+      } catch (e) {
+        error = e;
+        retries--;
+        if (retries >= 0) {
+          console.log(`Error fetching from JP Stock Scraping, retrying... (${retries} attempts left)`);
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+      }
+    }
+    
+    // レスポンスデータをログ（デバッグ用）
+    console.log(`JP Stock Scraping response for ${stockCode}:`, response?.data);
+    
+    // データの存在を確認
+    if (response?.data?.success && response.data.data) {
+      const stockData = response.data.data;
+      
+      // 価格の存在確認
+      if (stockData && stockData.price) {
+        const price = stockData.price;
+        
+        console.log(`Successfully fetched data for ${stockCode} from JP Stock Scraping: ${price}`);
+        
+        // 銘柄名を取得
+        const name = stockData.name || ticker;
+        
+        // ファンドタイプを判定（ETFかどうかなど）
+        const fundType = determineFundType(ticker, name);
+        
+        console.log(`Determined fund type for ${ticker} from JP Stock Scraping: ${fundType}`);
+        
+        // 個別株かどうかを判定
+        const isStock = fundType === FUND_TYPES.STOCK;
+        
+        // 手数料情報を取得
+        const feeInfo = estimateAnnualFee(ticker, name);
+        
+        // 基本情報を取得
+        const fundInfo = extractFundInfo(ticker, name);
+        
+        // 配当情報の取得
+        const dividendInfo = estimateDividendYield(ticker, name);
+        
+        // 配当情報を確定
+        const hasDividend = determineHasDividend(ticker);
+        
+        // 通貨判定
+        const currency = stockData.currency || 'JPY';
+        
+        // 手数料情報（個別株は常に0%）
+        const annualFee = isStock ? 0 : feeInfo.fee;
+        
+        // データソース表示用（スクレイピング元のサイト名）
+        const dataSource = stockData.source || SCRAPING_DATA_SOURCES.MINKABU;
+        
+        return {
+          success: true,
+          data: {
+            id: ticker,
+            name: name,
+            ticker: ticker,
+            exchangeMarket: 'Japan',
+            price: price,
+            currency: currency,
+            holdings: 0,
+            annualFee: annualFee,
+            fundType: fundType,
+            isStock: isStock,
+            isMutualFund: false,
+            feeSource: isStock ? '個別株' : feeInfo.source,
+            feeIsEstimated: isStock ? false : feeInfo.isEstimated,
+            region: fundInfo.region || 'Japan',
+            lastUpdated: stockData.lastUpdated || new Date().toISOString(),
+            source: dataSource,
+            // 配当情報
+            dividendYield: dividendInfo.yield,
+            hasDividend: hasDividend,
+            dividendFrequency: dividendInfo.dividendFrequency,
+            dividendIsEstimated: dividendInfo.isEstimated,
+            // 株価表示ラベル
+            priceLabel: '株価'
+          },
+          message: `${dataSource}から正常に取得しました`
+        };
+      }
+    }
+    
+    console.log(`No valid data found for ${stockCode} from JP Stock Scraping`);
+    return null;
+  } catch (error) {
+    console.error(`JP Stock Scraping error for ${ticker}:`, error.message);
+    
+    if (error.response) {
+      console.error(`JP Stock Scraping response error status: ${error.response.status}`);
+      console.error(`JP Stock Scraping response data:`, error.response.data);
+    }
+    
+    return null;
+  }
+}
+
+/**
+ * 投資信託スクレイピングプロキシからデータを取得する（新規追加）
+ * @param {string} ticker - ティッカーシンボル（投資信託コード）
+ * @returns {Promise<Object>} - 投資信託データまたはnull
+ */
+async function fetchFromMutualFundScraping(ticker) {
+  // 投資信託スクレイピングが無効化されている場合は直接nullを返す
+  if (!ENABLE_MUTUAL_FUND_SCRAPING) {
+    console.log(`Mutual Fund Scraping is disabled. Skipping fetch for ${ticker}`);
+    return null;
+  }
+  
+  // 投資信託でない場合は処理しない
+  if (!isMutualFund(ticker)) {
+    console.log(`${ticker} is not a mutual fund. Skipping Mutual Fund Scraping.`);
+    return null;
+  }
+  
+  try {
+    // 投資信託スクレイピング用にファンドコードをフォーマット
+    const fundCode = formatCodeForMutualFundScraping(ticker);
+    console.log(`Formatted code for Mutual Fund Scraping: ${fundCode}`);
+    
+    console.log(`Attempting to fetch data for ${fundCode} from Mutual Fund Scraping at: ${MUTUAL_FUND_SCRAPING_URL}`);
+    
+    // スクレイピングプロキシにリクエスト - リトライメカニズム追加
+    let retries = 2; // 最大3回試行（初回 + 2回リトライ）
+    let response = null;
+    let error = null;
+    
+    while (retries >= 0) {
+      try {
+        response = await axios.get(MUTUAL_FUND_SCRAPING_URL, {
+          params: { 
+            code: fundCode 
+          },
+          timeout: MUTUAL_FUND_SCRAPING_TIMEOUT + (2 - retries) * 3000, // リトライごとにタイムアウトを延長
+          validateStatus: function (status) {
+            // 全てのステータスコードを許可して、エラー時にPromiseをリジェクトしないようにする
+            return true;
+          }
+        });
+        
+        // 成功した場合はループを抜ける
+        if (response.status === 200 && response.data && response.data.success) {
+          break;
+        }
+        
+        retries--;
+        if (retries >= 0) {
+          console.log(`Retrying Mutual Fund Scraping for ${fundCode}, attempts left: ${retries}`);
+          // 次の試行前に短い遅延を入れる（スクレイピングは時間がかかることがあるため）
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+      } catch (e) {
+        error = e;
+        retries--;
+        if (retries >= 0) {
+          console.log(`Error fetching from Mutual Fund Scraping, retrying... (${retries} attempts left)`);
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+      }
+    }
+    
+    // レスポンスデータをログ（デバッグ用）
+    console.log(`Mutual Fund Scraping response for ${fundCode}:`, response?.data);
+    
+    // データの存在を確認
+    if (response?.data?.success && response.data.data) {
+      const fundData = response.data.data;
+      
+      // 価格の存在確認
+      if (fundData && fundData.price) {
+        const price = fundData.price;
+        
+        console.log(`Successfully fetched data for ${fundCode} from Mutual Fund Scraping: ${price}`);
+        
+        // ファンド名を取得
+        const name = fundData.name || `投資信託 ${ticker}`;
+        
+        // 手数料情報を取得
+        const feeInfo = estimateAnnualFee(ticker, name);
+        
+        // 基本情報を取得
+        const fundInfo = extractFundInfo(ticker, name);
+        
+        // 配当情報の取得
+        const dividendInfo = estimateDividendYield(ticker, name);
+        
+        // 配当情報を確定
+        const hasDividend = determineHasDividend(ticker);
+        
+        // 通貨判定
+        const currency = fundData.currency || 'JPY';
+        
+        // データソース表示用（スクレイピング元のサイト名）
+        const dataSource = fundData.source || SCRAPING_DATA_SOURCES.TOUSHIN_LIB;
+        
+        return {
+          success: true,
+          data: {
+            id: ticker,
+            name: name,
+            ticker: ticker,
+            exchangeMarket: 'Japan',
+            price: price,
+            currency: currency,
+            holdings: 0,
+            annualFee: feeInfo.fee,
+            fundType: FUND_TYPES.MUTUAL_FUND,
+            isStock: false,
+            isMutualFund: true,
+            feeSource: '投資信託',
+            feeIsEstimated: feeInfo.isEstimated,
+            region: fundInfo.region || 'Japan',
+            lastUpdated: fundData.lastUpdated || new Date().toISOString(),
+            source: dataSource,
+            // 配当情報
+            dividendYield: dividendInfo.yield,
+            hasDividend: hasDividend,
+            dividendFrequency: dividendInfo.dividendFrequency,
+            dividendIsEstimated: dividendInfo.isEstimated,
+            // 基準価額ラベル
+            priceLabel: '基準価額'
+          },
+          message: `${dataSource}から正常に取得しました`
+        };
+      }
+    }
+    
+    console.log(`No valid data found for ${fundCode} from Mutual Fund Scraping`);
+    return null;
+  } catch (error) {
+    console.error(`Mutual Fund Scraping error for ${ticker}:`, error.message);
+    
+    if (error.response) {
+      console.error(`Mutual Fund Scraping response error status: ${error.response.status}`);
+      console.error(`Mutual Fund Scraping response data:`, error.response.data);
+    }
+    
+    return null;
+  }
+}
+
+/**
  * Yahoo Finance APIからデータを取得する
  * @param {string} ticker - ティッカーシンボル
  * @returns {Promise<Object>} - Yahoo Financeからのデータまたはnull
@@ -673,47 +1033,140 @@ export async function fetchTickerData(ticker) {
   const isJapanese = isJapaneseStock(ticker);
   const isMutualFundTicker = isMutualFund(ticker);
   
+  // データ取得試行履歴
+  let jpStockScrapingTried = false;
+  let jpStockScrapingSuccess = false;
+  let mutualFundScrapingTried = false;
+  let mutualFundScrapingSuccess = false;
   let alpacaTried = false;
   let alpacaSuccess = false;
   let yahooFinanceTried = false;
   let yahooFinanceSuccess = false;
   
-  // 投資信託または日本株の場合はYahoo Financeを優先
-  if (isJapanese || isMutualFundTicker) {
+  // 投資信託の場合
+  if (isMutualFundTicker) {
     try {
-      // Yahoo Finance APIからデータ取得を試みる
-      console.log(`${ticker} is a Japanese stock or mutual fund. Trying Yahoo Finance first.`);
+      // 投資信託スクレイピングからデータ取得を試みる
+      console.log(`${ticker} is a mutual fund. Trying Mutual Fund Scraping first.`);
+      mutualFundScrapingTried = true;
+      const mutualFundResult = await fetchFromMutualFundScraping(ticker);
+      
+      if (mutualFundResult && mutualFundResult.success) {
+        mutualFundScrapingSuccess = true;
+        return {
+          ...mutualFundResult,
+          mutualFundScrapingTried,
+          mutualFundScrapingSuccess
+        };
+      }
+      
+      // 投資信託スクレイピングが失敗した場合は、Yahoo Financeを試行
+      console.log(`Mutual Fund Scraping failed for ${ticker}. Trying Yahoo Finance.`);
       yahooFinanceTried = true;
       const yahooResult = await fetchFromYahoo(ticker);
       
       if (yahooResult && yahooResult.success) {
         yahooFinanceSuccess = true;
-        return yahooResult;
+        return {
+          ...yahooResult,
+          mutualFundScrapingTried,
+          mutualFundScrapingSuccess,
+          yahooFinanceTried,
+          yahooFinanceSuccess
+        };
       }
       
-      // Yahoo Financeが失敗した場合は、フォールバック値を使用
-      console.log(`Yahoo Finance failed for ${ticker}. Using fallback data.`);
+      // すべてのAPIが失敗した場合は、フォールバック値を使用
+      console.log(`All APIs failed for ${ticker}. Using fallback data.`);
       const fallbackData = generateFallbackTickerData(ticker);
       
       return {
         ...fallbackData,
+        mutualFundScrapingTried,
+        mutualFundScrapingSuccess,
         yahooFinanceTried,
         yahooFinanceSuccess,
-        message: `Yahoo Financeからのデータ取得に失敗しました: ${ticker}. フォールバック値を使用します。`
+        message: `全てのAPIからのデータ取得に失敗しました: ${ticker}. フォールバック値を使用します。`
       };
     } catch (error) {
-      console.error(`Error fetching ${ticker} from Yahoo Finance:`, error.message);
+      console.error(`Error fetching mutual fund data for ${ticker}:`, error.message);
       
       // フォールバック値を使用
       const fallbackData = generateFallbackTickerData(ticker);
       
       return {
         ...fallbackData,
+        mutualFundScrapingTried,
+        mutualFundScrapingSuccess,
         yahooFinanceTried,
-        yahooFinanceSuccess: false,
+        yahooFinanceSuccess,
         error: true,
         errorMessage: error.message,
-        message: `Yahoo Financeでエラーが発生しました: ${error.message}. フォールバック値を使用します。`
+        message: `データ取得中にエラーが発生しました: ${error.message}. フォールバック値を使用します。`
+      };
+    }
+  }
+  
+  // 日本株の場合
+  if (isJapanese) {
+    try {
+      // 日本株スクレイピングからデータ取得を試みる
+      console.log(`${ticker} is a Japanese stock. Trying JP Stock Scraping first.`);
+      jpStockScrapingTried = true;
+      const jpStockResult = await fetchFromJPStockScraping(ticker);
+      
+      if (jpStockResult && jpStockResult.success) {
+        jpStockScrapingSuccess = true;
+        return {
+          ...jpStockResult,
+          jpStockScrapingTried,
+          jpStockScrapingSuccess
+        };
+      }
+      
+      // 日本株スクレイピングが失敗した場合は、Yahoo Financeを試行
+      console.log(`JP Stock Scraping failed for ${ticker}. Trying Yahoo Finance.`);
+      yahooFinanceTried = true;
+      const yahooResult = await fetchFromYahoo(ticker);
+      
+      if (yahooResult && yahooResult.success) {
+        yahooFinanceSuccess = true;
+        return {
+          ...yahooResult,
+          jpStockScrapingTried,
+          jpStockScrapingSuccess,
+          yahooFinanceTried,
+          yahooFinanceSuccess
+        };
+      }
+      
+      // すべてのAPIが失敗した場合は、フォールバック値を使用
+      console.log(`All APIs failed for ${ticker}. Using fallback data.`);
+      const fallbackData = generateFallbackTickerData(ticker);
+      
+      return {
+        ...fallbackData,
+        jpStockScrapingTried,
+        jpStockScrapingSuccess,
+        yahooFinanceTried,
+        yahooFinanceSuccess,
+        message: `全てのAPIからのデータ取得に失敗しました: ${ticker}. フォールバック値を使用します。`
+      };
+    } catch (error) {
+      console.error(`Error fetching Japanese stock data for ${ticker}:`, error.message);
+      
+      // フォールバック値を使用
+      const fallbackData = generateFallbackTickerData(ticker);
+      
+      return {
+        ...fallbackData,
+        jpStockScrapingTried,
+        jpStockScrapingSuccess,
+        yahooFinanceTried,
+        yahooFinanceSuccess,
+        error: true,
+        errorMessage: error.message,
+        message: `データ取得中にエラーが発生しました: ${error.message}. フォールバック値を使用します。`
       };
     }
   }
@@ -988,6 +1441,13 @@ export async function fetchMultipleTickerData(tickers) {
     return stats;
   }, {});
   
+  // スクレイピングソースのカウント
+  const jpStockScrapingResults = results.filter(result => result.jpStockScrapingTried);
+  const jpStockScrapingSuccess = jpStockScrapingResults.filter(result => result.jpStockScrapingSuccess);
+  
+  const mutualFundScrapingResults = results.filter(result => result.mutualFundScrapingTried);
+  const mutualFundScrapingSuccess = mutualFundScrapingResults.filter(result => result.mutualFundScrapingSuccess);
+  
   // Alpacaの成功/失敗カウントを計算
   const alpacaResults = results.filter(result => result.alpacaTried);
   const alpacaSuccess = alpacaResults.filter(result => result.alpacaSuccess);
@@ -1004,9 +1464,18 @@ export async function fetchMultipleTickerData(tickers) {
   console.log(`Data source statistics:`, sourceStats);
   console.log(`Stock types: Japanese: ${japaneseStocks.length}, US: ${usStocks.length}, Mutual Funds: ${mutualFunds.length}`);
   
+  if (jpStockScrapingResults.length > 0) {
+    console.log(`JP Stock Scraping statistics: tried: ${jpStockScrapingResults.length}, succeeded: ${jpStockScrapingSuccess.length}`);
+  }
+  
+  if (mutualFundScrapingResults.length > 0) {
+    console.log(`Mutual Fund Scraping statistics: tried: ${mutualFundScrapingResults.length}, succeeded: ${mutualFundScrapingSuccess.length}`);
+  }
+  
   if (alpacaResults.length > 0) {
     console.log(`Alpaca statistics: tried: ${alpacaResults.length}, succeeded: ${alpacaSuccess.length}`);
   }
+  
   if (yahooResults.length > 0) {
     console.log(`Yahoo Finance statistics: tried: ${yahooResults.length}, succeeded: ${yahooSuccess.length}`);
   }
@@ -1035,6 +1504,21 @@ export async function fetchMultipleTickerData(tickers) {
       message: result.message,
       source: result.data.source
     })),
+    // スクレイピングソースの統計を追加
+    jpStockScrapingStats: {
+      tried: jpStockScrapingResults.length,
+      succeeded: jpStockScrapingSuccess.length,
+      failedTickers: jpStockScrapingResults
+        .filter(r => !r.jpStockScrapingSuccess)
+        .map(r => r.ticker)
+    },
+    mutualFundScrapingStats: {
+      tried: mutualFundScrapingResults.length,
+      succeeded: mutualFundScrapingSuccess.length,
+      failedTickers: mutualFundScrapingResults
+        .filter(r => !r.mutualFundScrapingSuccess)
+        .map(r => r.ticker)
+    },
     alpacaStats: {
       tried: alpacaResults.length,
       succeeded: alpacaSuccess.length,
@@ -1057,6 +1541,24 @@ export async function fetchMultipleTickerData(tickers) {
   };
   
   // APIの統計情報をメッセージに含める
+  if (jpStockScrapingResults.length > 0) {
+    if (jpStockScrapingSuccess.length > 0) {
+      resultInfo.jpStockScrapingSuccessMessage = `${jpStockScrapingSuccess.length}件の日本株はスクレイピングから取得しました`;
+    }
+    if (jpStockScrapingResults.length - jpStockScrapingSuccess.length > 0) {
+      resultInfo.jpStockScrapingFailureMessage = `${jpStockScrapingResults.length - jpStockScrapingSuccess.length}件の日本株はスクレイピングから取得できませんでした`;
+    }
+  }
+  
+  if (mutualFundScrapingResults.length > 0) {
+    if (mutualFundScrapingSuccess.length > 0) {
+      resultInfo.mutualFundScrapingSuccessMessage = `${mutualFundScrapingSuccess.length}件の投資信託はスクレイピングから取得しました`;
+    }
+    if (mutualFundScrapingResults.length - mutualFundScrapingSuccess.length > 0) {
+      resultInfo.mutualFundScrapingFailureMessage = `${mutualFundScrapingResults.length - mutualFundScrapingSuccess.length}件の投資信託はスクレイピングから取得できませんでした`;
+    }
+  }
+  
   if (alpacaResults.length > 0) {
     if (alpacaSuccess.length > 0) {
       resultInfo.alpacaSuccessMessage = `${alpacaSuccess.length}件の銘柄はAlpaca APIから取得しました`;
