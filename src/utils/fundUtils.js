@@ -2,17 +2,18 @@
  * ファンドの種類と手数料推定のためのユーティリティ関数
  */
 
-// データソース定数（新規追加）
+// データソース定数（更新版）
 export const DATA_SOURCES = {
-  ALPHA_VANTAGE: 'Alpha Vantage',
-  PYTHON_YFINANCE: 'Python yfinance',
+  ALPACA: 'Alpaca',
+  YAHOO_FINANCE: 'Yahoo Finance',
+  EXCHANGERATE: 'exchangerate.host',
   FALLBACK: 'Fallback'
 };
 
-// データソース優先順位（新規追加）
+// データソース優先順位（更新版）
 export const SOURCE_PRIORITY = [
-  DATA_SOURCES.ALPHA_VANTAGE, // プライマリソース
-  DATA_SOURCES.PYTHON_YFINANCE, // セカンダリソース
+  DATA_SOURCES.ALPACA, // 米国株向けプライマリソース
+  DATA_SOURCES.YAHOO_FINANCE, // 日本株・投資信託向けプライマリソース
   DATA_SOURCES.FALLBACK // 最終フォールバック
 ];
 
@@ -31,6 +32,7 @@ export const FUND_TYPES = {
   CRYPTO: '暗号資産関連',
   BOND: '債券',
   STOCK: '個別株',
+  MUTUAL_FUND: '投資信託',
   UNKNOWN: '不明'
 };
 
