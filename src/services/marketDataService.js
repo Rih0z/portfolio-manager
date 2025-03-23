@@ -9,9 +9,7 @@ import {
   TICKER_SPECIFIC_FEES,
   TICKER_SPECIFIC_DIVIDENDS,
   FUND_TYPES,
-  US_ETF_LIST,
-  DATA_SOURCES,
-  SOURCE_PRIORITY
+  US_ETF_LIST
 } from '../utils/fundUtils';
 
 // 環境に応じたベースURL設定
@@ -35,10 +33,15 @@ const ALPHA_VANTAGE_URL = isLocalhost
   ? '/.netlify/functions/alpha-vantage-proxy' // ローカル環境
   : `${BASE_URL}/.netlify/functions/alpha-vantage-proxy`; // 本番環境
 
-// Python yfinance APIエンドポイント（バックアップソース）
+// Python yfinance APIエンドポイント（元のままで変更なし）
 const YFINANCE_URL = isLocalhost
   ? '/api/yfinance-proxy' // ローカル環境では直接プロキシ経由
   : `${BASE_URL}/api/yfinance-proxy`; // 本番環境
+
+// 追加: Yahoo Finance APIエンドポイント（Python非依存版）
+const YAHOO_FINANCE_URL = isLocalhost
+  ? '/api/yahoo-finance-proxy' // ローカル環境では直接プロキシ経由
+  : `${BASE_URL}/api/yahoo-finance-proxy`; // 本番環境
 
 // 環境変数または固定値からAPIキーを取得
 const ALPHA_VANTAGE_KEY = process.env.REACT_APP_ALPHA_VANTAGE_API_KEY || 'GC4EBI5YHFKOJEXY';
@@ -46,13 +49,32 @@ const ALPHA_VANTAGE_KEY = process.env.REACT_APP_ALPHA_VANTAGE_API_KEY || 'GC4EBI
 // yfinance APIの利用可能フラグ（一時的に無効化する場合はfalse）
 const ENABLE_YFINANCE_API = true; // 必要に応じてfalseに変更可能
 
+// Yahoo Finance APIの利用可能フラグ
+const ENABLE_YAHOO_FINANCE_API = true;
+
+// データソース定数
+const DATA_SOURCES = {
+  ALPHA_VANTAGE: 'Alpha Vantage',
+  PYTHON_YFINANCE: 'Python yfinance', // 元の名前を保持
+  YAHOO_FINANCE: 'Yahoo Finance', // 新しい名前を追加
+  FALLBACK: 'Fallback'
+};
+
+// データソース優先順位（Yahoo Finance APIを使用）
+const SOURCE_PRIORITY = [
+  DATA_SOURCES.ALPHA_VANTAGE,
+  DATA_SOURCES.YAHOO_FINANCE, // Python yfinanceの代わりにYahoo Financeを優先
+  DATA_SOURCES.FALLBACK
+];
+
 // 設定情報をログ出力（開発時の確認用）
 console.log(`API Configuration:
 - Environment: ${isLocalhost ? 'Local development' : 'Production'}
 - Base URL: ${BASE_URL || '(using proxy)'}
 - Alpha Vantage API (Primary): ${ALPHA_VANTAGE_URL}
-- Python yfinance API (Fallback): ${YFINANCE_URL}
-- Python yfinance API Enabled: ${ENABLE_YFINANCE_API}
+- Python yfinance API (元・バックアップ): ${YFINANCE_URL}
+- Yahoo Finance API (現在のバックアップ): ${YAHOO_FINANCE_URL}
+- Yahoo Finance API Enabled: ${ENABLE_YAHOO_FINANCE_API}
 - Alpha Vantage Key: ${ALPHA_VANTAGE_KEY.substring(0, 4)}...
 `);
 
@@ -296,12 +318,12 @@ function determineHasDividend(ticker) {
 }
 
 /**
- * Python yfinanceからデータを取得する
+ * Python yfinanceからデータを取得する (元のままで残す)
  * @param {string} ticker - ティッカーシンボル
  * @returns {Promise<Object>} - Python yfinanceからのデータまたはnull
  */
 async function fetchFromPythonYfinance(ticker) {
-  // yfinance APIが無効化されている場合は直接nullを返す
+  // Python yfinance APIが無効化されている場合は直接nullを返す
   if (!ENABLE_YFINANCE_API) {
     console.log(`Python yfinance API is disabled. Skipping fetch for ${ticker}`);
     return null;
@@ -415,8 +437,132 @@ async function fetchFromPythonYfinance(ticker) {
 }
 
 /**
+ * Yahoo Finance APIからデータを取得する (新規追加)
+ * @param {string} ticker - ティッカーシンボル
+ * @returns {Promise<Object>} - Yahoo Financeからのデータまたはnull
+ */
+async function fetchFromYahooFinance(ticker) {
+  // Yahoo Finance APIが無効化されている場合は直接nullを返す
+  if (!ENABLE_YAHOO_FINANCE_API) {
+    console.log(`Yahoo Finance API is disabled. Skipping fetch for ${ticker}`);
+    return null;
+  }
+  
+  try {
+    // Yahoo Finance用にティッカーをフォーマット
+    const formattedTicker = formatTickerForYfinance(ticker);
+    console.log(`Attempting to fetch data for ${formattedTicker} from Yahoo Finance at: ${YAHOO_FINANCE_URL}`);
+    
+    // Yahoo Financeプロキシにリクエスト
+    const response = await axios.get(YAHOO_FINANCE_URL, {
+      params: { 
+        symbols: formattedTicker 
+      },
+      timeout: 30000, // 30秒タイムアウト
+      validateStatus: function (status) {
+        // 全てのステータスコードを許可して、エラー時にPromiseをリジェクトしないようにする
+        return true;
+      }
+    });
+    
+    // ステータスコードをチェック
+    if (response.status !== 200) {
+      console.log(`Yahoo Finance returned status code ${response.status} for ${formattedTicker}`);
+      return null;
+    }
+    
+    // レスポンスデータをログ（デバッグ用）
+    console.log(`Yahoo Finance response for ${formattedTicker}:`, response.data);
+    
+    // データの存在を確認
+    if (response.data && response.data.success) {
+      const quoteData = response.data.data[formattedTicker];
+      
+      if (!quoteData) {
+        console.log(`No data found for ${formattedTicker} in Yahoo Finance response`);
+        return null;
+      }
+      
+      // 価格の存在確認
+      if (quoteData && quoteData.price) {
+        const price = quoteData.price;
+        
+        console.log(`Successfully fetched data for ${formattedTicker} from Yahoo Finance: $${price}`);
+        
+        // 銘柄名を取得
+        const name = quoteData.name || ticker;
+        
+        // ファンドタイプを判定
+        const fundType = determineFundType(ticker, name);
+        console.log(`Determined fund type for ${ticker} from Yahoo Finance: ${fundType}`);
+        
+        // 個別株かどうかを判定
+        const isStock = fundType === FUND_TYPES.STOCK;
+        
+        // 手数料情報を取得
+        const feeInfo = estimateAnnualFee(ticker, name);
+        
+        // 基本情報を取得
+        const fundInfo = extractFundInfo(ticker, name);
+        
+        // 配当情報の取得
+        const dividendInfo = estimateDividendYield(ticker, name);
+        
+        // 配当情報を確定
+        const hasDividend = determineHasDividend(ticker);
+        
+        // 通貨判定
+        const currency = quoteData.currency || fundInfo.currency || 
+                         (ticker.includes('.T') ? 'JPY' : 'USD');
+        
+        // 手数料情報（個別株は常に0%）
+        const annualFee = isStock ? 0 : feeInfo.fee;
+        
+        return {
+          success: true,
+          data: {
+            id: ticker,
+            name: name,
+            ticker: ticker,
+            exchangeMarket: ticker.includes('.T') ? 'Japan' : 'US',
+            price: price,
+            currency: currency,
+            holdings: 0,
+            annualFee: annualFee,
+            fundType: fundType,
+            isStock: isStock,
+            feeSource: isStock ? '個別株' : feeInfo.source,
+            feeIsEstimated: isStock ? false : feeInfo.isEstimated,
+            region: fundInfo.region || 'unknown',
+            lastUpdated: new Date().toISOString(),
+            source: DATA_SOURCES.YAHOO_FINANCE, // データソースを更新
+            // 配当情報
+            dividendYield: dividendInfo.yield,
+            hasDividend: hasDividend,
+            dividendFrequency: dividendInfo.dividendFrequency,
+            dividendIsEstimated: dividendInfo.isEstimated
+          },
+          message: 'Yahoo Financeから正常に取得しました'
+        };
+      }
+    }
+    
+    console.log(`No valid data found for ${formattedTicker} from Yahoo Finance`);
+    return null;
+  } catch (error) {
+    console.error(`Yahoo Finance error for ${ticker}:`, error.message);
+    
+    if (error.response) {
+      console.error(`Yahoo Finance response error status: ${error.response.status}`);
+    }
+    
+    return null;
+  }
+}
+
+/**
  * 銘柄データを取得 - Alpha Vantageをプライマリソース、
- * 失敗時はPython yfinanceをフォールバックとして使用
+ * 失敗時はYahoo Financeをフォールバックとして使用（Python yfinanceは使用しない）
  * @param {string} ticker - ティッカーシンボル
  * @returns {Promise<Object>} - 銘柄データとステータス
  */
@@ -439,8 +585,8 @@ export async function fetchTickerData(ticker) {
   const formattedTicker = formatTickerForAlphaVantage(ticker);
   console.log(`Original ticker: ${ticker}, Formatted for Alpha Vantage: ${formattedTicker}, Is US ETF: ${isUSETF}`);
   
-  let usedYfinance = false;
-  let yfinanceSuccess = false;
+  let usedYahooFinance = false;
+  let yahooFinanceSuccess = false;
   
   try {
     // Alpha Vantage APIからデータ取得を試みる（プライマリソース）
@@ -463,28 +609,28 @@ export async function fetchTickerData(ticker) {
     
     // APIレート制限のチェック
     if (response.data && response.data.Note && response.data.Note.includes('API call frequency')) {
-      console.warn(`Alpha Vantage API rate limit reached for ${formattedTicker}, trying Python yfinance`);
+      console.warn(`Alpha Vantage API rate limit reached for ${formattedTicker}, trying Yahoo Finance`);
       
-      // Python yfinanceをフォールバックとして試行 - APIが有効化されている場合のみ
-      if (ENABLE_YFINANCE_API) {
-        usedYfinance = true;
-        const yfinanceResult = await fetchFromPythonYfinance(ticker);
-        if (yfinanceResult && yfinanceResult.success) {
-          yfinanceSuccess = true;
-          return yfinanceResult;
+      // Yahoo Financeをフォールバックとして試行
+      if (ENABLE_YAHOO_FINANCE_API) {
+        usedYahooFinance = true;
+        const yahooFinanceResult = await fetchFromYahooFinance(ticker);
+        if (yahooFinanceResult && yahooFinanceResult.success) {
+          yahooFinanceSuccess = true;
+          return yahooFinanceResult;
         }
       } else {
-        console.log('Python yfinance API is disabled. Using fallback data directly.');
+        console.log('Yahoo Finance API is disabled. Using fallback data directly.');
       }
       
-      // Python yfinanceも失敗した場合はフォールバック値を使用
+      // Yahoo Financeも失敗した場合はフォールバック値を使用
       return {
         success: false,
         message: 'Alpha Vantage APIのリクエスト制限に達し、フォールバック値を使用します。',
         error: true,
         errorType: 'RATE_LIMIT',
-        yfinanceTried: usedYfinance,
-        yfinanceSuccess: false,
+        yahooFinanceTried: usedYahooFinance,
+        yahooFinanceSuccess: false,
         data: generateFallbackTickerData(ticker).data
       };
     }
@@ -563,37 +709,37 @@ export async function fetchTickerData(ticker) {
             message: '正常に取得しました'
           };
         } else {
-          console.warn(`Invalid price value for ${formattedTicker}: ${price}. Trying Python yfinance.`);
+          console.warn(`Invalid price value for ${formattedTicker}: ${price}. Trying Yahoo Finance.`);
         }
       } else {
-        console.warn(`Missing price data for ${formattedTicker} in response. Trying Python yfinance.`);
+        console.warn(`Missing price data for ${formattedTicker} in response. Trying Yahoo Finance.`);
       }
     } else if (response.data && response.data['Error Message']) {
       // Alpha Vantage のエラーメッセージがある場合
       console.error(`Alpha Vantage API error for ${formattedTicker}: ${response.data['Error Message']}`);
-      console.log(`Attempting fallback to Python yfinance for ${ticker}`);
+      console.log(`Attempting fallback to Yahoo Finance for ${ticker}`);
     }
     
-    // Alpha Vantageからデータを取得できなかった場合、Python yfinanceを試行 - APIが有効化されている場合のみ
-    if (ENABLE_YFINANCE_API) {
-      console.log(`No valid data found for ${formattedTicker} from Alpha Vantage, trying Python yfinance`);
-      usedYfinance = true;
-      const yfinanceResult = await fetchFromPythonYfinance(ticker);
-      if (yfinanceResult && yfinanceResult.success) {
-        yfinanceSuccess = true;
-        return yfinanceResult;
+    // Alpha Vantageからデータを取得できなかった場合、Yahoo Financeを試行
+    if (ENABLE_YAHOO_FINANCE_API) {
+      console.log(`No valid data found for ${formattedTicker} from Alpha Vantage, trying Yahoo Finance`);
+      usedYahooFinance = true;
+      const yahooFinanceResult = await fetchFromYahooFinance(ticker);
+      if (yahooFinanceResult && yahooFinanceResult.success) {
+        yahooFinanceSuccess = true;
+        return yahooFinanceResult;
       }
     } else {
-      console.log('Python yfinance API is disabled. Using fallback data directly.');
+      console.log('Yahoo Finance API is disabled. Using fallback data directly.');
     }
     
-    // Python yfinanceも失敗した場合、フォールバック値を使用
+    // Yahoo Financeも失敗した場合、フォールバック値を使用
     console.log(`Using fallback data for ${ticker}`);
     const fallbackData = generateFallbackTickerData(ticker);
     return {
       ...fallbackData,
-      yfinanceTried: usedYfinance,
-      yfinanceSuccess: false
+      yahooFinanceTried: usedYahooFinance,
+      yahooFinanceSuccess: false
     };
     
   } catch (error) {
@@ -622,20 +768,20 @@ export async function fetchTickerData(ticker) {
     
     console.log(errorMessage);
     
-    // Alpha Vantageが失敗した場合、Python yfinanceを試行 - APIが有効化されている場合のみ
-    if (ENABLE_YFINANCE_API) {
+    // Alpha Vantageが失敗した場合、Yahoo Financeを試行
+    if (ENABLE_YAHOO_FINANCE_API) {
       try {
-        usedYfinance = true;
-        const yfinanceResult = await fetchFromPythonYfinance(ticker);
-        if (yfinanceResult && yfinanceResult.success) {
-          yfinanceSuccess = true;
-          return yfinanceResult;
+        usedYahooFinance = true;
+        const yahooFinanceResult = await fetchFromYahooFinance(ticker);
+        if (yahooFinanceResult && yahooFinanceResult.success) {
+          yahooFinanceSuccess = true;
+          return yahooFinanceResult;
         }
-      } catch (yfinanceError) {
-        console.error(`Python yfinance also failed for ${ticker}:`, yfinanceError.message);
+      } catch (yahooFinanceError) {
+        console.error(`Yahoo Finance also failed for ${ticker}:`, yahooFinanceError.message);
       }
     } else {
-      console.log('Python yfinance API is disabled. Using fallback data directly.');
+      console.log('Yahoo Finance API is disabled. Using fallback data directly.');
     }
     
     // フォールバックデータを生成して返す
@@ -644,8 +790,8 @@ export async function fetchTickerData(ticker) {
     return {
       ...fallbackResult,
       errorType: errorType,
-      yfinanceTried: usedYfinance,
-      yfinanceSuccess: false,
+      yahooFinanceTried: usedYahooFinance,
+      yahooFinanceSuccess: false,
       message: `データ取得に失敗しました: ${error.message}. フォールバック値を使用します。`
     };
   }
@@ -674,7 +820,11 @@ function generateFallbackTickerData(ticker) {
     'VXUS': 60.0,
     'IBIT': 40.0,
     'LQD': 110.0,
-    'GLD': 200.0
+    'GLD': 200.0,
+    'SPY': 500.0,
+    'VOO': 450.0,
+    'VTI': 250.0,
+    'QQQ': 400.0
   };
   
   if (etfPrices[ticker]) {
@@ -770,13 +920,13 @@ export async function fetchMultipleTickerData(tickers) {
     return stats;
   }, {});
   
-  // Python yfinanceの成功/失敗カウントを計算
-  const yfinanceResults = results.filter(result => result.yfinanceTried);
-  const yfinanceSuccess = yfinanceResults.filter(result => result.yfinanceSuccess);
+  // Yahoo Financeの成功/失敗カウントを計算
+  const yahooFinanceResults = results.filter(result => result.yahooFinanceTried);
+  const yahooFinanceSuccess = yahooFinanceResults.filter(result => result.yahooFinanceSuccess);
   
   console.log(`Data source statistics:`, sourceStats);
-  if (yfinanceResults.length > 0) {
-    console.log(`Python yfinance statistics: tried: ${yfinanceResults.length}, succeeded: ${yfinanceSuccess.length}`);
+  if (yahooFinanceResults.length > 0) {
+    console.log(`Yahoo Finance statistics: tried: ${yahooFinanceResults.length}, succeeded: ${yahooFinanceSuccess.length}`);
   }
   
   // 全体の成功・失敗を判定
@@ -786,7 +936,7 @@ export async function fetchMultipleTickerData(tickers) {
   // 結果のサマリーをログ
   console.log(`Fetch summary: ${results.filter(r => r.success).length} succeeded, ${results.filter(r => !r.success).length} failed`);
   
-  // Python yfinanceの情報を含む
+  // Yahoo Financeの情報を含む
   const resultInfo = {
     success: allSuccess,
     data: results.map(result => result.data),
@@ -803,21 +953,21 @@ export async function fetchMultipleTickerData(tickers) {
       message: result.message,
       source: result.data.source
     })),
-    yfinanceStats: {
-      tried: yfinanceResults.length,
-      succeeded: yfinanceSuccess.length,
-      failedTickers: yfinanceResults
-        .filter(r => !r.yfinanceSuccess)
+    yahooFinanceStats: {
+      tried: yahooFinanceResults.length,
+      succeeded: yahooFinanceSuccess.length,
+      failedTickers: yahooFinanceResults
+        .filter(r => !r.yahooFinanceSuccess)
         .map(r => r.ticker)
     }
   };
   
-  if (yfinanceResults.length > 0) {
-    if (yfinanceSuccess.length > 0) {
-      resultInfo.yfinanceSuccessMessage = `${yfinanceSuccess.length}件の銘柄はPython yfinanceから取得しました`;
+  if (yahooFinanceResults.length > 0) {
+    if (yahooFinanceSuccess.length > 0) {
+      resultInfo.yahooFinanceSuccessMessage = `${yahooFinanceSuccess.length}件の銘柄はYahoo Financeから取得しました`;
     }
-    if (yfinanceResults.length - yfinanceSuccess.length > 0) {
-      resultInfo.yfinanceFailureMessage = `${yfinanceResults.length - yfinanceSuccess.length}件の銘柄はPython yfinanceからも取得できませんでした`;
+    if (yahooFinanceResults.length - yahooFinanceSuccess.length > 0) {
+      resultInfo.yahooFinanceFailureMessage = `${yahooFinanceResults.length - yahooFinanceSuccess.length}件の銘柄はYahoo Financeからも取得できませんでした`;
     }
   }
   
@@ -941,7 +1091,7 @@ export const fetchFundInfo = async function(ticker, name = '') {
 };
 
 /**
- * 為替レートを取得する
+ * 為替レートを取得する - Yahoo Financeをフォールバックとして使用
  * @param {string} fromCurrency - 変換元通貨
  * @param {string} toCurrency - 変換先通貨
  * @returns {Promise<Object>} - 為替レートデータとステータス
@@ -989,12 +1139,12 @@ export const fetchExchangeRate = async function(fromCurrency, toCurrency) {
       };
     }
     
-    console.log(`No valid exchange rate data for ${fromCurrency}/${toCurrency} from Alpha Vantage, trying Python yfinance`);
+    console.log(`No valid exchange rate data for ${fromCurrency}/${toCurrency} from Alpha Vantage, trying Yahoo Finance`);
     
-    // Python yfinanceを使った為替レート取得を試行 - APIが有効化されている場合のみ
-    if (ENABLE_YFINANCE_API) {
+    // Yahoo Financeを使った為替レート取得を試行
+    if (ENABLE_YAHOO_FINANCE_API) {
       try {
-        const yfinanceResponse = await axios.get(YFINANCE_URL, {
+        const yahooFinanceResponse = await axios.get(YAHOO_FINANCE_URL, {
           params: {
             exchange_rate: `${fromCurrency}${toCurrency}`
           },
@@ -1006,27 +1156,27 @@ export const fetchExchangeRate = async function(fromCurrency, toCurrency) {
         });
         
         // ステータスコードをチェック
-        if (yfinanceResponse.status === 200) {
-          if (yfinanceResponse.data && yfinanceResponse.data.success && yfinanceResponse.data.rate) {
-            const rate = yfinanceResponse.data.rate;
-            console.log(`Successfully fetched exchange rate for ${fromCurrency}/${toCurrency} from Python yfinance: ${rate}`);
+        if (yahooFinanceResponse.status === 200) {
+          if (yahooFinanceResponse.data && yahooFinanceResponse.data.success && yahooFinanceResponse.data.rate) {
+            const rate = yahooFinanceResponse.data.rate;
+            console.log(`Successfully fetched exchange rate for ${fromCurrency}/${toCurrency} from Yahoo Finance: ${rate}`);
             
             return {
               success: true,
               rate: rate,
-              source: DATA_SOURCES.PYTHON_YFINANCE,
-              message: 'Python yfinanceから正常に取得しました',
+              source: DATA_SOURCES.YAHOO_FINANCE,
+              message: 'Yahoo Financeから正常に取得しました',
               lastUpdated: new Date().toISOString()
             };
           }
         } else {
-          console.log(`Python yfinance returned status code ${yfinanceResponse.status} for exchange rate ${fromCurrency}${toCurrency}`);
+          console.log(`Yahoo Finance returned status code ${yahooFinanceResponse.status} for exchange rate ${fromCurrency}${toCurrency}`);
         }
-      } catch (yfinanceError) {
-        console.error(`Python yfinance exchange rate error:`, yfinanceError);
+      } catch (yahooFinanceError) {
+        console.error(`Yahoo Finance exchange rate error:`, yahooFinanceError);
       }
     } else {
-      console.log('Python yfinance API is disabled. Using fallback exchange rate directly.');
+      console.log('Yahoo Finance API is disabled. Using fallback exchange rate directly.');
     }
     
     // すべての取得方法が失敗した場合はデフォルト値を使用
@@ -1036,10 +1186,10 @@ export const fetchExchangeRate = async function(fromCurrency, toCurrency) {
     console.error('Exchange rate fetch error:', error);
     console.log(`Error fetching exchange rate for ${fromCurrency}/${toCurrency}, using fallback value`);
     
-    // Python yfinanceを使った為替レート取得を試行 - APIが有効化されている場合のみ
-    if (ENABLE_YFINANCE_API) {
+    // Yahoo Financeを使った為替レート取得を試行
+    if (ENABLE_YAHOO_FINANCE_API) {
       try {
-        const yfinanceResponse = await axios.get(YFINANCE_URL, {
+        const yahooFinanceResponse = await axios.get(YAHOO_FINANCE_URL, {
           params: {
             exchange_rate: `${fromCurrency}${toCurrency}`
           },
@@ -1051,27 +1201,27 @@ export const fetchExchangeRate = async function(fromCurrency, toCurrency) {
         });
         
         // ステータスコードをチェック
-        if (yfinanceResponse.status === 200) {
-          if (yfinanceResponse.data && yfinanceResponse.data.success && yfinanceResponse.data.rate) {
-            const rate = yfinanceResponse.data.rate;
-            console.log(`Successfully fetched exchange rate for ${fromCurrency}/${toCurrency} from Python yfinance: ${rate}`);
+        if (yahooFinanceResponse.status === 200) {
+          if (yahooFinanceResponse.data && yahooFinanceResponse.data.success && yahooFinanceResponse.data.rate) {
+            const rate = yahooFinanceResponse.data.rate;
+            console.log(`Successfully fetched exchange rate for ${fromCurrency}/${toCurrency} from Yahoo Finance: ${rate}`);
             
             return {
               success: true,
               rate: rate,
-              source: DATA_SOURCES.PYTHON_YFINANCE,
-              message: 'Python yfinanceから正常に取得しました',
+              source: DATA_SOURCES.YAHOO_FINANCE,
+              message: 'Yahoo Financeから正常に取得しました',
               lastUpdated: new Date().toISOString()
             };
           }
         } else {
-          console.log(`Python yfinance returned status code ${yfinanceResponse.status} for exchange rate ${fromCurrency}${toCurrency}`);
+          console.log(`Yahoo Finance returned status code ${yahooFinanceResponse.status} for exchange rate ${fromCurrency}${toCurrency}`);
         }
-      } catch (yfinanceError) {
-        console.error(`Python yfinance exchange rate error:`, yfinanceError);
+      } catch (yahooFinanceError) {
+        console.error(`Yahoo Finance exchange rate error:`, yahooFinanceError);
       }
     } else {
-      console.log('Python yfinance API is disabled. Using fallback exchange rate directly.');
+      console.log('Yahoo Finance API is disabled. Using fallback exchange rate directly.');
     }
     
     // フォールバック値を返す
