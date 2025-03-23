@@ -1,4 +1,3 @@
-
 // src/components/common/DataSourceBadge.jsx
 
 import React from 'react';
@@ -10,23 +9,23 @@ import React from 'react';
 const DataSourceBadge = ({ source, showIcon = true }) => {
   // ソースに応じたスタイルと説明を設定
   const sourceConfig = {
-    'Yahoo Finance': {
+    'Alpaca': {
       bgColor: 'bg-blue-100',
       textColor: 'text-blue-800',
       icon: '📊',
-      title: 'Yahoo Finance APIから取得'
+      title: 'Alpaca APIから取得した米国株データ'
     },
-    'Alpha Vantage': {
+    'Yahoo Finance': {
       bgColor: 'bg-green-100',
       textColor: 'text-green-800',
       icon: '📈',
-      title: 'Alpha Vantage APIから取得'
+      title: 'Yahoo Finance APIから取得した株価・投資信託データ'
     },
-    'MOF': {
+    'exchangerate.host': {
       bgColor: 'bg-indigo-100',
       textColor: 'text-indigo-800',
-      icon: '🏛️',
-      title: '財務省データから取得'
+      icon: '💱',
+      title: 'exchangerate.hostから取得した為替レートデータ'
     },
     'Fallback': {
       bgColor: 'bg-yellow-100',
@@ -45,6 +44,18 @@ const DataSourceBadge = ({ source, showIcon = true }) => {
       textColor: 'text-purple-800',
       icon: '💾',
       title: 'キャッシュデータを使用中'
+    },
+    'Alpha Vantage': {  // 旧ソース向け互換性対応
+      bgColor: 'bg-gray-100',
+      textColor: 'text-gray-800',
+      icon: '🔄',
+      title: '旧API (Alpha Vantage) からのデータ'
+    },
+    'Python yfinance': {  // 旧ソース向け互換性対応
+      bgColor: 'bg-gray-100',
+      textColor: 'text-gray-800',
+      icon: '🔄',
+      title: '旧API (Python yfinance) からのデータ'
     }
   };
   
@@ -56,16 +67,23 @@ const DataSourceBadge = ({ source, showIcon = true }) => {
     title: '不明なデータソース'
   };
   
+  // 表示テキストを短縮（オプション）
+  let displayText = source;
+  if (source === 'Yahoo Finance') {
+    displayText = 'YFinance';
+  } else if (source === 'exchangerate.host') {
+    displayText = 'Exchg.host';
+  }
+  
   return (
     <span 
       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.bgColor} ${config.textColor}`}
       title={config.title}
     >
       {showIcon && <span className="mr-1">{config.icon}</span>}
-      {source}
+      {displayText}
     </span>
   );
 };
 
 export default DataSourceBadge;
-
