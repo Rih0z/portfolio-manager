@@ -118,7 +118,8 @@
   <text x="675" y="470" font-family="Arial" font-size="10" fill="#333">Yes</text>
   
   <!-- フロー線 - Yahoo - No -->
-  <line x1="800" y1="480" x2="770" y2="480" x2="770" y2="520" stroke="#333" stroke-width="2" stroke-dasharray="5,5" />
+  <line x1="800" y1="480" x2="770" y2="480" stroke="#333" stroke-width="2" stroke-dasharray="5,5" />
+  <line x1="770" y1="480" x2="770" y2="520" stroke="#333" stroke-width="2" stroke-dasharray="5,5" />
   <text x="785" y="470" font-family="Arial" font-size="10" fill="#333">No</text>
   
   <!-- 代替APIデータ -->
