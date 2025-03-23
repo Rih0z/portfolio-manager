@@ -53,6 +53,20 @@
   status = 200
   force = true
 
+# 日本株スクレイピングプロキシ向けのリダイレクト
+[[redirects]]
+  from = "/api/jp-stock-scraping-proxy"
+  to = "/.netlify/functions/jp-stock-scraping-proxy"
+  status = 200
+  force = true
+
+# 投資信託スクレイピングプロキシ向けのリダイレクト
+[[redirects]]
+  from = "/api/mutual-fund-scraping-proxy"
+  to = "/.netlify/functions/mutual-fund-scraping-proxy"
+  status = 200
+  force = true
+
 # SPAのためのリダイレクト
 [[redirects]]
   from = "/*"
