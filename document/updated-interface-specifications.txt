@@ -1,6 +1,6 @@
-# ポートフォリオマネージャー インターフェース仕様書（更新版3.4）
+# ポートフォリオマネージャー インターフェース仕様書（更新版3.5）
 
-**最終更新日時:** 2025/03/23 09:45
+**最終更新日時:** 2025/03/27 18:00
 
 *本仕様書は、AIの別セッションでも開発を引き継げるよう設計されています。*
 
@@ -10,15 +10,15 @@
 
 ### 1.1 主要機能
 - 資産管理（保有数の小数点以下4桁対応）
-- 銘柄タイプ自動判定（個別株、ETF、インデックスファンドなど）
-- 年間手数料率の自動推定と計算（個別株は0%固定）
+- 銘柄タイプ自動判定（個別株、ETF、インデックスファンド、投資信託など）
+- 年間手数料率の自動推定と計算（個別株は0%固定、投資信託は信託報酬として表示）
 - 年間配当金の計算と配当情報の管理
 - 理想ポートフォリオ配分設定
 - 資金配分シミュレーション
 - データインポート/エクスポート
 - ブラウザローカルストレージによるデータ永続化（URIエンコード+Base64による安全な暗号化）
-- Google認証・Googleドライブ連携（OAuth 2.0対応）
-- 市場データの自動取得（マルチソース対応：Alpha Vantage → Yahoo Finance → フォールバック値の順で試行）
+- Google認証・Googleドライブ連携（Google Identity Services API対応）
+- 市場データの自動取得（マルチソース対応：Alpaca API、Yahoo Finance、exchangerate.host）
 - iOS風タブバーによるナビゲーション
 - 自動消去機能付き通知システム
 - エラーバウンダリによるアプリケーション耐障害性の向上
@@ -38,7 +38,10 @@
 - **デプロイ**: Netlify
 - **データ永続化**: ローカルストレージ（URIエンコード+Base64暗号化）
 - **クラウド連携**: Google Drive API v3
-- **市場データ取得**: Alpha Vantage API, Yahoo Finance API（フォールバック）
+- **市場データ取得**: 
+  - 米国株: Alpaca API
+  - 日本株と投資信託: Yahoo Finance API
+  - 為替レート: exchangerate.host
 
 ## 2. インターフェース構造
 
@@ -96,10 +99,11 @@
 
 ### 2.6 データソース表示（更新）
 - 銘柄データのソースを明示的に表示
-  - Alpha Vantage：緑色バッジ
-  - Yahoo Finance：青色バッジ
+  - Alpaca：青色バッジ
+  - Yahoo Finance：緑色バッジ
   - Fallback：黄色バッジ
 - 更新時に各データソースの利用状況を通知
+  - 例：「市場データを更新しました: Alpaca: 5件, Yahoo Finance: 3件（日本株: 1件、投資信託: 2件）」
 - フォールバック使用時は注意喚起表示
 - 株価情報の信頼性をユーザーが判断できるようサポート
 
@@ -145,15 +149,17 @@ interface Asset {
   annualFee: number; // 年間手数料率（%）- 個別株は常に0%
   fundType: string; // ファンドの種類 (ETF_JP, INDEX_US, STOCK など)
   isStock: boolean; // 個別株かどうかのフラグ
-  feeSource: string; // 手数料情報の出所 ('個別株', 'ティッカー固有の情報', 'ファンドタイプからの推定', 'ユーザー設定')
+  isMutualFund: boolean; // 投資信託かどうかのフラグ
+  feeSource: string; // 手数料情報の出所 ('個別株', '投資信託', 'ティッカー固有の情報', 'ファンドタイプからの推定', 'ユーザー設定')
   feeIsEstimated: boolean; // 手数料情報が推定値かどうか
   region?: string; // 対象地域 ('日本', '米国', 'グローバル', '不明')
   lastUpdated?: string;
-  source?: string; // 'Alpha Vantage' | 'Yahoo Finance' | 'Fallback'
+  source?: string; // 'Alpaca' | 'Yahoo Finance' | 'Fallback'
   dividendYield: number; // 配当利回り（%）
   hasDividend: boolean; // 配当があるかどうか
   dividendFrequency: string; // 配当頻度（'monthly', 'quarterly', 'semi-annual', 'annual'）
   dividendIsEstimated: boolean; // 配当情報が推定値かどうか
+  priceLabel?: string; // 価格表示ラベル ('株価' | '基準価額')
 }
 ```
 
@@ -188,28 +194,33 @@ interface StorageData {
   - 最高配当利回りの銘柄を表示
   - ファンドタイプ別の手数料統計を表示
   - ファンドタイプ別の配当金統計を表示
+  - 投資信託の信託報酬を適切に表示
   - 手数料と配当についての説明を表示
 - **PortfolioCharts**: 理想配分と現在配分の円グラフ
 - **DifferenceChart**: 理想と現状の差分バーチャート
 - **AssetsTable**: 保有資産の詳細テーブル
   - データソースと銘柄タイプの表示
-  - 年間手数料の表示（個別株は0%）
+  - 年間手数料の表示（個別株は0%、投資信託は信託報酬として表示）
   - 配当情報の表示（利回り、頻度、年間配当金）
   - 配当情報源のバッジ表示（推定値/確定値）
-  - データソースのバッジ表示（Alpha Vantage/Yahoo Finance/Fallback）
+  - データソースのバッジ表示（Alpaca/Yahoo Finance/Fallback）
+  - 投資信託専用の表示（基準価額ラベル）
 - **DataStatusBar**: データ更新状態と最終更新時刻の表示
 
 ### 4.2 設定画面コンポーネント
 - **TickerSearch**: 銘柄検索と追加機能
+  - 投資信託コードの自動認識と入力補助
 - **PopularTickers**: 人気銘柄のワンクリック追加
   - インデックスファンド・ETFカテゴリ
   - 個別株カテゴリ
   - 日本市場カテゴリ
+  - 投資信託カテゴリ
 - **HoldingsEditor**: 保有資産の編集
   - 保有数量編集（小数点4桁対応）
   - 年間手数料率表示（個別株は編集不可）
+  - 投資信託は信託報酬として表示
   - 銘柄タイプの表示
-  - 手数料情報源を表示（個別株、推定値、固有情報、ユーザー設定）
+  - 手数料情報源を表示（個別株、投資信託、推定値、固有情報、ユーザー設定）
   - 配当情報の表示（利回り、頻度）
   - 配当情報源のバッジ表示
   - データソースのバッジ表示
@@ -251,10 +262,10 @@ interface StorageData {
   - 手動消去ボタン
   - 通知タイプ別のスタイリング
 - **DataSourceBadge**: データソース表示バッジ（更新）
-  - 各データソースに応じた表示（Alpha Vantage/Yahoo Finance/Fallback）
+  - 各データソースに応じた表示（Alpaca/Yahoo Finance/Fallback）
   - ソースに応じた色分け
-    - Alpha Vantage: 緑色
-    - Yahoo Finance: 青色
+    - Alpaca: 青色
+    - Yahoo Finance: 緑色
     - Fallback: 黄色
 - **ErrorBoundary**: エラーバウンダリコンポーネント
   - エラー発生時の処理
@@ -266,9 +277,11 @@ interface StorageData {
   - 個別株: 灰色バッジ
   - ETF: 青色バッジ
   - インデックスファンド: 緑色バッジ
+  - 投資信託: 紫色バッジ
   - アクティブファンド: 紫色バッジ
 - **FeeSourceBadge**: 手数料情報の出所を表示するバッジ
   - 個別株: 灰色バッジ
+  - 投資信託: 紫色バッジ
   - 推定値: 黄色バッジ
   - ティッカー固有の情報: 緑色バッジ
   - ユーザー設定: 紫色バッジ
@@ -277,78 +290,86 @@ interface StorageData {
   - 配当あり（推定値）: 黄色バッジ
   - 配当あり（確定値）: 緑色バッジ
   - 配当頻度別のラベル表示
+- **PriceDisplay**: 株価/基準価額を適切に表示するコンポーネント
+  - 投資信託: 「基準価額」として表示
+  - 個別株/ETF: 「株価」として表示
 - **ContextConnector**: コンテキスト間の連携を管理するコンポーネント
 
 ## 5. API・外部連携仕様
 
 ### 5.1 マルチデータソース対応（更新）
 - **データソース優先順位**:
-  1. Alpha Vantage API（プライマリソース）
-  2. Yahoo Finance API（フォールバックソース）
-  3. フォールバック値（両方のAPIが失敗した場合）
+  1. 米国株: Alpaca API（プライマリソース）
+  2. 日本株と投資信託: Yahoo Finance API（プライマリソース）
+  3. フォールバック値（APIが失敗した場合）
 
 - **切り替え条件**:
-  - Alpha Vantageがレート制限に達した場合
-  - Alpha Vantageからデータが取得できない場合
-  - Alpha Vantageでエラーが発生した場合
+  - Alpaca APIからデータが取得できない場合
+  - Yahoo Finance APIからデータが取得できない場合
+  - APIでエラーが発生した場合
 
 - **実装例**:
 ```javascript
-// Alpha Vantage APIからデータ取得を試みる
-try {
-  const response = await axios.get(ALPHA_VANTAGE_URL, { ... });
-  
-  // レート制限チェック
-  if (response.data.Note && response.data.Note.includes('API call frequency')) {
-    // Yahoo Financeに切り替え
-    return await fetchFromYahooFinance(ticker);
+// 銘柄タイプによるデータソース選択
+function selectDataSourceForTicker(ticker) {
+  // 投資信託の判定（7-8桁数字+C）
+  if (/^\d{7,8}C(\.T)?$/.test(ticker)) {
+    return 'Yahoo Finance';
   }
   
-  // 正常なデータ取得
-  if (response.data['Global Quote'] && response.data['Global Quote']['05. price']) {
-    // Alpha Vantageからのデータを処理
-    return {
-      success: true,
-      data: { ... },
-      source: 'Alpha Vantage'
-    };
+  // 日本株の判定
+  if (/^\d{4}(\.T)?$/.test(ticker) || ticker.endsWith('.T')) {
+    return 'Yahoo Finance';
   }
   
-  // データが取得できない場合もYahoo Financeを試行
-  return await fetchFromYahooFinance(ticker);
-} catch (error) {
-  // エラー発生時もYahoo Financeを試行
-  return await fetchFromYahooFinance(ticker);
+  // それ以外は米国株と判断
+  return 'Alpaca';
+}
+
+// 銘柄データの取得
+async function fetchStockData(ticker) {
+  try {
+    // データソースを選択
+    const source = selectDataSourceForTicker(ticker);
+    
+    if (source === 'Alpaca') {
+      // 米国株の場合はAlpaca APIを使用
+      return await fetchFromAlpaca(ticker);
+    } else {
+      // 日本株と投資信託の場合はYahoo Finance APIを使用
+      return await fetchFromYahoo(ticker);
+    }
+  } catch (error) {
+    console.error(`Error fetching data for ${ticker}:`, error);
+    // フォールバック値を使用
+    return generateFallbackData(ticker);
+  }
 }
 ```
 
-### 5.2 Alpha Vantage API連携
-- **エンドポイント**: `alpha-vantage-proxy` (Netlify Functions経由)
-- **機能**: 市場データのプライマリソース
-- **APIキー**: 環境変数 `ALPHA_VANTAGE_API_KEY` で設定
-- **タイムアウト設定**: 15秒
-- **レート制限**: 無料プランで1日25リクエストまで
-- **フォールバック**: フォールバックメカニズムで対応
+### 5.2 Alpaca API連携
+- **エンドポイント**: `alpaca-api-proxy` (Netlify Functions経由)
+- **機能**: 米国株の市場データ取得
+- **APIキー**: 環境変数 `ALPACA_API_KEY` と `ALPACA_API_SECRET` で設定
+- **タイムアウト設定**: 10秒
+- **フォールバック**: 米国株用のフォールバックメカニズムで対応
 
 ### 5.3 Yahoo Finance API連携（更新）
-- **エンドポイント**: `yahoo-finance-proxy` (Netlify Functions経由)
-- **機能**: 市場データのフォールバックソース
+- **エンドポイント**: `yfinance-api-proxy` (Netlify Functions経由)
+- **機能**: 日本株と投資信託の市場データ取得
 - **Yahoo Finance非公式API**: `https://query1.finance.yahoo.com/v7/finance/quote`
 - **パラメータ**:
-  - 株価データ取得: `symbols=AAPL,MSFT,1301.T`
-  - 為替レート取得: `exchange_rate=USDJPY`
-- **日本株対応**: 4桁数字の銘柄に自動的に `.T` を追加
-- **タイムアウト設定**: 30秒
-- **エラーハンドリング**: API障害時の詳細なログ出力と適切なフォールバックメカニズム
+  - 株価データ取得: `symbols=AAPL,MSFT,1301.T,8630042C.T`
+- **日本株と投資信託の対応**:
+  - 日本株: 4桁数字の銘柄に自動的に `.T` を追加
+  - 投資信託: 7-8桁数字+Cの形式に自動的に `.T` を追加
+- **タイムアウト設定**: 15秒
+- **エラーハンドリング**: 投資信託用の専用エラーメッセージ対応
 
-### 5.4 为替レート取得連携（更新）
-- **エンドポイント**: 
-  - プライマリ: `mof-exchange-rate-proxy` (Netlify Functions経由)
-  - フォールバック: `yahoo-finance-proxy` (Netlify Functions経由)
+### 5.4 为替レート取得連携
+- **エンドポイント**: `exchangerate-proxy` (Netlify Functions経由)
 - **機能**: USD/JPY為替レートの取得
-- **データソース**: 
-  - プライマリ: Alpha Vantage API
-  - フォールバック: Yahoo Finance API
+- **データソース**: exchangerate.host
 - **レート制限対応**: フォールバック値（150.0）の使用
 - **更新頻度**: 基準通貨変更時、明示的な更新ボタンクリック時
 
@@ -388,6 +409,7 @@ try {
 - **実装方法**: フロントエンドで実装（`fundUtils.js`）
 - **データソース**: アプリ内DBとロジックによる判定
 - **個別株判定**: ティッカーパターンと名前に基づく判定
+- **投資信託判定**: 7-8桁数字+Cのパターンに基づく判定
 - **配当情報データベース**: `TICKER_SPECIFIC_DIVIDENDS` による特定銘柄の配当情報
 - **配当判定ロジック**: ファンドタイプと名前に基づく配当の有無を判定
 - **配当頻度判定**: 名前に基づく配当頻度（monthly, quarterly, semi-annual, annual）の推定
@@ -439,47 +461,74 @@ const initializeData = useCallback(() => {
 
 ### 6.2 市場データ更新フロー（更新版）
 1. ユーザーがデータ更新ボタンをクリック
-2. Alpha Vantage APIからデータ取得を試行
-3. 失敗またはレート制限の場合、自動的にYahoo Finance APIを試行
-4. それも失敗した場合はフォールバック値を使用
-5. 銘柄ごとに最新の価格、手数料情報、配当情報を取得
+2. 銘柄タイプに応じてAPI呼び出しを振り分け
+   - 米国株: Alpaca API
+   - 日本株・投資信託: Yahoo Finance API
+3. 各APIからデータを取得し、エラー時はフォールバック値を使用
+4. 為替レートはexchangerate.hostから取得、エラー時はデフォルト値を使用
+5. 銘柄ごとに最新の価格、手数料情報、配当情報を更新
 6. 個別株は常に手数料率0%を維持
-7. データソースの統計情報を計算（各ソースの使用銘柄数）
-8. 使用したデータソースを通知メッセージとして表示
-9. Yahoo Finance APIの使用状況を別途通知
-10. 手数料情報や配当情報に変更があった場合は通知
+7. 投資信託は「基準価額」として表示
+8. データソースの統計情報を計算（データソース別、タイプ別の件数）
+9. 使用したデータソースを通知メッセージとして表示
+10. エラー情報を銘柄タイプごとに分類して表示
 11. フォールバック値を使用している場合は警告通知
 12. データをローカルストレージに自動保存
 13. 通知は5秒後に自動消去（エラー以外）
 
 ```javascript
 // データソースの統計を計算
-const sourceCounts = validatedAssets.reduce((acc, asset) => {
-  acc[asset.source] = (acc[asset.source] || 0) + 1;
-  return acc;
-}, {});
+const stats = {
+  Alpaca: { success: 0, failed: 0 },
+  Yahoo: { 
+    success: 0, 
+    failed: 0,
+    stocks: 0,  // 日本株
+    funds: 0    // 投資信託
+  },
+  Fallback: 0
+};
+
+// 更新後に統計情報を集計
+assets.forEach(asset => {
+  if (asset.source === 'Alpaca') {
+    stats.Alpaca.success++;
+  } else if (asset.source === 'Yahoo Finance') {
+    stats.Yahoo.success++;
+    if (asset.isMutualFund) {
+      stats.Yahoo.funds++;
+    } else {
+      stats.Yahoo.stocks++;
+    }
+  } else if (asset.source === 'Fallback') {
+    stats.Fallback++;
+  }
+});
 
 // 通知メッセージを作成
-let message = '市場データを更新しました';
-if (sourceCounts['Alpha Vantage']) {
-  message += ` (Alpha Vantage: ${sourceCounts['Alpha Vantage']}件`;
+let message = '市場データを更新しました: ';
+if (stats.Alpaca.success > 0) {
+  message += `Alpaca: ${stats.Alpaca.success}件`;
+  if (stats.Yahoo.success > 0) message += ', ';
 }
-if (sourceCounts['Yahoo Finance']) {
-  message += `, Yahoo Finance: ${sourceCounts['Yahoo Finance']}件`;
+if (stats.Yahoo.success > 0) {
+  message += `Yahoo Finance: ${stats.Yahoo.success}件`;
+  if (stats.Yahoo.stocks > 0 || stats.Yahoo.funds > 0) {
+    message += ' (';
+    if (stats.Yahoo.stocks > 0) {
+      message += `日本株: ${stats.Yahoo.stocks}件`;
+      if (stats.Yahoo.funds > 0) message += '、';
+    }
+    if (stats.Yahoo.funds > 0) {
+      message += `投資信託: ${stats.Yahoo.funds}件`;
+    }
+    message += ')';
+  }
 }
-if (sourceCounts['Fallback']) {
-  message += `, フォールバック: ${sourceCounts['Fallback']}件`;
+if (stats.Fallback > 0) {
+  message += `, Fallback: ${stats.Fallback}件`;
 }
-message += ')';
-addNotification(message, 'success');
-
-// Yahoo Financeの利用状況に関する通知
-if (yahooFinanceTriedCount > 0) {
-  addNotification(
-    `Alpha Vantageでの取得に失敗した${yahooFinanceTriedCount}銘柄について、Yahoo Financeを使用しました（成功: ${yahooFinanceSuccessCount}件）`,
-    'info'
-  );
-}
+addNotification(message, stats.Fallback > 0 ? 'warning' : 'success');
 ```
 
 ### 6.3 通知フロー
@@ -513,19 +562,39 @@ const removeNotification = useCallback((id) => {
 ```
 
 ### 6.4 銘柄追加フロー（更新版）
-1. ユーザーが銘柄シンボルを入力
+1. ユーザーが銘柄シンボルまたは投資信託コードを入力
 2. addTicker関数を呼び出し
-3. Alpha Vantage APIからデータ取得
-4. 失敗時はYahoo Finance APIを自動的に試行
-5. それも失敗した場合はフォールバック値を使用
-6. 銘柄タイプを判定し、手数料情報を推定
-7. 配当情報を推定
-8. 個別株の場合は手数料を0%に設定
-9. 保有資産と目標配分リストに追加
-10. データソースの通知を表示
-11. フォールバック使用時は警告通知を表示
-12. 手数料・配当情報の通知を表示
-13. データをローカルストレージに自動保存
+3. 銘柄タイプの自動判別（投資信託か日本株か米国株か）
+4. 適切なAPIからデータ取得（Alpaca API または Yahoo Finance API）
+5. 失敗時はフォールバック値を使用
+6. 銘柄タイプの詳細判定と手数料情報の推定
+   - 個別株: 手数料を0%に設定
+   - 投資信託: 信託報酬として表示
+7. 配当情報の推定
+8. 保有資産と目標配分リストに追加
+9. データソースの通知を表示
+10. フォールバック使用時は警告通知を表示
+11. データをローカルストレージに自動保存
+
+```javascript
+// TickerSearchコンポーネントの入力処理（例）
+const handleInputChange = (e) => {
+  const value = e.target.value;
+  setTicker(value);
+  
+  // 投資信託コードかどうかを判定
+  if (/^\d{7,8}C$/i.test(value)) {
+    setTickerType('投資信託');
+    setHelperText('投資信託コードを認識しました。基準価額として取得します。');
+  } else if (/^\d{4}$/i.test(value)) {
+    setTickerType('日本株');
+    setHelperText('日本株の証券コードとして認識しました。');
+  } else {
+    setTickerType('');
+    setHelperText('');
+  }
+};
+```
 
 ### 6.5 データ保存フロー
 1. データ変更（銘柄追加、保有数量変更、目標配分変更など）
@@ -561,16 +630,18 @@ const removeNotification = useCallback((id) => {
   - 警告: 黄色系 (#FFC107) - 背景: bg-yellow-100, テキスト: text-yellow-700
   - エラー: 赤系 (#F44336) - 背景: bg-red-100, テキスト: text-red-700
 - **データソース表示用（更新）**:
-  - Alpha Vantage: 緑系 (#4CAF50)
-  - Yahoo Finance: 青系 (#2196F3)
+  - Alpaca: 青系 (#2196F3)
+  - Yahoo Finance: 緑系 (#4CAF50)
   - Fallback: 黄色系 (#FFC107)
 - **ファンドタイプ表示用**:
   - 個別株: グレー系 (#9E9E9E)
   - ETF: 青系 (#2196F3)
   - インデックスファンド: 緑系 (#4CAF50)
+  - 投資信託: 紫系 (#9C27B0)
   - アクティブファンド: 紫系 (#9C27B0)
 - **手数料情報源表示用**:
   - 個別株: グレー系 (#9E9E9E)
+  - 投資信託: 紫系 (#9C27B0)
   - ティッカー固有情報: 緑系 (#4CAF50)
   - 推定値: 黄色系 (#FFC107)
   - ユーザー設定: 紫系 (#9C27B0)
@@ -628,6 +699,7 @@ const removeNotification = useCallback((id) => {
 - **配当情報バッジ**: 小さい丸型または角丸ラベル、配当状況に応じた色
 - **データソースバッジ**: 小さい丸型または角丸ラベル、ソースに応じた色
 - **個別株行**: 灰色背景で視覚的に区別
+- **投資信託行**: 薄い紫色背景で視覚的に区別
 - **同期ステータスインジケーター**: 丸いドット、色による状態表示
 - **エラー表示コンポーネント**: 中央配置のモーダル風デザイン、明確なエラー詳細表示
 
@@ -635,18 +707,39 @@ const removeNotification = useCallback((id) => {
 ```jsx
 // データソースバッジコンポーネント
 <span className={`text-xs px-1.5 py-0.5 rounded ${
-  dataSource === 'Alpha Vantage'
-    ? 'bg-green-100 text-green-800'
+  dataSource === 'Alpaca'
+    ? 'bg-blue-100 text-blue-800'
     : dataSource === 'Yahoo Finance'
-      ? 'bg-blue-100 text-blue-800'
+      ? 'bg-green-100 text-green-800'
       : 'bg-yellow-100 text-yellow-800'
 }`}>
-  {dataSource === 'Alpha Vantage' ? 'Alpha Vantage' : 
-   dataSource === 'Yahoo Finance' ? 'Yahoo Finance' : 'Fallback'}
+  {dataSource === 'Alpaca' ? 'Alpaca' : 
+   dataSource === 'Yahoo Finance' ? 'YFinance' : 'Fallback'}
 </span>
 ```
 
-### 7.5 レスポンシブデザイン
+### 7.5 投資信託バッジとPriceDisplayコンポーネント
+```jsx
+// 投資信託バッジコンポーネント
+<span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+  投資信託
+</span>
+
+// 価格表示コンポーネント（投資信託対応）
+function PriceDisplay({ asset }) {
+  const { price, currency, isMutualFund } = asset;
+  const label = isMutualFund ? '基準価額' : '株価';
+  
+  return (
+    <div className="flex flex-col">
+      <span className="text-xs text-gray-500">{label}</span>
+      <span className="font-medium">{formatCurrency(price, currency)}</span>
+    </div>
+  );
+}
+```
+
+### 7.6 レスポンシブデザイン
 - **モバイル優先**: 基本はモバイル表示に最適化
 - **ブレークポイント**: sm(640px), md(768px), lg(1024px)
 - **iOS互換**: セーフエリア対応、タブバー設計
@@ -660,11 +753,12 @@ const removeNotification = useCallback((id) => {
 - **データエラー**: 不正なデータ形式、処理失敗
 - **入力エラー**: バリデーション失敗
 - **手数料設定エラー**: 個別株の手数料変更試行
+- **投資信託エラー**: 投資信託に特有のエラー処理
 - **ストレージエラー**: ローカルストレージ読み書き失敗
 - **同期エラー**: データ同期失敗
 - **アプリケーションエラー**: 予期しないJavaScriptエラー
-- **API制限エラー**: Alpha Vantageのリクエスト制限到達
-- **API接続エラー**: Yahoo Finance API接続失敗
+- **API制限エラー**: APIのリクエスト制限到達
+- **API接続エラー**: API接続失敗
 
 ### 8.2 通知表示
 - **成功通知**: 緑色背景、自動消去（5秒）
@@ -677,32 +771,38 @@ const removeNotification = useCallback((id) => {
 - **自動消去**: エラー以外の通知は5秒後に自動消去
 
 ### 8.3 マルチソースによるフォールバック（更新）
-- **API制限検出**: Alpha Vantageのレート制限を検出して自動切り替え
-- **ソース切り替え通知**: データソースの切り替えをユーザーに通知
-- **ソース使用統計**: 各データソースの使用状況を統計として表示
+- **API選択**: 銘柄タイプに基づいて適切なAPIを自動選択
+  - 米国株: Alpaca API
+  - 日本株: Yahoo Finance API
+  - 投資信託: Yahoo Finance API
+- **ソース切り替え通知**: データソースの使用状況をユーザーに通知
+- **ソース使用統計**: 各データソースの使用状況を統計として表示（銘柄タイプも分類）
 - **フォールバック警告**: フォールバック値使用時は投資判断への注意を促す
 
 ```javascript
-// Yahoo Financeの利用状況に関する通知
-if (yahooFinanceTriedCount > 0) {
-  const yahooFinanceMessage = `Alpha Vantageでの取得に失敗した${yahooFinanceTriedCount}銘柄について、Yahoo Financeを使用しました（成功: ${yahooFinanceSuccessCount}件）`;
-  addNotification(yahooFinanceMessage, 'info');
+// Yahoo Finance APIの統計と通知
+if (yfinanceStats.total > 0) {
+  const yahooMessage = `Yahoo Finance: ${yfinanceStats.total}件（日本株: ${yfinanceStats.stocks}件、投資信託: ${yfinanceStats.funds}件）`;
+  addNotification(yahooMessage, 'info');
 }
 
 // フォールバックデータを使用している場合は通知
 if (fallbackCount > 0) {
   addNotification(
-    `${fallbackCount}銘柄の株価情報は最新データを取得できず、推定値を使用しています。実際の市場価格と異なる可能性があります。`,
+    `${fallbackCount}銘柄の価格情報は最新データを取得できず、推定値を使用しています。実際の市場価格と異なる可能性があります。`,
     'warning'
   );
 }
 ```
 
 ### 8.4 API障害対応
-- 複数データソースの使用によるフォールバック機構
+- 銘柄タイプごとの適切なフォールバック値
+  - 米国株: 100 USD
+  - 日本株: 1,000 JPY
+  - 投資信託: 10,000 JPY
 - タイムアウト設定による応答遅延の処理
 - 詳細なエラーログによるデバッグ容易化
-- ユーザーフレンドリーなエラーメッセージ表示
+- 銘柄タイプに応じたエラーメッセージ表示
 - データソースの表示によるユーザー通知
 
 ### 8.5 ストレージ障害対応
@@ -724,6 +824,14 @@ if (fallbackCount > 0) {
 - エラー発生時のUIフォールバック表示
 - リロードボタンによる簡単な回復方法の提供
 - 詳細なエラー情報のログ出力
+
+### 8.8 投資信託固有のエラー対応
+- 投資信託コードのバリデーション
+- 投資信託専用のエラーメッセージ表示
+  - 「投資信託 {code} の基準価額が見つかりません」
+  - 「投資信託コード {code} を確認してください」
+- 投資信託データの取得エラー時は専用のフォールバック値使用
+- 投資信託関連エラーはUI上で区別して表示
 
 ## 9. データ永続化と同期
 
@@ -782,3 +890,4 @@ if (fallbackCount > 0) {
 | 3.2 | 2025/03/20 10:00 | Yahoo Finance APIフォールバック機能を追加、マルチデータソース対応の実装、API障害時の詳細通知機能強化、日本株ティッカー変換の改善 |  |
 | 3.3 | 2025/03/22 12:00 | Yahoo FinanceをPython yfinanceライブラリに変更、プロキシ実装をJavaScriptからPythonスクリプト実行方式に変更、為替および株価データの取得フローを改善、Netlify Functions Python実行環境対応 |  |
 | 3.4 | 2025/03/23 09:45 | Python依存をなくすためYahoo Finance APIをJavaScript実装に変更、Python yfinanceコードは残しつつ実際はyahoo-finance-proxyを使用、データソース名とフォールバック処理の更新 |  |
+| 3.5 | 2025/03/27 18:00 | データソースをAlpaca API（米国株）、Yahoo Finance（日本株・投資信託）、exchangerate.host（為替）に変更、投資信託対応の強化、エラーハンドリングとフォールバック処理の更新、デザインコンポーネントの追加 |  |
