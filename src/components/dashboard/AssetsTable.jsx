@@ -1,6 +1,7 @@
 import React from 'react';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 import { formatCurrency, formatPercent } from '../../utils/formatters';
+import DataSourceBadge from '../common/DataSourceBadge';
 
 const AssetsTable = () => {
   const { 
@@ -118,15 +119,20 @@ const AssetsTable = () => {
                         {asset.ticker}
                       </div>
                       {/* ファンドタイプバッジを表示 */}
-                      {asset.fundType && (
+                      <div className="mt-1 space-x-1 flex flex-wrap gap-1">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
                           asset.isStock 
                             ? 'bg-gray-100 text-gray-800' 
-                            : 'bg-blue-100 text-blue-800'
+                            : asset.isMutualFund
+                              ? 'bg-indigo-100 text-indigo-800'
+                              : 'bg-blue-100 text-blue-800'
                         }`}>
                           {asset.fundType}
                         </span>
-                      )}
+                        
+                        {/* データソースバッジ */}
+                        {asset.source && <DataSourceBadge source={asset.source} />}
+                      </div>
                     </div>
                   </div>
                 </td>
@@ -134,6 +140,12 @@ const AssetsTable = () => {
                   <div className="text-sm text-gray-900">
                     {formatCurrency(asset.price, asset.currency)}
                   </div>
+                  {/* 投資信託の場合は「基準価額」と表示 */}
+                  {asset.isMutualFund && (
+                    <div className="text-xs text-gray-500">
+                      (基準価額)
+                    </div>
+                  )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900">
@@ -176,9 +188,11 @@ const AssetsTable = () => {
                     <span className={`text-xs px-1.5 py-0.5 rounded ${
                       asset.feeSource === '個別株'
                         ? 'bg-gray-100 text-gray-800'
-                        : asset.feeIsEstimated 
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-green-100 text-green-800'
+                        : asset.feeSource === '投資信託'
+                          ? 'bg-indigo-100 text-indigo-800'
+                          : asset.feeIsEstimated 
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-green-100 text-green-800'
                     }`}>
                       {asset.feeSource}
                     </span>
