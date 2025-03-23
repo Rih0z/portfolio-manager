@@ -1,6 +1,5 @@
 # ポートフォリオマネージャー
 
-[![Netlify Status](https://api.netlify.com/api/v1/badges/your-netlify-badge/deploy-status)](https://app.netlify.com/sites/your-site/deploys)
 
 ## 概要
 
@@ -23,10 +22,6 @@
 - iOS風タブバーによるナビゲーション
 - レスポンシブデザイン（モバイル対応）
 - 通知システム（自動消去機能付き）
-
-## スクリーンショット
-
-![アプリケーションのスクリーンショット](link-to-screenshot)
 
 ## 技術スタック
 
