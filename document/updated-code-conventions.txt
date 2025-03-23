@@ -1,7 +1,7 @@
-# ポートフォリオマネージャー コード規約書（更新版3.4）
+# ポートフォリオマネージャー コード規約書（更新版4.0）
 
-**バージョン:** 3.4  
-**最終更新日時:** 2025/03/23 09:30
+**バージョン:** 4.0  
+**最終更新日時:** 2025/03/25 14:30
 
 ## 1. 概要
 
@@ -29,13 +29,9 @@ src/
 └── App.jsx          # アプリケーションルート
 
 functions/
-├── alpha-vantage-proxy.js       # Alpha Vantage APIプロキシ
-├── mof-exchange-rate-proxy.js   # 為替レートプロキシ
-├── yahoo-finance-proxy.js       # Yahoo Finance APIプロキシ（JavaScript実装・新規）
-├── yfinance-proxy.js            # Python yfinance実行プロキシ（廃止予定）
-└── python/                     # Pythonスクリプト（廃止予定）
-    ├── requirements.txt        # Python依存関係定義
-    └── yfinance_fetcher.py     # yfinanceデータ取得スクリプト
+├── alpaca-api-proxy.js        # Alpaca APIプロキシ（米国株向け）
+├── jpx-api-proxy.js           # JPX APIプロキシ（日本株向け）
+├── exchangerate-proxy.js      # exchangerate.host APIプロキシ（為替レート向け）
 ```
 
 ### 2.2 ファイル命名規則
@@ -44,8 +40,7 @@ functions/
 - **ユーティリティファイル**: camelCase を使用（例: `formatters.js`, `fundUtils.js`）
 - **テストファイル**: `.test.js` または `.spec.js` を追加（例: `PortfolioSummary.test.jsx`）
 - **CSS/SCSS**: コンポーネントと同じ名前で `.module.css` サフィックス（例: `Button.module.css`）
-- **サーバーレス関数**: camelCase を使用し、機能を表す名前（例: `alpha-vantage-proxy.js`, `yahoo-finance-proxy.js`, `exchange-rate-proxy.js`）
-- **Pythonファイル**: snake_case を使用（例: `yfinance_fetcher.py`）
+- **サーバーレス関数**: camelCase を使用し、機能を表す名前（例: `alpaca-api-proxy.js`, `jpx-api-proxy.js`, `exchangerate-proxy.js`）
 
 ## 3. 命名規則
 
@@ -85,8 +80,10 @@ functions/
   const isInitialized = true; // 初期化完了フラグ
   const hasDividend = true; // 配当があるかどうかのフラグ
   const isDividendEstimated = true; // 配当情報が推定値かどうか
-  const isYahooFinanceTried = true; // Yahoo Financeを試行したかどうか（更新）
-  const isYahooFinanceSuccess = true; // Yahoo Financeからのデータ取得に成功したかどうか（更新）
+  const isAlpacaTried = true; // Alpaca APIを試行したかどうか
+  const isAlpacaSuccess = true; // Alpaca APIからのデータ取得に成功したかどうか
+  const isJpxTried = true; // JPX APIを試行したかどうか
+  const isJpxSuccess = true; // JPX APIからのデータ取得に成功したかどうか
   ```
 
 ### 3.3 定数
@@ -96,8 +93,9 @@ functions/
   // 良い例
   const MAX_RETRY_COUNT = 3;
   const DEFAULT_CURRENCY = 'JPY';
-  const ALPHA_VANTAGE_URL = '/api/alpha-vantage-proxy';
-  const YAHOO_FINANCE_URL = '/api/yahoo-finance-proxy'; // 更新
+  const ALPACA_API_URL = '/api/alpaca-api-proxy';
+  const JPX_API_URL = '/api/jpx-api-proxy'; 
+  const EXCHANGERATE_API_URL = '/api/exchangerate-proxy';
   const FUND_TYPES = {
     STOCK: '個別株',
     ETF_JP: 'ETF（日本）',
@@ -122,18 +120,23 @@ functions/
   const NOTIFICATION_AUTO_DISMISS_TIME = 5000; // 5秒
   // データソース定数（更新）
   const DATA_SOURCES = {
-    ALPHA_VANTAGE: 'Alpha Vantage',
-    YAHOO_FINANCE: 'Yahoo Finance', // 更新
+    ALPACA: 'Alpaca',
+    JPX: 'JPX',
+    EXCHANGERATE: 'exchangerate.host',
     FALLBACK: 'Fallback'
   };
   // データソース優先順位（更新）
-  const SOURCE_PRIORITY = [
-    DATA_SOURCES.ALPHA_VANTAGE,
-    DATA_SOURCES.YAHOO_FINANCE, // 更新
-    DATA_SOURCES.FALLBACK
-  ];
-  // Yahoo Finance API利用可能フラグ（新規）
-  const ENABLE_YAHOO_FINANCE_API = true;
+  const SOURCE_PRIORITY = {
+    US_STOCK: DATA_SOURCES.ALPACA,
+    JP_STOCK: DATA_SOURCES.JPX,
+    EXCHANGE_RATE: DATA_SOURCES.EXCHANGERATE
+  };
+  // API接続タイムアウト設定
+  const ALPACA_API_TIMEOUT = 10000; // 10秒
+  const JPX_API_TIMEOUT = 10000; // 10秒
+  const EXCHANGERATE_API_TIMEOUT = 5000; // 5秒
+  // デフォルト為替レート（API障害時のフォールバック用）
+  const DEFAULT_EXCHANGE_RATE = 150.0;
   ```
 
 ### 3.4 コンテキストとフック
@@ -182,8 +185,13 @@ functions/
   const formatDividendFrequency = (frequency) => {...} // 配当頻度の表示変換関数
   const determineHasDividend = (ticker, fundType) => {...} // 配当の有無判定関数
   const addNotificationWithTimeout = (message, type) => {...} // タイムアウト付き通知追加関数
-  const fetchFromYahooFinance = (ticker) => {...} // Yahoo Financeからデータを取得する関数（更新）
-  const formatTickerForYahooFinance = (ticker) => {...} // ティッカーをYahoo Finance用にフォーマットする関数（更新）
+  const fetchFromAlpaca = (ticker) => {...} // Alpaca APIからデータを取得する関数
+  const fetchFromJpx = (ticker) => {...} // JPX APIからデータを取得する関数
+  const fetchExchangeRate = () => {...} // exchangerate.hostから為替レートを取得する関数
+  const formatTickerForJpx = (ticker) => {...} // ティッカーをJPX API用にフォーマットする関数
+  const isJapaneseStock = (ticker) => {...} // 日本株かどうかを判定する関数
+  const selectApiForStock = (ticker) => {...} // 銘柄に応じたAPIを選択する関数
+  const getErrorMessage = (error, api, ticker) => {...} // エラー詳細に基づいたメッセージを取得する関数
   ```
 
 ### 3.7 データソース関連（更新）
@@ -191,19 +199,38 @@ functions/
 - **データソース変数**: 明確な名前と意図を表す命名を使用
   ```javascript
   // 良い例
-  const dataSource = 'Alpha Vantage'; // データソースを文字列で表現
-  const sourceCounts = { 'Alpha Vantage': 5, 'Yahoo Finance': 3, 'Fallback': 2 }; // ソース別の統計
-  const yahooFinanceTriedCount = 5; // Yahoo Financeを試行した回数
-  const yahooFinanceSuccessCount = 3; // Yahoo Financeでの成功回数
-  const fallbackCount = 2; // フォールバック値の使用回数
+  const dataSource = 'Alpaca'; // データソースを文字列で表現
+  const sourceCounts = { 'Alpaca': 5, 'JPX': 3, 'Fallback': 2 }; // ソース別の統計
+  const alpacaTriedCount = 5; // Alpaca APIを試行した回数
+  const alpacaSuccessCount = 3; // Alpaca APIでの成功回数
+  const jpxTriedCount = 4; // JPX APIを試行した回数
+  const jpxSuccessCount = 2; // JPX APIでの成功回数
+  const fallbackCount = 3; // フォールバック値の使用回数
+  const exchangeRateSource = 'exchangerate.host'; // 為替レートのデータソース
+  ```
+
+- **エラー関連変数**: 各APIのエラー情報を追跡
+  ```javascript
+  // 良い例
+  const alpacaErrors = []; // Alpaca APIのエラー情報
+  const jpxErrors = []; // JPX APIのエラー情報
+  const exchangeRateError = null; // 為替レート取得時のエラー情報
+  const errorSummary = {
+    alpaca: { count: 0, details: [] },
+    jpx: { count: 0, details: [] },
+    exchangerate: { hasError: false, message: '' }
+  }; // エラー情報のサマリー
   ```
 
 - **フォールバック関連フラグ**: 各データソースの試行・成功状態を追跡
   ```javascript
   // 良い例
-  const yahooFinanceTried = true; // Yahoo Financeを試行したかどうか
-  const yahooFinanceSuccess = true; // Yahoo Financeからのデータ取得に成功したかどうか
+  const alpacaTried = true; // Alpaca APIを試行したかどうか
+  const alpacaSuccess = true; // Alpaca APIからのデータ取得に成功したかどうか
+  const jpxTried = true; // JPX APIを試行したかどうか
+  const jpxSuccess = true; // JPX APIからのデータ取得に成功したかどうか
   const isFallback = result.data.source === 'Fallback'; // フォールバック値かどうか
+  const isExchangeRateFallback = exchangeRate.source === 'Fallback'; // 為替レートがフォールバック値かどうか
   ```
 
 ## 4. コードフォーマット
@@ -263,11 +290,11 @@ functions/
   
   // データソースバッジ（更新）
   <span className={`text-xs px-1.5 py-0.5 rounded ${
-    asset.source === 'Alpha Vantage'
-      ? 'bg-green-100 text-green-800'
-      : asset.source === 'Yahoo Finance'
-        ? 'bg-blue-100 text-blue-800'
-        : 'bg-yellow-100 text-amber-800'
+    asset.source === 'Alpaca'
+      ? 'bg-blue-100 text-blue-800'
+      : asset.source === 'JPX'
+        ? 'bg-green-100 text-green-800'
+        : 'bg-yellow-100 text-yellow-800'
   }`}>
     {asset.source}
   </span>
@@ -307,20 +334,6 @@ functions/
         &times;
       </button>
     </div>
-  </div>
-  ```
-
-- **アクセシビリティ属性**:
-  ```jsx
-  // ラベルとコントロールの関連付け
-  <label htmlFor="budget-input">追加予算</label>
-  <input id="budget-input" type="number" />
-  
-  // ラジオグループ
-  <div role="radiogroup" aria-labelledby="format-label">
-    <span id="format-label">形式:</span>
-    <button role="radio" aria-checked={true}>JSON</button>
-    <button role="radio" aria-checked={false}>CSV</button>
   </div>
   ```
 
@@ -414,7 +427,8 @@ functions/
   export const useDividendCalculation = () => {...} // 配当計算フック
   export const useNotifications = () => {...} // 通知管理フック
   export const useDataSources = () => {...} // データソース管理フック
-  export const useMarketData = () => {...} // 市場データ取得フック（更新）
+  export const useMarketData = () => {...} // 市場データ取得フック
+  export const useErrorHandling = () => {...} // エラーハンドリングフック
   ```
 
 ### 5.3 環境依存のライブラリ対応
@@ -662,45 +676,84 @@ functions/
 
 ### 7.1 マルチレベルのフォールバック処理（更新）
 
-- **段階的フォールバック**: プライマリ→セカンダリ→最終フォールバックの順で処理
+- **米国株取得フロー**: Alpaca API→フォールバック値の順で処理
   ```javascript
   // 良い例
   try {
-    // プライマリソース（Alpha Vantage）からデータ取得を試行
-    const alphaVantageResult = await fetchFromAlphaVantage(ticker);
-    if (alphaVantageResult.success) {
-      return alphaVantageResult; // 成功した場合はそのまま返す
-    }
-    
-    // プライマリソースが失敗した場合はセカンダリソース（Yahoo Finance）を試行
-    console.log(`Alpha Vantage failed for ${ticker}, trying Yahoo Finance`);
-    const yahooFinanceResult = await fetchFromYahooFinance(ticker);
-    if (yahooFinanceResult.success) {
-      return yahooFinanceResult; // 成功した場合はそのまま返す
-    }
-    
-    // セカンダリソースも失敗した場合はフォールバック値を使用
-    console.log(`Yahoo Finance also failed for ${ticker}, using fallback data`);
-    return generateFallbackData(ticker);
+    // Alpaca APIからデータ取得を試行
+    const alpacaResult = await fetchFromAlpaca(ticker);
+    return alpacaResult; // 成功した場合はそのまま返す
   } catch (error) {
-    // 全体的なエラー処理
-    console.error(`Error in fetching data for ${ticker}:`, error);
+    console.error(`Alpaca API error for ${ticker}:`, error);
+    
+    // すべてのソースが失敗した場合はフォールバック値を使用
     return generateFallbackData(ticker);
   }
   ```
 
-- **データソースの切り替え条件**: 明確な条件で次のソースに切り替え
+- **日本株取得フロー**: JPX API→フォールバック値の順で処理
   ```javascript
-  // レート制限の検出
-  if (response.data && response.data.Note && response.data.Note.includes('API call frequency')) {
-    console.warn(`Alpha Vantage API rate limit reached for ${ticker}, trying Yahoo Finance`);
-    return await fetchFromYahooFinance(ticker);
+  // 良い例
+  try {
+    // JPX APIからデータ取得を試行
+    const jpxResult = await fetchFromJpx(ticker);
+    return jpxResult; // 成功した場合はそのまま返す
+  } catch (error) {
+    console.error(`JPX API error for ${ticker}:`, error);
+    
+    // すべてのソースが失敗した場合はフォールバック値を使用
+    return generateFallbackData(ticker);
+  }
+  ```
+
+- **為替レート取得フロー**: exchangerate.host→デフォルト値の順で処理
+  ```javascript
+  // 良い例
+  try {
+    // exchangerate.hostからデータ取得を試行
+    const response = await axios.get(EXCHANGERATE_API_URL);
+    
+    if (response.data && response.data.success) {
+      return {
+        rate: response.data.data.rate,
+        source: 'exchangerate.host',
+        timestamp: response.data.data.timestamp
+      };
+    }
+    
+    // APIが失敗を返した場合はデフォルト値を使用
+    return {
+      rate: DEFAULT_EXCHANGE_RATE,
+      source: 'Fallback',
+      timestamp: new Date().toISOString()
+    };
+  } catch (error) {
+    console.error('Exchange rate API error:', error);
+    
+    // エラー時はデフォルト値を使用
+    return {
+      rate: DEFAULT_EXCHANGE_RATE,
+      source: 'Fallback',
+      timestamp: new Date().toISOString()
+    };
+  }
+  ```
+
+- **データソースの選択条件**: 銘柄タイプに基づいて自動判別
+  ```javascript
+  // 銘柄タイプに基づいてAPIを選択する関数
+  function selectApiForStock(ticker) {
+    // 日本株の判定
+    if (isJapaneseStock(ticker)) {
+      return 'JPX';
+    }
+    // それ以外は米国株と判断
+    return 'Alpaca';
   }
   
-  // データ取得失敗の検出
-  if (!response.data || !response.data['Global Quote'] || !response.data['Global Quote']['05. price']) {
-    console.warn(`No valid data from Alpha Vantage for ${ticker}, trying Yahoo Finance`);
-    return await fetchFromYahooFinance(ticker);
+  // 日本株かどうかを判定する関数
+  function isJapaneseStock(ticker) {
+    return ticker.endsWith('.T') || /^\d{4}$/.test(ticker);
   }
   ```
 
@@ -711,7 +764,7 @@ functions/
     success: true,
     data: {
       // ...データフィールド
-      source: 'Alpha Vantage', // または 'Yahoo Finance', 'Fallback'
+      source: 'Alpaca', // または 'JPX', 'Fallback'
     },
     message: '正常に取得しました'
   };
@@ -733,25 +786,30 @@ functions/
 - **ログ出力の強化**: デバッグ情報を十分に提供
   ```javascript
   try {
-    console.log(`Attempting to fetch data for ${ticker} from Alpha Vantage`);
-    const response = await axios.get(ALPHA_VANTAGE_URL, {
+    console.log(`Attempting to fetch data for ${ticker} from Alpaca API`);
+    const response = await axios.get(ALPACA_API_URL, {
       params: { symbols: ticker },
-      timeout: 15000 // タイムアウト設定
+      timeout: ALPACA_API_TIMEOUT
     });
     // 処理
   } catch (error) {
-    console.error(`Error fetching ${ticker} from Alpha Vantage:`, error);
-    console.log(`Trying Yahoo Finance for ${ticker}`);
-    try {
-      const yahooFinanceResponse = await axios.get(YAHOO_FINANCE_URL, {
-        params: { symbols: ticker },
-        timeout: 30000
-      });
-      // Yahoo Financeからのデータ処理
-    } catch (yahooFinanceError) {
-      console.error(`Yahoo Finance also failed for ${ticker}:`, yahooFinanceError);
-      // 最終フォールバック
-    }
+    console.error(`Error fetching ${ticker} from Alpaca API:`, {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data,
+      code: error.code
+    });
+    
+    // フォールバック処理
+    const fallbackData = generateFallbackData(ticker);
+    
+    // エラー詳細を記録
+    alpacaErrors.push({
+      ticker,
+      message: getErrorMessage(error, 'Alpaca', ticker),
+      status: error.response?.status,
+      code: error.code
+    });
   }
   ```
 
@@ -805,41 +863,48 @@ functions/
 
 ### 7.4 API呼び出しのフォールバック処理（更新）
 
-- **段階的フォールバック処理**: プライマリ→セカンダリ→最終フォールバックの順で試行
+- **エラーコード別処理**: エラーの種類に応じた適切なメッセージを生成
   ```javascript
-  // プライマリソースからのデータ取得を試みる
-  try {
-    const alphaVantageResult = await fetchFromAlphaVantage(ticker);
-    return alphaVantageResult;
-  } catch (error) {
-    console.error('Alpha Vantage API error:', error);
+  // エラーメッセージ生成関数
+  function getErrorMessage(error, api, ticker) {
+    const status = error.response?.status;
     
-    // セカンダリソースを試行
-    try {
-      console.log(`Trying Yahoo Finance for ${ticker}`);
-      const yahooFinanceResult = await fetchFromYahooFinance(ticker);
-      return yahooFinanceResult;
-    } catch (yahooFinanceError) {
-      console.error('Yahoo Finance error:', yahooFinanceError);
-      
-      // すべてのソースが失敗した場合はフォールバック値を使用
-      return generateFallbackData(ticker);
+    if (status === 401 || status === 403) {
+      return `${api}の認証に失敗しました。APIキーを確認してください。`;
+    } else if (status === 404) {
+      return `銘柄 ${ticker} は${api}で見つかりませんでした。銘柄コードを確認してください。`;
+    } else if (status === 429) {
+      return `${api}の使用制限に達しました。しばらく時間をおいて再試行してください。`;
+    } else if (status >= 500) {
+      return `${api}サーバーでエラーが発生しました。しばらく時間をおいて再試行してください。`;
+    } else if (error.code === 'ECONNABORTED') {
+      return `${api}からの応答がタイムアウトしました。接続状況を確認してください。`;
+    } else if (error.message.includes('Network Error')) {
+      return 'ネットワーク接続に問題があります。インターネット接続を確認してください。';
     }
+    
+    return `${api}からのデータ取得でエラーが発生しました: ${error.message}`;
   }
   ```
 
 - **タイムアウト設定**:
   ```javascript
   // タイムアウト付きの呼び出し
-  const response = await axios.get(apiUrl, {
+  const response = await axios.get(ALPACA_API_URL, {
     params: { /* パラメータ */ },
-    timeout: 15000 // 15秒タイムアウト
+    timeout: ALPACA_API_TIMEOUT // 10秒タイムアウト
   });
   
-  // Yahoo Finance APIのタイムアウト
-  const yahooFinanceResponse = await axios.get(YAHOO_FINANCE_URL, {
-    params: { symbols: ticker },
-    timeout: 30000 // 30秒タイムアウト
+  // JPX APIのタイムアウト
+  const jpxResponse = await axios.get(JPX_API_URL, {
+    params: { ticker },
+    timeout: JPX_API_TIMEOUT // 10秒タイムアウト
+  });
+  
+  // exchangerate.hostのタイムアウト
+  const exchangeRateResponse = await axios.get(EXCHANGERATE_API_URL, {
+    params: { base: 'USD', symbols: 'JPY' },
+    timeout: EXCHANGERATE_API_TIMEOUT // 5秒タイムアウト
   });
   ```
 
@@ -902,11 +967,11 @@ functions/
   
   // 通知メッセージを作成
   let message = '市場データを更新しました';
-  if (sourceCounts['Alpha Vantage']) {
-    message += ` (Alpha Vantage: ${sourceCounts['Alpha Vantage']}件`;
+  if (sourceCounts['Alpaca']) {
+    message += ` (Alpaca: ${sourceCounts['Alpaca']}件`;
   }
-  if (sourceCounts['Yahoo Finance']) {
-    message += `, Yahoo Finance: ${sourceCounts['Yahoo Finance']}件`;
+  if (sourceCounts['JPX']) {
+    message += `, JPX: ${sourceCounts['JPX']}件`;
   }
   if (sourceCounts['Fallback']) {
     message += `, フォールバック: ${sourceCounts['Fallback']}件`;
@@ -914,12 +979,32 @@ functions/
   message += ')';
   
   // 成功通知を表示（5秒後に自動消去）
-  addNotification(message, 'success');
+  addNotification(message, sourceCounts['Fallback'] > 0 ? 'warning' : 'success');
   
-  // Yahoo Financeの使用状況に関する通知
-  if (yahooFinanceTriedCount > 0) {
-    const yahooFinanceMessage = `Alpha Vantageでの取得に失敗した${yahooFinanceTriedCount}銘柄について、Yahoo Financeを使用しました（成功: ${yahooFinanceSuccessCount}件）`;
-    addNotification(yahooFinanceMessage, 'info');
+  // 為替レート通知
+  addNotification(
+    `為替レート(USD/JPY)を更新しました: ${exchangeRate.rate}円/${exchangeRate.source}`,
+    exchangeRate.source === 'Fallback' ? 'warning' : 'info'
+  );
+  ```
+
+- **エラー詳細通知**:
+  ```javascript
+  // エラー詳細の通知
+  if (alpacaErrors.length > 0) {
+    addNotification(`Alpaca APIで${alpacaErrors.length}件のエラーが発生しました`, 'warning');
+    // 最初の3件のみ詳細を表示
+    alpacaErrors.slice(0, 3).forEach(error => {
+      addNotification(`Alpaca API - ${error.ticker}: ${error.message}`, 'warning');
+    });
+  }
+  
+  if (jpxErrors.length > 0) {
+    addNotification(`JPX APIで${jpxErrors.length}件のエラーが発生しました`, 'warning');
+    // 最初の3件のみ詳細を表示
+    jpxErrors.slice(0, 3).forEach(error => {
+      addNotification(`JPX API - ${error.ticker}: ${error.message}`, 'warning');
+    });
   }
   ```
 
@@ -968,79 +1053,215 @@ functions/
 
 ## 8. マルチデータソース対応（更新）
 
-### 8.1 データソース優先順位の設定
+### 8.1 データソース優先順位の設定（更新）
 
-- **データソース優先順位の定義**:
+- **データソース定数の定義**:
   ```javascript
   // データソース定数
   const DATA_SOURCES = {
-    ALPHA_VANTAGE: 'Alpha Vantage',
-    YAHOO_FINANCE: 'Yahoo Finance', // 更新
+    ALPACA: 'Alpaca',
+    JPX: 'JPX',
+    EXCHANGERATE: 'exchangerate.host',
     FALLBACK: 'Fallback'
   };
   
-  // データソース優先順位
-  const SOURCE_PRIORITY = [
-    DATA_SOURCES.ALPHA_VANTAGE, // プライマリソース
-    DATA_SOURCES.YAHOO_FINANCE, // セカンダリソース（更新）
-    DATA_SOURCES.FALLBACK // 最終フォールバック
-  ];
+  // 銘柄タイプに応じたデータソース優先順位
+  const SOURCE_PRIORITY = {
+    US_STOCK: DATA_SOURCES.ALPACA,
+    JP_STOCK: DATA_SOURCES.JPX,
+    EXCHANGE_RATE: DATA_SOURCES.EXCHANGERATE
+  };
   ```
 
-- **切り替え条件の設定**:
+- **銘柄タイプの判定**:
   ```javascript
-  // レート制限の検出
-  if (response.data && response.data.Note && response.data.Note.includes('API call frequency')) {
-    console.warn(`Rate limit reached for ${ticker}, switching to ${SOURCE_PRIORITY[1]}`);
-    return getDataFromSource(ticker, SOURCE_PRIORITY[1]);
+  // 日本株かどうかを判定する関数
+  function isJapaneseStock(ticker) {
+    return ticker.endsWith('.T') || /^\d{4}$/.test(ticker);
   }
   
-  // データがない場合の検出
-  if (!response.data || !response.data['Global Quote'] || !response.data['Global Quote']['05. price']) {
-    console.warn(`No data for ${ticker} from ${SOURCE_PRIORITY[0]}, switching to ${SOURCE_PRIORITY[1]}`);
-    return getDataFromSource(ticker, SOURCE_PRIORITY[1]);
+  // 銘柄タイプに基づいてAPIを選択する関数
+  function selectApiForStock(ticker) {
+    // 日本株の判定
+    if (isJapaneseStock(ticker)) {
+      return SOURCE_PRIORITY.JP_STOCK;
+    }
+    // それ以外は米国株と判断
+    return SOURCE_PRIORITY.US_STOCK;
   }
   ```
 
 ### 8.2 データソース取得関数の実装（更新）
 
-- **一般化されたデータソース取得関数**:
+- **銘柄タイプに基づく取得関数の選択**:
   ```javascript
-  // 指定されたデータソースからデータを取得する関数
-  async function getDataFromSource(ticker, source) {
-    switch(source) {
-      case DATA_SOURCES.ALPHA_VANTAGE:
-        return fetchFromAlphaVantage(ticker);
-      case DATA_SOURCES.YAHOO_FINANCE:
-        return fetchFromYahooFinance(ticker);
-      case DATA_SOURCES.FALLBACK:
-      default:
-        return generateFallbackData(ticker);
+  // 銘柄データを取得する関数
+  async function fetchStockData(ticker) {
+    // 銘柄タイプを判定してAPIを選択
+    const api = selectApiForStock(ticker);
+    
+    if (api === DATA_SOURCES.JPX) {
+      return fetchFromJpx(ticker);
+    } else {
+      return fetchFromAlpaca(ticker);
     }
   }
   ```
 
-- **各データソース固有の取得関数**:
+- **Alpaca API取得関数**:
   ```javascript
-  // Alpha Vantageからデータを取得する関数
-  async function fetchFromAlphaVantage(ticker) {
+  // Alpaca APIからデータを取得する関数
+  async function fetchFromAlpaca(ticker) {
     try {
-      // Alpha Vantageからのデータ取得ロジック
-      // ...
+      // APIエンドポイントURL
+      const url = `${ALPACA_API_URL}?symbol=${encodeURIComponent(ticker)}`;
+      
+      // Alpaca APIを呼び出す
+      const response = await axios.get(url, {
+        timeout: ALPACA_API_TIMEOUT
+      });
+      
+      // レスポンスデータを検証
+      if (!response.data.success || !response.data.data) {
+        throw new Error('Invalid data structure from Alpaca API');
+      }
+      
+      // APIからのデータを整形
+      return {
+        success: true,
+        data: {
+          ticker: ticker,
+          price: response.data.data.price,
+          name: response.data.data.name || ticker,
+          currency: 'USD',
+          lastUpdated: new Date().toISOString(),
+          source: DATA_SOURCES.ALPACA
+        }
+      };
     } catch (error) {
-      console.error(`Alpha Vantage error for ${ticker}:`, error);
-      throw error; // エラーを上位へ伝播
+      console.error(`Alpaca API error for ${ticker}:`, {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data
+      });
+      
+      // エラー情報を記録
+      alpacaErrors.push({
+        ticker,
+        message: getErrorMessage(error, 'Alpaca', ticker),
+        status: error.response?.status
+      });
+      
+      // フォールバック値を生成
+      return {
+        success: true,
+        data: generateFallbackData(ticker),
+        message: `フォールバック値を使用: ${getErrorMessage(error, 'Alpaca', ticker)}`
+      };
     }
   }
-  
-  // Yahoo Financeからデータを取得する関数
-  async function fetchFromYahooFinance(ticker) {
+  ```
+
+- **JPX API取得関数**:
+  ```javascript
+  // JPX APIからデータを取得する関数
+  async function fetchFromJpx(ticker) {
     try {
-      // Yahoo Financeからのデータ取得ロジック
-      // ...
+      // ティッカーの整形（.Tの除去など）
+      const formattedTicker = formatTickerForJpx(ticker);
+      
+      // APIエンドポイントURL
+      const url = `${JPX_API_URL}?ticker=${encodeURIComponent(formattedTicker)}`;
+      
+      // JPX APIを呼び出す
+      const response = await axios.get(url, {
+        timeout: JPX_API_TIMEOUT
+      });
+      
+      // レスポンスデータを検証
+      if (!response.data.success || !response.data.data) {
+        throw new Error('Invalid data structure from JPX API');
+      }
+      
+      // APIからのデータを整形
+      return {
+        success: true,
+        data: {
+          ticker: ticker,
+          price: response.data.data.price,
+          name: response.data.data.name || ticker,
+          currency: 'JPY',
+          lastUpdated: new Date().toISOString(),
+          source: DATA_SOURCES.JPX
+        }
+      };
     } catch (error) {
-      console.error(`Yahoo Finance error for ${ticker}:`, error);
-      throw error; // エラーを上位へ伝播
+      console.error(`JPX API error for ${ticker}:`, {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data
+      });
+      
+      // エラー情報を記録
+      jpxErrors.push({
+        ticker,
+        message: getErrorMessage(error, 'JPX', ticker),
+        status: error.response?.status
+      });
+      
+      // フォールバック値を生成
+      return {
+        success: true,
+        data: generateFallbackData(ticker),
+        message: `フォールバック値を使用: ${getErrorMessage(error, 'JPX', ticker)}`
+      };
+    }
+  }
+  ```
+
+- **exchangerate.host取得関数**:
+  ```javascript
+  // exchangerate.hostから為替レートを取得する関数
+  async function fetchExchangeRate() {
+    try {
+      // APIエンドポイントURL
+      const url = `${EXCHANGERATE_API_URL}?base=USD&symbols=JPY`;
+      
+      // exchangerate.hostを呼び出す
+      const response = await axios.get(url, {
+        timeout: EXCHANGERATE_API_TIMEOUT
+      });
+      
+      // レスポンスデータを検証
+      if (!response.data.success || !response.data.data || !response.data.data.rate) {
+        throw new Error('Invalid data structure from exchangerate.host');
+      }
+      
+      // 為替レートデータを返す
+      return {
+        rate: response.data.data.rate,
+        source: DATA_SOURCES.EXCHANGERATE,
+        timestamp: response.data.data.timestamp || new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('Exchange rate API error:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data
+      });
+      
+      // エラーメッセージを記録
+      exchangeRateError = {
+        message: getErrorMessage(error, 'exchangerate.host', 'USD/JPY'),
+        status: error.response?.status
+      };
+      
+      // デフォルト値を返す
+      return {
+        rate: DEFAULT_EXCHANGE_RATE,
+        source: DATA_SOURCES.FALLBACK,
+        timestamp: new Date().toISOString()
+      };
     }
   }
   ```
@@ -1052,22 +1273,27 @@ functions/
   // データソースバッジコンポーネント
   function DataSourceBadge({ source }) {
     let badgeClass = 'text-xs px-1.5 py-0.5 rounded ';
+    let badgeText = source;
     
     switch(source) {
-      case 'Alpha Vantage':
-        badgeClass += 'bg-green-100 text-green-800';
-        break;
-      case 'Yahoo Finance':
+      case DATA_SOURCES.ALPACA:
         badgeClass += 'bg-blue-100 text-blue-800';
         break;
-      case 'Fallback':
+      case DATA_SOURCES.JPX:
+        badgeClass += 'bg-green-100 text-green-800';
+        break;
+      case DATA_SOURCES.EXCHANGERATE:
+        badgeClass += 'bg-purple-100 text-purple-800';
+        badgeText = 'exchg.host'; // 省略形を表示
+        break;
+      case DATA_SOURCES.FALLBACK:
       default:
         badgeClass += 'bg-yellow-100 text-amber-800';
     }
     
     return (
       <span className={badgeClass}>
-        {source}
+        {badgeText}
       </span>
     );
   }
@@ -1083,6 +1309,9 @@ functions/
       return acc;
     }, {});
     
+    // 為替レートのソース
+    const exchRateSource = exchangeRate.source || DATA_SOURCES.FALLBACK;
+    
     return (
       <div className="text-sm text-gray-600 mt-2">
         <span>データソース: </span>
@@ -1091,6 +1320,7 @@ functions/
             {source}: {count}件
           </span>
         ))}
+        <span className="ml-2">為替: {exchRateSource}</span>
       </div>
     );
   }
@@ -1098,97 +1328,349 @@ functions/
 
 ### 8.4 ティッカーフォーマット関数（更新）
 
-- **各データソース用のティッカーフォーマット関数**:
+- **JPX API用ティッカーフォーマット関数**:
   ```javascript
-  // Alpha Vantage用にティッカーをフォーマットする関数
-  function formatTickerForAlphaVantage(ticker) {
+  // JPX API用にティッカーをフォーマットする関数
+  function formatTickerForJpx(ticker) {
     if (!ticker) return '';
+    
+    // 大文字に変換
     ticker = ticker.toUpperCase();
     
-    // Alpha Vantageは日本株の.Tをそのまま使用
-    return ticker;
-  }
-  
-  // Yahoo Finance用にティッカーをフォーマットする関数
-  function formatTickerForYahooFinance(ticker) {
-    if (!ticker) return '';
-    ticker = ticker.toUpperCase();
+    // .Tが含まれている場合は削除
+    ticker = ticker.replace(/\.T$/, '');
     
-    // 4桁数字の場合は.Tを追加
-    if (/^\d{4}$/.test(ticker) && !ticker.includes('.T')) {
-      return `${ticker}.T`;
+    // 数字のみを抽出（4桁数字に対応）
+    if (/^\d{4}$/.test(ticker)) {
+      return ticker;
     }
     
     return ticker;
   }
   ```
 
-## 9. Yahoo Finance API統合（更新）
+## 9. ネットワークプロキシの実装（更新）
 
-### 9.1 Yahoo Finance API実装（新規）
+### 9.1 Alpaca API用プロキシ（新規）
 
-- **プロキシエンドポイント**: `/api/yahoo-finance-proxy`
-- **機能**: 株価データと為替レートの取得
-- **Yahoo Finance非公式API**: `https://query1.finance.yahoo.com/v7/finance/quote`
-- **パラメータ**:
-  - 株価データ取得: `symbols=AAPL,MSFT,1301.T`
-  - 為替レート取得: `exchange_rate=USDJPY`
-- **レスポンス形式**: 標準化されたJSON形式
+- **alpaca-api-proxy.js**:
+  ```javascript
+  // alpaca-api-proxy.js
+  const axios = require('axios');
 
-### 9.2 yahoo-finance-proxy.js の実装概要（新規）
-
-- **サーバーレス関数**: JavaScript実装でYahoo Finance APIを呼び出し
-- **株価データ取得ロジック**: 銘柄シンボルに基づいて株価情報を取得
-- **為替レート取得ロジック**: 通貨ペアに基づいて為替レート情報を取得
-- **日本株対応**: 4桁数字の銘柄に自動的に`.T`を追加
-- **エラーハンドリング**: フォールバック値を生成する機能
-
-```javascript
-// yahoo-finance-proxy.js の主要部分
-async function handleStockData(symbols, headers) {
-  // 日本株の場合は.Tを追加
-  const formattedSymbols = symbols.split(',').map(symbol => {
-    if (/^\d{4}$/.test(symbol) && !symbol.includes('.T')) {
-      return `${symbol}.T`;
-    }
-    return symbol.trim();
-  });
-  
-  try {
-    // Yahoo Finance APIを呼び出す
-    const yahooUrl = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${formattedSymbols.join(',')}`;
-    const response = await axios.get(yahooUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      }
-    });
-    
-    // 結果を整形
-    const result = {};
-    response.data.quoteResponse.result.forEach(quote => {
-      const ticker = quote.symbol;
-      result[ticker] = {
-        ticker: ticker,
-        price: quote.regularMarketPrice,
-        name: quote.shortName || quote.longName || ticker,
-        currency: quote.currency,
-        lastUpdated: new Date().toISOString()
-      };
-    });
-    
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({
-        success: true,
-        data: result
-      })
+  exports.handler = async function(event, context) {
+    const headers = {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Content-Type': 'application/json'
     };
-  } catch (error) {
-    // エラー処理...
-  }
-}
-```
+    
+    // OPTIONSリクエストの処理
+    if (event.httpMethod === 'OPTIONS') {
+      return {
+        statusCode: 204,
+        headers,
+        body: ''
+      };
+    }
+    
+    // シンボルパラメータの取得
+    const { symbol } = event.queryStringParameters || {};
+    
+    if (!symbol) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          message: 'シンボルパラメータが必要です'
+        })
+      };
+    }
+    
+    try {
+      // Alpaca APIを呼び出す
+      const response = await axios.get(`https://data.alpaca.markets/v2/stocks/${symbol}/quotes/latest`, {
+        headers: {
+          'APCA-API-KEY-ID': process.env.ALPACA_API_KEY,
+          'APCA-API-SECRET-KEY': process.env.ALPACA_API_SECRET
+        },
+        timeout: 10000
+      });
+      
+      // レスポンスからデータを抽出
+      const quoteData = response.data;
+      
+      if (!quoteData || !quoteData.quote || !quoteData.quote.ap) {
+        return {
+          statusCode: 404,
+          headers,
+          body: JSON.stringify({
+            success: false,
+            message: `${symbol}の株価データが見つかりません`
+          })
+        };
+      }
+      
+      // 結果を整形
+      const result = {
+        ticker: symbol,
+        price: quoteData.quote.ap, // 気配値（ask price）
+        name: symbol, // Alpaca APIは銘柄名を直接提供しないため
+        currency: 'USD',
+        lastUpdated: new Date().toISOString(),
+        source: 'Alpaca'
+      };
+      
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          success: true,
+          data: result
+        })
+      };
+    } catch (error) {
+      console.error(`Alpaca API error for ${symbol}:`, error);
+      
+      // ステータスコードに基づいてエラーメッセージを生成
+      let errorMessage = `Alpaca APIからの取得に失敗しました: ${error.message}`;
+      let statusCode = error.response?.status || 500;
+      
+      // エラーメッセージをカスタマイズ
+      if (statusCode === 401 || statusCode === 403) {
+        errorMessage = 'APIキーが無効または期限切れです。API設定を確認してください。';
+      } else if (statusCode === 404) {
+        errorMessage = `銘柄 ${symbol} はAPIで見つかりませんでした。銘柄コードを確認してください。`;
+      } else if (statusCode === 429) {
+        errorMessage = 'APIの使用制限に達しました。しばらく時間をおいて再試行してください。';
+      } else if (statusCode >= 500) {
+        errorMessage = 'APIサーバーでエラーが発生しました。しばらく時間をおいて再試行してください。';
+      }
+      
+      return {
+        statusCode: statusCode,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          message: errorMessage,
+          error: {
+            status: statusCode,
+            data: error.response?.data
+          }
+        })
+      };
+    }
+  };
+  ```
+
+### 9.2 JPX API用プロキシ（新規）
+
+- **jpx-api-proxy.js**:
+  ```javascript
+  // jpx-api-proxy.js
+  const axios = require('axios');
+
+  exports.handler = async function(event, context) {
+    const headers = {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Content-Type': 'application/json'
+    };
+    
+    // OPTIONSリクエストの処理
+    if (event.httpMethod === 'OPTIONS') {
+      return {
+        statusCode: 204,
+        headers,
+        body: ''
+      };
+    }
+    
+    // 銘柄コードパラメータの取得
+    const { ticker } = event.queryStringParameters || {};
+    
+    if (!ticker) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          message: '銘柄コードパラメータが必要です'
+        })
+      };
+    }
+    
+    // 銘柄コードから.Tを削除（もしあれば）
+    const cleanedTicker = ticker.replace(/\.T$/, '');
+    
+    try {
+      // JPX APIを呼び出す
+      const response = await axios.get(`https://api.jpx.co.jp/v1/prices/quotes/${cleanedTicker}`, {
+        headers: {
+          'X-API-KEY': process.env.JPX_API_KEY
+        },
+        timeout: 10000
+      });
+      
+      // レスポンスからデータを抽出
+      const quoteData = response.data;
+      
+      if (!quoteData || !quoteData.price || !quoteData.stock_name) {
+        return {
+          statusCode: 404,
+          headers,
+          body: JSON.stringify({
+            success: false,
+            message: `${ticker}の株価データが見つかりません`
+          })
+        };
+      }
+      
+      // 結果を整形
+      const result = {
+        ticker: ticker,
+        price: quoteData.price,
+        name: quoteData.stock_name,
+        currency: 'JPY',
+        lastUpdated: new Date().toISOString(),
+        source: 'JPX'
+      };
+      
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          success: true,
+          data: result
+        })
+      };
+    } catch (error) {
+      console.error(`JPX API error for ${ticker}:`, error);
+      
+      // ステータスコードに基づいてエラーメッセージを生成
+      let errorMessage = `JPX APIからの取得に失敗しました: ${error.message}`;
+      let statusCode = error.response?.status || 500;
+      
+      // エラーメッセージをカスタマイズ
+      if (statusCode === 401 || statusCode === 403) {
+        errorMessage = 'APIキーが無効または期限切れです。API設定を確認してください。';
+      } else if (statusCode === 404) {
+        errorMessage = `銘柄 ${ticker} はAPIで見つかりませんでした。銘柄コードを確認してください。`;
+      } else if (statusCode === 429) {
+        errorMessage = 'APIの使用制限に達しました。しばらく時間をおいて再試行してください。';
+      } else if (statusCode >= 500) {
+        errorMessage = 'APIサーバーでエラーが発生しました。しばらく時間をおいて再試行してください。';
+      }
+      
+      return {
+        statusCode: statusCode,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          message: errorMessage,
+          error: {
+            status: statusCode,
+            data: error.response?.data
+          }
+        })
+      };
+    }
+  };
+  ```
+
+### 9.3 exchangerate.host用プロキシ（新規）
+
+- **exchangerate-proxy.js**:
+  ```javascript
+  // exchangerate-proxy.js
+  const axios = require('axios');
+
+  exports.handler = async function(event, context) {
+    const headers = {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Content-Type': 'application/json'
+    };
+    
+    // OPTIONSリクエストの処理
+    if (event.httpMethod === 'OPTIONS') {
+      return {
+        statusCode: 204,
+        headers,
+        body: ''
+      };
+    }
+    
+    // デフォルトでUSD/JPYレートを取得
+    const base = event.queryStringParameters?.base || 'USD';
+    const symbols = event.queryStringParameters?.symbols || 'JPY';
+    
+    try {
+      // exchangerate.host APIを呼び出す
+      const response = await axios.get(`https://api.exchangerate.host/latest`, {
+        params: {
+          base: base,
+          symbols: symbols
+        },
+        timeout: 5000
+      });
+      
+      const data = response.data;
+      
+      if (!data || !data.rates || !data.rates[symbols]) {
+        return {
+          statusCode: 404,
+          headers,
+          body: JSON.stringify({
+            success: false,
+            message: `為替レートが見つかりません`,
+            data: {
+              rate: parseFloat(process.env.DEFAULT_EXCHANGE_RATE) || 150.0,
+              source: 'Fallback',
+              timestamp: new Date().toISOString()
+            }
+          })
+        };
+      }
+      
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          success: true,
+          data: {
+            rate: data.rates[symbols],
+            source: 'exchangerate.host',
+            base: data.base,
+            currency: symbols,
+            timestamp: data.date || new Date().toISOString()
+          }
+        })
+      };
+    } catch (error) {
+      console.error('Exchange rate API error:', error);
+      
+      // 常に200を返し、フォールバック値を提供する
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({
+          success: true,
+          message: `為替レートの取得に失敗したため、デフォルト値を使用します: ${error.message}`,
+          data: {
+            rate: parseFloat(process.env.DEFAULT_EXCHANGE_RATE) || 150.0,
+            source: 'Fallback',
+            timestamp: new Date().toISOString()
+          }
+        })
+      };
+    }
+  };
+  ```
 
 ## 改訂履歴
 
@@ -1205,3 +1687,4 @@ async function handleStockData(symbols, headers) {
 | 3.2      | 2025/03/20 10:30 | マルチデータソース対応の規約追加、データソース表示コンポーネント、フォールバック処理の標準化、Yahoo Finance対応の命名規則追加 | |
 | 3.3      | 2025/03/22 12:30 | Yahoo FinanceをPython yfinance形式に変更、Pythonスクリプト実行に関する命名規則の追加、Python関連の関数名・変数名の規約追加、データソース名の更新 | |
 | 3.4      | 2025/03/23 09:30 | Yahoo Finance APIをJavaScript実装に変更、データソース名とフォールバック処理の更新、Python yfinance実装の廃止予定化、関連する命名規則の更新 | |
+| 4.0      | 2025/03/25 14:30 | データソースをAlpaca API（米国株）、JPX API（日本株）、exchangerate.host（為替）に変更、エラーハンドリングとフォールバック処理の強化、データソース関連の命名規則とコード例の更新、フォールバックメカニズムの標準化 | |
