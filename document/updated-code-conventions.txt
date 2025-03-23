@@ -1,7 +1,7 @@
-# ポートフォリオマネージャー コード規約書（更新版3.3）
+# ポートフォリオマネージャー コード規約書（更新版3.4）
 
-**バージョン:** 3.3  
-**最終更新日時:** 2025/03/22 12:30
+**バージョン:** 3.4  
+**最終更新日時:** 2025/03/23 09:30
 
 ## 1. 概要
 
@@ -31,8 +31,9 @@ src/
 functions/
 ├── alpha-vantage-proxy.js       # Alpha Vantage APIプロキシ
 ├── mof-exchange-rate-proxy.js   # 為替レートプロキシ
-├── yfinance-proxy.js            # Python yfinance実行プロキシ
-└── python/                     # Pythonスクリプト
+├── yahoo-finance-proxy.js       # Yahoo Finance APIプロキシ（JavaScript実装・新規）
+├── yfinance-proxy.js            # Python yfinance実行プロキシ（廃止予定）
+└── python/                     # Pythonスクリプト（廃止予定）
     ├── requirements.txt        # Python依存関係定義
     └── yfinance_fetcher.py     # yfinanceデータ取得スクリプト
 ```
@@ -43,7 +44,7 @@ functions/
 - **ユーティリティファイル**: camelCase を使用（例: `formatters.js`, `fundUtils.js`）
 - **テストファイル**: `.test.js` または `.spec.js` を追加（例: `PortfolioSummary.test.jsx`）
 - **CSS/SCSS**: コンポーネントと同じ名前で `.module.css` サフィックス（例: `Button.module.css`）
-- **サーバーレス関数**: camelCase を使用し、機能を表す名前（例: `alpha-vantage-proxy.js`, `yfinance-proxy.js`, `exchange-rate-proxy.js`）
+- **サーバーレス関数**: camelCase を使用し、機能を表す名前（例: `alpha-vantage-proxy.js`, `yahoo-finance-proxy.js`, `exchange-rate-proxy.js`）
 - **Pythonファイル**: snake_case を使用（例: `yfinance_fetcher.py`）
 
 ## 3. 命名規則
@@ -84,8 +85,8 @@ functions/
   const isInitialized = true; // 初期化完了フラグ
   const hasDividend = true; // 配当があるかどうかのフラグ
   const isDividendEstimated = true; // 配当情報が推定値かどうか
-  const isYfinanceTried = true; // Python yfinanceを試行したかどうか（更新）
-  const isYfinanceSuccess = true; // Python yfinanceからのデータ取得に成功したかどうか（更新）
+  const isYahooFinanceTried = true; // Yahoo Financeを試行したかどうか（更新）
+  const isYahooFinanceSuccess = true; // Yahoo Financeからのデータ取得に成功したかどうか（更新）
   ```
 
 ### 3.3 定数
@@ -96,7 +97,7 @@ functions/
   const MAX_RETRY_COUNT = 3;
   const DEFAULT_CURRENCY = 'JPY';
   const ALPHA_VANTAGE_URL = '/api/alpha-vantage-proxy';
-  const YFINANCE_URL = '/api/yfinance-proxy'; // 更新
+  const YAHOO_FINANCE_URL = '/api/yahoo-finance-proxy'; // 更新
   const FUND_TYPES = {
     STOCK: '個別株',
     ETF_JP: 'ETF（日本）',
@@ -122,17 +123,17 @@ functions/
   // データソース定数（更新）
   const DATA_SOURCES = {
     ALPHA_VANTAGE: 'Alpha Vantage',
-    PYTHON_YFINANCE: 'Python yfinance',
+    YAHOO_FINANCE: 'Yahoo Finance', // 更新
     FALLBACK: 'Fallback'
   };
   // データソース優先順位（更新）
   const SOURCE_PRIORITY = [
     DATA_SOURCES.ALPHA_VANTAGE,
-    DATA_SOURCES.PYTHON_YFINANCE,
+    DATA_SOURCES.YAHOO_FINANCE, // 更新
     DATA_SOURCES.FALLBACK
   ];
-  // Pythonスクリプト実行タイムアウト（新規）
-  const PYTHON_EXECUTION_TIMEOUT = 30000; // 30秒
+  // Yahoo Finance API利用可能フラグ（新規）
+  const ENABLE_YAHOO_FINANCE_API = true;
   ```
 
 ### 3.4 コンテキストとフック
@@ -181,9 +182,8 @@ functions/
   const formatDividendFrequency = (frequency) => {...} // 配当頻度の表示変換関数
   const determineHasDividend = (ticker, fundType) => {...} // 配当の有無判定関数
   const addNotificationWithTimeout = (message, type) => {...} // タイムアウト付き通知追加関数
-  const fetchFromPythonYfinance = (ticker) => {...} // Python yfinanceからデータを取得する関数（更新）
-  const formatTickerForYfinance = (ticker) => {...} // ティッカーをyfinance用にフォーマットする関数
-  const executeYfinancePython = (args) => {...} // Python yfinanceスクリプトを実行する関数（新規）
+  const fetchFromYahooFinance = (ticker) => {...} // Yahoo Financeからデータを取得する関数（更新）
+  const formatTickerForYahooFinance = (ticker) => {...} // ティッカーをYahoo Finance用にフォーマットする関数（更新）
   ```
 
 ### 3.7 データソース関連（更新）
@@ -192,38 +192,18 @@ functions/
   ```javascript
   // 良い例
   const dataSource = 'Alpha Vantage'; // データソースを文字列で表現
-  const sourceCounts = { 'Alpha Vantage': 5, 'Python yfinance': 3, 'Fallback': 2 }; // ソース別の統計
-  const yfinanceTriedCount = 5; // Python yfinanceを試行した回数
-  const yfinanceSuccessCount = 3; // Python yfinanceでの成功回数
+  const sourceCounts = { 'Alpha Vantage': 5, 'Yahoo Finance': 3, 'Fallback': 2 }; // ソース別の統計
+  const yahooFinanceTriedCount = 5; // Yahoo Financeを試行した回数
+  const yahooFinanceSuccessCount = 3; // Yahoo Financeでの成功回数
   const fallbackCount = 2; // フォールバック値の使用回数
   ```
 
 - **フォールバック関連フラグ**: 各データソースの試行・成功状態を追跡
   ```javascript
   // 良い例
-  const yfinanceTried = true; // Python yfinanceを試行したかどうか
-  const yfinanceSuccess = true; // Python yfinanceからのデータ取得に成功したかどうか
+  const yahooFinanceTried = true; // Yahoo Financeを試行したかどうか
+  const yahooFinanceSuccess = true; // Yahoo Financeからのデータ取得に成功したかどうか
   const isFallback = result.data.source === 'Fallback'; // フォールバック値かどうか
-  ```
-
-### 3.8 Python関連（新規）
-
-- **Pythonプロセス実行関連**: 明確な名前と意図を表す命名を使用
-  ```javascript
-  // 良い例
-  const pythonScript = path.join(__dirname, 'python', 'yfinance_fetcher.py');
-  const pythonArgs = ['--symbols', 'AAPL,MSFT,GOOGL'];
-  const pythonExecutable = 'python3'; // または 'python'（環境による）
-  const pythonTimeout = 30000; // 30秒のタイムアウト
-  const pythonResult = await executePythonProcess(pythonScript, pythonArgs);
-  ```
-
-- **Python実行関数**: 実行の目的を明確にする命名を使用
-  ```javascript
-  // 良い例
-  const executePythonProcess = (scriptPath, args, timeout = 30000) => {...}
-  const fetchMarketDataWithPython = async (symbols) => {...}
-  const fetchExchangeRateWithPython = async (fromCurrency, toCurrency) => {...}
   ```
 
 ## 4. コードフォーマット
@@ -285,7 +265,7 @@ functions/
   <span className={`text-xs px-1.5 py-0.5 rounded ${
     asset.source === 'Alpha Vantage'
       ? 'bg-green-100 text-green-800'
-      : asset.source === 'Python yfinance'
+      : asset.source === 'Yahoo Finance'
         ? 'bg-blue-100 text-blue-800'
         : 'bg-yellow-100 text-amber-800'
   }`}>
@@ -369,59 +349,6 @@ functions/
   import './styles.css';
   ```
 
-### 4.4 Python コードフォーマット
-
-- **Pythonファイル**: PEP 8 スタイルガイドに従う
-  ```python
-  # Snake caseを使用
-  def calculate_annual_dividend(holdings, price, dividend_yield):
-      """年間配当金を計算する関数"""
-      return holdings * price * (dividend_yield / 100)
-  
-  # クラス名はPascalCase
-  class YahooFinanceConnector:
-      def __init__(self, timeout=15):
-          self.timeout = timeout
-  
-  # 定数は大文字
-  DEFAULT_CURRENCY = 'JPY'
-  EXCHANGE_RATE_TICKER = 'USDJPY=X'
-  ```
-
-- **スペーシング**: PEP 8 に従い、空行と空白を適切に使用
-  ```python
-  # 関数定義の間には2行の空行
-  def format_ticker(ticker):
-      """ティッカーを正規化"""
-      if ticker.isdigit() and len(ticker) == 4:
-          return f"{ticker}.T"
-      return ticker
-  
-  
-  def fetch_stock_data(tickers, period="1d"):
-      """株価データを取得"""
-      # 関数実装
-  ```
-
-- **ドキュメンテーション**: docstringを使用して関数やクラスを文書化
-  ```python
-  def fetch_exchange_rate(from_currency, to_currency):
-      """
-      指定された通貨間の為替レートを取得する
-      
-      Parameters:
-          from_currency (str): 換算元の通貨コード（例: 'USD'）
-          to_currency (str): 換算先の通貨コード（例: 'JPY'）
-          
-      Returns:
-          dict: 為替レート情報を含む辞書
-              - success (bool): 取得の成否
-              - rate (float): 為替レート
-              - error (str, optional): エラーメッセージ
-      """
-      # 関数実装
-  ```
-
 ## 5. React固有の規則
 
 ### 5.1 コンポーネント定義
@@ -487,7 +414,7 @@ functions/
   export const useDividendCalculation = () => {...} // 配当計算フック
   export const useNotifications = () => {...} // 通知管理フック
   export const useDataSources = () => {...} // データソース管理フック
-  export const usePythonExecution = () => {...} // Pythonスクリプト実行フック（新規）
+  export const useMarketData = () => {...} // 市場データ取得フック（更新）
   ```
 
 ### 5.3 環境依存のライブラリ対応
@@ -517,23 +444,6 @@ functions/
   if (portfolioContextRef.current?.handleAuthStateChange) {
     portfolioContextRef.current.handleAuthStateChange(true, user);
   }
-  ```
-
-- **専用コネクタコンポーネント**: App.jsxに配置して両方のコンテキストを接続
-  ```javascript
-  // 良い例
-  const ContextConnector = () => {
-    const auth = useAuth();
-    const portfolio = usePortfolioContext();
-    
-    useEffect(() => {
-      if (auth?.setPortfolioContextRef && portfolio) {
-        auth.setPortfolioContextRef(portfolio);
-      }
-    }, [auth, portfolio]);
-    
-    return null;
-  };
   ```
 
 ### 5.5 エラーバウンダリの使用
@@ -649,31 +559,6 @@ functions/
   );
   ```
 
-- **配当情報の更新**: 配当情報の更新処理
-  ```javascript
-  // 配当情報の更新
-  const updateDividendInfo = useCallback((id, dividendYield, hasDividend = true, frequency = 'quarterly') => {
-    setCurrentAssets(prev => {
-      const updated = prev.map(item => {
-        if (item.id === id) {
-          return {
-            ...item,
-            dividendYield: parseFloat(parseFloat(dividendYield).toFixed(2)) || 0,
-            hasDividend: hasDividend,
-            dividendFrequency: frequency,
-            dividendIsEstimated: false
-          };
-        }
-        return item;
-      });
-      
-      // 変更後に自動保存
-      setTimeout(() => saveToLocalStorage(), 100);
-      return updated;
-    });
-  }, [saveToLocalStorage]);
-  ```
-
 - **状態更新後の処理**: setTimeout を使用して順序を確保
   ```javascript
   // 良い例
@@ -718,41 +603,6 @@ functions/
       }
     }
   };
-  ```
-
-- **保存・読み込み関数**: useCallbackを使用して依存関係を管理
-  ```javascript
-  // 良い例 - 強化版エラーハンドリングと重複保存防止
-  const saveToLocalStorage = useCallback(() => {
-    if (!initialized) return false; // 初期化前は保存しない
-    
-    try {
-      const portfolioData = {
-        baseCurrency,
-        exchangeRate,
-        lastUpdated,
-        currentAssets,
-        targetPortfolio,
-        additionalBudget,
-        version: '1.0.0',
-        timestamp: new Date().toISOString()
-      };
-      
-      // データの暗号化
-      const encryptedData = encryptData(portfolioData);
-      if (!encryptedData) {
-        throw new Error('データの暗号化に失敗しました');
-      }
-      
-      localStorage.setItem('portfolioData', encryptedData);
-      
-      return true;
-    } catch (error) {
-      console.error('ローカルストレージへの保存に失敗しました', error);
-      addNotification('データの保存に失敗しました', 'error');
-      return false;
-    }
-  }, [initialized, /* 依存する状態変数 */]);
   ```
 
 ### 6.4 Google Drive連携
@@ -822,15 +672,15 @@ functions/
       return alphaVantageResult; // 成功した場合はそのまま返す
     }
     
-    // プライマリソースが失敗した場合はセカンダリソース（Python yfinance）を試行
-    console.log(`Alpha Vantage failed for ${ticker}, trying Python yfinance`);
-    const yfinanceResult = await fetchFromPythonYfinance(ticker);
-    if (yfinanceResult.success) {
-      return yfinanceResult; // 成功した場合はそのまま返す
+    // プライマリソースが失敗した場合はセカンダリソース（Yahoo Finance）を試行
+    console.log(`Alpha Vantage failed for ${ticker}, trying Yahoo Finance`);
+    const yahooFinanceResult = await fetchFromYahooFinance(ticker);
+    if (yahooFinanceResult.success) {
+      return yahooFinanceResult; // 成功した場合はそのまま返す
     }
     
     // セカンダリソースも失敗した場合はフォールバック値を使用
-    console.log(`Python yfinance also failed for ${ticker}, using fallback data`);
+    console.log(`Yahoo Finance also failed for ${ticker}, using fallback data`);
     return generateFallbackData(ticker);
   } catch (error) {
     // 全体的なエラー処理
@@ -843,14 +693,14 @@ functions/
   ```javascript
   // レート制限の検出
   if (response.data && response.data.Note && response.data.Note.includes('API call frequency')) {
-    console.warn(`Alpha Vantage API rate limit reached for ${ticker}, trying Python yfinance`);
-    return await fetchFromPythonYfinance(ticker);
+    console.warn(`Alpha Vantage API rate limit reached for ${ticker}, trying Yahoo Finance`);
+    return await fetchFromYahooFinance(ticker);
   }
   
   // データ取得失敗の検出
   if (!response.data || !response.data['Global Quote'] || !response.data['Global Quote']['05. price']) {
-    console.warn(`No valid data from Alpha Vantage for ${ticker}, trying Python yfinance`);
-    return await fetchFromPythonYfinance(ticker);
+    console.warn(`No valid data from Alpha Vantage for ${ticker}, trying Yahoo Finance`);
+    return await fetchFromYahooFinance(ticker);
   }
   ```
 
@@ -861,7 +711,7 @@ functions/
     success: true,
     data: {
       // ...データフィールド
-      source: 'Alpha Vantage', // または 'Python yfinance', 'Fallback'
+      source: 'Alpha Vantage', // または 'Yahoo Finance', 'Fallback'
     },
     message: '正常に取得しました'
   };
@@ -891,15 +741,15 @@ functions/
     // 処理
   } catch (error) {
     console.error(`Error fetching ${ticker} from Alpha Vantage:`, error);
-    console.log(`Trying Python yfinance for ${ticker}`);
+    console.log(`Trying Yahoo Finance for ${ticker}`);
     try {
-      const yfinanceResponse = await axios.get(YFINANCE_URL, {
+      const yahooFinanceResponse = await axios.get(YAHOO_FINANCE_URL, {
         params: { symbols: ticker },
         timeout: 30000
       });
-      // Python yfinanceからのデータ処理
-    } catch (yfinanceError) {
-      console.error(`Python yfinance also failed for ${ticker}:`, yfinanceError);
+      // Yahoo Financeからのデータ処理
+    } catch (yahooFinanceError) {
+      console.error(`Yahoo Finance also failed for ${ticker}:`, yahooFinanceError);
       // 最終フォールバック
     }
   }
@@ -966,11 +816,11 @@ functions/
     
     // セカンダリソースを試行
     try {
-      console.log(`Trying Python yfinance for ${ticker}`);
-      const yfinanceResult = await fetchFromPythonYfinance(ticker);
-      return yfinanceResult;
-    } catch (yfinanceError) {
-      console.error('Python yfinance error:', yfinanceError);
+      console.log(`Trying Yahoo Finance for ${ticker}`);
+      const yahooFinanceResult = await fetchFromYahooFinance(ticker);
+      return yahooFinanceResult;
+    } catch (yahooFinanceError) {
+      console.error('Yahoo Finance error:', yahooFinanceError);
       
       // すべてのソースが失敗した場合はフォールバック値を使用
       return generateFallbackData(ticker);
@@ -986,8 +836,9 @@ functions/
     timeout: 15000 // 15秒タイムアウト
   });
   
-  // Python実行のタイムアウト
-  const pythonResult = await executeYfinancePython(scriptPath, args, {
+  // Yahoo Finance APIのタイムアウト
+  const yahooFinanceResponse = await axios.get(YAHOO_FINANCE_URL, {
+    params: { symbols: ticker },
     timeout: 30000 // 30秒タイムアウト
   });
   ```
@@ -1054,8 +905,8 @@ functions/
   if (sourceCounts['Alpha Vantage']) {
     message += ` (Alpha Vantage: ${sourceCounts['Alpha Vantage']}件`;
   }
-  if (sourceCounts['Python yfinance']) {
-    message += `, Python yfinance: ${sourceCounts['Python yfinance']}件`;
+  if (sourceCounts['Yahoo Finance']) {
+    message += `, Yahoo Finance: ${sourceCounts['Yahoo Finance']}件`;
   }
   if (sourceCounts['Fallback']) {
     message += `, フォールバック: ${sourceCounts['Fallback']}件`;
@@ -1065,10 +916,10 @@ functions/
   // 成功通知を表示（5秒後に自動消去）
   addNotification(message, 'success');
   
-  // Python yfinanceの使用状況に関する通知
-  if (yfinanceTriedCount > 0) {
-    const yfinanceMessage = `Alpha Vantageでの取得に失敗した${yfinanceTriedCount}銘柄について、Python yfinanceを使用しました（成功: ${yfinanceSuccessCount}件）`;
-    addNotification(yfinanceMessage, 'info');
+  // Yahoo Financeの使用状況に関する通知
+  if (yahooFinanceTriedCount > 0) {
+    const yahooFinanceMessage = `Alpha Vantageでの取得に失敗した${yahooFinanceTriedCount}銘柄について、Yahoo Financeを使用しました（成功: ${yahooFinanceSuccessCount}件）`;
+    addNotification(yahooFinanceMessage, 'info');
   }
   ```
 
@@ -1115,82 +966,6 @@ functions/
   }
   ```
 
-### 7.8 Python実行エラー処理（新規）
-
-- **Python実行時のエラーハンドリング**:
-  ```javascript
-  // Pythonプロセスを実行する関数
-  const executeYfinancePython = (scriptPath, args, options = {}) => {
-    return new Promise((resolve, reject) => {
-      const { execFile } = require('child_process');
-      const timeout = options.timeout || 30000; // デフォルト30秒
-      
-      // Python実行
-      const process = execFile(
-        'python3', 
-        [scriptPath, ...args], 
-        { timeout },
-        (error, stdout, stderr) => {
-          // エラー処理
-          if (error) {
-            console.error('Python execution error:', error);
-            console.error('stderr:', stderr);
-            
-            // タイムアウトエラーの特別処理
-            if (error.code === 'ETIMEDOUT') {
-              return reject(new Error('Python script execution timed out'));
-            }
-            
-            return reject(error);
-          }
-          
-          // 警告があれば記録
-          if (stderr && stderr.trim()) {
-            console.warn('Python warning:', stderr);
-          }
-          
-          // 標準出力をJSONとしてパース
-          try {
-            const result = JSON.parse(stdout);
-            resolve(result);
-          } catch (parseError) {
-            console.error('Failed to parse Python output:', parseError);
-            console.error('Raw output:', stdout);
-            reject(new Error(`Failed to parse Python output: ${parseError.message}`));
-          }
-        }
-      );
-      
-      // プロセスエラーの追加ハンドリング
-      process.on('error', (err) => {
-        console.error('Failed to start Python process:', err);
-        reject(err);
-      });
-    });
-  };
-  ```
-
-- **Pythonスクリプトの存在チェック**:
-  ```javascript
-  // Pythonスクリプトの存在を確認
-  const fs = require('fs');
-  const path = require('path');
-  
-  const pythonScript = path.join(__dirname, 'python', 'yfinance_fetcher.py');
-  
-  if (!fs.existsSync(pythonScript)) {
-    console.error(`Python script not found: ${pythonScript}`);
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({
-        error: 'Python script not found',
-        message: 'サーバー内部のPythonスクリプトが見つかりません'
-      })
-    };
-  }
-  ```
-
 ## 8. マルチデータソース対応（更新）
 
 ### 8.1 データソース優先順位の設定
@@ -1200,14 +975,14 @@ functions/
   // データソース定数
   const DATA_SOURCES = {
     ALPHA_VANTAGE: 'Alpha Vantage',
-    PYTHON_YFINANCE: 'Python yfinance',
+    YAHOO_FINANCE: 'Yahoo Finance', // 更新
     FALLBACK: 'Fallback'
   };
   
   // データソース優先順位
   const SOURCE_PRIORITY = [
     DATA_SOURCES.ALPHA_VANTAGE, // プライマリソース
-    DATA_SOURCES.PYTHON_YFINANCE, // セカンダリソース
+    DATA_SOURCES.YAHOO_FINANCE, // セカンダリソース（更新）
     DATA_SOURCES.FALLBACK // 最終フォールバック
   ];
   ```
@@ -1227,7 +1002,7 @@ functions/
   }
   ```
 
-### 8.2 データソース取得関数の実装
+### 8.2 データソース取得関数の実装（更新）
 
 - **一般化されたデータソース取得関数**:
   ```javascript
@@ -1236,8 +1011,8 @@ functions/
     switch(source) {
       case DATA_SOURCES.ALPHA_VANTAGE:
         return fetchFromAlphaVantage(ticker);
-      case DATA_SOURCES.PYTHON_YFINANCE:
-        return fetchFromPythonYfinance(ticker);
+      case DATA_SOURCES.YAHOO_FINANCE:
+        return fetchFromYahooFinance(ticker);
       case DATA_SOURCES.FALLBACK:
       default:
         return generateFallbackData(ticker);
@@ -1258,19 +1033,19 @@ functions/
     }
   }
   
-  // Python yfinanceからデータを取得する関数
-  async function fetchFromPythonYfinance(ticker) {
+  // Yahoo Financeからデータを取得する関数
+  async function fetchFromYahooFinance(ticker) {
     try {
-      // Python yfinanceからのデータ取得ロジック
+      // Yahoo Financeからのデータ取得ロジック
       // ...
     } catch (error) {
-      console.error(`Python yfinance error for ${ticker}:`, error);
+      console.error(`Yahoo Finance error for ${ticker}:`, error);
       throw error; // エラーを上位へ伝播
     }
   }
   ```
 
-### 8.3 データソース情報の表示
+### 8.3 データソース情報の表示（更新）
 
 - **データソースバッジの実装**:
   ```jsx
@@ -1282,7 +1057,7 @@ functions/
       case 'Alpha Vantage':
         badgeClass += 'bg-green-100 text-green-800';
         break;
-      case 'Python yfinance':
+      case 'Yahoo Finance':
         badgeClass += 'bg-blue-100 text-blue-800';
         break;
       case 'Fallback':
@@ -1321,7 +1096,7 @@ functions/
   }
   ```
 
-### 8.4 ティッカーフォーマット関数
+### 8.4 ティッカーフォーマット関数（更新）
 
 - **各データソース用のティッカーフォーマット関数**:
   ```javascript
@@ -1334,8 +1109,8 @@ functions/
     return ticker;
   }
   
-  // Python yfinance用にティッカーをフォーマットする関数
-  function formatTickerForYfinance(ticker) {
+  // Yahoo Finance用にティッカーをフォーマットする関数
+  function formatTickerForYahooFinance(ticker) {
     if (!ticker) return '';
     ticker = ticker.toUpperCase();
     
@@ -1348,203 +1123,72 @@ functions/
   }
   ```
 
-## 9. Python yfinance統合（新規）
+## 9. Yahoo Finance API統合（更新）
 
-### 9.1 Python依存関係の管理
+### 9.1 Yahoo Finance API実装（新規）
 
-- **requirements.txt による依存関係の定義**:
-  ```
-  # requirements.txt
-  yfinance==0.2.35
-  pandas==2.1.0
-  numpy==1.25.0
-  pytz==2023.3
-  ```
+- **プロキシエンドポイント**: `/api/yahoo-finance-proxy`
+- **機能**: 株価データと為替レートの取得
+- **Yahoo Finance非公式API**: `https://query1.finance.yahoo.com/v7/finance/quote`
+- **パラメータ**:
+  - 株価データ取得: `symbols=AAPL,MSFT,1301.T`
+  - 為替レート取得: `exchange_rate=USDJPY`
+- **レスポンス形式**: 標準化されたJSON形式
 
-### 9.2 yfinance_fetcher.py の実装
+### 9.2 yahoo-finance-proxy.js の実装概要（新規）
 
-- **主要関数**:
-  ```python
-  # Pythonコードのサンプル
-  import yfinance as yf
-  import pandas as pd
-  import json
-  import sys
-  import os
-  import argparse
+- **サーバーレス関数**: JavaScript実装でYahoo Finance APIを呼び出し
+- **株価データ取得ロジック**: 銘柄シンボルに基づいて株価情報を取得
+- **為替レート取得ロジック**: 通貨ペアに基づいて為替レート情報を取得
+- **日本株対応**: 4桁数字の銘柄に自動的に`.T`を追加
+- **エラーハンドリング**: フォールバック値を生成する機能
+
+```javascript
+// yahoo-finance-proxy.js の主要部分
+async function handleStockData(symbols, headers) {
+  // 日本株の場合は.Tを追加
+  const formattedSymbols = symbols.split(',').map(symbol => {
+    if (/^\d{4}$/.test(symbol) && !symbol.includes('.T')) {
+      return `${symbol}.T`;
+    }
+    return symbol.trim();
+  });
   
-  def format_ticker(ticker):
-      """ティッカーシンボルを整形する関数"""
-      if ticker.isdigit() and len(ticker) == 4:
-          return f"{ticker}.T"
-      return ticker
-  
-  def fetch_market_data(tickers):
-      """複数の銘柄の市場データを取得する"""
-      try:
-          # ティッカーの整形
-          ticker_list = [format_ticker(t.strip()) for t in tickers.split(',')]
-          
-          # yfinanceでデータ取得
-          data = yf.download(
-              ticker_list,
-              period="1d",
-              progress=False,
-              group_by="ticker"
-          )
-          
-          # 結果を整形
-          result = {}
-          for ticker in ticker_list:
-              # データ処理...
-              
-          return {"success": True, "data": result}
-      except Exception as e:
-          return {"success": False, "error": str(e)}
-  
-  def fetch_exchange_rate(from_currency, to_currency):
-      """為替レートを取得する"""
-      try:
-          ticker = f"{from_currency}{to_currency}=X"
-          data = yf.Ticker(ticker)
-          rate_data = data.history(period="1d")
-          
-          if len(rate_data) > 0:
-              rate = rate_data["Close"].iloc[-1]
-              return {
-                  "success": True,
-                  "rate": float(rate),
-                  "source": "Python yfinance"
-              }
-          else:
-              return {"success": False, "error": "No exchange rate data found"}
-      except Exception as e:
-          return {"success": False, "error": str(e)}
-  ```
-
-- **メイン処理部分**:
-  ```python
-  # メイン処理
-  if __name__ == "__main__":
-      parser = argparse.ArgumentParser(description='Fetch data from Yahoo Finance')
-      parser.add_argument('--symbols', help='Comma-separated ticker symbols')
-      parser.add_argument('--exchange_rate', help='From-To currency pair (e.g., USDJPY)')
-      
-      args = parser.parse_args()
-      
-      try:
-          if args.symbols:
-              result = fetch_market_data(args.symbols)
-          elif args.exchange_rate:
-              from_currency = args.exchange_rate[:3]
-              to_currency = args.exchange_rate[3:]
-              result = fetch_exchange_rate(from_currency, to_currency)
-          else:
-              result = {"success": False, "error": "No valid arguments provided"}
-          
-          # 結果を標準出力に JSON 形式で出力
-          print(json.dumps(result))
-      except Exception as e:
-          print(json.dumps({"success": False, "error": str(e)}))
-          sys.exit(1)
-  ```
-
-### 9.3 yfinance-proxy.js の実装
-
-- **Pythonスクリプト実行プロキシ**:
-  ```javascript
-  // functions/yfinance-proxy.js
-  const { execFile } = require('child_process');
-  const path = require('path');
-  const fs = require('fs');
-  
-  exports.handler = async function(event, context) {
-    // CORSヘッダー
-    const headers = {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Content-Type': 'application/json'
+  try {
+    // Yahoo Finance APIを呼び出す
+    const yahooUrl = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${formattedSymbols.join(',')}`;
+    const response = await axios.get(yahooUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
+    
+    // 結果を整形
+    const result = {};
+    response.data.quoteResponse.result.forEach(quote => {
+      const ticker = quote.symbol;
+      result[ticker] = {
+        ticker: ticker,
+        price: quote.regularMarketPrice,
+        name: quote.shortName || quote.longName || ticker,
+        currency: quote.currency,
+        lastUpdated: new Date().toISOString()
+      };
+    });
+    
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({
+        success: true,
+        data: result
+      })
     };
-    
-    // OPTIONSリクエストをハンドリング
-    if (event.httpMethod === 'OPTIONS') {
-      return { statusCode: 204, headers, body: '' };
-    }
-    
-    // クエリパラメータを取得
-    const params = event.queryStringParameters || {};
-    
-    if (!params.symbols && !params.exchange_rate) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ error: 'Missing required parameters' })
-      };
-    }
-    
-    try {
-      // Pythonスクリプトのパスを取得
-      const pythonScript = path.join(__dirname, 'python', 'yfinance_fetcher.py');
-      
-      // スクリプトの存在確認
-      if (!fs.existsSync(pythonScript)) {
-        throw new Error(`Python script not found: ${pythonScript}`);
-      }
-      
-      // コマンドライン引数を構築
-      const args = [];
-      if (params.symbols) {
-        args.push('--symbols', params.symbols);
-      } else if (params.exchange_rate) {
-        args.push('--exchange_rate', params.exchange_rate);
-      }
-      
-      // Pythonスクリプトを実行
-      const result = await new Promise((resolve, reject) => {
-        execFile('python3', [pythonScript, ...args], { timeout: 30000 }, (error, stdout, stderr) => {
-          if (error) {
-            console.error('Python execution error:', error);
-            if (stderr) console.error('stderr:', stderr);
-            return reject(error);
-          }
-          
-          if (stderr && stderr.trim()) {
-            console.warn('Python warnings:', stderr);
-          }
-          
-          try {
-            const data = JSON.parse(stdout);
-            resolve(data);
-          } catch (parseError) {
-            reject(new Error(`Failed to parse Python output: ${parseError.message}`));
-          }
-        });
-      });
-      
-      // 結果を返す
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify(result)
-      };
-    } catch (error) {
-      // エラーログ出力
-      console.error('yfinance-proxy error:', error);
-      
-      // エラーレスポンス
-      return {
-        statusCode: 500,
-        headers,
-        body: JSON.stringify({
-          error: 'Failed to fetch data from yfinance',
-          message: error.message || 'Unknown error',
-          details: error.stack
-        })
-      };
-    }
-  };
-  ```
+  } catch (error) {
+    // エラー処理...
+  }
+}
+```
 
 ## 改訂履歴
 
@@ -1560,3 +1204,4 @@ functions/
 | 3.1      | 2025/03/19 15:30 | 通知システムの自動消去機能追加、通知コンポーネントとスタイルの規約追加、初期化処理の重複実行防止対策の規約追加 | |
 | 3.2      | 2025/03/20 10:30 | マルチデータソース対応の規約追加、データソース表示コンポーネント、フォールバック処理の標準化、Yahoo Finance対応の命名規則追加 | |
 | 3.3      | 2025/03/22 12:30 | Yahoo FinanceをPython yfinance形式に変更、Pythonスクリプト実行に関する命名規則の追加、Python関連の関数名・変数名の規約追加、データソース名の更新 | |
+| 3.4      | 2025/03/23 09:30 | Yahoo Finance APIをJavaScript実装に変更、データソース名とフォールバック処理の更新、Python yfinance実装の廃止予定化、関連する命名規則の更新 | |
