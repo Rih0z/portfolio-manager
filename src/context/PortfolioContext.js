@@ -1,1249 +1,1414 @@
-// src/services/marketDataService.js
-
-import axios from 'axios';
+import React, { createContext, useState, useCallback, useEffect } from 'react';
 import { 
+  fetchTickerData, 
+  fetchExchangeRate, 
+  fetchFundInfo,
+  fetchDividendData,
+  loadFromGoogleDrive as apiLoadFromGoogleDrive,
+  saveToGoogleDrive as apiSaveToGoogleDrive,
+  initGoogleDriveAPI
+} from '../services/api';
+import { 
+  FUND_TYPES, 
   guessFundType, 
   estimateAnnualFee, 
-  extractFundInfo, 
   estimateDividendYield,
-  TICKER_SPECIFIC_FEES,
-  TICKER_SPECIFIC_DIVIDENDS,
-  FUND_TYPES,
-  US_ETF_LIST
+  US_ETF_LIST, 
+  TICKER_SPECIFIC_FEES, 
+  TICKER_SPECIFIC_DIVIDENDS 
 } from '../utils/fundUtils';
 
-// 環境に応じたベースURL設定
-const isLocalhost = 
-  window.location.hostname === 'localhost' || 
-  window.location.hostname === '127.0.0.1';
-
-// 本番環境のURLは環境変数から取得、未設定の場合は現在のオリジンを使用
-const PROD_BASE_URL = process.env.REACT_APP_API_BASE_URL || 
-                      (!isLocalhost ? window.location.origin : 'https://delicate-malasada-1fb747.netlify.app');
-
-// API エンドポイントの設定
-const BASE_URL = isLocalhost ? '' : PROD_BASE_URL;
-
-// Alpaca APIエンドポイント（米国株のプライマリソース）
-const ALPACA_API_URL = isLocalhost
-  ? '/api/alpaca-api-proxy' // ローカル環境では直接プロキシ経由
-  : `${BASE_URL}/api/alpaca-api-proxy`; // 本番環境
-
-// Yahoo Finance APIエンドポイント（日本株・投資信託のプライマリソース）
-const YAHOO_FINANCE_URL = isLocalhost
-  ? '/api/yahoo-finance-proxy' // ローカル環境では直接プロキシ経由
-  : `${BASE_URL}/api/yahoo-finance-proxy`; // 本番環境
-
-// 為替レート取得APIエンドポイント
-const EXCHANGERATE_API_URL = isLocalhost
-  ? '/api/exchangerate-proxy' // ローカル環境では直接プロキシ経由
-  : `${BASE_URL}/api/exchangerate-proxy`; // 本番環境
-
-// API有効フラグ
-const ENABLE_YAHOO_FINANCE_API = true;
-const ENABLE_ALPACA_API = true;
-
-// データソース定数
-const DATA_SOURCES = {
-  ALPACA: 'Alpaca',
-  YAHOO_FINANCE: 'Yahoo Finance',
-  EXCHANGERATE: 'exchangerate.host',
-  FALLBACK: 'Fallback'
-};
-
-// タイムアウト設定
-const ALPACA_API_TIMEOUT = 8000; // 8秒（最適化）
-const YAHOO_FINANCE_API_TIMEOUT = 10000; // 10秒（最適化）
-const EXCHANGERATE_API_TIMEOUT = 5000; // 5秒
-
-// 設定情報をログ出力（開発時の確認用）
-console.log(`API Configuration:
-- Environment: ${isLocalhost ? 'Local development' : 'Production'}
-- Base URL: ${BASE_URL || '(using proxy)'}
-- Alpaca API (米国株向け): ${ALPACA_API_URL}
-- Yahoo Finance API (日本株・投資信託向け): ${YAHOO_FINANCE_URL}
-- Exchange Rate API: ${EXCHANGERATE_API_URL}
-- Alpaca API Enabled: ${ENABLE_ALPACA_API}
-- Yahoo Finance API Enabled: ${ENABLE_YAHOO_FINANCE_API}
-`);
-
-// 為替レートのデフォルト値（最終手段）
-const DEFAULT_EXCHANGE_RATES = {
-  'USD/JPY': 150.0,
-  'JPY/USD': 1/150.0,
-  'EUR/JPY': 160.0,
-  'EUR/USD': 1.1,
-};
-
-/**
- * 投資信託かどうかを判定する関数
- * @param {string} ticker - ティッカーシンボル
- * @returns {boolean} 投資信託の場合はtrue
- */
-function isMutualFund(ticker) {
-  if (!ticker) return false;
-  return /^\d{7,8}C(\.T)?$/.test(ticker.toString());
-}
-
-/**
- * 日本株かどうかを判定する関数
- * @param {string} ticker - ティッカーシンボル
- * @returns {boolean} 日本株の場合はtrue
- */
-function isJapaneseStock(ticker) {
-  if (!ticker) return false;
-  ticker = ticker.toString();
-  return /^\d{4}(\.T)?$/.test(ticker) || ticker.endsWith('.T');
-}
-
-/**
- * REITかどうかを判定する
- * @param {string} name - 銘柄名
- * @returns {boolean} - REITならtrue
- */
-function isREIT(name) {
-  if (!name) return false;
-  const lowerName = name.toLowerCase();
-  return lowerName.includes('reit') || 
-         lowerName.includes('リート') || 
-         lowerName.includes('不動産投資') ||
-         lowerName.includes('不動産信託');
-}
-
-/**
- * 暗号資産関連銘柄かどうかを判定する
- * @param {string} name - 銘柄名
- * @param {string} ticker - ティッカーシンボル
- * @returns {boolean} - 暗号資産関連ならtrue
- */
-function isCrypto(name, ticker) {
-  if (!name && !ticker) return false;
-  
-  // 特定の暗号資産関連ティッカー
-  const cryptoTickers = ['IBIT', 'GBTC', 'ETHE', 'BITO', 'COIN', 'MSTR'];
-  
-  if (ticker && cryptoTickers.includes(ticker.toUpperCase())) {
-    return true;
-  }
-  
-  if (!name) return false;
-  
-  const lowerName = name.toLowerCase();
-  return lowerName.includes('bitcoin') || 
-         lowerName.includes('ビットコイン') || 
-         lowerName.includes('暗号資産') || 
-         lowerName.includes('仮想通貨') ||
-         lowerName.includes('crypto') ||
-         lowerName.includes('ethereum') ||
-         lowerName.includes('イーサリアム');
-}
-
-/**
- * 債券関連銘柄かどうかを判定する
- * @param {string} name - 銘柄名
- * @param {string} ticker - ティッカーシンボル
- * @returns {boolean} - 債券関連ならtrue
- */
-function isBond(name, ticker) {
-  if (!name && !ticker) return false;
-  
-  // 特定の債券関連ティッカー
-  const bondTickers = ['LQD', 'BND', 'AGG', 'TLT', 'IEF', 'GOVT'];
-  
-  if (ticker && bondTickers.includes(ticker.toUpperCase())) {
-    return true;
-  }
-  
-  if (!name) return false;
-  
-  const lowerName = name.toLowerCase();
-  return lowerName.includes('bond') || 
-         lowerName.includes('債券') || 
-         lowerName.includes('ボンド') ||
-         lowerName.includes('国債') ||
-         lowerName.includes('社債') ||
-         lowerName.includes('fixed income');
-}
-
-/**
- * ティッカーシンボルをAlpaca API用にフォーマットする
- * @param {string} ticker - 元のティッカーシンボル
- * @returns {string|null} - フォーマットされたティッカーシンボル、またはnull
- */
-function formatTickerForAlpaca(ticker) {
-  if (!ticker) return null;
-  
-  // 大文字に変換
-  ticker = ticker.toUpperCase();
-  
-  // 日本株や投資信託の場合はAlpaca APIでは取得できない
-  if (isJapaneseStock(ticker) || isMutualFund(ticker)) {
-    return null;
-  }
-  
-  // 米国株式市場のシンボルはそのまま返す
-  return ticker;
-}
-
-/**
- * ティッカーシンボルをYahoo Finance用にフォーマットする
- * @param {string} ticker - 元のティッカーシンボル
- * @returns {string} - フォーマットされたティッカーシンボル
- */
-function formatTickerForYahoo(ticker) {
-  if (!ticker) return '';
-  
-  // 大文字に変換
-  ticker = ticker.toUpperCase();
-  
-  // 4桁数字で.Tが付いていない日本株の場合は.Tを追加
-  if (/^\d{4}$/.test(ticker) && !ticker.includes('.T')) {
-    return `${ticker}.T`;
-  }
-  
-  // 投資信託コードで.Tが付いていない場合は.Tを追加
-  if (/^\d{7,8}C$/.test(ticker) && !ticker.includes('.T')) {
-    return `${ticker}.T`;
-  }
-  
-  return ticker;
-}
-
-/**
- * 銘柄のファンドタイプを確実に判定する
- * @param {string} ticker - ティッカーシンボル
- * @param {string} name - 銘柄名 
- * @returns {string} - 確定したファンドタイプ
- */
-function determineFundType(ticker, name) {
-  if (!ticker) return FUND_TYPES.UNKNOWN;
-  
-  // 大文字に統一
-  ticker = ticker.toUpperCase();
-  
-  // 米国ETFリストに明示的に含まれているか確認
-  if (US_ETF_LIST.includes(ticker)) {
-    if (ticker === 'IBIT' || ticker === 'GBTC' || ticker === 'ETHE') {
-      return FUND_TYPES.CRYPTO;
-    }
-    return FUND_TYPES.ETF_US;
-  }
-  
-  // 投資信託の場合
-  if (isMutualFund(ticker)) {
-    return FUND_TYPES.MUTUAL_FUND;
-  }
-  
-  // ティッカーが特定の構造に一致する場合
-  if (isJapaneseStock(ticker)) {
-    // 日本の個別株かETF
-    if (TICKER_SPECIFIC_FEES[ticker]) {
-      return FUND_TYPES.ETF_JP;
-    }
-    return FUND_TYPES.STOCK;
-  }
-  
-  // REIT判定
-  if (isREIT(name)) {
-    return isJapaneseStock(ticker) ? FUND_TYPES.REIT_JP : FUND_TYPES.REIT_US;
-  }
-  
-  // 暗号資産判定
-  if (isCrypto(name, ticker)) {
-    return FUND_TYPES.CRYPTO;
-  }
-  
-  // 債券判定
-  if (isBond(name, ticker)) {
-    return FUND_TYPES.BOND;
-  }
-  
-  // そうでなければ通常の判定ロジックを使用
-  return guessFundType(ticker, name);
-}
-
-/**
- * 配当情報を確定する
- * @param {string} ticker - ティッカーシンボル
- * @returns {boolean} - 配当があるならtrue
- */
-function determineHasDividend(ticker) {
-  if (!ticker) return false;
-  
-  // 大文字に統一
-  ticker = ticker.toUpperCase();
-  
-  // 特定の配当リストに情報があればそれを使用
-  if (TICKER_SPECIFIC_DIVIDENDS[ticker] !== undefined) {
-    return TICKER_SPECIFIC_DIVIDENDS[ticker] > 0;
-  }
-  
-  // 知られている無配当ETF
-  const noDividendETFs = ['GLD', 'IBIT', 'GBTC', 'ETHE'];
-  if (noDividendETFs.includes(ticker)) {
-    return false;
-  }
-  
-  // 投資信託は基本的に配当あり
-  if (isMutualFund(ticker)) {
-    return true;
-  }
-  
-  // ファンドタイプに基づく判断
-  const fundType = determineFundType(ticker, ticker);
-  
-  if (fundType === FUND_TYPES.STOCK) {
-    // 個別株は配当の有無不明のためfalse
-    return false;
-  } else if (
-    fundType === FUND_TYPES.ETF_JP || 
-    fundType === FUND_TYPES.ETF_US || 
-    fundType === FUND_TYPES.INDEX_JP || 
-    fundType === FUND_TYPES.INDEX_US || 
-    fundType === FUND_TYPES.INDEX_GLOBAL ||
-    fundType === FUND_TYPES.REIT_JP || 
-    fundType === FUND_TYPES.REIT_US || 
-    fundType === FUND_TYPES.BOND
-  ) {
-    // ETF、インデックスファンド、REIT、債券ファンドは通常配当あり
-    return true;
-  }
-  
-  // デフォルトはfalse
-  return false;
-}
-
-/**
- * Alpaca APIからデータを取得する
- * @param {string} ticker - ティッカーシンボル
- * @returns {Promise<Object>} - Alpaca APIからのデータまたはnull
- */
-async function fetchFromAlpaca(ticker) {
-  // Alpaca APIが無効化されている場合は直接nullを返す
-  if (!ENABLE_ALPACA_API) {
-    console.log(`Alpaca API is disabled. Skipping fetch for ${ticker}`);
-    return null;
-  }
-  
-  // 日本株や投資信託は処理しない
-  if (isJapaneseStock(ticker) || isMutualFund(ticker)) {
-    console.log(`${ticker} is not supported by Alpaca API (Japanese stock or mutual fund)`);
-    return null;
-  }
-  
+// 改善された暗号化関数
+const encryptData = (data) => {
   try {
-    // Alpaca API用にティッカーをフォーマット
-    const formattedTicker = formatTickerForAlpaca(ticker);
-    if (!formattedTicker) {
-      console.log(`${ticker} cannot be formatted for Alpaca API`);
-      return null;
-    }
-    
-    console.log(`Attempting to fetch data for ${formattedTicker} from Alpaca API at: ${ALPACA_API_URL}`);
-    
-    // Alpaca APIプロキシにリクエスト
-    const response = await axios.get(ALPACA_API_URL, {
-      params: { 
-        symbol: formattedTicker 
-      },
-      timeout: ALPACA_API_TIMEOUT,
-      validateStatus: function (status) {
-        // 全てのステータスコードを許可して、エラー時にPromiseをリジェクトしないようにする
-        return true;
-      }
-    });
-    
-    // ステータスコードをチェック
-    if (response.status !== 200) {
-      console.log(`Alpaca API returned status code ${response.status} for ${formattedTicker}`);
-      return null;
-    }
-    
-    // レスポンスデータをログ（デバッグ用）
-    console.log(`Alpaca API response for ${formattedTicker}:`, response.data);
-    
-    // データの存在を確認
-    if (response.data && response.data.success) {
-      const quoteData = response.data.data;
-      
-      // 銘柄データが存在するかチェック
-      if (quoteData && quoteData.price) {
-        console.log(`Successfully fetched data for ${formattedTicker} from Alpaca API: $${quoteData.price}`);
-        
-        // 銘柄名を取得または生成
-        const name = quoteData.name || ticker;
-        
-        // ファンドタイプを判定
-        const fundType = determineFundType(ticker, name);
-        console.log(`Determined fund type for ${ticker} from Alpaca API: ${fundType}`);
-        
-        // 個別株かどうかを判定
-        const isStock = fundType === FUND_TYPES.STOCK;
-        
-        // 手数料情報を取得
-        const feeInfo = estimateAnnualFee(ticker, name);
-        
-        // 基本情報を取得
-        const fundInfo = extractFundInfo(ticker, name);
-        
-        // 配当情報の取得
-        const dividendInfo = estimateDividendYield(ticker, name);
-        
-        // 配当情報を確定
-        const hasDividend = determineHasDividend(ticker);
-        
-        // 通貨判定
-        const currency = quoteData.currency || fundInfo.currency || 'USD';
-        
-        // 手数料情報（個別株は常に0%）
-        const annualFee = isStock ? 0 : feeInfo.fee;
-        
-        return {
-          success: true,
-          data: {
-            id: ticker,
-            name: name,
-            ticker: ticker,
-            exchangeMarket: 'US',
-            price: quoteData.price,
-            currency: currency,
-            holdings: 0,
-            annualFee: annualFee,
-            fundType: fundType,
-            isStock: isStock,
-            isMutualFund: false,
-            feeSource: isStock ? '個別株' : feeInfo.source,
-            feeIsEstimated: isStock ? false : feeInfo.isEstimated,
-            region: fundInfo.region || 'unknown',
-            lastUpdated: new Date().toISOString(),
-            source: DATA_SOURCES.ALPACA,
-            // 配当情報
-            dividendYield: dividendInfo.yield,
-            hasDividend: hasDividend,
-            dividendFrequency: dividendInfo.dividendFrequency,
-            dividendIsEstimated: dividendInfo.isEstimated
-          },
-          message: 'Alpacaから正常に取得しました'
-        };
-      }
-    }
-    
-    console.log(`No valid data found for ${formattedTicker} from Alpaca API`);
-    return null;
+    const jsonString = JSON.stringify(data);
+    // エンコード前にURIエンコードを適用して特殊文字を処理
+    return btoa(encodeURIComponent(jsonString));
   } catch (error) {
-    console.error(`Alpaca API error for ${ticker}:`, error.message);
+    console.error('データの暗号化に失敗しました', error);
+    return null;
+  }
+};
+
+// 改善された復号化関数
+const decryptData = (encryptedData) => {
+  try {
+    // Base64デコード後にURIデコードを適用
+    const jsonString = decodeURIComponent(atob(encryptedData));
+    const data = JSON.parse(jsonString);
     
-    if (error.response) {
-      console.error(`Alpaca API response error status: ${error.response.status}`);
-      console.error(`Alpaca API response data:`, error.response.data);
+    // 基本的なデータ構造の検証
+    if (!data || typeof data !== 'object') {
+      throw new Error('無効なデータ形式です');
     }
     
-    return null;
-  }
-}
-
-/**
- * Yahoo Finance APIからデータを取得する
- * @param {string} ticker - ティッカーシンボル
- * @returns {Promise<Object>} - Yahoo Financeからのデータまたはnull
- */
-async function fetchFromYahoo(ticker) {
-  // Yahoo Finance APIが無効化されている場合は直接nullを返す
-  if (!ENABLE_YAHOO_FINANCE_API) {
-    console.log(`Yahoo Finance API is disabled. Skipping fetch for ${ticker}`);
-    return null;
-  }
-  
-  try {
-    // Yahoo Finance用にティッカーをフォーマット
-    const formattedTicker = formatTickerForYahoo(ticker);
-    console.log(`Formatted ticker for Yahoo Finance: ${formattedTicker}`);
-    console.log(`Attempting to fetch data for ${formattedTicker} from Yahoo Finance at: ${YAHOO_FINANCE_URL}`);
-    
-    // Yahoo Financeプロキシにリクエスト
-    const response = await axios.get(YAHOO_FINANCE_URL, {
-      params: { 
-        symbols: formattedTicker 
-      },
-      timeout: YAHOO_FINANCE_API_TIMEOUT,
-      validateStatus: function (status) {
-        // 全てのステータスコードを許可して、エラー時にPromiseをリジェクトしないようにする
-        return true;
-      }
-    });
-    
-    // ステータスコードをチェック
-    if (response.status !== 200) {
-      console.log(`Yahoo Finance returned status code ${response.status} for ${formattedTicker}`);
+    return data;
+  } catch (error) {
+    console.error('データの復号化に失敗しました', error.message);
+    // 可能であれば古いフォーマットを試行
+    try {
+      const jsonString = atob(encryptedData);
+      return JSON.parse(jsonString);
+    } catch (fallbackError) {
+      console.error('フォールバック復号化も失敗しました', fallbackError);
       return null;
     }
+  }
+};
+
+// コンテキストの作成
+export const PortfolioContext = createContext();
+
+// プロバイダーコンポーネント - 明示的にエクスポート
+export const PortfolioProvider = ({ children }) => {
+  // 初期化完了フラグ
+  const [initialized, setInitialized] = useState(false);
+  
+  // 状態管理
+  const [baseCurrency, setBaseCurrency] = useState('JPY');
+  const [exchangeRate, setExchangeRate] = useState({
+    rate: 150.0,
+    source: 'Default',
+    lastUpdated: new Date().toISOString()
+  });
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [currentAssets, setCurrentAssets] = useState([]);
+  const [targetPortfolio, setTargetPortfolio] = useState([]);
+  const [additionalBudget, setAdditionalBudget] = useState(300000);
+  const [notifications, setNotifications] = useState([]);
+  
+  // データソース管理のための状態
+  const [dataSource, setDataSource] = useState('local');
+  const [lastSyncTime, setLastSyncTime] = useState(null);
+
+  // 通知を追加する関数（タイムアウト付き）
+  const addNotification = useCallback((message, type = 'info') => {
+    const id = Date.now();
+    setNotifications(prev => [...prev, { id, message, type }]);
+  
+    // 情報・成功・警告通知は自動消去（5秒後）
+    if (type !== 'error') {
+      setTimeout(() => {
+        removeNotification(id);
+      }, 5000);
+    }
+  
+    return id;
+  }, []);
+
+  // 通知を削除する関数
+  const removeNotification = useCallback((id) => {
+    setNotifications(prev => prev.filter(notification => notification.id !== id));
+  }, []);
+
+  // ローカルストレージにデータを保存
+  const saveToLocalStorage = useCallback(() => {
+    if (!initialized) return false; // 初期化前は保存しない
     
-    // レスポンスデータをログ（デバッグ用）
-    console.log(`Yahoo Finance response for ${formattedTicker}:`, response.data);
-    
-    // データの存在を確認
-    if (response.data && response.data.success) {
-      // 元のリクエストティッカーに合わせてデータを取得
-      const quoteData = response.data.data[formattedTicker];
+    try {
+      const portfolioData = {
+        baseCurrency,
+        exchangeRate,
+        lastUpdated,
+        currentAssets,
+        targetPortfolio,
+        additionalBudget,
+        version: '1.0.0', // データバージョン管理
+        timestamp: new Date().toISOString()
+      };
       
-      if (!quoteData) {
-        console.log(`No data found for ${formattedTicker} in Yahoo Finance response`);
+      // データの暗号化
+      const encryptedData = encryptData(portfolioData);
+      if (!encryptedData) {
+        throw new Error('データの暗号化に失敗しました');
+      }
+      
+      // ローカルストレージに保存
+      localStorage.setItem('portfolioData', encryptedData);
+      console.log('ローカルストレージにデータを保存しました', portfolioData);
+      
+      return true;
+    } catch (error) {
+      console.error('ローカルストレージへの保存に失敗しました', error);
+      addNotification('データの保存に失敗しました', 'error');
+      return false;
+    }
+  }, [initialized, baseCurrency, exchangeRate, lastUpdated, currentAssets, targetPortfolio, additionalBudget, addNotification]);
+
+  // ローカルストレージからデータを読み込み（改善版）
+  const loadFromLocalStorage = useCallback(() => {
+    try {
+      console.log('ローカルストレージからのデータ読み込みを試行...');
+      const encryptedData = localStorage.getItem('portfolioData');
+      
+      if (!encryptedData) {
+        console.log('ローカルストレージにデータがありません');
         return null;
       }
       
-      // 価格の存在確認
-      if (quoteData && quoteData.price) {
-        const price = quoteData.price;
-        
-        console.log(`Successfully fetched data for ${formattedTicker} from Yahoo Finance: ${price}`);
-        
-        // 銘柄名を取得
-        const name = quoteData.name || ticker;
-        
-        // 投資信託かどうかを判定
-        const isMutualFundTicker = isMutualFund(ticker);
-        
-        // ファンドタイプを判定
-        const fundType = isMutualFundTicker 
-          ? FUND_TYPES.MUTUAL_FUND
-          : determineFundType(ticker, name);
-        
-        console.log(`Determined fund type for ${ticker} from Yahoo Finance: ${fundType}`);
-        
-        // 個別株かどうかを判定
-        const isStock = fundType === FUND_TYPES.STOCK;
-        
-        // 手数料情報を取得
+      console.log('暗号化されたデータを取得しました');
+      const decryptedData = decryptData(encryptedData);
+      
+      if (!decryptedData) {
+        console.log('データの復号化に失敗しました');
+        return null;
+      }
+      
+      // 基本的なデータ構造の検証
+      const requiredFields = ['baseCurrency', 'currentAssets', 'targetPortfolio'];
+      const missingFields = requiredFields.filter(field => !(field in decryptedData));
+      
+      if (missingFields.length > 0) {
+        console.warn(`復号化されたデータに必須フィールドがありません: ${missingFields.join(', ')}`);
+        return null;
+      }
+      
+      console.log('ローカルストレージからデータを正常に読み込みました', decryptedData);
+      return decryptedData;
+    } catch (error) {
+      console.error('ローカルストレージからの読み込みに失敗しました', error);
+      return null;
+    }
+  }, []);
+
+  // ローカルストレージをクリア（修復のため）
+  const clearLocalStorage = useCallback(() => {
+    try {
+      localStorage.removeItem('portfolioData');
+      addNotification('ローカルストレージをクリアしました', 'info');
+      return true;
+    } catch (error) {
+      console.error('ローカルストレージのクリアに失敗しました', error);
+      return false;
+    }
+  }, [addNotification]);
+
+  // 通貨切替
+  const toggleCurrency = useCallback(() => {
+    setBaseCurrency(prev => {
+      const newCurrency = prev === 'JPY' ? 'USD' : 'JPY';
+      // 通貨切替後、自動保存
+      setTimeout(() => saveToLocalStorage(), 0);
+      return newCurrency;
+    });
+  }, [saveToLocalStorage]);
+
+  // 保有銘柄のタイプを検証して修正する関数（新規追加）
+  const validateAssetTypes = useCallback((assets) => {
+    if (!Array.isArray(assets) || assets.length === 0) {
+      return { updatedAssets: [], changes: { fundType: 0, fees: 0, dividends: 0 } };
+    }
+
+    console.log('保有銘柄の情報を検証しています...');
+    let fundTypeChanges = 0;
+    let feeChanges = 0;
+    let dividendChanges = 0;
+    const fundTypeChangeDetails = [];
+    const feeChangeDetails = [];
+
+    // 全銘柄を検証
+    const validatedAssets = assets.map(asset => {
+      if (!asset.ticker) return asset;
+      
+      const ticker = asset.ticker.toUpperCase();
+      const name = asset.name || '';
+
+      // 特別なケース：VXUSや他の米国ETFが個別株として誤って登録されていないか確認
+      const isInETFList = US_ETF_LIST.includes(ticker);
+      
+      // 正しい銘柄タイプを取得
+      const correctFundType = guessFundType(ticker, name);
+      const correctIsStock = correctFundType === FUND_TYPES.STOCK;
+      
+      // 銘柄タイプに誤りがあるか確認
+      const fundTypeIsWrong = asset.fundType !== correctFundType || asset.isStock !== correctIsStock;
+      
+      // 手数料情報を取得
+      let correctFee;
+      let feeSource;
+      let feeIsEstimated;
+      
+      if (correctIsStock) {
+        // 個別株は常に手数料0%
+        correctFee = 0;
+        feeSource = '個別株';
+        feeIsEstimated = false;
+      } else if (TICKER_SPECIFIC_FEES[ticker]) {
+        // 特定銘柄リストにある場合
+        correctFee = TICKER_SPECIFIC_FEES[ticker];
+        feeSource = 'ティッカー固有の情報';
+        feeIsEstimated = false;
+      } else {
+        // タイプから推定
         const feeInfo = estimateAnnualFee(ticker, name);
-        
-        // 基本情報を取得
-        const fundInfo = extractFundInfo(ticker, name);
-        
-        // 配当情報の取得
-        const dividendInfo = estimateDividendYield(ticker, name);
-        
-        // 配当情報を確定
-        const hasDividend = determineHasDividend(ticker);
-        
-        // 通貨判定
-        const currency = quoteData.currency || fundInfo.currency || 
-                         (isJapaneseStock(ticker) || isMutualFundTicker ? 'JPY' : 'USD');
-        
-        // 手数料情報（個別株は常に0%）
-        const annualFee = isStock ? 0 : feeInfo.fee;
-        
-        // 価格表示ラベル（投資信託なら「基準価額」、それ以外は「株価」）
-        const priceLabel = isMutualFundTicker ? '基準価額' : '株価';
-        
+        correctFee = feeInfo.fee;
+        feeSource = feeInfo.source;
+        feeIsEstimated = feeInfo.isEstimated;
+      }
+      
+      // 手数料に誤りがあるか確認
+      const feeIsWrong = 
+        Math.abs(asset.annualFee - correctFee) > 0.001 || // 手数料率が異なる
+        asset.feeSource !== feeSource || // 情報源が異なる
+        asset.feeIsEstimated !== feeIsEstimated; // 推定状態が異なる
+      
+      // 配当情報を取得
+      const dividendInfo = estimateDividendYield(ticker, name);
+      const correctDividendYield = dividendInfo.yield;
+      const correctHasDividend = dividendInfo.hasDividend;
+      const correctDividendFrequency = dividendInfo.dividendFrequency;
+      const correctDividendIsEstimated = dividendInfo.isEstimated;
+      
+      // 配当情報に誤りがあるか確認
+      const dividendIsWrong = 
+        Math.abs(asset.dividendYield - correctDividendYield) > 0.001 || // 配当利回りが異なる
+        asset.hasDividend !== correctHasDividend || // 配当の有無が異なる
+        asset.dividendFrequency !== correctDividendFrequency || // 配当頻度が異なる
+        asset.dividendIsEstimated !== correctDividendIsEstimated; // 推定状態が異なる
+      
+      // 変更があれば統計とログを更新
+      if (fundTypeIsWrong) {
+        fundTypeChanges++;
+        fundTypeChangeDetails.push({
+          ticker: ticker,
+          name: asset.name,
+          oldType: asset.fundType,
+          newType: correctFundType
+        });
+        console.log(`銘柄 ${ticker} (${asset.name}) のタイプを修正: ${asset.fundType} -> ${correctFundType}`);
+      }
+      
+      if (feeIsWrong) {
+        feeChanges++;
+        feeChangeDetails.push({
+          ticker: ticker,
+          name: asset.name,
+          oldFee: asset.annualFee,
+          newFee: correctFee
+        });
+        console.log(`銘柄 ${ticker} (${asset.name}) の手数料率を修正: ${asset.annualFee}% -> ${correctFee}%`);
+      }
+      
+      if (dividendIsWrong) {
+        dividendChanges++;
+        console.log(`銘柄 ${ticker} (${asset.name}) の配当情報を修正: 利回り ${asset.dividendYield}% -> ${correctDividendYield}%, 配当${asset.hasDividend ? 'あり' : 'なし'} -> ${correctHasDividend ? 'あり' : 'なし'}`);
+      }
+      
+      // 修正した情報で銘柄を更新
+      if (fundTypeIsWrong || feeIsWrong || dividendIsWrong) {
         return {
-          success: true,
-          data: {
-            id: ticker,
-            name: name,
-            ticker: ticker,
-            exchangeMarket: isJapaneseStock(ticker) ? 'Japan' : 'US',
-            price: price,
-            currency: currency,
-            holdings: 0,
-            annualFee: annualFee,
-            fundType: fundType,
-            isStock: isStock,
-            isMutualFund: isMutualFundTicker,
-            feeSource: isStock ? '個別株' : (isMutualFundTicker ? '投資信託' : feeInfo.source),
-            feeIsEstimated: isStock ? false : feeInfo.isEstimated,
-            region: fundInfo.region || 'unknown',
-            lastUpdated: new Date().toISOString(),
-            source: DATA_SOURCES.YAHOO_FINANCE,
-            // 配当情報
-            dividendYield: dividendInfo.yield,
-            hasDividend: hasDividend,
-            dividendFrequency: dividendInfo.dividendFrequency,
-            dividendIsEstimated: dividendInfo.isEstimated,
-            // 投資信託特有の項目
-            priceLabel: priceLabel
-          },
-          message: 'Yahoo Financeから正常に取得しました'
+          ...asset,
+          fundType: correctFundType,
+          isStock: correctIsStock,
+          annualFee: correctFee,
+          feeSource: feeSource,
+          feeIsEstimated: feeIsEstimated,
+          dividendYield: correctDividendYield,
+          hasDividend: correctHasDividend,
+          dividendFrequency: correctDividendFrequency,
+          dividendIsEstimated: correctDividendIsEstimated,
         };
       }
-    }
-    
-    console.log(`No valid data found for ${formattedTicker} from Yahoo Finance`);
-    return null;
-  } catch (error) {
-    console.error(`Yahoo Finance error for ${ticker}:`, error.message);
-    
-    if (error.response) {
-      console.error(`Yahoo Finance response error status: ${error.response.status}`);
-      console.error(`Yahoo Finance response data:`, error.response.data);
-    }
-    
-    return null;
-  }
-}
-
-/**
- * 銘柄データを取得（銘柄タイプに応じて適切なAPIを使用）
- * @param {string} ticker - ティッカーシンボル
- * @returns {Promise<Object>} - 銘柄データとステータス
- */
-export async function fetchTickerData(ticker) {
-  if (!ticker) {
-    return {
-      success: false,
-      message: 'ティッカーシンボルが指定されていません',
-      error: true
-    };
-  }
-  
-  // ティッカーを大文字に統一
-  ticker = ticker.toUpperCase();
-  
-  // 日本株または投資信託かを判定
-  const isJapanese = isJapaneseStock(ticker);
-  const isMutualFundTicker = isMutualFund(ticker);
-  
-  let alpacaTried = false;
-  let alpacaSuccess = false;
-  let yahooFinanceTried = false;
-  let yahooFinanceSuccess = false;
-  
-  // 投資信託または日本株の場合はYahoo Financeを優先
-  if (isJapanese || isMutualFundTicker) {
-    try {
-      // Yahoo Finance APIからデータ取得を試みる
-      console.log(`${ticker} is a Japanese stock or mutual fund. Trying Yahoo Finance first.`);
-      yahooFinanceTried = true;
-      const yahooResult = await fetchFromYahoo(ticker);
       
-      if (yahooResult && yahooResult.success) {
-        yahooFinanceSuccess = true;
-        return yahooResult;
-      }
-      
-      // Yahoo Financeが失敗した場合は、フォールバック値を使用
-      console.log(`Yahoo Finance failed for ${ticker}. Using fallback data.`);
-      const fallbackData = generateFallbackTickerData(ticker);
-      
-      return {
-        ...fallbackData,
-        yahooFinanceTried,
-        yahooFinanceSuccess,
-        message: `Yahoo Financeからのデータ取得に失敗しました: ${ticker}. フォールバック値を使用します。`
-      };
-    } catch (error) {
-      console.error(`Error fetching ${ticker} from Yahoo Finance:`, error.message);
-      
-      // フォールバック値を使用
-      const fallbackData = generateFallbackTickerData(ticker);
-      
-      return {
-        ...fallbackData,
-        yahooFinanceTried,
-        yahooFinanceSuccess: false,
-        error: true,
-        errorMessage: error.message,
-        message: `Yahoo Financeでエラーが発生しました: ${error.message}. フォールバック値を使用します。`
-      };
-    }
-  }
-  
-  // 米国株の場合はAlpaca APIを優先
-  try {
-    // Alpaca APIからデータ取得を試みる
-    console.log(`${ticker} is likely a US stock. Trying Alpaca API first.`);
-    alpacaTried = true;
-    const alpacaResult = await fetchFromAlpaca(ticker);
-    
-    if (alpacaResult && alpacaResult.success) {
-      alpacaSuccess = true;
-      return alpacaResult;
-    }
-    
-    // Alpaca APIが失敗した場合は、Yahoo Financeを試行
-    console.log(`Alpaca API failed for ${ticker}. Trying Yahoo Finance.`);
-    yahooFinanceTried = true;
-    const yahooResult = await fetchFromYahoo(ticker);
-    
-    if (yahooResult && yahooResult.success) {
-      yahooFinanceSuccess = true;
-      return {
-        ...yahooResult,
-        alpacaTried,
-        alpacaSuccess: false
-      };
-    }
-    
-    // すべてのAPIが失敗した場合は、フォールバック値を使用
-    console.log(`All APIs failed for ${ticker}. Using fallback data.`);
-    const fallbackData = generateFallbackTickerData(ticker);
-    
-    return {
-      ...fallbackData,
-      alpacaTried,
-      alpacaSuccess,
-      yahooFinanceTried,
-      yahooFinanceSuccess,
-      message: `すべてのAPIからのデータ取得に失敗しました: ${ticker}. フォールバック値を使用します。`
-    };
-  } catch (error) {
-    console.error(`Error fetching ${ticker} from APIs:`, error.message);
-    
-    // エラーの種類を特定して適切なメッセージを生成
-    let errorType = 'UNKNOWN';
-    let errorMessage = 'データの取得に失敗しました。フォールバック値を使用します。';
-    
-    if (error.response) {
-      // サーバーからのレスポンスがある場合
-      if (error.response.status === 429) {
-        errorType = 'RATE_LIMIT';
-        errorMessage = 'APIリクエスト制限に達しました。フォールバック値を使用します。';
-      } else {
-        errorType = 'API_ERROR';
-        errorMessage = `API エラー (${error.response.status}): ${error.response.data?.message || error.message}. フォールバック値を使用します。`;
-      }
-    } else if (error.code === 'ECONNABORTED') {
-      errorType = 'TIMEOUT';
-      errorMessage = 'リクエストのタイムアウトが発生しました。フォールバック値を使用します。';
-    } else if (error.code === 'ERR_NETWORK') {
-      errorType = 'NETWORK';
-      errorMessage = 'ネットワークエラーが発生しました。フォールバック値を使用します。';
-    }
-    
-    // フォールバック値を使用
-    const fallbackData = generateFallbackTickerData(ticker);
-    
-    return {
-      ...fallbackData,
-      alpacaTried,
-      alpacaSuccess,
-      yahooFinanceTried,
-      yahooFinanceSuccess,
-      errorType,
-      error: true,
-      errorMessage: error.message,
-      message: errorMessage
-    };
-  }
-}
-
-/**
- * 全ての取得方法が失敗した場合のフォールバックデータ生成
- * @param {string} ticker - ティッカーシンボル
- * @returns {Object} - フォールバック銘柄データとステータス
- */
-function generateFallbackTickerData(ticker) {
-  if (!ticker) {
-    return {
-      success: false,
-      data: {
-        id: 'unknown',
-        name: 'Unknown Ticker',
-        ticker: 'unknown',
-        exchangeMarket: 'Unknown',
-        price: 0,
-        currency: 'USD',
-        holdings: 0,
-        annualFee: 0,
-        fundType: FUND_TYPES.UNKNOWN,
-        isStock: false,
-        isMutualFund: false,
-        feeSource: 'unknown',
-        feeIsEstimated: true,
-        region: 'unknown',
-        lastUpdated: new Date().toISOString(),
-        source: DATA_SOURCES.FALLBACK,
-        dividendYield: 0,
-        hasDividend: false,
-        dividendFrequency: 'unknown',
-        dividendIsEstimated: true,
-        priceLabel: '株価'
-      },
-      message: 'ティッカーが無効なため、デフォルト値を使用しています。',
-      error: true
-    };
-  }
-
-  // ティッカーを大文字に統一
-  ticker = ticker.toUpperCase();
-  
-  // 米国ETFリストに含まれているか確認
-  const isUSETF = US_ETF_LIST.includes(ticker);
-  
-  // 市場とティッカーから推測されるデフォルト値を使用
-  const isJapaneseStockTicker = isJapaneseStock(ticker);
-  const isMutualFundTicker = isMutualFund(ticker);
-  
-  // デフォルト価格を設定
-  let defaultPrice;
-  
-  if (isMutualFundTicker) {
-    defaultPrice = 10000; // 投資信託の基準価額デフォルト値
-  } else if (isJapaneseStockTicker) {
-    defaultPrice = 2500; // 日本株のデフォルト価格
-  } else {
-    // 米国株のデフォルト価格
-    const etfPrices = {
-      'VXUS': 60.0,
-      'IBIT': 40.0,
-      'LQD': 110.0,
-      'GLD': 200.0,
-      'SPY': 500.0,
-      'VOO': 450.0,
-      'VTI': 250.0,
-      'QQQ': 400.0
-    };
-    
-    defaultPrice = etfPrices[ticker] || 150;
-  }
-  
-  // ファンドタイプを判定
-  const fundType = isMutualFundTicker 
-    ? FUND_TYPES.MUTUAL_FUND
-    : determineFundType(ticker, ticker);
-  
-  // 個別株かどうかを判定
-  const isStock = fundType === FUND_TYPES.STOCK;
-  
-  // 基本情報と手数料情報を取得
-  const fundInfo = extractFundInfo(ticker, ticker);
-  const feeInfo = estimateAnnualFee(ticker, ticker);
-  
-  // 配当情報の推定
-  const dividendInfo = estimateDividendYield(ticker, ticker);
-  
-  // 配当情報を確定
-  const hasDividend = determineHasDividend(ticker);
-  
-  // 手数料情報（個別株は常に0%）
-  const annualFee = isStock ? 0 : feeInfo.fee;
-  
-  // 価格表示ラベル（投資信託なら「基準価額」、それ以外は「株価」）
-  const priceLabel = isMutualFundTicker ? '基準価額' : '株価';
-  
-  // 米国ETFの場合、特定の情報をログ
-  if (isUSETF) {
-    console.log(`Using fallback data for US ETF: ${ticker}, Price: ${defaultPrice}, FundType: ${fundType}`);
-  }
-  
-  return {
-    success: false,
-    data: {
-      id: ticker,
-      name: ticker,
-      ticker: ticker,
-      exchangeMarket: isJapaneseStockTicker || isMutualFundTicker ? 'Japan' : 'US',
-      price: defaultPrice,
-      currency: isJapaneseStockTicker || isMutualFundTicker ? 'JPY' : 'USD',
-      holdings: 0,
-      annualFee: annualFee,
-      fundType: fundType,
-      isStock: isStock,
-      isMutualFund: isMutualFundTicker,
-      feeSource: isStock ? '個別株' : (isMutualFundTicker ? '投資信託' : feeInfo.source),
-      feeIsEstimated: isStock ? false : feeInfo.isEstimated,
-      region: fundInfo.region || 'unknown',
-      lastUpdated: new Date().toISOString(),
-      source: DATA_SOURCES.FALLBACK,
-      // 配当情報
-      dividendYield: dividendInfo.yield,
-      hasDividend: hasDividend,
-      dividendFrequency: dividendInfo.dividendFrequency,
-      dividendIsEstimated: dividendInfo.isEstimated,
-      // 投資信託特有の項目
-      priceLabel: priceLabel
-    },
-    message: '最新の価格データを取得できませんでした。前回の価格または推定値を使用しています。',
-    error: true
-  };
-}
-
-/**
- * 複数銘柄のデータを一括取得する
- * @param {Array<string>} tickers - ティッカーシンボルの配列
- * @returns {Promise<Object>} - 複数銘柄のデータとステータス
- */
-export async function fetchMultipleTickerData(tickers) {
-  if (!tickers || !tickers.length) {
-    return {
-      success: false,
-      data: [],
-      message: 'ティッカーリストが空です',
-      error: true
-    };
-  }
-  
-  console.log(`Fetching data for ${tickers.length} tickers: ${tickers.join(', ')}`);
-  
-  // 各ティッカーを並行して取得
-  const results = await Promise.all(
-    tickers.map(async (ticker) => {
-      // ここでは個別ティッカー取得を使用（すでにフォールバックロジックを含む）
-      const result = await fetchTickerData(ticker);
-      return {
-        ticker,
-        ...result
-      };
-    })
-  );
-  
-  // データソースの情報を集計
-  const sourceStats = results.reduce((stats, result) => {
-    const source = result.data?.source || 'Unknown';
-    stats[source] = (stats[source] || 0) + 1;
-    return stats;
-  }, {});
-  
-  // Alpacaの成功/失敗カウントを計算
-  const alpacaResults = results.filter(result => result.alpacaTried);
-  const alpacaSuccess = alpacaResults.filter(result => result.alpacaSuccess);
-  
-  // Yahoo Financeの成功/失敗カウントを計算
-  const yahooResults = results.filter(result => result.yahooFinanceTried);
-  const yahooSuccess = yahooResults.filter(result => result.yahooFinanceSuccess);
-  
-  // 日本株・投資信託・米国株の分類
-  const japaneseStocks = results.filter(result => isJapaneseStock(result.ticker) && !isMutualFund(result.ticker));
-  const mutualFunds = results.filter(result => isMutualFund(result.ticker));
-  const usStocks = results.filter(result => !isJapaneseStock(result.ticker) && !isMutualFund(result.ticker));
-  
-  console.log(`Data source statistics:`, sourceStats);
-  console.log(`Stock types: Japanese: ${japaneseStocks.length}, US: ${usStocks.length}, Mutual Funds: ${mutualFunds.length}`);
-  
-  if (alpacaResults.length > 0) {
-    console.log(`Alpaca statistics: tried: ${alpacaResults.length}, succeeded: ${alpacaSuccess.length}`);
-  }
-  if (yahooResults.length > 0) {
-    console.log(`Yahoo Finance statistics: tried: ${yahooResults.length}, succeeded: ${yahooSuccess.length}`);
-  }
-  
-  // 全体の成功・失敗を判定
-  const hasError = results.some(result => !result.success);
-  const allSuccess = results.every(result => result.success);
-  
-  // 結果のサマリーをログ
-  console.log(`Fetch summary: ${results.filter(r => r.success).length} succeeded, ${results.filter(r => !r.success).length} failed`);
-  
-  // 各APIの情報を含む
-  const resultInfo = {
-    success: allSuccess,
-    data: results.map(result => result.data),
-    partialSuccess: hasError && results.some(result => result.success),
-    message: allSuccess 
-      ? '全ての銘柄データを正常に取得しました' 
-      : hasError 
-        ? '一部の銘柄データの取得に失敗しました' 
-        : '全ての銘柄データの取得に失敗しました',
-    error: hasError,
-    details: results.map(result => ({
-      ticker: result.ticker,
-      success: result.success,
-      message: result.message,
-      source: result.data.source
-    })),
-    alpacaStats: {
-      tried: alpacaResults.length,
-      succeeded: alpacaSuccess.length,
-      failedTickers: alpacaResults
-        .filter(r => !r.alpacaSuccess)
-        .map(r => r.ticker)
-    },
-    yahooFinanceStats: {
-      tried: yahooResults.length,
-      succeeded: yahooSuccess.length,
-      failedTickers: yahooResults
-        .filter(r => !r.yahooFinanceSuccess)
-        .map(r => r.ticker)
-    },
-    stockTypeStats: {
-      japaneseStocks: japaneseStocks.length,
-      mutualFunds: mutualFunds.length,
-      usStocks: usStocks.length
-    }
-  };
-  
-  // APIの統計情報をメッセージに含める
-  if (alpacaResults.length > 0) {
-    if (alpacaSuccess.length > 0) {
-      resultInfo.alpacaSuccessMessage = `${alpacaSuccess.length}件の銘柄はAlpaca APIから取得しました`;
-    }
-    if (alpacaResults.length - alpacaSuccess.length > 0) {
-      resultInfo.alpacaFailureMessage = `${alpacaResults.length - alpacaSuccess.length}件の銘柄はAlpaca APIから取得できませんでした`;
-    }
-  }
-  
-  if (yahooResults.length > 0) {
-    if (yahooSuccess.length > 0) {
-      resultInfo.yahooFinanceSuccessMessage = `${yahooSuccess.length}件の銘柄はYahoo Financeから取得しました`;
-    }
-    if (yahooResults.length - yahooSuccess.length > 0) {
-      resultInfo.yahooFinanceFailureMessage = `${yahooResults.length - yahooSuccess.length}件の銘柄はYahoo Financeからも取得できませんでした`;
-    }
-  }
-  
-  return resultInfo;
-}
-
-/**
- * 配当データを取得する
- * @param {string} ticker - ティッカーシンボル
- * @returns {Promise<Object>} - 配当データとステータス
- */
-export const fetchDividendData = async function(ticker) {
-  try {
-    // ティッカーを大文字に統一
-    ticker = ticker.toUpperCase();
-    
-    // ファンドタイプを判定
-    const fundType = determineFundType(ticker, ticker);
-    
-    // 配当情報の取得
-    const dividendInfo = estimateDividendYield(ticker, ticker);
-    
-    // 配当情報を確定
-    const hasDividend = determineHasDividend(ticker);
-    
-    return {
-      success: true,
-      data: {
-        dividendYield: dividendInfo.yield,
-        hasDividend: hasDividend,
-        dividendFrequency: dividendInfo.dividendFrequency,
-        dividendIsEstimated: dividendInfo.isEstimated,
-        lastUpdated: new Date().toISOString()
-      },
-      message: '配当情報を取得しました'
-    };
-  } catch (error) {
-    console.error('Dividend data fetch error:', error);
-    
-    // エラー時はティッカーからの推定値を返す
-    const dividendInfo = estimateDividendYield(ticker, ticker);
-    const hasDividend = determineHasDividend(ticker);
-    
-    return {
-      success: false,
-      data: {
-        dividendYield: dividendInfo.yield,
-        hasDividend: hasDividend,
-        dividendFrequency: dividendInfo.dividendFrequency,
-        dividendIsEstimated: true,
-        lastUpdated: new Date().toISOString()
-      },
-      message: '配当情報の取得に失敗しました。推定値を使用しています。',
-      error: true
-    };
-  }
-};
-
-/**
- * ファンド情報を取得する
- * @param {string} ticker - ティッカーシンボル
- * @param {string} name - 銘柄名（省略可）
- * @returns {Promise<Object>} - ファンド情報とステータス
- */
-export const fetchFundInfo = async function(ticker, name = '') {
-  try {
-    // ティッカーを大文字に統一
-    ticker = ticker.toUpperCase();
-    
-    // 投資信託かどうかを判定
-    const isMutualFundTicker = isMutualFund(ticker);
-    
-    // ファンドタイプを判定
-    const fundType = isMutualFundTicker
-      ? FUND_TYPES.MUTUAL_FUND
-      : determineFundType(ticker, name);
-    
-    // 個別株かどうかを判定
-    const isStock = fundType === FUND_TYPES.STOCK;
-    
-    // 手数料情報を推定
-    const feeInfo = estimateAnnualFee(ticker, name);
-    
-    // 配当情報を推定
-    const dividendInfo = estimateDividendYield(ticker, name);
-    
-    // 配当情報を確定
-    const hasDividend = determineHasDividend(ticker);
-    
-    return {
-      success: true,
-      ticker: ticker,
-      name: name || ticker,
-      fundType: fundType,
-      isStock: isStock,
-      isMutualFund: isMutualFundTicker,
-      annualFee: isStock ? 0 : feeInfo.fee,
-      feeSource: isStock ? '個別株' : (isMutualFundTicker ? '投資信託' : feeInfo.source),
-      feeIsEstimated: isStock ? false : feeInfo.isEstimated,
-      dividendYield: dividendInfo.yield,
-      hasDividend: hasDividend,
-      dividendFrequency: dividendInfo.dividendFrequency,
-      dividendIsEstimated: dividendInfo.isEstimated,
-      message: 'ファンド情報を取得しました'
-    };
-  } catch (error) {
-    console.error('Fund info fetch error:', error);
-    
-    return {
-      success: false,
-      ticker: ticker,
-      fundType: 'UNKNOWN',
-      isStock: false,
-      isMutualFund: false,
-      annualFee: 0,
-      feeSource: '取得失敗',
-      feeIsEstimated: true,
-      dividendYield: 0,
-      hasDividend: false,
-      dividendFrequency: 'unknown',
-      dividendIsEstimated: true,
-      message: 'ファンド情報の取得に失敗しました',
-      error: true
-    };
-  }
-};
-
-/**
- * 為替レートを取得する
- * @param {string} fromCurrency - 変換元通貨
- * @param {string} toCurrency - 変換先通貨
- * @returns {Promise<Object>} - 為替レートデータとステータス
- */
-export const fetchExchangeRate = async function(fromCurrency, toCurrency) {
-  try {
-    // 同一通貨の場合は1を返す
-    if (fromCurrency === toCurrency) {
-      return {
-        success: true,
-        rate: 1,
-        source: 'Direct',
-        message: '同一通貨間のレートです',
-        lastUpdated: new Date().toISOString()
-      };
-    }
-    
-    console.log(`Attempting to fetch exchange rate for ${fromCurrency}/${toCurrency} from exchangerate.host`);
-    
-    // exchangerate.host APIを呼び出す
-    const response = await axios.get(EXCHANGERATE_API_URL, {
-      params: {
-        base: fromCurrency,
-        symbols: toCurrency
-      },
-      timeout: EXCHANGERATE_API_TIMEOUT
+      // 変更がなければそのまま返す
+      return asset;
     });
-    
-    // データの存在確認
-    if (response.data && response.data.success && response.data.data) {
-      const rate = response.data.data.rate;
-      
-      console.log(`Successfully fetched exchange rate for ${fromCurrency}/${toCurrency} from exchangerate.host: ${rate}`);
-      
-      return {
-        success: true,
-        rate: rate,
-        source: DATA_SOURCES.EXCHANGERATE,
-        message: '正常に取得しました',
-        lastUpdated: new Date().toISOString()
-      };
-    }
-    
-    console.log(`No valid exchange rate data from exchangerate.host, using fallback value`);
-    
-    // データがない場合はフォールバック値を使用
-    return generateFallbackExchangeRate(fromCurrency, toCurrency);
-    
-  } catch (error) {
-    console.error('Exchange rate fetch error:', error);
-    console.log(`Error fetching exchange rate, using fallback value`);
-    
-    // フォールバック値を返す
-    return generateFallbackExchangeRate(fromCurrency, toCurrency);
-  }
-};
 
-/**
- * フォールバック為替レートを生成する
- * @param {string} fromCurrency - 変換元通貨
- * @param {string} toCurrency - 変換先通貨
- * @returns {Object} - フォールバック為替レートデータとステータス
- */
-function generateFallbackExchangeRate(fromCurrency, toCurrency) {
-  const pair = `${fromCurrency}/${toCurrency}`;
-  let rate;
-  
-  // デフォルト値から取得を試みる
-  if (DEFAULT_EXCHANGE_RATES[pair]) {
-    rate = DEFAULT_EXCHANGE_RATES[pair];
-  } else if (fromCurrency === 'JPY' && toCurrency === 'USD') {
-    rate = 1 / 150.0; // 円からドル
-  } else if (fromCurrency === 'USD' && toCurrency === 'JPY') {
-    rate = 150.0; // ドルから円
-  } else {
-    // その他の通貨ペアの場合は1を使用
-    rate = 1;
-  }
-  
-  console.log(`Using fallback exchange rate for ${fromCurrency}/${toCurrency}: ${rate}`);
-  
-  return {
-    success: false,
-    rate: rate,
-    source: DATA_SOURCES.FALLBACK,
-    message: '最新の為替レートを取得できませんでした。デフォルト値を使用しています。',
-    error: true,
-    lastUpdated: new Date().toISOString()
-  };
-}
-
-/**
- * データの鮮度を確認する
- * @param {Array<Object>} assets - 資産データの配列
- * @param {number} staleThresholdHours - 古いとみなす時間（時間単位）
- * @returns {Object} - データの鮮度情報
- */
-export const checkDataFreshness = function(assets, staleThresholdHours = 24) {
-  if (!assets || !assets.length) {
-    return {
-      fresh: true,
-      staleItems: [],
-      missingUpdateTime: [],
-      message: 'データがありません'
+    // 変更の統計
+    const changes = {
+      fundType: fundTypeChanges,
+      fees: feeChanges,
+      dividends: dividendChanges,
+      fundTypeDetails: fundTypeChangeDetails,
+      feeDetails: feeChangeDetails
     };
-  }
-  
-  const now = new Date();
-  const staleThreshold = staleThresholdHours * 60 * 60 * 1000; // ミリ秒に変換
-  
-  const staleItems = [];
-  const missingUpdateTime = [];
-  
-  assets.forEach(asset => {
-    if (!asset.lastUpdated) {
-      missingUpdateTime.push(asset.ticker);
-    } else {
-      const updateTime = new Date(asset.lastUpdated);
-      const age = now - updateTime;
+
+    return { updatedAssets: validatedAssets, changes };
+  }, []);
+
+  // 市場データの更新（銘柄タイプ、手数料、配当情報の正確な更新を含む）
+  // 市場データの更新（銘柄タイプ、手数料、配当情報の正確な更新を含む）
+  const refreshMarketPrices = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      console.log('Refreshing market prices for all assets...');
       
-      if (age > staleThreshold) {
-        staleItems.push({
-          ticker: asset.ticker,
-          age: Math.floor(age / (60 * 60 * 1000)), // 時間単位に変換
-          lastUpdated: asset.lastUpdated
+      let feeChangesCount = 0;
+      const feeChangeDetails = [];
+      let dividendChangesCount = 0;
+      let fundTypeChangesCount = 0; // 銘柄タイプの変更カウンター
+      const fundTypeChangeDetails = []; // 銘柄タイプの変更詳細
+      
+      // エラーの統計
+      let errorCount = 0;
+      let rateLimit = false;
+      const errorDetails = [];
+      let fallbackCount = 0;
+      const fallbackDetails = [];
+      
+      // Yahoo Financeの利用統計
+      let yahooFinanceTriedCount = 0;
+      let yahooFinanceSuccessCount = 0;
+      const yahooFinanceDetails = [];
+      
+      // 全ての保有銘柄の最新データを取得
+      const updatedAssets = await Promise.all(
+        currentAssets.map(async (asset) => {
+          try {
+            // Alpha Vantageから直接データ取得
+            const updatedData = await fetchTickerData(asset.ticker);
+            console.log(`Updated data for ${asset.ticker}:`, updatedData);
+            
+            // Yahoo Financeの利用状況を記録
+            if (updatedData.yahooFinanceTried) {
+              yahooFinanceTriedCount++;
+              if (updatedData.yahooFinanceSuccess || updatedData.data.source === 'Yahoo Finance') {
+                yahooFinanceSuccessCount++;
+                yahooFinanceDetails.push({
+                  ticker: asset.ticker,
+                  name: asset.name || asset.ticker,
+                  success: true
+                });
+              } else {
+                yahooFinanceDetails.push({
+                  ticker: asset.ticker,
+                  name: asset.name || asset.ticker,
+                  success: false
+                });
+              }
+            }
+            
+            // エラーの処理
+            if (!updatedData.success) {
+              errorCount++;
+              if (updatedData.errorType === 'RATE_LIMIT') {
+                rateLimit = true;
+              }
+              errorDetails.push({
+                ticker: asset.ticker,
+                name: asset.name,
+                message: updatedData.message,
+                errorType: updatedData.errorType
+              });
+              
+              // フォールバックデータがある場合は記録
+              if (updatedData.data && updatedData.data.source === 'Fallback') {
+                fallbackCount++;
+                fallbackDetails.push({
+                  ticker: asset.ticker,
+                  name: asset.name || asset.ticker,
+                  price: updatedData.data.price
+                });
+              }
+              
+              // エラー時でもフォールバックデータがあるため利用可能
+              console.log(`Using fallback data for ${asset.ticker} due to error`);
+            } else if (updatedData.data && updatedData.data.source === 'Fallback') {
+              // 成功したがフォールバックデータを使用している場合
+              fallbackCount++;
+              fallbackDetails.push({
+                ticker: asset.ticker,
+                name: asset.name || asset.ticker,
+                price: updatedData.data.price
+              });
+            }
+            
+            // 銘柄タイプの変更を確認
+            const newFundType = updatedData.data.fundType || asset.fundType;
+            const hasFundTypeChanged = asset.fundType !== newFundType;
+            
+            // 銘柄タイプ変更の記録
+            if (hasFundTypeChanged) {
+              fundTypeChangesCount++;
+              fundTypeChangeDetails.push({
+                ticker: asset.ticker,
+                name: asset.name,
+                oldType: asset.fundType,
+                newType: newFundType
+              });
+            }
+            
+            // 新しい銘柄タイプに基づいて個別株かどうかを判定
+            const isStock = newFundType === FUND_TYPES.STOCK;
+            
+            // 手数料情報の変更を確認（個別株でなく、かつ手数料が変わった場合）
+            const newFee = isStock ? 0 : updatedData.data.annualFee;
+            const hasFeeChanged = asset.annualFee !== newFee;
+            
+            // 手数料変更を記録
+            if (hasFeeChanged) {
+              feeChangesCount++;
+              feeChangeDetails.push({
+                ticker: asset.ticker,
+                name: asset.name,
+                oldFee: asset.annualFee,
+                newFee: newFee
+              });
+            }
+            
+            // 配当情報も取得
+            const dividendData = await fetchDividendData(asset.ticker);
+            
+            // 配当情報の変更を確認
+            const hasDividendChanged = 
+              asset.dividendYield !== dividendData.data.dividendYield ||
+              asset.hasDividend !== dividendData.data.hasDividend;
+            
+            if (hasDividendChanged) {
+              dividendChangesCount++;
+            }
+            
+            // 更新されたアセット情報を返す
+            return {
+              ...asset,
+              price: updatedData.data.price,
+              source: updatedData.data.source,
+              lastUpdated: updatedData.data.lastUpdated,
+              // 銘柄タイプを更新
+              fundType: newFundType,
+              isStock: isStock,
+              // 手数料情報を更新（個別株は常に0%）
+              annualFee: isStock ? 0 : newFee,
+              feeSource: isStock ? '個別株' : updatedData.data.feeSource,
+              feeIsEstimated: isStock ? false : updatedData.data.feeIsEstimated,
+              region: updatedData.data.region || asset.region,
+              // 配当情報を更新
+              dividendYield: dividendData.data.dividendYield,
+              hasDividend: dividendData.data.hasDividend,
+              dividendFrequency: dividendData.data.dividendFrequency,
+              dividendIsEstimated: dividendData.data.dividendIsEstimated
+            };
+          } catch (error) {
+            console.error(`銘柄 ${asset.ticker} の更新に失敗しました`, error);
+            errorCount++;
+            errorDetails.push({
+              ticker: asset.ticker,
+              name: asset.name,
+              message: `内部エラー: ${error.message}`,
+              errorType: 'INTERNAL'
+            });
+            return asset; // エラーの場合は既存のデータを維持
+          }
+        })
+      );
+
+      // 更新したデータをさらに検証（VXUSなど特殊ケースの対応）
+      const { updatedAssets: validatedAssets, changes } = validateAssetTypes(updatedAssets);
+      
+      // 追加の変更があれば統計に加算
+      fundTypeChangesCount += changes.fundType;
+      feeChangesCount += changes.fees;
+      dividendChangesCount += changes.dividends;
+      
+      // 変更があった銘柄の詳細も追加
+      if (changes.fundTypeDetails && changes.fundTypeDetails.length > 0) {
+        fundTypeChangeDetails.push(...changes.fundTypeDetails);
+      }
+      if (changes.feeDetails && changes.feeDetails.length > 0) {
+        feeChangeDetails.push(...changes.feeDetails);
+      }
+
+      setCurrentAssets(validatedAssets);
+      setLastUpdated(new Date().toISOString());
+      
+      // データソースの統計を計算
+      const sourceCounts = validatedAssets.reduce((acc, asset) => {
+        acc[asset.source] = (acc[asset.source] || 0) + 1;
+        return acc;
+      }, {});
+      
+      // 通知メッセージを作成
+      let message = '市場データを更新しました';
+      if (sourceCounts['Alpha Vantage']) {
+        message += ` (Alpha Vantage: ${sourceCounts['Alpha Vantage']}件`;
+      }
+      if (sourceCounts['Yahoo Finance']) {
+        message += `, Yahoo Finance: ${sourceCounts['Yahoo Finance']}件`;
+      }
+      if (sourceCounts['Fallback']) {
+        message += `, フォールバック: ${sourceCounts['Fallback']}件`;
+      }
+      message += ')';
+      
+      // Yahoo Financeの利用状況に関する通知
+      if (yahooFinanceTriedCount > 0) {
+        const yahooMessage = `Alpha Vantageでの取得に失敗した${yahooFinanceTriedCount}銘柄について、Yahoo Financeを使用しました（成功: ${yahooFinanceSuccessCount}件）`;
+        addNotification(yahooMessage, 'info');
+      }
+      
+      // エラーがあった場合は通知
+      if (errorCount > 0) {
+        const errorMessage = rateLimit 
+          ? `APIリクエスト制限のため、${errorCount}銘柄のデータが正しく更新できませんでした` 
+          : `${errorCount}銘柄のデータ更新でエラーが発生しました`;
+        
+        addNotification(errorMessage, 'error');
+        
+        // 最大3件までエラー詳細を表示
+        errorDetails.slice(0, 3).forEach(error => {
+          addNotification(
+            `「${error.name || error.ticker}」: ${error.message}`,
+            'warning'
+          );
         });
       }
+      
+      // フォールバックデータを使用している場合は通知
+      if (fallbackCount > 0) {
+        addNotification(
+          `${fallbackCount}銘柄の株価情報は最新データを取得できず、前回保存した価格データを使用しています。実際の市場価格と異なる可能性があります。`,
+          'warning'
+        );
+        
+        // 最大3件までフォールバック詳細を表示
+        fallbackDetails.slice(0, 3).forEach(detail => {
+          addNotification(
+            `「${detail.name}」(${detail.ticker}): 表示価格 ${detail.price}は最新の市場データではなく、最後に取得できた価格です。投資判断には注意してください。`,
+            'info'
+          );
+        });
+      }
+      
+      addNotification(message, 'success');
+      
+      // 銘柄タイプの変更があった場合は通知
+      if (fundTypeChangesCount > 0) {
+        let typeMessage = `${fundTypeChangesCount}件の銘柄でタイプ情報が更新されました`;
+        addNotification(typeMessage, 'info');
+        
+        // 詳細な変更内容も表示（最大3件まで）
+        fundTypeChangeDetails.slice(0, 3).forEach(detail => {
+          addNotification(
+            `「${detail.name || detail.ticker}」のタイプが「${detail.oldType}」から「${detail.newType}」に変更されました`,
+            'info'
+          );
+        });
+      }
+      
+      // 手数料変更があった場合は別途通知
+      if (feeChangesCount > 0) {
+        let feeMessage = `${feeChangesCount}件のファンドで手数料情報が更新されました`;
+        addNotification(feeMessage, 'info');
+        
+        // 詳細な変更内容も表示（最大3件まで）
+        feeChangeDetails.slice(0, 3).forEach(detail => {
+          addNotification(
+            `「${detail.name || detail.ticker}」の手数料が${detail.oldFee.toFixed(2)}%から${detail.newFee.toFixed(2)}%に変更されました`,
+            'info'
+          );
+        });
+      }
+      
+      // 配当情報の変更があった場合の通知
+      if (dividendChangesCount > 0) {
+        addNotification(`${dividendChangesCount}件の銘柄で配当情報が更新されました`, 'info');
+      }
+      
+      // データを自動保存
+      saveToLocalStorage();
+      
+      return { success: true, message };
+    } catch (error) {
+      console.error('市場データの更新に失敗しました', error);
+      addNotification(`市場データの更新に失敗しました: ${error.message}`, 'error');
+      return { success: false, message: '市場データの更新に失敗しました' };
+    } finally {
+      setIsLoading(false);
     }
-  });
+  }, [currentAssets, addNotification, saveToLocalStorage, validateAssetTypes]);
+
+  // 銘柄追加（銘柄タイプ、手数料、配当情報の設定を含む）
+  const addTicker = useCallback(async (ticker) => {
+    try {
+      // 既に存在するか確認
+      const exists = [...targetPortfolio, ...currentAssets].some(
+        item => item.ticker?.toLowerCase() === ticker.toLowerCase()
+      );
+
+      if (exists) {
+        addNotification('既に追加されている銘柄です', 'warning');
+        return { success: false, message: '既に追加されている銘柄です' };
+      }
+
+      setIsLoading(true);
+
+      // Alpha Vantageから銘柄データ取得
+      const tickerResult = await fetchTickerData(ticker);
+      console.log('Fetched ticker data:', tickerResult);
+      
+      // APIエラーの処理
+      if (!tickerResult.success) {
+        // エラータイプに応じたメッセージを表示
+        if (tickerResult.errorType === 'RATE_LIMIT') {
+          addNotification('APIリクエスト制限に達しました。しばらく待ってから再試行してください。', 'error');
+        } else {
+          addNotification(`銘柄「${ticker}」の情報取得でエラーが発生しました: ${tickerResult.message}`, 'warning');
+        }
+        
+        // フォールバックデータがある場合は続行、ない場合は中断
+        if (!tickerResult.data) {
+          addNotification(`銘柄「${ticker}」を追加できませんでした`, 'error');
+          return { success: false, message: '銘柄の追加に失敗しました' };
+        }
+        
+        // フォールバックデータを使用する旨を明確に通知
+        addNotification(`銘柄「${ticker}」は最新の株価情報を取得できませんでした。保存済みのバックアップデータを使用して追加します。表示価格は実際の市場価格と異なる可能性があります。`, 'warning');
+      }
+      
+      // 成功したけどフォールバックデータを使用している場合
+      if (tickerResult.data && tickerResult.data.source === 'Fallback') {
+        addNotification(`銘柄「${ticker}」の株価情報 (${tickerResult.data.price}) は最新の市場価格ではなく、バックアップデータから取得した推定値です。投資判断には注意してください。`, 'warning');
+      }
+      
+      // 銘柄データ
+      const tickerData = tickerResult.data;
+
+      // ファンド情報を取得（手数料率など）
+      const fundInfoResult = await fetchFundInfo(ticker, tickerData.name);
+      console.log('Fetched fund info:', fundInfoResult);
+      
+      // 配当情報を取得
+      const dividendResult = await fetchDividendData(ticker);
+      console.log('Fetched dividend info:', dividendResult);
+
+      // 銘柄タイプを確認してisStockフラグを設定
+      // 特別な処理: VXUSなどのETFリストで明示的に指定されている銘柄の確認
+      let fundType;
+      const upperTicker = ticker.toUpperCase();
+      
+      if (US_ETF_LIST.includes(upperTicker)) {
+        // 明示的にリストにある場合はETF_USとして扱う
+        fundType = FUND_TYPES.ETF_US;
+      } else {
+        fundType = tickerData.fundType || fundInfoResult.fundType || 'unknown';
+      }
+      
+      const isStock = fundType === FUND_TYPES.STOCK;
+      
+      // 自動取得した情報のメッセージを作成
+      let infoMessage = '';
+      if (fundInfoResult.success) {
+        // 個別株かどうかでメッセージを変える
+        if (isStock) {
+          infoMessage = `${fundType || '個別株'} として判定しました（手数料は固定で0%）`;
+        } else {
+          infoMessage = `${fundType} ファンドとして判定し、年間手数料率${isStock ? 0 : (tickerData.annualFee || fundInfoResult.annualFee || 0)}%を${fundInfoResult.feeIsEstimated ? '推定' : '設定'}しました`;
+        }
+        
+        // 配当情報があれば追加
+        if (dividendResult.data.hasDividend) {
+          infoMessage += `、配当利回り${dividendResult.data.dividendYield.toFixed(2)}%${dividendResult.data.dividendIsEstimated ? '（推定）' : ''}`;
+        }
+      }
+
+      // 目標配分に追加
+      setTargetPortfolio(prev => {
+        const newItems = [...prev, {
+          id: tickerData.id,
+          name: tickerData.name,
+          ticker: tickerData.ticker,
+          targetPercentage: 0
+        }];
+        return newItems;
+      });
+
+      // 保有資産に追加（ファンド情報を含む）
+      setCurrentAssets(prev => {
+        const newItems = [...prev, {
+          ...tickerData,
+          // 保有数量は0から始める
+          holdings: 0,
+          // 銘柄タイプを設定
+          fundType: fundType,
+          isStock: isStock,
+          // 手数料情報（個別株は常に0%）
+          annualFee: isStock ? 0 : (tickerData.annualFee || fundInfoResult.annualFee || 0),
+          feeSource: isStock ? '個別株' : (tickerData.feeSource || fundInfoResult.feeSource || 'Estimated'),
+          feeIsEstimated: isStock ? false : (tickerData.feeIsEstimated || fundInfoResult.feeIsEstimated || true),
+          region: tickerData.region || fundInfoResult.region || 'unknown',
+          // 配当情報
+          dividendYield: dividendResult.data.dividendYield,
+          hasDividend: dividendResult.data.hasDividend,
+          dividendFrequency: dividendResult.data.dividendFrequency,
+          dividendIsEstimated: dividendResult.data.dividendIsEstimated
+        }];
+        return newItems;
+      });
+
+      // 手数料・配当情報の通知を追加
+      if (infoMessage) {
+        addNotification(infoMessage, 'info');
+      }
+      
+      // データソースの通知（フォールバック値の場合）
+      if (tickerData.source === 'Fallback') {
+        addNotification(`「${ticker}」のデータはバックアップ値を使用しています。最新の価格情報ではないため、正確な市場価格を反映していない可能性があります。実際の取引前に最新価格を確認してください。`, 'warning');
+      }
+      
+      // 追加成功の通知
+      addNotification(`銘柄「${tickerData.name || ticker}」を追加しました`, 'success');
+      
+      // データを自動保存
+      setTimeout(() => saveToLocalStorage(), 100);
+
+      return { success: true, message: '銘柄を追加しました' };
+    } catch (error) {
+      console.error('銘柄の追加に失敗しました', error);
+      addNotification(`銘柄「${ticker}」の追加に失敗しました: ${error.message}`, 'error');
+      return { success: false, message: '銘柄の追加に失敗しました' };
+    } finally {
+      setIsLoading(false);
+    }
+  }, [targetPortfolio, currentAssets, addNotification, saveToLocalStorage]);
+
+  // 目標配分更新
+  const updateTargetAllocation = useCallback((id, percentage) => {
+    setTargetPortfolio(prev => {
+      const updated = prev.map(item => 
+        item.id === id ? { ...item, targetPercentage: parseFloat(percentage) } : item
+      );
+      // 変更後に自動保存
+      setTimeout(() => saveToLocalStorage(), 100);
+      return updated;
+    });
+  }, [saveToLocalStorage]);
+
+  // 保有数量更新（小数点以下4桁まで対応）
+  const updateHoldings = useCallback((id, holdings) => {
+    setCurrentAssets(prev => {
+      const updated = prev.map(item => 
+        item.id === id ? { ...item, holdings: parseFloat(parseFloat(holdings).toFixed(4)) || 0 } : item
+      );
+      // 変更後に自動保存
+      setTimeout(() => saveToLocalStorage(), 100);
+      return updated;
+    });
+  }, [saveToLocalStorage]);
+
+  // 手数料率の更新（手数料情報が不正確な場合にユーザーが修正可能に）
+  const updateAnnualFee = useCallback((id, fee) => {
+    setCurrentAssets(prev => {
+      const updated = prev.map(item => {
+        if (item.id === id) {
+          // 個別株の場合は手数料を0に固定（変更不可）
+          if (item.isStock || item.fundType === FUND_TYPES.STOCK) {
+            return {
+              ...item,
+              annualFee: 0,
+              feeSource: '個別株',
+              feeIsEstimated: false
+            };
+          } else {
+            // その他のファンドの場合はユーザー指定の値を使用
+            return {
+              ...item,
+              annualFee: parseFloat(parseFloat(fee).toFixed(2)) || 0,
+              feeSource: 'ユーザー設定',
+              feeIsEstimated: false
+            };
+          }
+        }
+        return item;
+      });
+      
+      // 変更後に自動保存
+      setTimeout(() => saveToLocalStorage(), 100);
+      return updated;
+    });
+  }, [saveToLocalStorage]);
   
-  return {
-    fresh: staleItems.length === 0 && missingUpdateTime.length === 0,
-    staleItems,
-    missingUpdateTime,
-    message: staleItems.length > 0 
-      ? `${staleItems.length}個の銘柄データが${staleThresholdHours}時間以上更新されていません` 
-      : missingUpdateTime.length > 0 
-        ? `${missingUpdateTime.length}個の銘柄に更新時間情報がありません` 
-        : 'すべてのデータは最新です'
+  // 配当情報の更新
+  const updateDividendInfo = useCallback((id, dividendYield, hasDividend = true, frequency = 'quarterly') => {
+    setCurrentAssets(prev => {
+      const updated = prev.map(item => {
+        if (item.id === id) {
+          return {
+            ...item,
+            dividendYield: parseFloat(parseFloat(dividendYield).toFixed(2)) || 0,
+            hasDividend: hasDividend,
+            dividendFrequency: frequency,
+            dividendIsEstimated: false
+          };
+        }
+        return item;
+      });
+      
+      // 変更後に自動保存
+      setTimeout(() => saveToLocalStorage(), 100);
+      return updated;
+    });
+  }, [saveToLocalStorage]);
+
+  // 銘柄削除
+  const removeTicker = useCallback((id) => {
+    setTargetPortfolio(prev => prev.filter(item => item.id !== id));
+    setCurrentAssets(prev => {
+      const updated = prev.filter(item => item.id !== id);
+      // 変更後に自動保存
+      setTimeout(() => saveToLocalStorage(), 100);
+      return updated;
+    });
+  }, [saveToLocalStorage]);
+
+  // シミュレーション計算
+  const calculateSimulation = useCallback(() => {
+    // 総資産額計算
+    const totalCurrentAssets = currentAssets.reduce((sum, asset) => {
+      let assetValue = asset.price * asset.holdings;
+      
+      // 通貨換算（資産の通貨が基準通貨と異なる場合）
+      if (asset.currency !== baseCurrency) {
+        if (baseCurrency === 'JPY' && asset.currency === 'USD') {
+          assetValue *= exchangeRate.rate;
+        } else if (baseCurrency === 'USD' && asset.currency === 'JPY') {
+          assetValue /= exchangeRate.rate;
+        }
+      }
+      
+      return sum + assetValue;
+    }, 0);
+    
+    const totalWithBudget = totalCurrentAssets + additionalBudget;
+    
+    // 各銘柄ごとの計算
+    return targetPortfolio.map(target => {
+      // 現在の資産から対応する銘柄を検索
+      const currentAsset = currentAssets.find(asset => asset.id === target.id) || {
+        price: target.price,
+        holdings: 0,
+        currency: target.currency
+      };
+      
+      // 現在評価額計算
+      let currentAmount = currentAsset.price * currentAsset.holdings;
+      
+      // 通貨換算
+      if (currentAsset.currency !== baseCurrency) {
+        if (baseCurrency === 'JPY' && currentAsset.currency === 'USD') {
+          currentAmount *= exchangeRate.rate;
+        } else if (baseCurrency === 'USD' && currentAsset.currency === 'JPY') {
+          currentAmount /= exchangeRate.rate;
+        }
+      }
+      
+      // 目標額
+      const targetAmount = totalWithBudget * (target.targetPercentage / 100);
+      
+      // 不足額
+      const additionalAmount = targetAmount - currentAmount;
+      
+      // 追加必要株数
+      let additionalUnits = 0;
+      if (additionalAmount > 0) {
+        let priceInBaseCurrency = target.price;
+        
+        // 通貨換算
+        if (target.currency !== baseCurrency) {
+          if (baseCurrency === 'JPY' && target.currency === 'USD') {
+            priceInBaseCurrency *= exchangeRate.rate;
+          } else if (baseCurrency === 'USD' && target.currency === 'JPY') {
+            priceInBaseCurrency /= exchangeRate.rate;
+          }
+        }
+        // 小数点以下4桁まで対応（Math.floorではなく小数点以下4桁に丸める）
+        additionalUnits = parseFloat((additionalAmount / priceInBaseCurrency).toFixed(4));
+      }
+      
+      return {
+        ...target,
+        currentAmount,
+        targetAmount,
+        additionalAmount,
+        additionalUnits: Math.max(0, additionalUnits),
+        purchaseAmount: Math.max(0, additionalAmount),
+        remark: additionalUnits <= 0 ? '既に目標配分を達成しています' : '',
+      };
+    });
+  }, [currentAssets, targetPortfolio, additionalBudget, baseCurrency, exchangeRate]);
+
+  // 購入処理（小数点以下4桁まで対応）
+  const executePurchase = useCallback((tickerId, units) => {
+    setCurrentAssets(prev => {
+      const updated = prev.map(asset => 
+        asset.id === tickerId 
+          ? { ...asset, holdings: parseFloat((asset.holdings + parseFloat(units)).toFixed(4)) } 
+          : asset
+      );
+      // 変更後に自動保存
+      setTimeout(() => saveToLocalStorage(), 100);
+      return updated;
+    });
+  }, [saveToLocalStorage]);
+
+  // 一括購入処理
+  const executeBatchPurchase = useCallback((simulationResult) => {
+    simulationResult.forEach(result => {
+      if (result.additionalUnits > 0) {
+        executePurchase(result.id, result.additionalUnits);
+      }
+    });
+    // 一括購入後に自動保存
+    saveToLocalStorage();
+  }, [executePurchase, saveToLocalStorage]);
+
+  // データのインポート（手数料情報と配当情報の整合性を確保）
+  const importData = useCallback((data) => {
+    if (!data) return { success: false, message: 'データが無効です' };
+    
+    try {
+      // 基本的なデータ構造の検証
+      const requiredFields = ['baseCurrency', 'currentAssets', 'targetPortfolio'];
+      const missingFields = requiredFields.filter(field => !(field in data));
+      
+      if (missingFields.length > 0) {
+        throw new Error(`必須フィールドがありません: ${missingFields.join(', ')}`);
+      }
+      
+      // 必須フィールドの検証
+      if (data.baseCurrency) setBaseCurrency(data.baseCurrency);
+      if (data.exchangeRate) setExchangeRate(data.exchangeRate);
+      
+      // アセットデータのインポート（銘柄タイプの検証を含む）
+      if (Array.isArray(data.currentAssets)) {
+        // 銘柄タイプを検証して修正
+        const { updatedAssets: validatedAssets, changes } = validateAssetTypes(data.currentAssets);
+        
+        // 検証結果をセット
+        setCurrentAssets(validatedAssets);
+        
+        // 変更があった場合は通知を表示
+        if (changes.fundType > 0) {
+          addNotification(`${changes.fundType}件の銘柄で種別情報を修正しました`, 'info');
+        }
+        if (changes.fees > 0) {
+          addNotification(`${changes.fees}件の銘柄で手数料情報を修正しました`, 'info');
+        }
+        if (changes.dividends > 0) {
+          addNotification(`${changes.dividends}件の銘柄で配当情報を修正しました`, 'info');
+        }
+      }
+      
+      if (Array.isArray(data.targetPortfolio)) setTargetPortfolio(data.targetPortfolio);
+      
+      // インポート後に自動保存
+      setTimeout(() => saveToLocalStorage(), 100);
+      
+      return { success: true, message: 'データをインポートしました' };
+    } catch (error) {
+      console.error('データのインポートに失敗しました', error);
+      addNotification(`データのインポートに失敗しました: ${error.message}`, 'error');
+      return { success: false, message: `データのインポートに失敗しました: ${error.message}` };
+    }
+  }, [saveToLocalStorage, addNotification, validateAssetTypes]);
+
+  // データのエクスポート
+  const exportData = useCallback(() => {
+    return {
+      baseCurrency,
+      exchangeRate,
+      lastUpdated,
+      currentAssets,
+      targetPortfolio
+    };
+  }, [baseCurrency, exchangeRate, lastUpdated, currentAssets, targetPortfolio]);
+
+  // 為替レートの更新
+  const updateExchangeRate = useCallback(async () => {
+    try {
+      if (baseCurrency === 'JPY') {
+        const result = await fetchExchangeRate('USD', 'JPY');
+        setExchangeRate({
+          rate: result.rate,
+          source: result.source,
+          lastUpdated: result.lastUpdated
+        });
+      } else {
+        const result = await fetchExchangeRate('JPY', 'USD');
+        setExchangeRate({
+          rate: result.rate,
+          source: result.source,
+          lastUpdated: result.lastUpdated
+        });
+      }
+      
+      // 為替レート更新後に自動保存
+      setTimeout(() => saveToLocalStorage(), 100);
+    } catch (error) {
+      console.error('為替レートの更新に失敗しました', error);
+      // 更新失敗時は既存のレートを維持
+    }
+  }, [baseCurrency, saveToLocalStorage]);
+
+  // Google認証状態の変更を処理
+  const handleAuthStateChange = useCallback((isAuthenticated, user) => {
+    // 認証状態変更時の処理
+    if (isAuthenticated && user) {
+      // ログイン時にクラウドデータを優先
+      setDataSource('cloud');
+    } else {
+      // ログアウト時にローカルデータを使用
+      setDataSource('local');
+    }
+  }, []);
+
+  // Googleドライブにデータを保存（修正版）
+  const saveToGoogleDrive = useCallback(async (userData) => {
+    if (!userData) {
+      addNotification('Googleアカウントにログインしていないため、クラウド保存できません', 'warning');
+      return { success: false, message: 'ログインしていません' };
+    }
+    
+    try {
+      // Google Drive APIの初期化を確認
+      await initGoogleDriveAPI();
+      
+      // 保存するデータを準備
+      const portfolioData = {
+        baseCurrency,
+        exchangeRate,
+        lastUpdated,
+        currentAssets,
+        targetPortfolio,
+        additionalBudget,
+        version: '1.0.0',
+        timestamp: new Date().toISOString()
+      };
+      
+      // 実際のGoogleドライブAPI呼び出し
+      console.log('Googleドライブに保存:', portfolioData);
+      const result = await apiSaveToGoogleDrive(portfolioData, userData);
+      
+      if (result.success) {
+        // 同期時間を更新
+        setLastSyncTime(new Date().toISOString());
+        setDataSource('cloud');
+        
+        addNotification('データをクラウドに保存しました', 'success');
+        return { success: true, message: 'データを保存しました' };
+      } else {
+        addNotification(`クラウド保存に失敗しました: ${result.message}`, 'error');
+        return { success: false, message: result.message };
+      }
+    } catch (error) {
+      console.error('Googleドライブへの保存に失敗しました', error);
+      addNotification('クラウドへの保存に失敗しました', 'error');
+      return { success: false, message: 'クラウド保存に失敗しました' };
+    }
+  }, [baseCurrency, exchangeRate, lastUpdated, currentAssets, targetPortfolio, additionalBudget, addNotification]);
+
+  // Googleドライブからデータを読み込み（修正版）
+  const loadFromGoogleDrive = useCallback(async (userData) => {
+    if (!userData) {
+      addNotification('Googleアカウントにログインしていないため、クラウドから読み込めません', 'warning');
+      return { success: false, message: 'ログインしていません' };
+    }
+    
+    try {
+      // Google Drive APIの初期化を確認
+      await initGoogleDriveAPI();
+      
+      // 実際のGoogleドライブAPI呼び出し
+      console.log('Googleドライブから読み込み中');
+      const result = await apiLoadFromGoogleDrive(userData);
+      
+      // API呼び出し結果を確認
+      if (result.success && result.data) {
+        const cloudData = result.data;
+        
+        // 基本的なデータ構造の検証
+        const requiredFields = ['baseCurrency', 'currentAssets', 'targetPortfolio'];
+        const missingFields = requiredFields.filter(field => !(field in cloudData));
+        
+        if (missingFields.length > 0) {
+          console.warn(`クラウドデータに必須フィールドがありません: ${missingFields.join(', ')}`);
+          addNotification('クラウドデータの形式が不正です', 'warning');
+          return { success: false, message: 'クラウドデータの形式が不正です' };
+        }
+        
+        // 各状態を更新
+        if (cloudData.baseCurrency) setBaseCurrency(cloudData.baseCurrency);
+        if (cloudData.exchangeRate) setExchangeRate(cloudData.exchangeRate);
+        if (cloudData.lastUpdated) setLastUpdated(cloudData.lastUpdated);
+        if (cloudData.additionalBudget !== undefined) setAdditionalBudget(cloudData.additionalBudget);
+        
+        // アセットデータのインポート（銘柄タイプ検証・修正付き）
+        if (Array.isArray(cloudData.currentAssets)) {
+          // 銘柄タイプの検証と修正
+          const { updatedAssets: validatedAssets, changes } = validateAssetTypes(cloudData.currentAssets);
+          setCurrentAssets(validatedAssets);
+          
+          // 変更があった場合は通知
+          if (changes.fundType > 0) {
+            addNotification(`${changes.fundType}件の銘柄で種別情報を修正しました`, 'info');
+          }
+          if (changes.fees > 0) {
+            addNotification(`${changes.fees}件の銘柄で手数料情報を修正しました`, 'info');
+          }
+          if (changes.dividends > 0) {
+            addNotification(`${changes.dividends}件の銘柄で配当情報を修正しました`, 'info');
+          }
+        }
+        
+        if (Array.isArray(cloudData.targetPortfolio)) setTargetPortfolio(cloudData.targetPortfolio);
+        
+        setLastSyncTime(new Date().toISOString());
+        setDataSource('cloud');
+        addNotification('クラウドからデータを読み込みました', 'success');
+        
+        // ローカルストレージにも同期保存
+        setTimeout(() => saveToLocalStorage(), 100);
+        
+        return { success: true, message: 'クラウドからデータを読み込みました' };
+      } else {
+        // 初回利用などでデータがない場合は、現在のデータをクラウドに保存するオプションを提案
+        const message = result.message || 'クラウドにデータがありません';
+        addNotification(`${message}。現在のデータをクラウドに保存しますか？`, 'info');
+        
+        // 自動的に現在のデータを保存する場合はここでsaveToGoogleDriveを呼び出す
+        // あるいは、ユーザーに選択させる場合はUIで対応
+        
+        return { success: false, message: message, suggestSaving: true };
+      }
+    } catch (error) {
+      console.error('Googleドライブからの読み込みに失敗しました', error);
+      addNotification(`クラウドからの読み込みに失敗しました: ${error.message}`, 'error');
+      return { success: false, message: `クラウド読み込みに失敗しました: ${error.message}` };
+    }
+  }, [addNotification, saveToLocalStorage, validateAssetTypes]);
+
+  // データの初期化処理（ローカルストレージからデータを読み込み、銘柄情報を検証）
+  const initializeData = useCallback(() => {
+    try {
+      if (initialized) return;
+      console.log('データの初期化を開始...');
+      const localData = loadFromLocalStorage();
+      
+      if (localData) {
+        console.log('ローカルストレージからデータを読み込みました:', localData);
+        
+        // 各状態を更新
+        if (localData.baseCurrency) {
+          console.log('基準通貨を設定:', localData.baseCurrency);
+          setBaseCurrency(localData.baseCurrency);
+        }
+        
+        if (localData.exchangeRate) {
+          console.log('為替レートを設定:', localData.exchangeRate);
+          setExchangeRate(localData.exchangeRate);
+        }
+        
+        if (localData.lastUpdated) {
+          console.log('最終更新日時を設定:', localData.lastUpdated);
+          setLastUpdated(localData.lastUpdated);
+        }
+        
+        if (localData.additionalBudget !== undefined) {
+          console.log('追加予算を設定:', localData.additionalBudget);
+          setAdditionalBudget(localData.additionalBudget);
+        }
+        
+        // アセットデータのインポートと検証
+        if (Array.isArray(localData.currentAssets)) {
+          console.log('保有資産データを設定:', localData.currentAssets.length, '件');
+          
+          // 銘柄タイプ、手数料、配当情報を検証して修正
+          const { updatedAssets: validatedAssets, changes } = validateAssetTypes(localData.currentAssets);
+          
+          // 検証・修正済みのデータを設定
+          setCurrentAssets(validatedAssets);
+          
+          // 変更があった場合は通知を表示
+          if (changes.fundType > 0) {
+            addNotification(`${changes.fundType}件の銘柄で種別情報を修正しました`, 'info');
+            
+            // 詳細な変更内容も表示（最大3件まで）
+            changes.fundTypeDetails.slice(0, 3).forEach(detail => {
+              addNotification(
+                `「${detail.name || detail.ticker}」のタイプが「${detail.oldType}」から「${detail.newType}」に変更されました`,
+                'info'
+              );
+            });
+          }
+          
+          if (changes.fees > 0) {
+            addNotification(`${changes.fees}件の銘柄で手数料情報を修正しました`, 'info');
+          }
+          
+          if (changes.dividends > 0) {
+            addNotification(`${changes.dividends}件の銘柄で配当情報を修正しました`, 'info');
+          }
+          
+          // データが修正された場合は自動保存
+          if (changes.fundType > 0 || changes.fees > 0 || changes.dividends > 0) {
+            setTimeout(() => {
+              console.log('修正したデータを自動保存します');
+              saveToLocalStorage();
+            }, 500);
+          }
+        }
+        
+        if (Array.isArray(localData.targetPortfolio)) {
+          console.log('目標配分データを設定:', localData.targetPortfolio.length, '件');
+          setTargetPortfolio(localData.targetPortfolio);
+        }
+        
+        addNotification('前回のデータを読み込みました', 'info');
+      } else {
+        console.log('ローカルストレージにデータがありませんでした。初期状態を使用します。');
+      }
+      
+      // 初期化完了をマーク
+      setInitialized(true);
+    } catch (error) {
+      console.error('データの初期化中にエラーが発生しました:', error);
+      addNotification(`データの初期化中にエラーが発生しました: ${error.message}`, 'error');
+      setInitialized(true); // エラーが発生しても初期化完了とマークする
+    }
+  }, [loadFromLocalStorage, addNotification, validateAssetTypes, saveToLocalStorage]);
+
+  // コンポーネントマウント時にローカルストレージからデータを読み込む
+  useEffect(() => {
+    initializeData();
+  }, [initializeData]);
+
+  // 通貨切替時に為替レートを更新（初期化後のみ実行）
+  useEffect(() => {
+    if (initialized) {
+      updateExchangeRate();
+    }
+  }, [baseCurrency, updateExchangeRate, initialized]);
+
+  // 総資産額の計算
+  const totalAssets = currentAssets.reduce((sum, asset) => {
+    let assetValue = asset.price * asset.holdings;
+    
+    // 通貨換算
+    if (asset.currency !== baseCurrency) {
+      if (baseCurrency === 'JPY' && asset.currency === 'USD') {
+        assetValue *= exchangeRate.rate;
+      } else if (baseCurrency === 'USD' && asset.currency === 'JPY') {
+        assetValue /= exchangeRate.rate;
+      }
+    }
+    
+    return sum + assetValue;
+  }, 0);
+
+  // 年間手数料の計算
+  const annualFees = currentAssets.reduce((sum, asset) => {
+    // 個別株は手数料がかからない
+    if (asset.isStock || asset.fundType === FUND_TYPES.STOCK) {
+      return sum;
+    }
+    
+    let assetValue = asset.price * asset.holdings;
+    
+    // 通貨換算
+    if (asset.currency !== baseCurrency) {
+      if (baseCurrency === 'JPY' && asset.currency === 'USD') {
+        assetValue *= exchangeRate.rate;
+      } else if (baseCurrency === 'USD' && asset.currency === 'JPY') {
+        assetValue /= exchangeRate.rate;
+      }
+    }
+    
+    return sum + (assetValue * (asset.annualFee || 0) / 100);
+  }, 0);
+
+  // 年間配当金の計算（新規）
+  const annualDividends = currentAssets.reduce((sum, asset) => {
+    // 配当がない場合はスキップ
+    if (!asset.hasDividend) {
+      return sum;
+    }
+    
+    let assetValue = asset.price * asset.holdings;
+    
+    // 通貨換算
+    if (asset.currency !== baseCurrency) {
+      if (baseCurrency === 'JPY' && asset.currency === 'USD') {
+        assetValue *= exchangeRate.rate;
+      } else if (baseCurrency === 'USD' && asset.currency === 'JPY') {
+        assetValue /= exchangeRate.rate;
+      }
+    }
+    
+    return sum + (assetValue * (asset.dividendYield || 0) / 100);
+  }, 0);
+
+  // コンテキスト値 (データ保存・同期関連の関数を追加)
+  const contextValue = {
+    baseCurrency, 
+    exchangeRate, 
+    lastUpdated, 
+    isLoading,
+    currentAssets, 
+    targetPortfolio, 
+    additionalBudget,
+    totalAssets, 
+    annualFees,
+    annualDividends, // 年間配当金を追加
+    dataSource,
+    lastSyncTime,
+    toggleCurrency, 
+    refreshMarketPrices, 
+    addTicker,
+    updateTargetAllocation, 
+    updateHoldings,
+    updateAnnualFee, // 手数料率更新関数を追加
+    updateDividendInfo, // 配当情報更新関数を追加
+    removeTicker,
+    setAdditionalBudget, 
+    calculateSimulation,
+    executePurchase, 
+    executeBatchPurchase,
+    importData, 
+    exportData,
+    addNotification,
+    removeNotification,
+    // データ保存・同期関連
+    saveToLocalStorage,
+    loadFromLocalStorage,
+    clearLocalStorage,
+    saveToGoogleDrive,
+    loadFromGoogleDrive,
+    handleAuthStateChange,
+    initializeData,
+    validateAssetTypes // 銘柄タイプ検証関数を追加
   };
+
+  return (
+    <PortfolioContext.Provider value={contextValue}>
+      {children}
+      
+      {/* 通知表示 */}
+      <div className="fixed bottom-0 right-0 p-4 space-y-2 z-50">
+        {notifications.map((notification) => (
+          <div 
+            key={notification.id}
+            className={`p-3 rounded-md shadow-md text-sm ${
+              notification.type === 'error' ? 'bg-red-100 text-red-700' :
+              notification.type === 'warning' ? 'bg-yellow-100 text-yellow-700' :
+              notification.type === 'success' ? 'bg-green-100 text-green-700' :
+              'bg-blue-100 text-blue-700'
+            }`}
+          >
+            <div className="flex justify-between items-start">
+              <span>{notification.message}</span>
+              <button 
+                onClick={() => removeNotification(notification.id)}
+                className="ml-2 text-gray-500 hover:text-gray-700"
+              >
+                &times;
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </PortfolioContext.Provider>
+  );
 };
+
+// 明示的にデフォルトエクスポートも追加
+export default PortfolioContext;
