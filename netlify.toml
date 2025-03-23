@@ -18,24 +18,31 @@
     Access-Control-Allow-Headers = "Content-Type, Authorization"
     Access-Control-Allow-Methods = "GET, POST, OPTIONS"
 
-# API経由でFunctionsにアクセス
+# API経由でFunctionsにアクセス（一般的なリダイレクト）
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
   status = 200
   force = true
 
-# Python yfinanceプロキシ向けのリダイレクト（既存のプロキシ）
+# Alpaca APIプロキシ向けのリダイレクト
 [[redirects]]
-  from = "/api/yfinance-proxy"
-  to = "/.netlify/functions/yfinance-proxy"
+  from = "/api/alpaca-api-proxy"
+  to = "/.netlify/functions/alpaca-api-proxy"
   status = 200
   force = true
 
-# Yahoo Financeプロキシ向けのリダイレクト（新規追加）
+# Yahoo Finance APIプロキシ向けのリダイレクト
 [[redirects]]
-  from = "/api/yahoo-finance-proxy"
-  to = "/.netlify/functions/yahoo-finance-proxy"
+  from = "/api/yfinance-api-proxy"
+  to = "/.netlify/functions/yfinance-api-proxy"
+  status = 200
+  force = true
+
+# exchangerate.host APIプロキシ向けのリダイレクト
+[[redirects]]
+  from = "/api/exchangerate-proxy"
+  to = "/.netlify/functions/exchangerate-proxy"
   status = 200
   force = true
 
@@ -50,7 +57,3 @@
   directory = "functions"
   node_bundler = "esbuild"
   included_files = ["functions/**"]
-
-# Python関数の設定（そのまま残す - 使用しない）
-[functions."yfinance-proxy"]
-  runtime = "python3.9"
