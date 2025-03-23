@@ -2,7 +2,7 @@
 
 /**
  * Yahoo Finance APIへのプロキシ関数
- * Pythonを使わずに株価データを取得する
+ * 株価データと投資信託データを取得する
  */
 const axios = require('axios');
 
@@ -75,6 +75,27 @@ exports.handler = async function(event, context) {
 };
 
 /**
+ * 投資信託かどうかを判定する関数
+ * @param {string} ticker - ティッカーシンボル
+ * @returns {boolean} 投資信託の場合はtrue
+ */
+function isMutualFund(ticker) {
+  if (!ticker) return false;
+  return /^\d{7,8}C(\.T)?$/i.test(ticker);
+}
+
+/**
+ * 日本株かどうかを判定する関数
+ * @param {string} ticker - ティッカーシンボル
+ * @returns {boolean} 日本株の場合はtrue
+ */
+function isJapaneseStock(ticker) {
+  if (!ticker) return false;
+  ticker = ticker.toString();
+  return /^\d{4}(\.T)?$/.test(ticker) || ticker.endsWith('.T');
+}
+
+/**
  * 株価データを取得する
  * @param {string} symbols - カンマ区切りのティッカーシンボル
  * @param {Object} headers - レスポンスヘッダー
@@ -84,9 +105,14 @@ async function handleStockData(symbols, headers) {
   // カンマ区切りのシンボルを配列に変換
   const symbolsList = symbols.split(',').map(s => s.trim());
   
-  // 日本株の場合は.Tを追加
+  // 日本株と投資信託の場合は.Tを追加
   const formattedSymbols = symbolsList.map(symbol => {
-    if (/^\d{4}$/.test(symbol) && !symbol.includes('.T')) {
+    // 投資信託コード処理を追加（7-8桁数字+C）
+    if (/^\d{7,8}C$/i.test(symbol) && !symbol.includes('.T')) {
+      return `${symbol}.T`;
+    }
+    // 日本株の場合（4桁数字）
+    else if (/^\d{4}$/.test(symbol) && !symbol.includes('.T')) {
       return `${symbol}.T`;
     }
     return symbol;
@@ -123,13 +149,24 @@ async function handleStockData(symbols, headers) {
       const result = {};
       quotes.forEach(quote => {
         const ticker = quote.symbol;
+        
+        // 取得した情報をログに出力
+        console.log(`Received data for ${ticker}: ${quote.shortName || quote.longName}, Price: ${quote.regularMarketPrice || quote.ask || quote.bid || 0}`);
+        
+        // 投資信託かどうかを判定
+        const isMutualFundTicker = isMutualFund(ticker);
+        
         result[ticker] = {
           ticker: ticker,
           price: quote.regularMarketPrice || quote.ask || quote.bid || 0,
           name: quote.shortName || quote.longName || ticker,
           currency: quote.currency || (ticker.includes('.T') ? 'JPY' : 'USD'),
           lastUpdated: new Date().toISOString(),
-          source: 'Yahoo Finance'
+          source: 'Yahoo Finance',
+          // 投資信託特有の情報
+          isMutualFund: isMutualFundTicker,
+          // 投資信託なら基準価額、それ以外は株価として表示
+          priceLabel: isMutualFundTicker ? '基準価額' : '株価'
         };
       });
       
@@ -142,13 +179,19 @@ async function handleStockData(symbols, headers) {
         
         // 見つからなかったシンボルにはフォールバック値を設定
         notFoundSymbols.forEach(symbol => {
+          // 投資信託かどうかを判定
+          const isMutualFundTicker = isMutualFund(symbol);
+          
+          // フォールバック値の設定
           result[symbol] = {
             ticker: symbol,
-            price: defaultPrice(symbol),
-            name: symbol,
-            currency: symbol.includes('.T') ? 'JPY' : 'USD',
+            price: isMutualFundTicker ? 10000 : isJapaneseStock(symbol) ? 2500 : 150,
+            name: isMutualFundTicker ? `投資信託 ${symbol}` : symbol,
+            currency: isJapaneseStock(symbol) || isMutualFundTicker ? 'JPY' : 'USD',
             lastUpdated: new Date().toISOString(),
-            source: 'Fallback'
+            source: 'Fallback',
+            isMutualFund: isMutualFundTicker,
+            priceLabel: isMutualFundTicker ? '基準価額' : '株価'
           };
         });
       }
@@ -170,13 +213,18 @@ async function handleStockData(symbols, headers) {
       // フォールバックデータを生成
       const result = {};
       formattedSymbols.forEach(symbol => {
+        // 投資信託かどうかを判定
+        const isMutualFundTicker = isMutualFund(symbol);
+        
         result[symbol] = {
           ticker: symbol,
-          price: defaultPrice(symbol),
-          name: symbol,
-          currency: symbol.includes('.T') ? 'JPY' : 'USD',
+          price: isMutualFundTicker ? 10000 : isJapaneseStock(symbol) ? 2500 : 150,
+          name: isMutualFundTicker ? `投資信託 ${symbol}` : symbol,
+          currency: isJapaneseStock(symbol) || isMutualFundTicker ? 'JPY' : 'USD',
           lastUpdated: new Date().toISOString(),
-          source: 'Fallback'
+          source: 'Fallback',
+          isMutualFund: isMutualFundTicker,
+          priceLabel: isMutualFundTicker ? '基準価額' : '株価'
         };
       });
       
@@ -203,13 +251,18 @@ async function handleStockData(symbols, headers) {
     // フォールバックデータを生成
     const result = {};
     formattedSymbols.forEach(symbol => {
+      // 投資信託かどうかを判定
+      const isMutualFundTicker = isMutualFund(symbol);
+      
       result[symbol] = {
         ticker: symbol,
-        price: defaultPrice(symbol),
-        name: symbol,
-        currency: symbol.includes('.T') ? 'JPY' : 'USD',
+        price: isMutualFundTicker ? 10000 : isJapaneseStock(symbol) ? 2500 : 150,
+        name: isMutualFundTicker ? `投資信託 ${symbol}` : symbol,
+        currency: isJapaneseStock(symbol) || isMutualFundTicker ? 'JPY' : 'USD',
         lastUpdated: new Date().toISOString(),
-        source: 'Fallback'
+        source: 'Fallback',
+        isMutualFund: isMutualFundTicker,
+        priceLabel: isMutualFundTicker ? '基準価額' : '株価'
       };
     });
     
@@ -349,37 +402,6 @@ async function handleExchangeRate(exchangeRate, headers) {
       })
     };
   }
-}
-
-/**
- * ティッカーシンボルに基づいたデフォルト価格を返す
- * @param {string} symbol - ティッカーシンボル
- * @returns {number} - デフォルト価格
- */
-function defaultPrice(symbol) {
-  // 日本株の場合は2500円をデフォルト価格とする
-  if (symbol.includes('.T')) {
-    return 2500;
-  }
-  
-  // 特定のETFに対するカスタムデフォルト価格
-  const etfPrices = {
-    'VXUS': 60.0,
-    'IBIT': 40.0,
-    'LQD': 110.0,
-    'GLD': 200.0,
-    'SPY': 500.0,
-    'VOO': 450.0,
-    'VTI': 250.0,
-    'QQQ': 400.0
-  };
-  
-  if (etfPrices[symbol]) {
-    return etfPrices[symbol];
-  }
-  
-  // その他の米国株は150ドルをデフォルト価格とする
-  return 150;
 }
 
 /**
