@@ -34,8 +34,8 @@
 
 # Yahoo Finance APIプロキシ向けのリダイレクト
 [[redirects]]
-  from = "/api/yfinance-api-proxy"
-  to = "/.netlify/functions/yfinance-api-proxy"
+  from = "/api/yahoo-finance-proxy"
+  to = "/.netlify/functions/yahoo-finance-proxy"
   status = 200
   force = true
 
@@ -57,3 +57,10 @@
   directory = "functions"
   node_bundler = "esbuild"
   included_files = ["functions/**"]
+
+# 財務省為替レートプロキシ向けのリダイレクト（代替データソース）
+[[redirects]]
+  from = "/api/mof-exchange-rate-proxy"
+  to = "/.netlify/functions/mof-exchange-rate-proxy"
+  status = 200
+  force = true
