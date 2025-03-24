@@ -2014,6 +2014,14 @@ export const checkDataFreshness = function(assets, staleThresholdHours = 24) {
       }
     }
   });
-  
   return {
-    fresh: staleItems.length ===
+    fresh: staleItems.length === 0 && missingUpdateTime.length === 0,
+    staleItems,
+    missingUpdateTime,
+    message: staleItems.length > 0 
+      ? `${staleItems.length}個の銘柄データが${staleThresholdHours}時間以上更新されていません` 
+      : missingUpdateTime.length > 0 
+        ? `${missingUpdateTime.length}個の銘柄に更新時間情報がありません` 
+        : 'すべてのデータは最新です'
+  };
+};
