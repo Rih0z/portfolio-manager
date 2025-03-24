@@ -10,9 +10,18 @@ import {
   TICKER_SPECIFIC_FEES,
   TICKER_SPECIFIC_DIVIDENDS,
   FUND_TYPES,
-  US_ETF_LIST,
+  US_ETF_LIST as BASE_US_ETF_LIST,
   DATA_SOURCES
 } from '../utils/fundUtils';
+
+// 債券ETFリストを明示的に定義（独立変数として保持）
+const BOND_ETFS = ['LQD', 'BND', 'AGG', 'TLT', 'IEF', 'GOVT', 'HYG', 'JNK', 'MUB', 'VCIT', 'VCSH'];
+
+// US ETFリストを拡張（債券ETFを追加）
+const US_ETF_LIST = [
+  ...BASE_US_ETF_LIST,  // 既存のETFリスト
+  ...BOND_ETFS  // 債券ETFを追加
+];
 
 // データソース定数を更新（スクレイピングソースを追加）
 export const SCRAPING_DATA_SOURCES = {
@@ -41,12 +50,12 @@ const ALPACA_API_URL = isLocalhost
   ? '/api/alpaca-api-proxy' // ローカル環境では直接プロキシ経由
   : `${BASE_URL}/api/alpaca-api-proxy`; // 本番環境
 
-// スクレイピングベースの日本株データ取得プロキシ - 新規追加
+// スクレイピングベースの日本株データ取得プロキシ
 const JP_STOCK_SCRAPING_URL = isLocalhost
   ? '/api/jp-stock-scraping-proxy' // ローカル環境では直接プロキシ経由
   : `${BASE_URL}/api/jp-stock-scraping-proxy`; // 本番環境
 
-// スクレイピングベースの投資信託データ取得プロキシ - 新規追加
+// スクレイピングベースの投資信託データ取得プロキシ
 const MUTUAL_FUND_SCRAPING_URL = isLocalhost
   ? '/api/mutual-fund-scraping-proxy' // ローカル環境では直接プロキシ経由
   : `${BASE_URL}/api/mutual-fund-scraping-proxy`; // 本番環境
@@ -87,6 +96,7 @@ console.log(`API Configuration:
 - JP Stock Scraping Enabled: ${ENABLE_JP_STOCK_SCRAPING}
 - Mutual Fund Scraping Enabled: ${ENABLE_MUTUAL_FUND_SCRAPING}
 - Yahoo Finance API Enabled: ${ENABLE_YAHOO_FINANCE_API}
+- Bond ETFs registered: ${BOND_ETFS.join(', ')}
 `);
 
 // 為替レートのデフォルト値（最終手段）
@@ -128,6 +138,26 @@ function isJapaneseStock(ticker) {
   if (!ticker) return false;
   ticker = ticker.toString();
   return /^\d{4}(\.T)?$/.test(ticker) || ticker.endsWith('.T');
+}
+
+/**
+ * 債券ETFかどうかを明示的に判定する関数（強化版）
+ * @param {string} ticker - ティッカーシンボル
+ * @returns {boolean} - 債券ETFの場合はtrue
+ */
+function isBondETF(ticker) {
+  if (!ticker) return false;
+  
+  // 大文字に変換して確認
+  ticker = ticker.toString().toUpperCase();
+  
+  // 登録済みの債券ETFリストと照合
+  if (BOND_ETFS.includes(ticker)) {
+    console.log(`[isBondETF] ${ticker} is identified as a bond ETF in our registry`);
+    return true;
+  }
+  
+  return false;
 }
 
 /**
@@ -189,7 +219,7 @@ function isCrypto(name, ticker) {
 }
 
 /**
- * 債券関連銘柄かどうかを判定する（改善版）
+ * 債券関連銘柄かどうかを判定する
  * @param {string} name - 銘柄名
  * @param {string} ticker - ティッカーシンボル
  * @returns {boolean} - 債券関連ならtrue
@@ -197,11 +227,8 @@ function isCrypto(name, ticker) {
 function isBond(name, ticker) {
   if (!name && !ticker) return false;
   
-  // 特定の債券関連ティッカー
-  const bondTickers = ['LQD', 'BND', 'AGG', 'TLT', 'IEF', 'GOVT', 'HYG', 'JNK', 'MUB', 'VCIT', 'VCSH'];
-  
-  if (ticker && bondTickers.includes(ticker.toUpperCase())) {
-    console.log(`${ticker} identified as a bond ETF`);
+  // 債券ETFの場合は即時true
+  if (isBondETF(ticker)) {
     return true;
   }
   
@@ -325,6 +352,11 @@ function determineFundType(ticker, name) {
   // 大文字に統一
   ticker = ticker.toUpperCase();
   
+  // 債券ETFの場合
+  if (isBondETF(ticker)) {
+    return FUND_TYPES.BOND;
+  }
+  
   // 米国ETFリストに明示的に含まれているか確認
   if (US_ETF_LIST.includes(ticker)) {
     if (ticker === 'IBIT' || ticker === 'GBTC' || ticker === 'ETHE') {
@@ -390,6 +422,11 @@ function determineHasDividend(ticker) {
   
   // 投資信託は基本的に配当あり
   if (isMutualFund(ticker)) {
+    return true;
+  }
+  
+  // 債券ETFは配当あり
+  if (isBondETF(ticker)) {
     return true;
   }
   
@@ -515,6 +552,9 @@ async function fetchFromAlpaca(ticker) {
         // 個別株かどうかを判定
         const isStock = fundType === FUND_TYPES.STOCK;
         
+        // 債券ETFかどうかを判定
+        const bondETF = isBondETF(ticker);
+        
         // 手数料情報を取得
         const feeInfo = estimateAnnualFee(ticker, name);
         
@@ -531,7 +571,7 @@ async function fetchFromAlpaca(ticker) {
         const currency = quoteData.currency || fundInfo.currency || 'USD';
         
         // 手数料情報（個別株は常に0%）
-        const annualFee = isStock ? 0 : feeInfo.fee;
+        const annualFee = isStock ? 0 : (bondETF ? 0.15 : feeInfo.fee);
         
         return {
           success: true,
@@ -547,15 +587,16 @@ async function fetchFromAlpaca(ticker) {
             fundType: fundType,
             isStock: isStock,
             isMutualFund: false,
-            feeSource: isStock ? '個別株' : feeInfo.source,
+            isBondETF: bondETF,  // 債券ETFフラグを追加
+            feeSource: isStock ? '個別株' : (bondETF ? '債券ETF' : feeInfo.source),
             feeIsEstimated: isStock ? false : feeInfo.isEstimated,
             region: fundInfo.region || 'unknown',
             lastUpdated: new Date().toISOString(),
             source: DATA_SOURCES.ALPACA,
             // 配当情報
-            dividendYield: dividendInfo.yield,
+            dividendYield: bondETF ? 3.0 : dividendInfo.yield,  // 債券ETFは3%とする
             hasDividend: hasDividend,
-            dividendFrequency: dividendInfo.dividendFrequency,
+            dividendFrequency: bondETF ? 'monthly' : dividendInfo.dividendFrequency,
             dividendIsEstimated: dividendInfo.isEstimated
           },
           message: 'Alpacaから正常に取得しました'
@@ -968,10 +1009,15 @@ async function fetchFromYahoo(ticker) {
         // 投資信託かどうかを判定
         const isMutualFundTicker = isMutualFund(ticker);
         
+        // 債券ETFかどうかを判定
+        const bondETF = isBondETF(ticker);
+        
         // ファンドタイプを判定
         const fundType = isMutualFundTicker 
           ? FUND_TYPES.MUTUAL_FUND
-          : determineFundType(ticker, name);
+          : bondETF 
+            ? FUND_TYPES.BOND
+            : determineFundType(ticker, name);
         
         console.log(`Determined fund type for ${ticker} from Yahoo Finance: ${fundType}`);
         
@@ -995,7 +1041,7 @@ async function fetchFromYahoo(ticker) {
                         determineCurrency(ticker, name);
         
         // 手数料情報（個別株は常に0%）
-        const annualFee = isStock ? 0 : feeInfo.fee;
+        const annualFee = isStock ? 0 : (bondETF ? 0.15 : feeInfo.fee);
         
         // 価格表示ラベル（投資信託なら「基準価額」、それ以外は「株価」）
         const priceLabel = isMutualFundTicker ? '基準価額' : '株価';
@@ -1014,15 +1060,16 @@ async function fetchFromYahoo(ticker) {
             fundType: fundType,
             isStock: isStock,
             isMutualFund: isMutualFundTicker,
-            feeSource: isStock ? '個別株' : (isMutualFundTicker ? '投資信託' : feeInfo.source),
+            isBondETF: bondETF,  // 債券ETFフラグを追加
+            feeSource: isStock ? '個別株' : (bondETF ? '債券ETF' : (isMutualFundTicker ? '投資信託' : feeInfo.source)),
             feeIsEstimated: isStock ? false : feeInfo.isEstimated,
             region: fundInfo.region || 'unknown',
             lastUpdated: new Date().toISOString(),
             source: DATA_SOURCES.YAHOO_FINANCE,
             // 配当情報
-            dividendYield: dividendInfo.yield,
-            hasDividend: hasDividend,
-            dividendFrequency: dividendInfo.dividendFrequency,
+            dividendYield: bondETF ? 3.0 : dividendInfo.yield,  // 債券ETFは3%とする
+            hasDividend: hasDividend || bondETF,  // 債券ETFは配当あり
+            dividendFrequency: bondETF ? 'monthly' : dividendInfo.dividendFrequency,
             dividendIsEstimated: dividendInfo.isEstimated,
             // 投資信託特有の項目
             priceLabel: priceLabel
@@ -1064,10 +1111,10 @@ export async function fetchTickerData(ticker) {
   ticker = ticker.toUpperCase();
   
   // 債券ETFかどうかを直接チェック（特別処理）
-  const bondETFs = ['LQD', 'BND', 'AGG', 'TLT', 'IEF', 'GOVT', 'HYG', 'JNK', 'MUB', 'VCIT', 'VCSH'];
-  const isBondETF = bondETFs.includes(ticker);
+  const isBondETFTicker = isBondETF(ticker);
   
-  if (isBondETF) {
+  // 債券ETFの場合は特別処理を実行
+  if (isBondETFTicker) {
     console.log(`${ticker} is a bond ETF. Trying Yahoo Finance first for more reliable data.`);
     // 債券ETFの場合はYahoo Financeを優先する（より信頼性の高いデータのため）
     try {
@@ -1080,7 +1127,8 @@ export async function fetchTickerData(ticker) {
           alpacaTried: false,
           alpacaSuccess: false,
           yahooFinanceTried: true,
-          yahooFinanceSuccess: true
+          yahooFinanceSuccess: true,
+          isBondETF: true
         };
       }
     } catch (yahooError) {
@@ -1098,7 +1146,8 @@ export async function fetchTickerData(ticker) {
           alpacaTried: true,
           alpacaSuccess: true,
           yahooFinanceTried: true,
-          yahooFinanceSuccess: false
+          yahooFinanceSuccess: false,
+          isBondETF: true
         };
       }
     } catch (alpacaError) {
@@ -1114,6 +1163,7 @@ export async function fetchTickerData(ticker) {
       alpacaSuccess: false,
       yahooFinanceTried: true,
       yahooFinanceSuccess: false,
+      isBondETF: true,
       message: `${ticker}のデータ取得に失敗しました。債券ETF用のフォールバック値を使用します。`
     };
   }
@@ -1361,7 +1411,7 @@ export async function fetchTickerData(ticker) {
 }
 
 /**
- * 債券ETF専用のフォールバックデータを生成する関数（新規追加）
+ * 債券ETF専用のフォールバックデータを生成する関数
  * @param {string} ticker - ティッカーシンボル
  * @returns {Object} - 債券ETF用のフォールバックデータ
  */
@@ -1400,7 +1450,8 @@ function generateBondETFFallback(ticker) {
       fundType: FUND_TYPES.BOND,
       isStock: false,
       isMutualFund: false,
-      feeSource: 'ティッカー固有の情報',
+      isBondETF: true,
+      feeSource: '債券ETF',
       feeIsEstimated: true,
       region: 'US',
       lastUpdated: currentDate,
@@ -1458,10 +1509,8 @@ function generateFallbackTickerData(ticker) {
   ticker = ticker.toUpperCase();
   
   // 債券ETFかどうかを直接チェック
-  const bondETFs = ['LQD', 'BND', 'AGG', 'TLT', 'IEF', 'GOVT', 'HYG', 'JNK', 'MUB', 'VCIT', 'VCSH'];
-  
-  // 債券ETFの場合は専用のフォールバック関数を使用
-  if (bondETFs.includes(ticker)) {
+  if (isBondETF(ticker)) {
+    console.log(`${ticker} is identified as a Bond ETF in fallback generation. Using specialized bond ETF fallback.`);
     return generateBondETFFallback(ticker);
   }
   
@@ -1505,7 +1554,7 @@ function generateFallbackTickerData(ticker) {
   
   // 基本情報と手数料情報を取得
   const fundInfo = extractFundInfo(ticker, ticker);
-  const feeInfo = estimateAnnualFee(ticker, ticker);
+  const feeInfo = estimateAnnualFee(ticker, name);
   
   // 配当情報の推定
   const dividendInfo = estimateDividendYield(ticker, ticker);
@@ -1610,13 +1659,16 @@ export async function fetchMultipleTickerData(tickers) {
   const yahooResults = results.filter(result => result.yahooFinanceTried);
   const yahooSuccess = yahooResults.filter(result => result.yahooFinanceSuccess);
   
+  // 債券ETFのカウント
+  const bondETFs = results.filter(result => result.isBondETF);
+  
   // 日本株・投資信託・米国株の分類
   const japaneseStocks = results.filter(result => isJapaneseStock(result.ticker) && !isMutualFund(result.ticker));
   const mutualFunds = results.filter(result => isMutualFund(result.ticker));
   const usStocks = results.filter(result => !isJapaneseStock(result.ticker) && !isMutualFund(result.ticker));
   
   console.log(`Data source statistics:`, sourceStats);
-  console.log(`Stock types: Japanese: ${japaneseStocks.length}, US: ${usStocks.length}, Mutual Funds: ${mutualFunds.length}`);
+  console.log(`Stock types: Japanese: ${japaneseStocks.length}, US: ${usStocks.length}, Mutual Funds: ${mutualFunds.length}, Bond ETFs: ${bondETFs.length}`);
   
   if (jpStockScrapingResults.length > 0) {
     console.log(`JP Stock Scraping statistics: tried: ${jpStockScrapingResults.length}, succeeded: ${jpStockScrapingSuccess.length}`);
@@ -1632,6 +1684,10 @@ export async function fetchMultipleTickerData(tickers) {
   
   if (yahooResults.length > 0) {
     console.log(`Yahoo Finance statistics: tried: ${yahooResults.length}, succeeded: ${yahooSuccess.length}`);
+  }
+  
+  if (bondETFs.length > 0) {
+    console.log(`Bond ETF statistics: total: ${bondETFs.length}`);
   }
   
   // 全体の成功・失敗を判定
@@ -1656,7 +1712,8 @@ export async function fetchMultipleTickerData(tickers) {
       ticker: result.ticker,
       success: result.success,
       message: result.message,
-      source: result.data.source
+      source: result.data.source,
+      isBondETF: result.isBondETF || false
     })),
     // スクレイピングソースの統計を追加
     jpStockScrapingStats: {
@@ -1687,10 +1744,15 @@ export async function fetchMultipleTickerData(tickers) {
         .filter(r => !r.yahooFinanceSuccess)
         .map(r => r.ticker)
     },
+    bondETFStats: {
+      total: bondETFs.length,
+      tickers: bondETFs.map(r => r.ticker)
+    },
     stockTypeStats: {
       japaneseStocks: japaneseStocks.length,
       mutualFunds: mutualFunds.length,
-      usStocks: usStocks.length
+      usStocks: usStocks.length,
+      bondETFs: bondETFs.length
     }
   };
   
@@ -1731,6 +1793,10 @@ export async function fetchMultipleTickerData(tickers) {
     }
   }
   
+  if (bondETFs.length > 0) {
+    resultInfo.bondETFMessage = `${bondETFs.length}件の債券ETFを処理しました`;
+  }
+  
   return resultInfo;
 }
 
@@ -1743,6 +1809,24 @@ export const fetchDividendData = async function(ticker) {
   try {
     // ティッカーを大文字に統一
     ticker = ticker.toUpperCase();
+    
+    // 債券ETFかどうかを判定
+    const bondETF = isBondETF(ticker);
+    
+    // 債券ETFの場合は固定値を返す
+    if (bondETF) {
+      return {
+        success: true,
+        data: {
+          dividendYield: 3.0, // 債券ETFの一般的な利回り
+          hasDividend: true,
+          dividendFrequency: 'monthly', // 債券ETFは通常月次配当
+          dividendIsEstimated: true,
+          lastUpdated: new Date().toISOString()
+        },
+        message: '債券ETFの配当情報を取得しました'
+      };
+    }
     
     // ファンドタイプを判定
     const fundType = determineFundType(ticker, ticker);
@@ -1766,6 +1850,23 @@ export const fetchDividendData = async function(ticker) {
     };
   } catch (error) {
     console.error('Dividend data fetch error:', error);
+    
+    // 債券ETFかどうかを判定
+    const bondETF = isBondETF(ticker);
+    
+    if (bondETF) {
+      return {
+        success: true,
+        data: {
+          dividendYield: 3.0, // 債券ETFの一般的な利回り
+          hasDividend: true,
+          dividendFrequency: 'monthly', // 債券ETFは通常月次配当
+          dividendIsEstimated: true,
+          lastUpdated: new Date().toISOString()
+        },
+        message: '債券ETFの配当情報を取得しました'
+      };
+    }
     
     // エラー時はティッカーからの推定値を返す
     const dividendInfo = estimateDividendYield(ticker, ticker);
@@ -1797,13 +1898,18 @@ export const fetchFundInfo = async function(ticker, name = '') {
     // ティッカーを大文字に統一
     ticker = ticker.toUpperCase();
     
+    // 債券ETFかどうかを判定
+    const bondETF = isBondETF(ticker);
+    
     // 投資信託かどうかを判定
     const isMutualFundTicker = isMutualFund(ticker);
     
     // ファンドタイプを判定
     const fundType = isMutualFundTicker
       ? FUND_TYPES.MUTUAL_FUND
-      : determineFundType(ticker, name);
+      : bondETF
+        ? FUND_TYPES.BOND
+        : determineFundType(ticker, name);
     
     // 個別株かどうかを判定
     const isStock = fundType === FUND_TYPES.STOCK;
@@ -1815,7 +1921,11 @@ export const fetchFundInfo = async function(ticker, name = '') {
     const dividendInfo = estimateDividendYield(ticker, name);
     
     // 配当情報を確定
-    const hasDividend = determineHasDividend(ticker);
+    const hasDividend = determineHasDividend(ticker) || bondETF;
+    
+    // 債券ETF固有の値
+    const fee = isStock ? 0 : (bondETF ? 0.15 : feeInfo.fee);
+    const source = isStock ? '個別株' : (bondETF ? '債券ETF' : (isMutualFundTicker ? '投資信託' : feeInfo.source));
     
     return {
       success: true,
@@ -1824,13 +1934,14 @@ export const fetchFundInfo = async function(ticker, name = '') {
       fundType: fundType,
       isStock: isStock,
       isMutualFund: isMutualFundTicker,
-      annualFee: isStock ? 0 : feeInfo.fee,
-      feeSource: isStock ? '個別株' : (isMutualFundTicker ? '投資信託' : feeInfo.source),
-      feeIsEstimated: isStock ? false : feeInfo.isEstimated,
-      dividendYield: dividendInfo.yield,
+      isBondETF: bondETF,
+      annualFee: fee,
+      feeSource: source,
+      feeIsEstimated: isStock ? false : (bondETF ? true : feeInfo.isEstimated),
+      dividendYield: bondETF ? 3.0 : dividendInfo.yield,
       hasDividend: hasDividend,
-      dividendFrequency: dividendInfo.dividendFrequency,
-      dividendIsEstimated: dividendInfo.isEstimated,
+      dividendFrequency: bondETF ? 'monthly' : dividendInfo.dividendFrequency,
+      dividendIsEstimated: bondETF ? true : dividendInfo.isEstimated,
       message: 'ファンド情報を取得しました'
     };
   } catch (error) {
@@ -1842,6 +1953,7 @@ export const fetchFundInfo = async function(ticker, name = '') {
       fundType: 'UNKNOWN',
       isStock: false,
       isMutualFund: false,
+      isBondETF: false,
       annualFee: 0,
       feeSource: '取得失敗',
       feeIsEstimated: true,
@@ -1860,6 +1972,9 @@ export const fetchFundInfo = async function(ticker, name = '') {
  * @param {string} fromCurrency - 変換元通貨
  * @param {string} toCurrency - 変換先通貨
  * @returns {Promise<Object>} - 為替レートデータとステータス
+ */
+/**
+ * 為替レートを取得する（改善版）の続き
  */
 export const fetchExchangeRate = async function(fromCurrency, toCurrency) {
   try {
@@ -2014,6 +2129,7 @@ export const checkDataFreshness = function(assets, staleThresholdHours = 24) {
       }
     }
   });
+  
   return {
     fresh: staleItems.length === 0 && missingUpdateTime.length === 0,
     staleItems,
