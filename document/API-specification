@@ -1,16 +1,17 @@
-# 市場データ取得API仕様書（更新版）
+# 市場データ取得API仕様書（スクレイピング対応版）
 
-**最終更新日時:** 2025/03/25 17:15
+**最終更新日時:** 2025/03/28 12:30
 
 ## 1. 概要
 
-この仕様書は、ポートフォリオマネージャーアプリケーションで使用する市場データ取得APIについて定義します。株価データと為替レートデータの取得方法、API連携、エラーハンドリングについて説明します。
+この仕様書は、ポートフォリオマネージャーアプリケーションで使用する市場データ取得APIについて定義します。株価データと為替レートデータの取得方法、スクレイピング連携、API連携、エラーハンドリングについて説明します。
 
 ## 2. データソース構成
 
-### 2.1 株価データ取得API
+### 2.1 株価データ取得方法
 - **米国株**: Alpaca API（主要ソース）
-- **日本株**: J-Quants API（主要ソース）
+- **日本株**: スクレイピング（主要ソース）
+- **投資信託**: スクレイピング（主要ソース）
 - **共通バックアップ**: Yahoo Finance API（フォールバック用）
 
 ### 2.2 為替レートデータ取得API
@@ -95,128 +96,170 @@ const response = await axios.get(`https://data.alpaca.markets/v2/stocks/${symbol
 - **有料プラン**: 拡張データアクセス、高頻度リクエスト許可
 - **対応市場**: 米国市場のみ（日本株は対応していない）
 
-## 4. J-Quants API（日本株）
+## 4. 日本株スクレイピングプロキシ（日本株）
 
 ### 4.1 概要
-J-Quants APIは日本取引所グループ(JPX)が提供する公式APIで、東証上場の日本株の株価データを取得できます。IDトークンベースの認証が必要です。
+複数の日本の金融情報サイトから日本株の株価データをスクレイピングし、統一されたフォーマットで提供します。このプロキシは複数サイトを優先順位順に試行し、最初に成功したデータを返します。
 
 ### 4.2 エンドポイント
-- **ベースURL**: `https://api.jpx-jquants.com/v1`
-- **認証**: `/token/auth_user`
-- **IDトークン更新**: `/token/auth_refresh`
-- **日足株価データ**: `/prices/daily_quotes`
-- **銘柄情報**: `/listed/info`
+- **ベースURL**: `/api/jp-stock-scraping-proxy`
+- **パラメータ**: 
+  - `code` - 証券コード（必須）
 
-### 4.3 認証フロー
-1. **ユーザー認証**:
-   ```javascript
-   const authResponse = await axios.post(`${BASE_URL}/token/auth_user`, {
-     mailaddress: process.env.JQUANTS_EMAIL,
-     password: process.env.JQUANTS_PASSWORD
-   });
-   // refreshTokenを保存
-   const refreshToken = authResponse.data.refreshToken;
-   ```
-
-2. **IDトークン取得**:
-   ```javascript
-   const tokenResponse = await axios.post(`${BASE_URL}/token/auth_refresh`, {
-     refreshtoken: refreshToken
-   });
-   // idTokenを保存して使用
-   const idToken = tokenResponse.data.idToken;
-   ```
-
-3. **API呼び出し**:
-   ```javascript
-   const response = await axios.get(`${BASE_URL}/prices/daily_quotes`, {
-     headers: {
-       Authorization: `Bearer ${idToken}`
-     },
-     params: {
-       code: '7203' // トヨタ自動車の証券コード
-     }
-   });
-   ```
+### 4.3 スクレイピング対象サイト（優先順）
+1. Yahoo Finance Japan
+2. Minkabu
+3. Kabutan
 
 ### 4.4 リクエスト例
 ```javascript
 // 日本株の株価取得
 async function getJapaneseStockPrice(code) {
-  // IDトークンを取得（有効期限チェックと更新処理を含む）
-  const idToken = await getValidIdToken();
-  
-  const response = await axios.get(`https://api.jpx-jquants.com/v1/prices/daily_quotes`, {
-    headers: {
-      Authorization: `Bearer ${idToken}`
-    },
-    params: {
-      code: code, // 証券コード
-      date: '2025-03-25' // YYYY-MM-DD形式、省略時は最新
-    },
-    timeout: 10000
-  });
-  
-  return response.data;
+  try {
+    const response = await axios.get(`/api/jp-stock-scraping-proxy`, {
+      params: {
+        code: code // 証券コード（4桁）
+      },
+      timeout: 20000
+    });
+    
+    return response.data;
+  } catch (error) {
+    console.error(`日本株スクレイピングエラー: ${error.message}`);
+    throw error;
+  }
 }
 ```
 
 ### 4.5 レスポンス例
 ```json
 {
-  "daily_quotes": [
-    {
-      "Code": "7203",
-      "Date": "2025-03-25",
-      "Open": 2520,
-      "High": 2548,
-      "Low": 2510,
-      "Close": 2540,
-      "Volume": 8432600,
-      "TurnoverValue": 21352722000,
-      "AdjustmentFactor": 1,
-      "AdjustmentOpen": 2520,
-      "AdjustmentHigh": 2548,
-      "AdjustmentLow": 2510,
-      "AdjustmentClose": 2540,
-      "AdjustmentVolume": 8432600
-    }
-  ]
+  "success": true,
+  "data": {
+    "ticker": "7203",
+    "price": 2540,
+    "name": "トヨタ自動車(株)",
+    "currency": "JPY",
+    "lastUpdated": "2025-03-28T05:42:12.345Z",
+    "source": "Yahoo Finance Japan",
+    "isStock": true,
+    "isMutualFund": false
+  }
 }
 ```
 
-### 4.6 制限事項
-- **アカウント登録**: 利用にはJ-Quantsへの登録が必要
-- **トークン有効期限**: IDトークンは24時間有効、リフレッシュトークンは30日有効
-- **リクエスト制限**: 1日あたりの制限あり（具体的な数値は公式サイトを参照）
-- **データ鮮度**: データは日次更新（リアルタイムデータではない）
+### 4.6 エラーハンドリング
+- すべてのソースが失敗した場合、フォールバック値を返す
+- 各サイトごとにエラーは個別に捕捉し、次のソースを試行
+- ネットワークエラーやタイムアウトに対応
 
-## 5. Yahoo Finance API（フォールバック用）
+### 4.7 ユーザーエージェントのランダム化
+```javascript
+function getRandomUserAgent() {
+  const userAgents = [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.4 Safari/605.1.15',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:123.0) Gecko/20100101 Firefox/123.0',
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3 Mobile/15E148 Safari/604.1'
+  ];
+  
+  return userAgents[Math.floor(Math.random() * userAgents.length)];
+}
+```
+
+## 5. 投資信託スクレイピングプロキシ（投資信託）
 
 ### 5.1 概要
-Yahoo Finance非公式APIは、Alpaca APIやJ-Quants APIが利用できない場合のフォールバックとして使用します。米国株と日本株の両方をカバーしています。
+複数の日本の金融情報サイトから投資信託の基準価額データをスクレイピングし、統一されたフォーマットで提供します。このプロキシは複数サイトを優先順位順に試行し、最初に成功したデータを返します。
 
 ### 5.2 エンドポイント
-- **ベースURL**: `https://query1.finance.yahoo.com/v7/finance/quote`
-- **パラメータ**: `symbols=AAPL,MSFT,7203.T` (カンマ区切りで複数銘柄指定可能)
+- **ベースURL**: `/api/mutual-fund-scraping-proxy`
+- **パラメータ**: 
+  - `code` - ファンドコード（必須）
 
-### 5.3 認証
-- 認証不要（パブリックAPI）
-- ただし、大量リクエストはブロックされる可能性あり
+### 5.3 スクレイピング対象サイト（優先順）
+1. Yahoo Finance Japan
+2. 投資信託協会
+3. Morningstar Japan
+4. Minkabu
 
 ### 5.4 リクエスト例
 ```javascript
-// 複数銘柄の例（米国株と日本株を混在可能）
-const response = await axios.get('https://query1.finance.yahoo.com/v7/finance/quote', {
-  params: { symbols: 'AAPL,MSFT,7203.T' },
-  headers: {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-  },
-  timeout: 10000
-});
+// 投資信託の基準価額取得
+async function getMutualFundPrice(code) {
+  try {
+    const response = await axios.get(`/api/mutual-fund-scraping-proxy`, {
+      params: {
+        code: code // ファンドコード（例: 8630042C）
+      },
+      timeout: 20000
+    });
+    
+    return response.data;
+  } catch (error) {
+    console.error(`投資信託スクレイピングエラー: ${error.message}`);
+    throw error;
+  }
+}
 ```
 
 ### 5.5 レスポンス例
+```json
+{
+  "success": true,
+  "data": {
+    "ticker": "8630042C",
+    "price": 12500,
+    "name": "ニッセイ 外国株式インデックスファンド",
+    "currency": "JPY",
+    "lastUpdated": "2025-03-28T05:42:12.345Z",
+    "source": "投資信託協会",
+    "isStock": false,
+    "isMutualFund": true,
+    "priceLabel": "基準価額"
+  }
+}
+```
+
+### 5.6 投資信託コードの正規化
+```javascript
+// 投資信託コードの前処理（.TとCを適切に処理）
+function normalizeCode(code) {
+  // .Tを取り除く
+  code = code.replace(/\.T$/i, '');
+  // Cを取り除く（プロキシ側で必要に応じて追加する）
+  code = code.replace(/C$/i, '');
+  return code;
+}
+```
+
+## 6. Yahoo Finance API（バックアップ）
+
+### 6.1 概要
+Yahoo Finance非公式APIは、Alpaca APIやスクレイピングが利用できない場合のフォールバックとして使用します。米国株、日本株、投資信託のすべてをカバーしています。
+
+### 6.2 エンドポイント
+- **ベースURL**: `https://query1.finance.yahoo.com/v7/finance/quote`
+- **パラメータ**: `symbols=AAPL,MSFT,7203.T,8630042C.T` (カンマ区切りで複数銘柄指定可能)
+
+### 6.3 認証
+- 認証不要（パブリックAPI）
+- ただし、大量リクエストはブロックされる可能性あり
+
+### 6.4 リクエスト例
+```javascript
+// 複数銘柄の例（米国株と日本株・投資信託を混在可能）
+const response = await axios.get('https://query1.finance.yahoo.com/v7/finance/quote', {
+  params: { symbols: 'AAPL,MSFT,7203.T,8630042C.T' },
+  headers: {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+  },
+  timeout: 15000
+});
+```
+
+### 6.5 レスポンス例
 ```json
 {
   "quoteResponse": {
@@ -232,6 +275,12 @@ const response = await axios.get('https://query1.finance.yahoo.com/v7/finance/qu
         "shortName": "トヨタ自動車(株)",
         "regularMarketPrice": 2540,
         "currency": "JPY"
+      },
+      {
+        "symbol": "8630042C.T",
+        "shortName": "ニッセイ 外国株式インデックスファンド",
+        "regularMarketPrice": 12500,
+        "currency": "JPY"
       }
     ],
     "error": null
@@ -239,34 +288,43 @@ const response = await axios.get('https://query1.finance.yahoo.com/v7/finance/qu
 }
 ```
 
-### 5.6 日本株のティッカー形式
-- 証券コードの後に `.T` を付加（例: `7203.T` for トヨタ自動車）
+### 6.6 日本株・投資信託のティッカー形式
+- 日本株: 証券コードの後に `.T` を付加（例: `7203.T`）
+- 投資信託: ファンドコードの後に `C.T` を付加（例: `8630042C.T`）
 - 自動変換関数を実装
 ```javascript
-function formatJapaneseTickerForYahoo(code) {
-  // 4桁の数字のみの場合は.Tを付加
-  if (/^\d{4}$/.test(code)) {
-    return `${code}.T`;
+function formatTickerForYahoo(ticker) {
+  // 投資信託コード（7〜8桁の数字）の場合
+  if (/^\d{7,8}$/.test(ticker)) {
+    return `${ticker}C.T`;
   }
-  return code;
+  // 投資信託コード（末尾にCがある）の場合
+  else if (/^\d{7,8}C$/.test(ticker)) {
+    return `${ticker}.T`;
+  }
+  // 4桁の数字のみの場合は.Tを付加（日本株）
+  else if (/^\d{4}$/.test(ticker)) {
+    return `${ticker}.T`;
+  }
+  return ticker;
 }
 ```
 
-## 6. exchangerate.host（為替レート取得）
+## 7. exchangerate.host（為替レート取得）
 
-### 6.1 概要
+### 7.1 概要
 exchangerate.hostは無料で為替レートデータを提供するAPIです。USD/JPYなどの通貨ペアのレートを取得できます。
 
-### 6.2 エンドポイント
+### 7.2 エンドポイント
 - **ベースURL**: `https://api.exchangerate.host/latest`
 - **パラメータ**: 
   - `base=USD` (基準通貨)
   - `symbols=JPY` (対象通貨)
 
-### 6.3 認証
+### 7.3 認証
 - 認証不要（パブリックAPI）
 
-### 6.4 リクエスト例
+### 7.4 リクエスト例
 ```javascript
 const response = await axios.get('https://api.exchangerate.host/latest', {
   params: {
@@ -277,7 +335,7 @@ const response = await axios.get('https://api.exchangerate.host/latest', {
 });
 ```
 
-### 6.5 レスポンス例
+### 7.5 レスポンス例
 ```json
 {
   "success": true,
@@ -290,12 +348,12 @@ const response = await axios.get('https://api.exchangerate.host/latest', {
 }
 ```
 
-### 6.6 フォールバック処理
+### 7.6 フォールバック処理
 - API障害時は環境変数 `DEFAULT_EXCHANGE_RATE` の値（デフォルト: 150.0）を使用
 
-## 7. API連携実装（サーバーレス関数）
+## 8. API連携実装（サーバーレス関数）
 
-### 7.1 Alpaca API プロキシ
+### 8.1 Alpaca API プロキシ
 
 ```javascript
 // functions/alpaca-api-proxy.js
@@ -393,66 +451,15 @@ exports.handler = async function(event, context) {
 };
 ```
 
-### 7.2 J-Quants API プロキシ
+### 8.2 日本株スクレイピングプロキシ
 
 ```javascript
-// functions/jquants-api-proxy.js
+// functions/jp-stock-scraping-proxy.js
 const axios = require('axios');
-
-// トークン情報を保持する変数
-let tokenInfo = {
-  refreshToken: null,
-  idToken: null,
-  idTokenExpiry: null // Unix timestamp
-};
-
-// 有効なIDトークンを取得する関数
-async function getValidIdToken() {
-  const now = Math.floor(Date.now() / 1000);
-  
-  // IDトークンが存在し、有効期限内なら再利用
-  if (tokenInfo.idToken && tokenInfo.idTokenExpiry && now < tokenInfo.idTokenExpiry) {
-    return tokenInfo.idToken;
-  }
-  
-  // リフレッシュトークンがなければ新規認証
-  if (!tokenInfo.refreshToken) {
-    const authResponse = await axios.post('https://api.jpx-jquants.com/v1/token/auth_user', {
-      mailaddress: process.env.JQUANTS_EMAIL,
-      password: process.env.JQUANTS_PASSWORD
-    });
-    
-    if (!authResponse.data.refreshToken) {
-      throw new Error('認証に失敗しました');
-    }
-    
-    tokenInfo.refreshToken = authResponse.data.refreshToken;
-  }
-  
-  // IDトークンの取得
-  try {
-    const tokenResponse = await axios.post('https://api.jpx-jquants.com/v1/token/auth_refresh', {
-      refreshtoken: tokenInfo.refreshToken
-    });
-    
-    if (!tokenResponse.data.idToken) {
-      throw new Error('IDトークンの取得に失敗しました');
-    }
-    
-    tokenInfo.idToken = tokenResponse.data.idToken;
-    // IDトークンの有効期限は24時間（86400秒）
-    tokenInfo.idTokenExpiry = now + 86400;
-    
-    return tokenInfo.idToken;
-  } catch (error) {
-    // リフレッシュトークンが無効な場合、再認証
-    console.error('IDトークン取得エラー:', error);
-    tokenInfo.refreshToken = null;
-    return getValidIdToken(); // 再帰呼び出し
-  }
-}
+const cheerio = require('cheerio');
 
 exports.handler = async function(event, context) {
+  // CORS ヘッダーを設定
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
@@ -460,7 +467,7 @@ exports.handler = async function(event, context) {
     'Content-Type': 'application/json'
   };
   
-  // OPTIONSリクエストの処理
+  // プリフライトリクエスト（OPTIONS）をハンドリング
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 204,
@@ -469,10 +476,11 @@ exports.handler = async function(event, context) {
     };
   }
 
-  // 証券コードパラメータの取得
-  const { code, date } = event.queryStringParameters || {};
+  // クエリパラメータを取得
+  const params = event.queryStringParameters || {};
   
-  if (!code) {
+  // 証券コードが必要
+  if (!params.code) {
     return {
       statusCode: 400,
       headers,
@@ -483,101 +491,320 @@ exports.handler = async function(event, context) {
     };
   }
 
+  const stockCode = params.code.replace(/\.T$/, '');
+  console.log(`Fetching stock data for ${stockCode}`);
+  
+  // 複数のソースにアクセスして株価データを取得
   try {
-    // IDトークンを取得
-    const idToken = await getValidIdToken();
-    
-    // J-Quants APIを呼び出す
-    const requestParams = { code };
-    if (date) {
-      requestParams.date = date;
-    }
-    
-    const response = await axios.get('https://api.jpx-jquants.com/v1/prices/daily_quotes', {
-      headers: {
-        Authorization: `Bearer ${idToken}`
-      },
-      params: requestParams,
-      timeout: 10000
-    });
-    
-    // データを確認
-    const quoteData = response.data;
-    
-    if (!quoteData.daily_quotes || quoteData.daily_quotes.length === 0) {
-      return {
-        statusCode: 404,
-        headers,
-        body: JSON.stringify({
-          success: false,
-          message: `証券コード ${code} の株価データが見つかりません`
-        })
-      };
-    }
-    
-    // 最新の価格データを取得
-    const latestQuote = quoteData.daily_quotes[0];
-    
-    // 銘柄情報を取得（オプション）
-    let stockName = `${code}`;
+    // ソース1: Yahoo Finance Japan
     try {
-      const infoResponse = await axios.get('https://api.jpx-jquants.com/v1/listed/info', {
-        headers: {
-          Authorization: `Bearer ${idToken}`
-        },
-        params: { code },
-        timeout: 5000
-      });
+      console.log(`Trying Yahoo Finance Japan for ${stockCode}`);
+      const yahooData = await scrapeYahooFinanceJapan(stockCode);
       
-      if (infoResponse.data.info && infoResponse.data.info.length > 0) {
-        stockName = infoResponse.data.info[0].CompanyName || stockName;
+      if (yahooData && yahooData.price) {
+        console.log(`Successfully fetched stock data from Yahoo Finance Japan for ${stockCode}`);
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            success: true,
+            data: {
+              ticker: stockCode,
+              ...yahooData,
+              source: 'Yahoo Finance Japan',
+              isStock: true,
+              isMutualFund: false
+            }
+          })
+        };
       }
-    } catch (infoError) {
-      console.warn(`銘柄情報取得エラー: ${infoError.message}`);
+    } catch (yahooError) {
+      console.error(`Yahoo Finance Japan scraping failed for ${stockCode}:`, yahooError.message);
     }
-    
-    // 結果を整形
-    const result = {
-      ticker: code,
-      price: latestQuote.Close,
-      name: stockName,
-      currency: 'JPY',
-      lastUpdated: latestQuote.Date,
-      source: 'J-Quants',
-      open: latestQuote.Open,
-      high: latestQuote.High,
-      low: latestQuote.Low,
-      volume: latestQuote.Volume
-    };
+
+    // ソース2: Minkabu
+    try {
+      console.log(`Trying Minkabu for ${stockCode}`);
+      const minkabuData = await scrapeMinkabu(stockCode);
+      
+      if (minkabuData && minkabuData.price) {
+        console.log(`Successfully fetched stock data from Minkabu for ${stockCode}`);
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            success: true,
+            data: {
+              ticker: stockCode,
+              ...minkabuData,
+              source: 'Minkabu',
+              isStock: true,
+              isMutualFund: false
+            }
+          })
+        };
+      }
+    } catch (minkabuError) {
+      console.error(`Minkabu scraping failed for ${stockCode}:`, minkabuError.message);
+    }
+
+    // ソース3: Kabutan
+    try {
+      console.log(`Trying Kabutan for ${stockCode}`);
+      const kabutanData = await scrapeKabutan(stockCode);
+      
+      if (kabutanData && kabutanData.price) {
+        console.log(`Successfully fetched stock data from Kabutan for ${stockCode}`);
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            success: true,
+            data: {
+              ticker: stockCode,
+              ...kabutanData,
+              source: 'Kabutan',
+              isStock: true,
+              isMutualFund: false
+            }
+          })
+        };
+      }
+    } catch (kabutanError) {
+      console.error(`Kabutan scraping failed for ${stockCode}:`, kabutanError.message);
+    }
+
+    // すべてのソースが失敗した場合はフォールバックデータを返す
+    console.log(`All sources failed, using fallback data for ${stockCode}`);
     
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({
         success: true,
-        data: result
+        data: {
+          ticker: stockCode,
+          price: 2500, // フォールバック価格
+          name: `日本株 ${stockCode}`,
+          currency: 'JPY',
+          lastUpdated: new Date().toISOString(),
+          source: 'Fallback',
+          isStock: true,
+          isMutualFund: false
+        },
+        message: 'すべてのソースからデータ取得に失敗したため、フォールバック値を使用しています'
       })
     };
-  } catch (error) {
-    console.error(`J-Quants API error for ${code}:`, error);
     
+  } catch (error) {
+    console.error(`Stock scraping error for ${stockCode}:`, error);
+    
+    // エラー発生時もフォールバックデータを返す
     return {
-      statusCode: error.response?.status || 500,
+      statusCode: 200,
       headers,
       body: JSON.stringify({
-        success: false,
-        message: `J-Quants APIからの取得に失敗しました: ${error.message}`,
-        error: {
-          status: error.response?.status,
-          data: error.response?.data
-        }
+        success: true,
+        data: {
+          ticker: stockCode,
+          price: 2500, // フォールバック価格
+          name: `日本株 ${stockCode}`,
+          currency: 'JPY',
+          lastUpdated: new Date().toISOString(),
+          source: 'Fallback',
+          isStock: true,
+          isMutualFund: false
+        },
+        message: 'データ取得中にエラーが発生したため、フォールバック値を使用しています'
       })
     };
   }
 };
+
+// スクレイピング関数の実装（略）
 ```
 
-### 7.3 Yahoo Finance プロキシ（フォールバック用）
+### 8.3 投資信託スクレイピングプロキシ
+
+```javascript
+// functions/mutual-fund-scraping-proxy.js
+const axios = require('axios');
+const cheerio = require('cheerio');
+
+exports.handler = async function(event, context) {
+  // CORS ヘッダーを設定
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Content-Type': 'application/json'
+  };
+  
+  // プリフライトリクエスト（OPTIONS）をハンドリング
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 204,
+      headers,
+      body: ''
+    };
+  }
+
+  // クエリパラメータを取得
+  const params = event.queryStringParameters || {};
+  
+  // ファンドコードが必要
+  if (!params.code) {
+    return {
+      statusCode: 400,
+      headers,
+      body: JSON.stringify({
+        success: false,
+        message: 'ファンドコードパラメータが必要です'
+      })
+    };
+  }
+
+  // 1. ファンドコードの形式を正規化（末尾のCとTを取り除く）
+  let fundCode = params.code.replace(/\.T$/i, '').replace(/C$/i, '');
+  console.log(`Original fund code: ${params.code}, Normalized code: ${fundCode}`);
+  
+  // 2. 追加: ファンドコードの形式をチェック（7桁から8桁の数字）
+  if (!/^\d{7,8}$/.test(fundCode)) {
+    console.warn(`Fund code ${fundCode} does not match expected format (7-8 digits)`);
+    
+    // 4桁のコードの場合は、日本株の誤判定の可能性がある
+    if (/^\d{4}$/.test(fundCode)) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          message: `${fundCode}は日本株の証券コードの可能性があります。投資信託コードは通常7-8桁の数字+Cの形式です。`
+        })
+      };
+    }
+  }
+  
+  console.log(`Fetching mutual fund data for ${fundCode}`);
+  
+  // 複数のソースにアクセスして基準価額データを取得
+  try {
+    // ソース1: Yahoo Finance Japan
+    try {
+      console.log(`Trying Yahoo Finance Japan for ${fundCode}`);
+      // Yahoo Finance形式の投資信託コード（数字+C.T）
+      const yahooFundCode = `${fundCode}C.T`;
+      console.log(`Yahoo Finance fund code format: ${yahooFundCode}`);
+      
+      const yahooData = await scrapeYahooFinanceFund(yahooFundCode);
+      
+      if (yahooData && yahooData.price) {
+        console.log(`Successfully fetched fund data from Yahoo Finance Japan for ${fundCode}: ${yahooData.price}`);
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            success: true,
+            data: {
+              ticker: `${fundCode}C`,
+              ...yahooData,
+              source: 'Yahoo Finance Japan',
+              isStock: false,
+              isMutualFund: true
+            }
+          })
+        };
+      } else {
+        console.log(`No valid data from Yahoo Finance Japan for ${fundCode}`);
+      }
+    } catch (yahooError) {
+      console.error(`Yahoo Finance Japan scraping failed for ${fundCode}:`, yahooError.message);
+    }
+
+    // ソース2: 投資信託協会
+    try {
+      console.log(`Trying 投資信託協会 for ${fundCode}`);
+      const toushinData = await scrapeToushinLib(fundCode);
+      
+      if (toushinData && toushinData.price) {
+        console.log(`Successfully fetched fund data from 投資信託協会 for ${fundCode}: ${toushinData.price}`);
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            success: true,
+            data: {
+              ticker: `${fundCode}C`,
+              ...toushinData,
+              source: '投資信託協会',
+              isStock: false,
+              isMutualFund: true
+            }
+          })
+        };
+      } else {
+        console.log(`No valid data from 投資信託協会 for ${fundCode}`);
+      }
+    } catch (toushinError) {
+      console.error(`投資信託協会 scraping failed for ${fundCode}:`, toushinError.message);
+    }
+
+    // その他のソースを試行（Morningstar Japan, Minkabu）
+    // ...
+
+    // すべてのソースが失敗した場合はフォールバックデータを返す
+    console.log(`All sources failed, using fallback data for ${fundCode}`);
+    
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({
+        success: true,
+        data: {
+          ticker: `${fundCode}C`,
+          price: 10000, // フォールバック基準価額
+          name: `投資信託 ${fundCode}C`,
+          currency: 'JPY',
+          lastUpdated: new Date().toISOString(),
+          source: 'Fallback',
+          isStock: false,
+          isMutualFund: true,
+          priceLabel: '基準価額'
+        },
+        message: 'すべてのソースからデータ取得に失敗したため、フォールバック値を使用しています'
+      })
+    };
+    
+  } catch (error) {
+    console.error(`Mutual fund scraping error for ${fundCode}:`, error);
+    
+    // エラー発生時もフォールバックデータを返す
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({
+        success: true,
+        data: {
+          ticker: `${fundCode}C`,
+          price: 10000, // フォールバック基準価額
+          name: `投資信託 ${fundCode}C`,
+          currency: 'JPY',
+          lastUpdated: new Date().toISOString(),
+          source: 'Fallback',
+          isStock: false,
+          isMutualFund: true,
+          priceLabel: '基準価額'
+        },
+        message: 'データ取得中にエラーが発生したため、フォールバック値を使用しています'
+      })
+    };
+  }
+};
+
+// スクレイピング関数の実装（略）
+```
+
+### 8.4 Yahoo Finance プロキシ（バックアップ）
 
 ```javascript
 // functions/yahoo-finance-proxy.js
@@ -613,9 +840,18 @@ exports.handler = async function(event, context) {
     };
   }
 
-  // 日本株の場合は.Tを追加
+  // 日本株と投資信託のティッカー処理
   const formattedSymbols = symbols.split(',').map(symbol => {
-    if (/^\d{4}$/.test(symbol) && !symbol.includes('.T')) {
+    // 投資信託コード（7-8桁の数字）
+    if (/^\d{7,8}$/.test(symbol)) {
+      return `${symbol}C.T`;
+    }
+    // 投資信託コード（末尾にCがある）
+    else if (/^\d{7,8}C$/.test(symbol)) {
+      return `${symbol}.T`;
+    }
+    // 日本株（4桁の数字）
+    else if (/^\d{4}$/.test(symbol)) {
       return `${symbol}.T`;
     }
     return symbol.trim();
@@ -671,7 +907,7 @@ exports.handler = async function(event, context) {
 };
 ```
 
-### 7.4 exchangerate.host プロキシ
+### 8.5 exchangerate.host プロキシ
 
 ```javascript
 // functions/exchangerate-proxy.js
@@ -751,9 +987,9 @@ exports.handler = async function(event, context) {
 };
 ```
 
-## 8. エラーハンドリングとフォールバック
+## 9. エラーハンドリングとフォールバック
 
-### 8.1 エラーコード別対応
+### 9.1 エラーコード別対応
 - **400 Bad Request**: パラメータ不正、「銘柄パラメータが必要です」として通知
 - **401/403 Unauthorized/Forbidden**: 認証エラー、「APIキーが無効です」として通知
 - **404 Not Found**: 銘柄不明、「銘柄が見つかりません」として通知
@@ -761,45 +997,47 @@ exports.handler = async function(event, context) {
 - **500 Server Error**: サーバーエラー、「APIサーバーでエラーが発生しました」として通知
 - **Network Error**: 接続エラー、「ネットワーク接続に問題があります」として通知
 - **Timeout**: タイムアウト、「APIからの応答がタイムアウトしました」として通知
+- **スクレイピングエラー**: データ抽出失敗、「ウェブサイトからのデータ抽出に失敗しました」として通知
 
-### 8.2 フロントエンド通知
-- **成功通知**: 「市場データを更新しました: Alpaca: X件, J-Quants: Y件」（自動消去）
-- **警告通知**: 「Z銘柄のデータは取得できず、フォールバック値を使用しています」（自動消去）
+### 9.2 フロントエンド通知
+- **成功通知**: 「市場データを更新しました: 日本株スクレイピング: X件, 投資信託スクレイピング: Y件, Alpaca: Z件」（自動消去）
+- **警告通知**: 「一部データは取得できず、フォールバック値を使用しています」（自動消去）
 - **エラー通知**: 「データ取得中にエラーが発生しました: [詳細エラー]」（手動消去）
 
-### 8.3 フォールバック機構
-1. 米国株はAlpaca APIで取得を試行
-2. 日本株はJ-Quants APIで取得を試行
-3. いずれも失敗した場合、Yahoo Finance APIを使用
-4. それも失敗した場合、以前保存されたデータまたはデフォルト値を使用
+### 9.3 フォールバック機構
+1. 米国株はAlpaca APIで取得を試行、失敗時はYahoo Finance APIを使用
+2. 日本株はスクレイピングで取得を試行、失敗時はYahoo Finance APIを使用
+3. 投資信託はスクレイピングで取得を試行、失敗時はYahoo Finance APIを使用
+4. いずれも失敗した場合、以前保存されたデータまたはデフォルト値を使用
 
-## 9. 環境変数
+## 10. 環境変数
 
 ```
 # Alpaca API（米国株取得用）
 ALPACA_API_KEY=あなたのAPIキー
 ALPACA_API_SECRET=あなたのAPIシークレット
 
-# J-Quants API（日本株取得用）
-JQUANTS_EMAIL=あなたの登録メールアドレス
-JQUANTS_PASSWORD=あなたのパスワード
+# スクレイピングのタイムアウト設定
+JP_STOCK_SCRAPING_TIMEOUT=20000
+MUTUAL_FUND_SCRAPING_TIMEOUT=20000
 
 # デフォルト為替レート（API障害時のフォールバック用）
 DEFAULT_EXCHANGE_RATE=150.0
 ```
 
-## 10. 注意事項
+## 11. 注意事項
 
-1. **Alpaca APIについて**
+1. **スクレイピングについて**
+   - ウェブサイトの構造変更に影響を受けやすいため、定期的なメンテナンスが必要
+   - サイト側の防止機構（CAPTCHA等）により取得が困難になる場合がある
+   - 過度な使用によるIPブロックの可能性がある
+   - サイトのロボット排除方針（robots.txt）を尊重すること
+   - 商用利用には対象サイトの利用規約を確認すること
+
+2. **Alpaca APIについて**
    - 無料プランではカバー範囲と機能に制限があります
    - 主に米国株市場のデータに限定されています
    - 商用利用には有料プランが必要な場合があります
-
-2. **J-Quants APIについて**
-   - 利用するにはアカウント登録が必要です（https://jpx-jquants.com/）
-   - IDトークンは24時間、リフレッシュトークンは30日で有効期限が切れます
-   - データは日次更新であり、リアルタイムではありません
-   - APIの利用制限や規約を確認してください
 
 3. **Yahoo Finance APIについて**
    - 非公式APIであり、仕様変更の可能性があります
@@ -809,3 +1047,28 @@ DEFAULT_EXCHANGE_RATE=150.0
 4. **exchangerate.hostについて**
    - 無料APIですが、商用利用の場合は規約を確認してください
    - 為替レートの更新頻度は日次レベルであり、リアルタイムではありません
+
+5. **ランダム化対策**
+   - User-Agentをランダム化
+   - リクエストの間隔を適切に設定
+   - 同一IPからの過度なリクエストを避ける
+
+## 12. パフォーマンス最適化
+
+1. **キャッシュ戦略**
+   - 頻繁に変動しないデータ（投資信託の基準価額など）はキャッシュを検討
+   - 同一日内のリクエストはキャッシュから返す
+
+2. **並列リクエスト制限**
+   - 同時に発行するスクレイピングリクエスト数を制限
+   - スロットリングメカニズムの実装
+
+## 13. 改訂履歴
+
+| バージョン | 日付 | 内容 | 担当者 |
+|---|---|---|---|
+| 1.0 | 2025/03/07 | 初版作成 |  |
+| 2.0 | 2025/03/12 | Alpha Vantage API連携強化、環境変数名統一 |  |
+| 3.0 | 2025/03/20 | Yahoo Finance APIをバックアップソースとして追加 |  |
+| 4.0 | 2025/03/25 | JPX API追加、データソース別のエラーハンドリング強化 |  |
+| 5.0 | 2025/03/28 | スクレイピングベースの株価取得システムに変更。日本株と投資信託のスクレイピングプロキシを追加。 |  |
