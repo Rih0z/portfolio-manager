@@ -1,9 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 700">
   <!-- 背景色 -->
-  <rect width="800" height="600" fill="#f8f9fa" />
+  <rect width="800" height="700" fill="#f8f9fa" />
   
   <!-- タイトル -->
-  <text x="400" y="40" font-family="Arial" font-size="24" text-anchor="middle" font-weight="bold">株価取得システムのフロー</text>
+  <text x="400" y="40" font-family="Arial" font-size="24" text-anchor="middle" font-weight="bold">株価取得システムのフロー（スクレイピング対応版）</text>
   
   <!-- 開始ポイント -->
   <circle cx="400" cy="80" r="20" fill="#4CAF50" />
@@ -19,143 +19,184 @@
   <!-- フロー線 -->
   <line x1="400" y1="170" x2="400" y2="200" stroke="#333" stroke-width="2" />
   
-  <!-- 日本株/米国株判定 -->
+  <!-- 投資信託判定 -->
   <polygon points="400,200 475,250 400,300 325,250" fill="#FFF9C4" stroke="#FFC107" />
-  <text x="400" y="255" font-family="Arial" font-size="12" text-anchor="middle">日本株または投資信託？</text>
+  <text x="400" y="255" font-family="Arial" font-size="12" text-anchor="middle">投資信託か？</text>
   
-  <!-- フロー線 - Yes -->
-  <line x1="325" y1="250" x2="200" y2="250" stroke="#333" stroke-width="2" />
-  <text x="280" y="240" font-family="Arial" font-size="12" fill="#333">Yes</text>
+  <!-- フロー線 - 投資信託 - Yes -->
+  <line x1="325" y1="250" x2="125" y2="250" stroke="#333" stroke-width="2" />
+  <text x="225" y="240" font-family="Arial" font-size="12" fill="#333">Yes</text>
   
-  <!-- フロー線 - No -->
-  <line x1="475" y1="250" x2="600" y2="250" stroke="#333" stroke-width="2" />
-  <text x="530" y="240" font-family="Arial" font-size="12" fill="#333">No</text>
+  <!-- フロー線 - 投資信託 - No -->
+  <line x1="475" y1="250" x2="525" y2="250" stroke="#333" stroke-width="2" />
+  <text x="500" y="240" font-family="Arial" font-size="12" fill="#333">No</text>
   
-  <!-- Yahoo Finance API -->
-  <rect x="100" y="230" width="200" height="40" rx="5" fill="#E8EAF6" stroke="#3F51B5" />
-  <text x="200" y="255" font-family="Arial" font-size="14" text-anchor="middle">Yahoo Finance API</text>
+  <!-- 日本株判定 -->
+  <polygon points="600,250 675,300 600,350 525,300" fill="#FFF9C4" stroke="#FFC107" />
+  <text x="600" y="305" font-family="Arial" font-size="12" text-anchor="middle">日本株か？</text>
+  
+  <!-- フロー線 - 日本株 - Yes -->
+  <line x1="525" y1="300" x2="400" y2="300" stroke="#333" stroke-width="2" />
+  <text x="470" y="290" font-family="Arial" font-size="12" fill="#333">Yes</text>
+  
+  <!-- フロー線 - 日本株 - No -->
+  <line x1="675" y1="300" x2="750" y2="300" stroke="#333" stroke-width="2" />
+  <text x="710" y="290" font-family="Arial" font-size="12" fill="#333">No</text>
+  
+  <!-- 投資信託スクレイピング -->
+  <rect x="25" y="230" width="200" height="40" rx="5" fill="#E8EAF6" stroke="#3F51B5" />
+  <text x="125" y="255" font-family="Arial" font-size="14" text-anchor="middle">投資信託スクレイピング</text>
+  
+  <!-- 日本株スクレイピング -->
+  <rect x="300" y="330" width="200" height="40" rx="5" fill="#E8EAF6" stroke="#3F51B5" />
+  <text x="400" y="355" font-family="Arial" font-size="14" text-anchor="middle">日本株スクレイピング</text>
   
   <!-- Alpaca API -->
-  <rect x="500" y="230" width="200" height="40" rx="5" fill="#E8EAF6" stroke="#3F51B5" />
-  <text x="600" y="255" font-family="Arial" font-size="14" text-anchor="middle">Alpaca API</text>
+  <rect x="700" y="330" width="150" height="40" rx="5" fill="#E8EAF6" stroke="#3F51B5" />
+  <text x="775" y="355" font-family="Arial" font-size="14" text-anchor="middle">Alpaca API</text>
   
-  <!-- フロー線 - Yahoo -->
-  <line x1="200" y1="270" x2="200" y2="330" stroke="#333" stroke-width="2" />
+  <!-- フロー線 - 投資信託スクレイピング -->
+  <line x1="125" y1="270" x2="125" y2="320" stroke="#333" stroke-width="2" />
+  
+  <!-- フロー線 - 日本株スクレイピング -->
+  <line x1="400" y1="370" x2="400" y2="420" stroke="#333" stroke-width="2" />
   
   <!-- フロー線 - Alpaca -->
-  <line x1="600" y1="270" x2="600" y2="330" stroke="#333" stroke-width="2" />
+  <line x1="775" y1="370" x2="775" y2="420" stroke="#333" stroke-width="2" />
   
-  <!-- Yahoo成功判定 -->
-  <polygon points="200,330 275,380 200,430 125,380" fill="#FFF9C4" stroke="#FFC107" />
-  <text x="200" y="385" font-family="Arial" font-size="12" text-anchor="middle">成功？</text>
+  <!-- 投資信託スクレイピング成功判定 -->
+  <polygon points="125,320 200,370 125,420 50,370" fill="#FFF9C4" stroke="#FFC107" />
+  <text x="125" y="375" font-family="Arial" font-size="12" text-anchor="middle">成功？</text>
+  
+  <!-- 日本株スクレイピング成功判定 -->
+  <polygon points="400,420 475,470 400,520 325,470" fill="#FFF9C4" stroke="#FFC107" />
+  <text x="400" y="475" font-family="Arial" font-size="12" text-anchor="middle">成功？</text>
   
   <!-- Alpaca成功判定 -->
-  <polygon points="600,330 675,380 600,430 525,380" fill="#FFF9C4" stroke="#FFC107" />
-  <text x="600" y="385" font-family="Arial" font-size="12" text-anchor="middle">成功？</text>
+  <polygon points="775,420 850,470 775,520 700,470" fill="#FFF9C4" stroke="#FFC107" />
+  <text x="775" y="475" font-family="Arial" font-size="12" text-anchor="middle">成功？</text>
   
-  <!-- フロー線 - Yahoo - Yes -->
-  <line x1="125" y1="380" x2="50" y2="380" stroke="#333" stroke-width="2" />
-  <text x="100" y="370" font-family="Arial" font-size="12" fill="#333">Yes</text>
+  <!-- フロー線 - 投資信託スクレイピング - Yes -->
+  <line x1="50" y1="370" x2="20" y2="370" stroke="#333" stroke-width="2" />
+  <line x1="20" y1="370" x2="20" y2="580" stroke="#333" stroke-width="2" />
+  <text x="35" y="360" font-family="Arial" font-size="12" fill="#333">Yes</text>
   
-  <!-- フロー線 - Yahoo - No -->
-  <line x1="275" y1="380" x2="350" y2="380" stroke="#333" stroke-width="2" />
-  <text x="300" y="370" font-family="Arial" font-size="12" fill="#333">No</text>
+  <!-- フロー線 - 投資信託スクレイピング - No -->
+  <line x1="200" y1="370" x2="250" y2="370" stroke="#333" stroke-width="2" />
+  <text x="225" y="360" font-family="Arial" font-size="12" fill="#333">No</text>
+  
+  <!-- フロー線 - 日本株スクレイピング - Yes -->
+  <line x1="325" y1="470" x2="275" y2="470" stroke="#333" stroke-width="2" />
+  <line x1="275" y1="470" x2="275" y2="580" stroke="#333" stroke-width="2" />
+  <text x="300" y="460" font-family="Arial" font-size="12" fill="#333">Yes</text>
+  
+  <!-- フロー線 - 日本株スクレイピング - No -->
+  <line x1="475" y1="470" x2="525" y2="470" stroke="#333" stroke-width="2" />
+  <text x="500" y="460" font-family="Arial" font-size="12" fill="#333">No</text>
   
   <!-- フロー線 - Alpaca - Yes -->
-  <line x1="525" y1="380" x2="480" y2="380" stroke="#333" stroke-width="2" />
-  <text x="500" y="370" font-family="Arial" font-size="12" fill="#333">Yes</text>
+  <line x1="700" y1="470" x2="650" y2="470" stroke="#333" stroke-width="2" />
+  <line x1="650" y1="470" x2="650" y2="580" stroke="#333" stroke-width="2" />
+  <text x="670" y="460" font-family="Arial" font-size="12" fill="#333">Yes</text>
   
   <!-- フロー線 - Alpaca - No -->
-  <line x1="675" y1="380" x2="725" y2="380" stroke="#333" stroke-width="2" />
-  <text x="700" y="370" font-family="Arial" font-size="12" fill="#333">No</text>
+  <line x1="850" y1="470" x2="900" y2="470" stroke="#333" stroke-width="2" stroke-dasharray="5,5" />
+  <line x1="900" y1="470" x2="900" y2="520" stroke="#333" stroke-width="2" stroke-dasharray="5,5" />
+  <text x="880" y="460" font-family="Arial" font-size="12" fill="#333">No</text>
   
-  <!-- Yahoo結果 -->
-  <rect x="10" y="360" width="80" height="40" rx="5" fill="#E8F5E9" stroke="#4CAF50" />
-  <text x="50" y="385" font-family="Arial" font-size="12" text-anchor="middle">データ取得</text>
+  <!-- Yahoo Finance API（バックアップ） -->
+  <rect x="200" y="350" width="150" height="40" rx="5" fill="#FFEBEE" stroke="#F44336" />
+  <text x="275" y="375" font-family="Arial" font-size="12" text-anchor="middle">Yahoo Finance API</text>
   
-  <!-- Alpacaデータ -->
-  <rect x="400" y="360" width="80" height="40" rx="5" fill="#E8F5E9" stroke="#4CAF50" />
-  <text x="440" y="385" font-family="Arial" font-size="12" text-anchor="middle">データ取得</text>
+  <!-- Yahoo Finance API（日本株バックアップ） -->
+  <rect x="450" y="450" width="150" height="40" rx="5" fill="#FFEBEE" stroke="#F44336" />
+  <text x="525" y="475" font-family="Arial" font-size="12" text-anchor="middle">Yahoo Finance API</text>
   
-  <!-- Yahoo失敗 - 代替API -->
-  <rect x="300" y="360" width="100" height="40" rx="5" fill="#FFEBEE" stroke="#F44336" />
-  <text x="350" y="385" font-family="Arial" font-size="12" text-anchor="middle">代替API試行</text>
+  <!-- Yahoo Finance API（米国株バックアップ） -->
+  <rect x="850" y="520" width="150" height="40" rx="5" fill="#FFEBEE" stroke="#F44336" />
+  <text x="925" y="545" font-family="Arial" font-size="12" text-anchor="middle">Yahoo Finance API</text>
   
-  <!-- Alpaca失敗 - Yahoo API -->
-  <rect x="705" y="360" width="90" height="40" rx="5" fill="#FFEBEE" stroke="#F44336" />
-  <text x="750" y="385" font-family="Arial" font-size="12" text-anchor="middle">Yahoo試行</text>
+  <!-- フロー線 - Yahoo（投資信託バックアップ） -->
+  <line x1="275" y1="390" x2="275" y2="420" stroke="#333" stroke-width="2" />
   
-  <!-- フロー線 - Yahoo結果 -->
-  <line x1="50" y1="400" x2="50" y2="480" stroke="#333" stroke-width="2" />
+  <!-- フロー線 - Yahoo（日本株バックアップ） -->
+  <line x1="525" y1="490" x2="525" y2="520" stroke="#333" stroke-width="2" />
   
-  <!-- フロー線 - Alpacaデータ -->
-  <line x1="440" y1="400" x2="440" y2="450" stroke="#333" stroke-width="2" />
+  <!-- フロー線 - Yahoo（米国株バックアップ） -->
+  <line x1="925" y1="560" x2="925" y2="580" stroke="#333" stroke-width="2" stroke-dasharray="5,5" />
   
-  <!-- フロー線 - Yahoo失敗 -->
-  <line x1="350" y1="400" x2="350" y2="450" stroke="#333" stroke-width="2" />
+  <!-- Yahoo（投資信託バックアップ）成功判定 -->
+  <polygon points="275,420 325,450 275,480 225,450" fill="#FFF9C4" stroke="#FFC107" />
+  <text x="275" y="455" font-family="Arial" font-size="10" text-anchor="middle">成功？</text>
   
-  <!-- フロー線 - Alpaca失敗 -->
-  <line x1="750" y1="400" x2="750" y2="450" stroke="#333" stroke-width="2" />
+  <!-- Yahoo（日本株バックアップ）成功判定 -->
+  <polygon points="525,520 575,550 525,580 475,550" fill="#FFF9C4" stroke="#FFC107" />
+  <text x="525" y="555" font-family="Arial" font-size="10" text-anchor="middle">成功？</text>
   
-  <!-- 代替API判定 -->
-  <polygon points="350,450 400,480 350,510 300,480" fill="#FFF9C4" stroke="#FFC107" />
-  <text x="350" y="485" font-family="Arial" font-size="10" text-anchor="middle">代替API成功？</text>
+  <!-- フロー線 - Yahoo（投資信託） - Yes -->
+  <line x1="225" y1="450" x2="175" y2="450" stroke="#333" stroke-width="2" />
+  <line x1="175" y1="450" x2="175" y2="580" stroke="#333" stroke-width="2" />
+  <text x="200" y="440" font-family="Arial" font-size="10" fill="#333">Yes</text>
   
-  <!-- Yahoo API判定 -->
-  <polygon points="750,450 800,480 750,510 700,480" fill="#FFF9C4" stroke="#FFC107" />
-  <text x="750" y="485" font-family="Arial" font-size="10" text-anchor="middle">Yahoo成功？</text>
+  <!-- フロー線 - Yahoo（投資信託） - No -->
+  <line x1="325" y1="450" x2="375" y2="450" stroke="#333" stroke-width="2" />
+  <text x="350" y="440" font-family="Arial" font-size="10" fill="#333">No</text>
   
-  <!-- フロー線 - 代替API - Yes -->
-  <line x1="300" y1="480" x2="250" y2="480" stroke="#333" stroke-width="2" />
-  <text x="280" y="470" font-family="Arial" font-size="10" fill="#333">Yes</text>
+  <!-- フロー線 - Yahoo（日本株） - Yes -->
+  <line x1="475" y1="550" x2="425" y2="550" stroke="#333" stroke-width="2" />
+  <line x1="425" y1="550" x2="425" y2="580" stroke="#333" stroke-width="2" />
+  <text x="450" y="540" font-family="Arial" font-size="10" fill="#333">Yes</text>
   
-  <!-- フロー線 - 代替API - No -->
-  <line x1="400" y1="480" x2="450" y2="480" stroke="#333" stroke-width="2" />
-  <text x="425" y="470" font-family="Arial" font-size="10" fill="#333">No</text>
+  <!-- フロー線 - Yahoo（日本株） - No -->
+  <line x1="575" y1="550" x2="625" y2="550" stroke="#333" stroke-width="2" />
+  <text x="600" y="540" font-family="Arial" font-size="10" fill="#333">No</text>
   
-  <!-- フロー線 - Yahoo - Yes -->
-  <line x1="700" y1="480" x2="650" y2="480" stroke="#333" stroke-width="2" />
-  <text x="675" y="470" font-family="Arial" font-size="10" fill="#333">Yes</text>
+  <!-- 投資信託フォールバック値 -->
+  <rect x="325" y="430" width="150" height="40" rx="5" fill="#FCE4EC" stroke="#E91E63" />
+  <text x="400" y="455" font-family="Arial" font-size="12" text-anchor="middle">フォールバック値</text>
   
-  <!-- フロー線 - Yahoo - No -->
-  <line x1="800" y1="480" x2="770" y2="480" stroke="#333" stroke-width="2" stroke-dasharray="5,5" />
-  <line x1="770" y1="480" x2="770" y2="520" stroke="#333" stroke-width="2" stroke-dasharray="5,5" />
-  <text x="785" y="470" font-family="Arial" font-size="10" fill="#333">No</text>
+  <!-- 日本株フォールバック値 -->
+  <rect x="575" y="530" width="150" height="40" rx="5" fill="#FCE4EC" stroke="#E91E63" />
+  <text x="650" y="555" font-family="Arial" font-size="12" text-anchor="middle">フォールバック値</text>
   
-  <!-- 代替APIデータ -->
-  <rect x="170" y="460" width="80" height="40" rx="5" fill="#E8F5E9" stroke="#4CAF50" />
-  <text x="210" y="485" font-family="Arial" font-size="12" text-anchor="middle">データ取得</text>
+  <!-- フロー線 - 投資信託フォールバック -->
+  <line x1="400" y1="470" x2="400" y2="580" stroke="#333" stroke-width="2" />
   
-  <!-- フォールバック値 -->
-  <rect x="450" y="460" width="100" height="40" rx="5" fill="#FCE4EC" stroke="#E91E63" />
-  <text x="500" y="485" font-family="Arial" font-size="12" text-anchor="middle">フォールバック値</text>
+  <!-- フロー線 - 日本株フォールバック -->
+  <line x1="650" y1="570" x2="650" y2="580" stroke="#333" stroke-width="2" />
   
-  <!-- Yahoo APIデータ -->
-  <rect x="570" y="460" width="80" height="40" rx="5" fill="#E8F5E9" stroke="#4CAF50" />
-  <text x="610" y="485" font-family="Arial" font-size="12" text-anchor="middle">データ取得</text>
+  <!-- 成功データ -->
+  <rect x="20" y="580" width="630" height="40" rx="5" fill="#E8F5E9" stroke="#4CAF50" />
+  <text x="335" y="605" font-family="Arial" font-size="16" text-anchor="middle">データ取得成功（プライマリソース・バックアップAPI・フォールバック値）</text>
   
-  <!-- Alpacaフォールバック値 -->
-  <rect x="720" y="520" width="100" height="40" rx="5" fill="#FCE4EC" stroke="#E91E63" />
-  <text x="770" y="545" font-family="Arial" font-size="12" text-anchor="middle">フォールバック値</text>
-  
-  <!-- フロー線 - 最終結果線 -->
-  <line x1="50" y1="480" x2="50" y2="540" stroke="#333" stroke-width="2" />
-  <line x1="210" y1="500" x2="210" y2="540" stroke="#333" stroke-width="2" />
-  <line x1="440" y1="450" x2="440" y2="540" stroke="#333" stroke-width="2" />
-  <line x1="500" y1="500" x2="500" y2="540" stroke="#333" stroke-width="2" />
-  <line x1="610" y1="500" x2="610" y2="540" stroke="#333" stroke-width="2" />
-  <line x1="770" y1="560" x2="770" y2="580" stroke="#333" stroke-width="2" />
-  
-  <!-- 横線 -->
-  <line x1="50" y1="540" x2="610" y2="540" stroke="#333" stroke-width="2" />
-  
-  <!-- 最終結果への線 -->
-  <line x1="400" y1="540" x2="400" y2="560" stroke="#333" stroke-width="2" />
+  <!-- フロー線 -->
+  <line x1="335" y1="620" x2="335" y2="640" stroke="#333" stroke-width="2" />
   
   <!-- 結果処理 -->
-  <rect x="300" y="560" width="200" height="40" rx="5" fill="#DCEDC8" stroke="#8BC34A" />
-  <text x="400" y="585" font-family="Arial" font-size="14" text-anchor="middle">データ処理 &amp; UI表示</text>
+  <rect x="235" y="640" width="200" height="40" rx="5" fill="#DCEDC8" stroke="#8BC34A" />
+  <text x="335" y="665" font-family="Arial" font-size="14" text-anchor="middle">データ処理 &amp; UI表示</text>
   
-  <!-- 横線（フォールバック） -->
-  <line x1="400" y1="580" x2="770" y2="580" stroke="#333" stroke-width="2" />
+  <!-- 凡例 -->
+  <rect x="680" y="600" width="180" height="80" rx="5" fill="#FFFFFF" stroke="#BBBBBB" />
+  <text x="770" y="615" font-family="Arial" font-size="12" text-anchor="middle" font-weight="bold">凡例</text>
+  
+  <rect x="690" y="625" width="12" height="12" fill="#E8EAF6" stroke="#3F51B5" />
+  <text x="770" y="635" font-family="Arial" font-size="10" text-anchor="middle">プライマリソース</text>
+  
+  <rect x="690" y="645" width="12" height="12" fill="#FFEBEE" stroke="#F44336" />
+  <text x="770" y="655" font-family="Arial" font-size="10" text-anchor="middle">バックアップAPI</text>
+  
+  <rect x="690" y="665" width="12" height="12" fill="#FCE4EC" stroke="#E91E63" />
+  <text x="770" y="675" font-family="Arial" font-size="10" text-anchor="middle">フォールバック値</text>
+  
+  <!-- スクレイピングソース説明 -->
+  <rect x="650" y="480" width="200" height="100" rx="5" fill="#FFFFFF" stroke="#BBBBBB" />
+  <text x="750" y="495" font-family="Arial" font-size="12" text-anchor="middle" font-weight="bold">スクレイピングソース</text>
+  
+  <text x="660" y="515" font-family="Arial" font-size="10" text-anchor="start">・投資信託:</text>
+  <text x="675" y="530" font-family="Arial" font-size="9" text-anchor="start">Yahoo Finance Japan, 投資信託協会,</text>
+  <text x="675" y="545" font-family="Arial" font-size="9" text-anchor="start">Morningstar, Minkabu</text>
+  
+  <text x="660" y="565" font-family="Arial" font-size="10" text-anchor="start">・日本株:</text>
+  <text x="675" y="580" font-family="Arial" font-size="9" text-anchor="start">Yahoo Finance Japan, Minkabu, Kabutan</text>
 </svg>
