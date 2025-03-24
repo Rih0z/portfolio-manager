@@ -189,7 +189,7 @@ function isCrypto(name, ticker) {
 }
 
 /**
- * 債券関連銘柄かどうかを判定する
+ * 債券関連銘柄かどうかを判定する（改善版）
  * @param {string} name - 銘柄名
  * @param {string} ticker - ティッカーシンボル
  * @returns {boolean} - 債券関連ならtrue
@@ -198,9 +198,10 @@ function isBond(name, ticker) {
   if (!name && !ticker) return false;
   
   // 特定の債券関連ティッカー
-  const bondTickers = ['LQD', 'BND', 'AGG', 'TLT', 'IEF', 'GOVT'];
+  const bondTickers = ['LQD', 'BND', 'AGG', 'TLT', 'IEF', 'GOVT', 'HYG', 'JNK', 'MUB', 'VCIT', 'VCSH'];
   
   if (ticker && bondTickers.includes(ticker.toUpperCase())) {
+    console.log(`${ticker} identified as a bond ETF`);
     return true;
   }
   
@@ -212,7 +213,10 @@ function isBond(name, ticker) {
          lowerName.includes('ボンド') ||
          lowerName.includes('国債') ||
          lowerName.includes('社債') ||
-         lowerName.includes('fixed income');
+         lowerName.includes('fixed income') ||
+         lowerName.includes('treasury') || 
+         lowerName.includes('corporate debt') ||
+         lowerName.includes('aggregate bond');
 }
 
 /**
@@ -308,6 +312,7 @@ function formatCodeForMutualFundScraping(ticker) {
   // （スクレイピングプロキシ側でCの付け外しを適切に処理する）
   return ticker.replace(/C$/, '');
 }
+
 /**
  * 銘柄のファンドタイプを確実に判定する
  * @param {string} ticker - ティッカーシンボル
@@ -413,7 +418,7 @@ function determineHasDividend(ticker) {
 }
 
 /**
- * Alpaca APIからデータを取得する
+ * Alpaca APIからデータを取得する（改善版）
  * @param {string} ticker - ティッカーシンボル
  * @returns {Promise<Object>} - Alpaca APIからのデータまたはnull
  */
@@ -440,8 +445,8 @@ async function fetchFromAlpaca(ticker) {
     
     console.log(`Attempting to fetch data for ${formattedTicker} from Alpaca API at: ${ALPACA_API_URL}`);
     
-    // Alpaca APIプロキシにリクエスト - リトライメカニズム追加
-    let retries = 2; // 最大3回試行（初回 + 2回リトライ）
+    // Alpaca APIプロキシにリクエスト - リトライメカニズム改善版
+    let retries = 3; // 最大4回試行（初回 + 3回リトライ）
     let response = null;
     let error = null;
     
@@ -451,7 +456,7 @@ async function fetchFromAlpaca(ticker) {
           params: { 
             symbol: formattedTicker 
           },
-          timeout: ALPACA_API_TIMEOUT + (2 - retries) * 2000, // リトライごとにタイムアウトを延長
+          timeout: ALPACA_API_TIMEOUT + (3 - retries) * 2000, // リトライごとにタイムアウトを延長
           validateStatus: function (status) {
             // 全てのステータスコードを許可して、エラー時にPromiseをリジェクトしないようにする
             return true;
@@ -463,21 +468,22 @@ async function fetchFromAlpaca(ticker) {
           break;
         }
         
-        // 429エラー（レート制限）の場合は少し待ってからリトライ
+        // 429エラー（レート制限）の場合は少し長く待ってからリトライ
         if (response.status === 429) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise(resolve => setTimeout(resolve, 2000));
         }
         
         retries--;
         if (retries >= 0) {
           console.log(`Retrying Alpaca API for ${formattedTicker}, attempts left: ${retries}`);
+          await new Promise(resolve => setTimeout(resolve, 1500));
         }
       } catch (e) {
         error = e;
         retries--;
         if (retries >= 0) {
           console.log(`Error fetching from Alpaca API, retrying... (${retries} attempts left)`);
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise(resolve => setTimeout(resolve, 1500));
         }
       }
     }
@@ -572,7 +578,7 @@ async function fetchFromAlpaca(ticker) {
 }
 
 /**
- * 日本株スクレイピングプロキシからデータを取得する（新規追加）
+ * 日本株スクレイピングプロキシからデータを取得する
  * @param {string} ticker - ティッカーシンボル
  * @returns {Promise<Object>} - 日本株データまたはnull
  */
@@ -727,7 +733,7 @@ async function fetchFromJPStockScraping(ticker) {
 }
 
 /**
- * 投資信託スクレイピングプロキシからデータを取得する（新規追加）
+ * 投資信託スクレイピングプロキシからデータを取得する
  * @param {string} ticker - ティッカーシンボル（投資信託コード）
  * @returns {Promise<Object>} - 投資信託データまたはnull
  */
@@ -1041,7 +1047,7 @@ async function fetchFromYahoo(ticker) {
 }
 
 /**
- * 銘柄データを取得（銘柄タイプに応じて適切なAPIを使用）
+ * 米国株の場合はAlpaca APIを優先するが、債券ETFの場合は特別処理を追加
  * @param {string} ticker - ティッカーシンボル
  * @returns {Promise<Object>} - 銘柄データとステータス
  */
@@ -1056,6 +1062,61 @@ export async function fetchTickerData(ticker) {
   
   // ティッカーを大文字に統一
   ticker = ticker.toUpperCase();
+  
+  // 債券ETFかどうかを直接チェック（特別処理）
+  const bondETFs = ['LQD', 'BND', 'AGG', 'TLT', 'IEF', 'GOVT', 'HYG', 'JNK', 'MUB', 'VCIT', 'VCSH'];
+  const isBondETF = bondETFs.includes(ticker);
+  
+  if (isBondETF) {
+    console.log(`${ticker} is a bond ETF. Trying Yahoo Finance first for more reliable data.`);
+    // 債券ETFの場合はYahoo Financeを優先する（より信頼性の高いデータのため）
+    try {
+      // Yahoo Financeを最初に試行
+      const yahooResult = await fetchFromYahoo(ticker);
+      if (yahooResult && yahooResult.success) {
+        console.log(`Successfully fetched ${ticker} from Yahoo Finance`);
+        return {
+          ...yahooResult,
+          alpacaTried: false,
+          alpacaSuccess: false,
+          yahooFinanceTried: true,
+          yahooFinanceSuccess: true
+        };
+      }
+    } catch (yahooError) {
+      console.error(`Yahoo Finance error for ${ticker}:`, yahooError.message);
+    }
+    
+    // Yahoo Financeが失敗した場合はAlpacaを試行
+    try {
+      console.log(`Yahoo Finance failed for ${ticker}. Trying Alpaca API.`);
+      const alpacaResult = await fetchFromAlpaca(ticker);
+      if (alpacaResult && alpacaResult.success) {
+        console.log(`Successfully fetched ${ticker} from Alpaca API`);
+        return {
+          ...alpacaResult,
+          alpacaTried: true,
+          alpacaSuccess: true,
+          yahooFinanceTried: true,
+          yahooFinanceSuccess: false
+        };
+      }
+    } catch (alpacaError) {
+      console.error(`Alpaca API error for ${ticker}:`, alpacaError.message);
+    }
+    
+    // 両方のAPIが失敗した場合はフォールバック値を生成
+    console.log(`Both APIs failed for ${ticker}. Using enhanced fallback for bond ETF.`);
+    const fallbackData = generateBondETFFallback(ticker);
+    return {
+      ...fallbackData,
+      alpacaTried: true,
+      alpacaSuccess: false,
+      yahooFinanceTried: true,
+      yahooFinanceSuccess: false,
+      message: `${ticker}のデータ取得に失敗しました。債券ETF用のフォールバック値を使用します。`
+    };
+  }
   
   // 日本株または投資信託かを判定
   const isJapanese = isJapaneseStock(ticker);
@@ -1300,6 +1361,63 @@ export async function fetchTickerData(ticker) {
 }
 
 /**
+ * 債券ETF専用のフォールバックデータを生成する関数（新規追加）
+ * @param {string} ticker - ティッカーシンボル
+ * @returns {Object} - 債券ETF用のフォールバックデータ
+ */
+function generateBondETFFallback(ticker) {
+  // 債券ETF向けのより正確なフォールバック値を設定
+  const bondETFDefaults = {
+    'LQD': { price: 108.50, name: 'iShares iBoxx $ Investment Grade Corporate Bond ETF' },
+    'BND': { price: 72.20, name: 'Vanguard Total Bond Market ETF' },
+    'AGG': { price: 96.70, name: 'iShares Core U.S. Aggregate Bond ETF' },
+    'TLT': { price: 95.80, name: 'iShares 20+ Year Treasury Bond ETF' },
+    'IEF': { price: 94.20, name: 'iShares 7-10 Year Treasury Bond ETF' },
+    'GOVT': { price: 24.50, name: 'iShares U.S. Treasury Bond ETF' },
+    'HYG': { price: 75.30, name: 'iShares iBoxx $ High Yield Corporate Bond ETF' },
+    'JNK': { price: 91.40, name: 'SPDR Bloomberg High Yield Bond ETF' },
+    'MUB': { price: 105.60, name: 'iShares National Muni Bond ETF' },
+    'VCIT': { price: 79.90, name: 'Vanguard Intermediate-Term Corporate Bond ETF' },
+    'VCSH': { price: 76.50, name: 'Vanguard Short-Term Corporate Bond ETF' }
+  };
+  
+  // デフォルト値またはティッカー固有の値を取得
+  const defaults = bondETFDefaults[ticker] || { price: 100.00, name: `${ticker} Bond ETF` };
+  
+  const currentDate = new Date().toISOString();
+  
+  return {
+    success: false,
+    data: {
+      id: ticker,
+      name: defaults.name,
+      ticker: ticker,
+      exchangeMarket: 'US',
+      price: defaults.price,
+      currency: 'USD',
+      holdings: 0,
+      annualFee: 0.15, // 債券ETFの一般的な手数料率
+      fundType: FUND_TYPES.BOND,
+      isStock: false,
+      isMutualFund: false,
+      feeSource: 'ティッカー固有の情報',
+      feeIsEstimated: true,
+      region: 'US',
+      lastUpdated: currentDate,
+      source: DATA_SOURCES.FALLBACK,
+      // 配当情報（債券ETFは通常配当あり）
+      dividendYield: 3.0, // 債券ETFの一般的な利回り
+      hasDividend: true,
+      dividendFrequency: 'monthly', // 債券ETFは通常月次配当
+      dividendIsEstimated: true,
+      priceLabel: '株価'
+    },
+    message: '債券ETFのフォールバック値を使用しています。実際の値と異なる可能性があります。',
+    error: true
+  };
+}
+
+/**
  * 全ての取得方法が失敗した場合のフォールバックデータ生成
  * @param {string} ticker - ティッカーシンボル
  * @returns {Object} - フォールバック銘柄データとステータス
@@ -1338,6 +1456,14 @@ function generateFallbackTickerData(ticker) {
 
   // ティッカーを大文字に統一
   ticker = ticker.toUpperCase();
+  
+  // 債券ETFかどうかを直接チェック
+  const bondETFs = ['LQD', 'BND', 'AGG', 'TLT', 'IEF', 'GOVT', 'HYG', 'JNK', 'MUB', 'VCIT', 'VCSH'];
+  
+  // 債券ETFの場合は専用のフォールバック関数を使用
+  if (bondETFs.includes(ticker)) {
+    return generateBondETFFallback(ticker);
+  }
   
   // 米国ETFリストに含まれているか確認
   const isUSETF = US_ETF_LIST.includes(ticker);
@@ -1890,13 +2016,4 @@ export const checkDataFreshness = function(assets, staleThresholdHours = 24) {
   });
   
   return {
-    fresh: staleItems.length === 0 && missingUpdateTime.length === 0,
-    staleItems,
-    missingUpdateTime,
-    message: staleItems.length > 0 
-      ? `${staleItems.length}個の銘柄データが${staleThresholdHours}時間以上更新されていません` 
-      : missingUpdateTime.length > 0 
-        ? `${missingUpdateTime.length}個の銘柄に更新時間情報がありません` 
-        : 'すべてのデータは最新です'
-  };
-};
+    fresh: staleItems.length ===
