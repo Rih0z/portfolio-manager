@@ -1,28 +1,135 @@
 // functions/yahoo-finance-proxy.js
 
 /**
- * Yahoo Finance APIへのプロキシ関数（債券ETF対応強化版）
+ * Yahoo Finance APIへのプロキシ関数（すべてのETF対応版）
  * 株価データと投資信託データを取得する
  */
 const axios = require('axios');
 
-// 債券ETFの明示的なリスト
-const BOND_ETFS = ['LQD', 'BND', 'AGG', 'TLT', 'IEF', 'GOVT', 'HYG', 'JNK', 'MUB', 'VCIT', 'VCSH'];
+// ------------------ ETF関連の定義 ------------------
 
-// 債券ETF向けの最新デフォルト価格
-const BOND_ETF_DEFAULTS = {
-  'LQD': 109.64,
-  'BND': 73.57,
-  'AGG': 98.32,
-  'TLT': 96.18,
-  'IEF': 95.35,
-  'GOVT': 25.10,
-  'HYG': 76.89,
-  'JNK': 93.22,
-  'MUB': 106.54,
-  'VCIT': 80.38,
-  'VCSH': 76.98
+// 主な発行会社のプレフィックスとパターン
+const ETF_PREFIXES = {
+  VANGUARD: ['V', 'VO', 'VB', 'VT', 'VU', 'VG', 'VA', 'VE', 'VF', 'VD', 'VC'],
+  ISHARES: ['I', 'IW', 'IJR', 'IJH', 'IEF', 'EW', 'IE', 'IA', 'SH'],
+  SPDR: ['SPY', 'XL', 'XBI', 'XLF', 'XLE', 'XLB', 'XLK', 'XLP', 'XLU', 'XLI', 'XLV', 'GLD', 'DIA'],
+  INVESCO: ['Q', 'PG', 'PJ', 'PW', 'PZ', 'REZ', 'RYJ', 'RPG', 'RSP', 'RWJ', 'RYE', 'RYF', 'RYH', 'RYT', 'RYU'],
+  SCHWAB: ['SCH'],
+  ARK: ['ARK'],
+  FIDELITY: ['FID'],
+  GLOBAL_X: ['LIT', 'AIQ', 'BUG', 'CTEC', 'EBIZ', 'BKCH', 'BOTZ', 'FINX', 'MLPA'],
+  WISDOM_TREE: ['DXJ', 'DLS', 'DNL', 'EPI', 'DFE']
 };
+
+// ETFパターンを結合
+const ALL_ETF_PREFIXES = [].concat(
+  ...Object.values(ETF_PREFIXES)
+);
+
+// 債券ETFの明示的なリスト
+const BOND_ETFS = [
+  'LQD', 'BND', 'AGG', 'TLT', 'IEF', 'GOVT', 'HYG', 'JNK', 'MUB', 'VCIT', 'VCSH', 
+  'BNDX', 'SCHZ', 'IGIB', 'VGIT', 'VGLT', 'VGSH', 'SHY', 'VMBS', 'MBB', 'AGNC',
+  'SPTL', 'SPTI', 'SPTS', 'SPLB', 'BSCO', 'LKOR', 'FBND', 'FMHI', 'TDTF', 'TDTT'
+];
+
+// 国際ETFのリスト
+const INTL_ETFS = [
+  'INDA', 'EIDO', 'EWZ', 'EWJ', 'EWY', 'EWM', 'EWT', 'MCHI', 'FXI', 'EWH', 'EWS',
+  'EZU', 'EWG', 'EWQ', 'EWP', 'EWI', 'EWL', 'EWD', 'EWN', 'EWA', 'EWU', 'EWC',
+  'IEUR', 'IEFA', 'IEMG', 'VEA', 'VWO', 'VSS', 'VXUS', 'BBJP', 'GXG', 'EIRL',
+  'FLCH', 'FLJP', 'FLJH', 'FLKR', 'FLBR', 'EPOL', 'ADRE', 'HEEM', 'FNDE'
+];
+
+// ESG/テーマ型ETFのリスト
+const THEMATIC_ETFS = [
+  'ARKK', 'ARKW', 'ARKG', 'ARKF', 'ARKQ', 'IBIT', 'GBTC', 'ETHE', 'BITQ',
+  'ICLN', 'TAN', 'FAN', 'PBW', 'QCLN', 'ACES', 'ESGU', 'ESGE', 'ESGD',
+  'ESML', 'SDG', 'SUSL', 'LRGE', 'SUSA', 'DSI', 'USSG', 'CRBN', 'LOWC',
+  'SPYX', 'NULG', 'NULV', 'FRDM', 'VOTE', 'VEGN', 'GRNB'
+];
+
+// レバレッジ/インバースETFのリスト
+const LEVERAGED_ETFS = [
+  'TQQQ', 'SQQQ', 'UPRO', 'SPXU', 'UDOW', 'SDOW', 'TECL', 'TECS', 'FAS',
+  'FAZ', 'ERX', 'ERY', 'LABU', 'LABD', 'NUGT', 'DUST', 'JNUG', 'JDST',
+  'NAIL', 'DRN', 'DRV', 'SOXL', 'SOXS', 'SPXL', 'SPXS', 'TNA', 'TZA',
+  'UVXY', 'SVXY', 'VXX'
+];
+
+// 米国大型株ETFのリスト
+const US_LARGE_CAP_ETFS = [
+  'SPY', 'VOO', 'IVV', 'VTI', 'QQQ', 'DIA', 'SCHB', 'SCHX', 'SPLG', 'ITOT',
+  'RSP', 'SCHG', 'SCHV', 'SPYG', 'SPYV', 'VOOG', 'VOOV', 'MGC', 'IOO',
+  'OEF', 'MTUM', 'VLUE', 'USMV', 'QUAL', 'SIZE', 'QQQM', 'QQQE'
+];
+
+// セクターETFのリスト
+const SECTOR_ETFS = [
+  'XLF', 'XLE', 'XLK', 'XLV', 'XLB', 'XLI', 'XLP', 'XLU', 'XLY', 'XLRE',
+  'VGT', 'VHT', 'VDC', 'VDE', 'VAW', 'VFH', 'VIS', 'VCR', 'VPU', 'VNQ',
+  'IBB', 'IYH', 'IYE', 'IYF', 'IYK', 'IYM', 'IYC', 'IYZ', 'IYT', 'IYR',
+  'FXI', 'KBWB', 'SMH', 'SOXX', 'HACK', 'SOCL', 'GAMR', 'PBE', 'FBT'
+];
+
+// コモディティETFのリスト
+const COMMODITY_ETFS = [
+  'GLD', 'SLV', 'IAU', 'PPLT', 'PALL', 'USO', 'BNO', 'UNG', 'UGA', 'DBC',
+  'GSG', 'DJP', 'PDBC', 'COMT', 'COM', 'COMB', 'USCI', 'GCC', 'RJI', 
+  'DBA', 'MOO', 'JJG', 'WEAT', 'CORN', 'SOYB', 'NIB', 'JO', 'SGG',
+  'COW', 'WOOD', 'PSCE', 'XME'
+];
+
+// すべてのETFを一つのリストに結合
+const ALL_KNOWN_ETFS = [].concat(
+  BOND_ETFS,
+  INTL_ETFS,
+  THEMATIC_ETFS,
+  LEVERAGED_ETFS,
+  US_LARGE_CAP_ETFS,
+  SECTOR_ETFS,
+  COMMODITY_ETFS
+);
+
+// ETFのデフォルト価格
+const ETF_DEFAULTS = {
+  // 債券ETF
+  'LQD': 109.64, 'BND': 73.57, 'AGG': 98.32, 'TLT': 96.18, 'IEF': 95.35,
+  'GOVT': 25.10, 'HYG': 76.89, 'JNK': 93.22, 'MUB': 106.54, 'VCIT': 80.38,
+  'VCSH': 76.98,
+  
+  // 国際株式ETF
+  'INDA': 50.50, 'EIDO': 25.30, 'EWZ': 32.60, 'EWJ': 65.20, 'MCHI': 46.80,
+  'FXI': 27.30, 'VEA': 48.20, 'VWO': 43.80, 'IEFA': 72.50, 'IEMG': 52.90,
+  'VXUS': 58.40,
+  
+  // 米国大型株ETF
+  'SPY': 540.00, 'VOO': 480.00, 'QQQ': 470.00, 'VTI': 265.00, 'IVV': 539.00,
+  'DIA': 392.00,
+  
+  // テーマ型ETF
+  'ARKK': 48.20, 'ARKW': 75.60, 'ARKG': 31.40, 'IBIT': 44.00, 'GBTC': 42.20,
+  
+  // コモディティETF
+  'GLD': 220.00, 'SLV': 26.20, 'USO': 72.40,
+  
+  // レバレッジETF
+  'TQQQ': 62.80, 'SQQQ': 7.90, 'UPRO': 75.20, 'SPXU': 8.60
+};
+
+// 配当利回りのデフォルト値（％）
+const DEFAULT_DIVIDEND_YIELDS = {
+  'bond': 3.0,               // 債券ETF
+  'international': 2.8,      // 国際株式ETF
+  'us_large_cap': 1.5,       // 米国大型株ETF
+  'sector': 1.8,             // セクターETF
+  'thematic': 0.5,           // テーマ型ETF
+  'commodity': 0.0,          // コモディティETF
+  'leveraged': 0.0,          // レバレッジETF
+  'unknown': 1.5             // 不明なETF
+};
+
+// ------------------ メインハンドラー ------------------
 
 exports.handler = async function(event, context) {
   // リクエスト情報をログ出力
@@ -92,19 +199,93 @@ exports.handler = async function(event, context) {
   }
 };
 
+// ------------------ ETF判定関連の関数 ------------------
+
 /**
- * 債券ETFかどうかを判定する関数
+ * ティッカーシンボルがETFかどうかを判定する関数
  * @param {string} ticker - ティッカーシンボル
- * @returns {boolean} 債券ETFの場合はtrue
+ * @returns {boolean} ETFの場合はtrue
  */
-function isBondETF(ticker) {
+function isETF(ticker) {
   if (!ticker) return false;
   
-  // 大文字に変換して確認
+  // 大文字に変換
   ticker = ticker.toString().toUpperCase();
   
-  // 登録済みの債券ETFリストと照合
-  return BOND_ETFS.includes(ticker);
+  // 1. 既知のETFリストにあれば間違いなくETF
+  if (ALL_KNOWN_ETFS.includes(ticker)) {
+    return true;
+  }
+  
+  // 2. プレフィックスによる判定
+  for (const prefix of ALL_ETF_PREFIXES) {
+    if (ticker.startsWith(prefix)) {
+      return true;
+    }
+  }
+  
+  // 3. 構造による判定
+  // ETFはほとんどが3-4文字で構成される
+  if (ticker.length <= 4 && 
+      /^[A-Z]+$/.test(ticker) && // 英字のみ
+      !isMutualFund(ticker) && 
+      !isJapaneseStock(ticker)) {
+    return true;
+  }
+  
+  return false;
+}
+
+/**
+ * ETFの種類を判定する関数
+ * @param {string} ticker - ティッカーシンボル
+ * @returns {string} ETFの種類
+ */
+function getETFType(ticker) {
+  if (!ticker) return 'unknown';
+  
+  // 大文字に変換
+  ticker = ticker.toString().toUpperCase();
+  
+  // ETFリストで種類を判定
+  if (BOND_ETFS.includes(ticker)) {
+    return 'bond';
+  } else if (INTL_ETFS.includes(ticker)) {
+    return 'international';
+  } else if (US_LARGE_CAP_ETFS.includes(ticker)) {
+    return 'us_large_cap';
+  } else if (SECTOR_ETFS.includes(ticker)) {
+    return 'sector';
+  } else if (THEMATIC_ETFS.includes(ticker)) {
+    return 'thematic';
+  } else if (LEVERAGED_ETFS.includes(ticker)) {
+    return 'leveraged';
+  } else if (COMMODITY_ETFS.includes(ticker)) {
+    return 'commodity';
+  }
+  
+  // プレフィックスによる推測
+  for (const [type, prefixes] of Object.entries(ETF_PREFIXES)) {
+    for (const prefix of prefixes) {
+      if (ticker.startsWith(prefix)) {
+        switch (type) {
+          case 'VANGUARD':
+            return ticker.includes('B') ? 'us_large_cap' : 'international';
+          case 'ISHARES':
+            return ticker.startsWith('IE') ? 'international' : 
+                   ticker.startsWith('IEF') ? 'bond' : 'us_large_cap';
+          case 'SPDR':
+            return ticker.startsWith('XL') ? 'sector' : 'us_large_cap';
+          case 'ARK':
+            return 'thematic';
+          default:
+            return 'unknown';
+        }
+      }
+    }
+  }
+  
+  return 'unknown';
 }
 
 /**
@@ -128,43 +309,25 @@ function isJapaneseStock(ticker) {
   return /^\d{4}(\.T)?$/.test(ticker) || ticker.endsWith('.T');
 }
 
+// ------------------ データ生成関連の関数 ------------------
+
 /**
  * ティッカーシンボルからフォールバックデータを生成する
  * @param {string} symbol - ティッカーシンボル
  * @returns {Object} フォールバックデータ
  */
 function generateFallbackData(symbol) {
+  if (!symbol) return null;
+  
   // 大文字に変換
   const upperSymbol = symbol.toUpperCase();
   
-  // 債券ETFかどうかを判定
-  const isBondETFSymbol = isBondETF(upperSymbol);
+  // ETFかどうかを判定
+  const etfCheck = isETF(upperSymbol);
   
-  // 債券ETFの場合は特別処理
-  if (isBondETFSymbol) {
-    console.log(`[Yahoo Finance Proxy] Generating enhanced fallback data for bond ETF: ${upperSymbol}`);
-    const bondPrice = BOND_ETF_DEFAULTS[upperSymbol] || 100;
-    
-    // LQDの場合は特別にログ出力
-    if (upperSymbol === 'LQD') {
-      console.log(`[Yahoo Finance Proxy] Special handling for LQD with price: ${bondPrice}`);
-    }
-    
-    return {
-      ticker: upperSymbol,
-      price: bondPrice,
-      name: `${upperSymbol} - iShares Bond ETF`,
-      currency: 'USD',
-      lastUpdated: new Date().toISOString(),
-      source: 'Fallback (Bond ETF)',
-      isStock: false,
-      isMutualFund: false,
-      isBondETF: true,
-      priceLabel: '株価',
-      // 債券ETF特有の情報
-      dividendYield: 3.0,
-      hasDividend: true
-    };
+  // ETFの場合はETF専用のフォールバックを使用
+  if (etfCheck) {
+    return generateETFFallbackData(upperSymbol);
   }
   
   // 投資信託かどうかを判定
@@ -175,7 +338,7 @@ function generateFallbackData(symbol) {
   const originalSymbol = symbol.replace(/\.T$/, '');
   
   return {
-    ticker: symbol,
+    ticker: originalSymbol,
     price: isMutualFundTicker ? 10000 : isJapaneseStockTicker ? 2500 : 150,
     name: isMutualFundTicker ? `投資信託 ${originalSymbol}` : 
           isJapaneseStockTicker ? `日本株 ${originalSymbol}` : 
@@ -190,22 +353,168 @@ function generateFallbackData(symbol) {
 }
 
 /**
- * 債券ETF用の特別ハンドラ - より信頼性の高いデータ取得を試みる
- * @param {string} symbol - ティッカーシンボル
- * @returns {Promise<Object>} - 債券ETFデータ
+ * ETF用のフォールバックデータを生成する
+ * @param {string} symbol - ティッカーシンボル（ETF）
+ * @returns {Object} ETF用フォールバックデータ
  */
-async function handleBondETF(symbol) {
-  console.log(`[Yahoo Finance Proxy] Using specialized Bond ETF handler for ${symbol}`);
+function generateETFFallbackData(symbol) {
+  // 大文字に変換
+  const upperSymbol = symbol.toUpperCase();
+  
+  // ETFタイプを判定
+  const etfType = getETFType(upperSymbol);
+  
+  // ETFのデフォルト価格を取得（なければ一般的な値を使用）
+  const price = ETF_DEFAULTS[upperSymbol] || 100;
+  
+  // ETFタイプに基づく詳細な特性
+  const properties = getETFProperties(upperSymbol, etfType);
+  
+  // 特定のETFに関するログを表示
+  if (['LQD', 'INDA', 'SPY', 'ARKK', 'GLD'].includes(upperSymbol)) {
+    console.log(`[Yahoo Finance Proxy] Special handling for ${upperSymbol} (${etfType}) with price: ${price}`);
+  }
+  
+  // ETFタイプに基づいてフォールバックデータを生成
+  return {
+    ticker: upperSymbol,
+    price: price,
+    name: properties.name,
+    currency: 'USD',
+    lastUpdated: new Date().toISOString(),
+    source: `Fallback (${properties.typeLabel} ETF)`,
+    isStock: false,
+    isMutualFund: false,
+    isETF: true,
+    etfType: etfType,
+    // ETFタイプごとの特性
+    ...properties.flags,
+    priceLabel: '株価',
+    // 配当情報
+    dividendYield: properties.dividendYield,
+    hasDividend: properties.hasDividend,
+    dividendFrequency: properties.dividendFrequency
+  };
+}
+
+/**
+ * ETFタイプに基づいてETFの特性を取得する
+ * @param {string} symbol - ティッカーシンボル
+ * @param {string} etfType - ETFの種類
+ * @returns {Object} ETFの特性情報
+ */
+function getETFProperties(symbol, etfType) {
+  // 基本情報を初期化
+  const properties = {
+    name: `${symbol} ETF`,
+    typeLabel: 'Unknown',
+    dividendYield: DEFAULT_DIVIDEND_YIELDS[etfType] || DEFAULT_DIVIDEND_YIELDS.unknown,
+    hasDividend: true,
+    dividendFrequency: 'quarterly',
+    flags: {}
+  };
+  
+  // ETFタイプに基づいて情報を設定
+  switch (etfType) {
+    case 'bond':
+      properties.name = `${symbol} - Bond ETF`;
+      properties.typeLabel = 'Bond';
+      properties.dividendFrequency = 'monthly';
+      properties.flags.isBondETF = true;
+      break;
+      
+    case 'international':
+      properties.name = `${symbol} - International Equity ETF`;
+      properties.typeLabel = 'International';
+      properties.flags.isIntlETF = true;
+      break;
+      
+    case 'us_large_cap':
+      properties.name = `${symbol} - US Large Cap ETF`;
+      properties.typeLabel = 'US Large Cap';
+      properties.flags.isUSETF = true;
+      break;
+      
+    case 'sector':
+      properties.name = `${symbol} - Sector ETF`;
+      properties.typeLabel = 'Sector';
+      properties.flags.isSectorETF = true;
+      break;
+      
+    case 'thematic':
+      properties.name = `${symbol} - Thematic ETF`;
+      properties.typeLabel = 'Thematic';
+      properties.flags.isThematicETF = true;
+      break;
+      
+    case 'leveraged':
+      properties.name = `${symbol} - Leveraged ETF`;
+      properties.typeLabel = 'Leveraged';
+      properties.hasDividend = false;
+      properties.dividendYield = 0;
+      properties.flags.isLeveragedETF = true;
+      break;
+      
+    case 'commodity':
+      properties.name = `${symbol} - Commodity ETF`;
+      properties.typeLabel = 'Commodity';
+      properties.hasDividend = false;
+      properties.dividendYield = 0;
+      properties.flags.isCommodityETF = true;
+      break;
+      
+    default:
+      properties.name = `${symbol} ETF`;
+      properties.typeLabel = 'ETF';
+      break;
+  }
+  
+  // シンボル特有の情報を追加
+  if (symbol === 'SPY') {
+    properties.name = 'SPDR S&P 500 ETF Trust';
+  } else if (symbol === 'VOO') {
+    properties.name = 'Vanguard S&P 500 ETF';
+  } else if (symbol === 'QQQ') {
+    properties.name = 'Invesco QQQ Trust (NASDAQ-100 Index)';
+  } else if (symbol === 'VTI') {
+    properties.name = 'Vanguard Total Stock Market ETF';
+  } else if (symbol === 'INDA') {
+    properties.name = 'iShares MSCI India ETF';
+  } else if (symbol === 'LQD') {
+    properties.name = 'iShares iBoxx $ Investment Grade Corporate Bond ETF';
+  } else if (symbol === 'GLD') {
+    properties.name = 'SPDR Gold Shares';
+    properties.hasDividend = false;
+    properties.dividendYield = 0;
+  } else if (symbol === 'ARKK') {
+    properties.name = 'ARK Innovation ETF';
+  }
+  
+  return properties;
+}
+
+// ------------------ ETF処理関連の関数 ------------------
+
+/**
+ * ETF用の特別ハンドラ - より信頼性の高いデータ取得を試みる
+ * @param {string} symbol - ティッカーシンボル
+ * @returns {Promise<Object>} - ETFデータ
+ */
+async function handleETF(symbol) {
+  const upperSymbol = symbol.toUpperCase();
+  const etfType = getETFType(upperSymbol);
+  
+  console.log(`[Yahoo Finance Proxy] Using specialized ETF handler for ${upperSymbol} (${etfType})`);
   
   try {
     // 特化したエンドポイントを試みる
-    const bondUrl = `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${symbol}?modules=price,defaultKeyStatistics`;
+    const etfUrl = `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${upperSymbol}?modules=price,defaultKeyStatistics,summaryDetail`;
     
-    const response = await axios.get(bondUrl, {
+    const response = await axios.get(etfUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
         'Accept': 'application/json',
-        'Referer': `https://finance.yahoo.com/quote/${symbol}`,
+        'Referer': `https://finance.yahoo.com/quote/${upperSymbol}`,
         'Origin': 'https://finance.yahoo.com'
       },
       timeout: 10000
@@ -215,48 +524,80 @@ async function handleBondETF(symbol) {
     if (response.data && 
         response.data.quoteSummary && 
         response.data.quoteSummary.result && 
-        response.data.quoteSummary.result.length > 0 &&
-        response.data.quoteSummary.result[0].price) {
+        response.data.quoteSummary.result.length > 0) {
       
-      const priceData = response.data.quoteSummary.result[0].price;
-      const statsData = response.data.quoteSummary.result[0].defaultKeyStatistics || {};
+      const result = response.data.quoteSummary.result[0];
+      const priceData = result.price || {};
+      const statsData = result.defaultKeyStatistics || {};
+      const summaryData = result.summaryDetail || {};
       
-      // 名前の取得
-      const name = priceData.shortName || priceData.longName || `${symbol} Bond ETF`;
+      // 実際の名前を取得
+      const name = priceData.shortName || priceData.longName || `${upperSymbol} ETF`;
       
-      // 配当利回りの取得 (存在する場合)
-      let dividendYield = 3.0; // デフォルト値
-      if (statsData.yield && statsData.yield.raw) {
-        dividendYield = statsData.yield.raw * 100; // パーセンテージに変換
+      // 価格を取得
+      const price = (priceData.regularMarketPrice?.raw || 
+                     summaryData.previousClose?.raw || 
+                     ETF_DEFAULTS[upperSymbol] || 
+                     100);
+      
+      // 配当利回りを取得 (存在する場合)
+      let dividendYield = DEFAULT_DIVIDEND_YIELDS[etfType] || DEFAULT_DIVIDEND_YIELDS.unknown;
+      let hasDividend = true;
+      let dividendFrequency = 'quarterly';
+      
+      if (summaryData.dividendYield && summaryData.dividendYield.raw) {
+        dividendYield = (summaryData.dividendYield.raw * 100).toFixed(2); // パーセンテージに変換
+        hasDividend = dividendYield > 0;
+      } else if (statsData.yield && statsData.yield.raw) {
+        dividendYield = (statsData.yield.raw * 100).toFixed(2); // パーセンテージに変換
+        hasDividend = dividendYield > 0;
+      } else {
+        // ETFタイプに基づくデフォルト値を使用
+        if (etfType === 'commodity' || etfType === 'leveraged') {
+          hasDividend = false;
+          dividendYield = 0;
+        }
       }
       
-      console.log(`[Yahoo Finance Proxy] Successfully fetched bond ETF data for ${symbol}: ${priceData.regularMarketPrice?.raw || 'N/A'}`);
+      // 通貨を取得
+      const currency = priceData.currency || 'USD';
+      
+      console.log(`[Yahoo Finance Proxy] Successfully fetched ETF data for ${upperSymbol}: ${price}`);
+      
+      // ETF特性の取得
+      const properties = getETFProperties(upperSymbol, etfType);
       
       return {
-        ticker: symbol,
-        price: priceData.regularMarketPrice?.raw || BOND_ETF_DEFAULTS[symbol] || 100,
+        ticker: upperSymbol,
+        price: price,
         name: name,
-        currency: priceData.currency || 'USD',
+        currency: currency,
         lastUpdated: new Date().toISOString(),
-        source: 'Yahoo Finance (Bond ETF)',
+        source: `Yahoo Finance (${properties.typeLabel} ETF)`,
         isStock: false,
         isMutualFund: false,
-        isBondETF: true,
+        isETF: true,
+        etfType: etfType,
+        // ETFタイプごとの特性
+        ...properties.flags,
         priceLabel: '株価',
-        // 債券ETF特有の情報
+        // 配当情報
         dividendYield: dividendYield,
-        hasDividend: true
+        hasDividend: hasDividend,
+        dividendFrequency: properties.dividendFrequency
       };
     } else {
-      throw new Error(`No valid data found for bond ETF ${symbol}`);
+      throw new Error(`No valid data found for ETF ${upperSymbol}`);
     }
   } catch (error) {
-    console.warn(`[Yahoo Finance Proxy] Bond ETF handler failed for ${symbol}: ${error.message}`);
+    console.warn(`[Yahoo Finance Proxy] ETF handler failed for ${upperSymbol}: ${error.message}`);
     
     // フォールバック値を返す
-    return generateFallbackData(symbol);
+    return generateETFFallbackData(symbol);
   }
 }
+
+// ------------------ 主要なデータ取得関数 ------------------
 
 /**
  * 株価データを取得する
@@ -268,23 +609,26 @@ async function handleStockData(symbols, headers) {
   // カンマ区切りのシンボルを配列に変換
   const symbolsList = symbols.split(',').map(s => s.trim());
   
-  // 各シンボルを3つのカテゴリに分類
-  const bondETFs = symbolsList.filter(s => isBondETF(s));
-  const regularSymbols = symbolsList.filter(s => !isBondETF(s));
+  // 各シンボルをタイプごとに分類
+  const etfSymbols = symbolsList.filter(s => isETF(s));
+  const regularSymbols = symbolsList.filter(s => !isETF(s));
   
-  console.log(`Categorized symbols: Bond ETFs=${bondETFs.length}, Regular=${regularSymbols.length}`);
+  console.log(`Symbol categorization: ETFs=${etfSymbols.length}, Regular=${regularSymbols.length}`);
+  if (etfSymbols.length > 0) {
+    console.log(`ETF symbols: ${etfSymbols.join(', ')}`);
+  }
   
-  // 債券ETFとそれ以外を別々に処理
+  // 結果格納用オブジェクト
   const result = {};
   
-  // 1. まず債券ETFを特別ハンドラで処理
-  if (bondETFs.length > 0) {
-    console.log(`Processing ${bondETFs.length} bond ETFs with special handler`);
+  // 1. まずETFを専用ハンドラで処理
+  if (etfSymbols.length > 0) {
+    console.log(`Processing ${etfSymbols.length} ETFs with dedicated handler`);
     
-    for (const bondSymbol of bondETFs) {
-      // 債券ETF用の特化したハンドラを使用
-      const bondData = await handleBondETF(bondSymbol);
-      result[bondSymbol] = bondData;
+    for (const etfSymbol of etfSymbols) {
+      // ETF用の特化したハンドラを使用
+      const etfData = await handleETF(etfSymbol);
+      result[etfSymbol] = etfData;
       
       // APIレート制限を避けるための短い遅延
       await new Promise(resolve => setTimeout(resolve, 300));
