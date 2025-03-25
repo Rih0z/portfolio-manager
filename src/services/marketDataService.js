@@ -1554,7 +1554,7 @@ function generateFallbackTickerData(ticker) {
   
   // 基本情報と手数料情報を取得
   const fundInfo = extractFundInfo(ticker, ticker);
-  const feeInfo = estimateAnnualFee(ticker, name);
+  const feeInfo = estimateAnnualFee(ticker, ticker);  // nameをtickerに修正
   
   // 配当情報の推定
   const dividendInfo = estimateDividendYield(ticker, ticker);
@@ -1972,9 +1972,6 @@ export const fetchFundInfo = async function(ticker, name = '') {
  * @param {string} fromCurrency - 変換元通貨
  * @param {string} toCurrency - 変換先通貨
  * @returns {Promise<Object>} - 為替レートデータとステータス
- */
-/**
- * 為替レートを取得する（改善版）の続き
  */
 export const fetchExchangeRate = async function(fromCurrency, toCurrency) {
   try {
