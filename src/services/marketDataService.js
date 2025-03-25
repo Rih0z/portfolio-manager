@@ -2316,3 +2316,126 @@ export async function fetchFundInfo(ticker) {
     };
   }
 }
+/**
+ * 銘柄の配当情報を取得する関数
+ * @param {string} ticker - ティッカーシンボル
+ * @returns {Promise<Object>} - 配当情報
+ */
+export async function fetchDividendData(ticker) {
+  if (!ticker) {
+    return {
+      success: false,
+      data: null,
+      message: 'ティッカーシンボルが指定されていません',
+      error: true
+    };
+  }
+  
+  // ティッカーを大文字に統一
+  ticker = ticker.toUpperCase();
+  
+  try {
+    console.log(`Fetching dividend data for ${ticker}`);
+    
+    // 投資信託かどうかを判定
+    const isMutualFundTicker = isMutualFund(ticker);
+    
+    // 債券ETFかどうかを判定
+    const isBondETFTicker = isBondETF(ticker);
+    
+    // 特定の無配当ETF
+    const noDividendETFs = ['GLD', 'IBIT', 'GBTC', 'ETHE'];
+    const isNoDividendETF = noDividendETFs.includes(ticker);
+    
+    // ファンドタイプを判定
+    const fundType = determineFundType(ticker, ticker);
+    
+    // 配当情報をティッカー固有のデータベースから取得
+    let dividendInfo = {};
+    
+    if (TICKER_SPECIFIC_DIVIDENDS[ticker] !== undefined) {
+      // 特定銘柄の配当データが存在する場合
+      const yield = TICKER_SPECIFIC_DIVIDENDS[ticker];
+      
+      // 配当頻度の推定
+      let frequency = 'quarterly'; // デフォルト頻度は四半期
+      
+      // ETFや投資信託のタイプに基づいて頻度を調整
+      if (isBondETFTicker) {
+        frequency = 'monthly'; // 債券ETFは通常月次
+      } else if (isMutualFundTicker) {
+        frequency = 'annual'; // 投資信託は年次が多い
+      } else if (ticker.includes('DIV') || ticker.includes('IYLD') || ticker.includes('SDIV')) {
+        frequency = 'monthly'; // 配当特化型は月次が多い
+      }
+      
+      dividendInfo = {
+        yield: yield,
+        isEstimated: false, // ティッカー固有のデータなので確定値
+        hasDividend: yield > 0,
+        dividendFrequency: frequency
+      };
+    } else {
+      // ティッカー固有データがない場合は推定値を使用
+      dividendInfo = estimateDividendYield(ticker, ticker);
+      
+      // 配当の有無を判定
+      const hasDividend = isNoDividendETF ? false : 
+                         isBondETFTicker ? true : 
+                         determineHasDividend(ticker);
+      
+      dividendInfo.hasDividend = hasDividend;
+      
+      // 無配当の場合は利回りを0に
+      if (!hasDividend) {
+        dividendInfo.yield = 0;
+      }
+      
+      // 債券ETFの場合は特別な設定
+      if (isBondETFTicker) {
+        dividendInfo.yield = 3.0; // 債券ETFの一般的な利回り
+        dividendInfo.dividendFrequency = 'monthly'; // 債券ETFは通常月次配当
+      }
+    }
+    
+    // 配当履歴（もし利用可能であれば）
+    const dividendHistory = [];
+    
+    // 次回配当日（もし利用可能であれば）
+    let nextPaymentDate = null;
+    
+    // ファンド名を生成（実際のデータがない場合）
+    const name = isMutualFundTicker ? `投資信託 ${ticker}` : 
+               isBondETFTicker ? `債券ETF ${ticker}` : ticker;
+    
+    return {
+      success: true,
+      data: {
+        ticker: ticker,
+        name: name,
+        hasDividend: dividendInfo.hasDividend,
+        dividendYield: dividendInfo.yield,
+        dividendFrequency: dividendInfo.dividendFrequency,
+        isEstimated: dividendInfo.isEstimated,
+        nextPaymentDate: nextPaymentDate,
+        history: dividendHistory,
+        fundType: fundType,
+        isMutualFund: isMutualFundTicker,
+        isBondETF: isBondETFTicker
+      },
+      message: dividendInfo.isEstimated 
+        ? 'ティッカーから配当情報を推定しました（実際の値と異なる場合があります）' 
+        : '銘柄の配当情報を取得しました'
+    };
+  } catch (error) {
+    console.error(`Error fetching dividend data for ${ticker}:`, error.message);
+    
+    return {
+      success: false,
+      data: null,
+      error: true,
+      errorMessage: error.message,
+      message: `配当情報の取得中にエラーが発生しました: ${error.message}`
+    };
+  }
+}
