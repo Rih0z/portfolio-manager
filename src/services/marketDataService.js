@@ -2219,3 +2219,100 @@ export async function fetchMultipleTickerData(tickers) {
   
   return resultInfo;
 }
+// src/services/marketDataService.js 内に追加する関数
+
+/**
+ * ファンド情報を取得する関数
+ * @param {string} ticker - ティッカーシンボル
+ * @returns {Promise<Object>} - ファンド基本情報
+ */
+export async function fetchFundInfo(ticker) {
+  if (!ticker) {
+    return {
+      success: false,
+      data: null,
+      message: 'ティッカーシンボルが指定されていません',
+      error: true
+    };
+  }
+  
+  // ティッカーを大文字に統一
+  ticker = ticker.toUpperCase();
+  
+  try {
+    console.log(`Fetching fund info for ${ticker}`);
+    
+    // 日本株または投資信託かを判定
+    const isJapaneseStockTicker = isJapaneseStock(ticker);
+    const isMutualFundTicker = isMutualFund(ticker);
+    const isBondETFTicker = isBondETF(ticker);
+    
+    // ファンドタイプを判定
+    const fundType = isMutualFundTicker 
+      ? FUND_TYPES.MUTUAL_FUND
+      : isBondETFTicker
+        ? FUND_TYPES.BOND
+        : determineFundType(ticker, ticker);
+    
+    // 個別株かどうかを判定
+    const isStock = fundType === FUND_TYPES.STOCK;
+    
+    // 基本情報を取得
+    const fundInfo = extractFundInfo(ticker, ticker);
+    
+    // 手数料情報を取得
+    const feeInfo = estimateAnnualFee(ticker, ticker);
+    
+    // 配当情報の取得
+    const dividendInfo = estimateDividendYield(ticker, ticker);
+    
+    // 配当情報を確定
+    const hasDividend = determineHasDividend(ticker);
+    
+    // 通貨判定
+    const currency = determineCurrency(ticker, ticker);
+    
+    // 手数料情報（個別株は常に0%）
+    const annualFee = isStock ? 0 : (isBondETFTicker ? 0.15 : feeInfo.fee);
+    
+    // 価格表示ラベル（投資信託なら「基準価額」、それ以外は「株価」）
+    const priceLabel = isMutualFundTicker ? '基準価額' : '株価';
+    
+    return {
+      success: true,
+      data: {
+        id: ticker,
+        name: ticker, // 実際のデータ取得がない場合はティッカーを名前として使用
+        ticker: ticker,
+        exchangeMarket: isJapaneseStockTicker || isMutualFundTicker ? 'Japan' : 'US',
+        currency: currency,
+        annualFee: annualFee,
+        fundType: fundType,
+        isStock: isStock,
+        isMutualFund: isMutualFundTicker,
+        isBondETF: isBondETFTicker,
+        feeSource: isStock ? '個別株' : (isBondETFTicker ? '債券ETF' : (isMutualFundTicker ? '投資信託' : feeInfo.source)),
+        feeIsEstimated: isStock ? false : feeInfo.isEstimated,
+        region: fundInfo.region || 'unknown',
+        // 配当情報
+        dividendYield: dividendInfo.yield,
+        hasDividend: hasDividend || isBondETFTicker,
+        dividendFrequency: isBondETFTicker ? 'monthly' : dividendInfo.dividendFrequency,
+        dividendIsEstimated: dividendInfo.isEstimated,
+        // 投資信託特有の項目
+        priceLabel: priceLabel
+      },
+      message: 'ファンド基本情報のみを取得しました（価格情報なし）'
+    };
+  } catch (error) {
+    console.error(`Error fetching fund info for ${ticker}:`, error.message);
+    
+    return {
+      success: false,
+      data: null,
+      error: true,
+      errorMessage: error.message,
+      message: `ファンド情報の取得中にエラーが発生しました: ${error.message}`
+    };
+  }
+}
