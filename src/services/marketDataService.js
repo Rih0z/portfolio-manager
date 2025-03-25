@@ -1158,7 +1158,7 @@ async function fetchFromUSStockScraping(ticker, assetType = null) {
         // ファンドタイプを判定
         const isEtf = params.type === 'etf' || bondETF;
         const fundType = bondETF ? FUND_TYPES.BOND : 
-                         isEtf ? FUND_TYPES.ETF_US : FUND_TYPES.STOCK;
+                       isEtf ? FUND_TYPES.ETF_US : FUND_TYPES.STOCK;
         
         console.log(`Determined fund type for ${ticker} from US Stock Scraping: ${fundType}`);
         
@@ -2003,3 +2003,219 @@ function generateFallbackTickerData(ticker) {
     message: '最新の価格データを取得できませんでした。前回の価格または推定値を使用しています。',
     error: true
   };
+}
+/**
+ * 複数銘柄のデータを一括取得する
+ * @param {Array<string>} tickers - ティッカーシンボルの配列
+ * @returns {Promise<Object>} - 複数銘柄のデータとステータス
+ */
+export async function fetchMultipleTickerData(tickers) {
+  if (!tickers || !tickers.length) {
+    return {
+      success: false,
+      data: [],
+      message: 'ティッカーリストが空です',
+      error: true
+    };
+  }
+  
+  console.log(`Fetching data for ${tickers.length} tickers: ${tickers.join(', ')}`);
+  
+  // 各ティッカーを並行して取得
+  const results = await Promise.all(
+    tickers.map(async (ticker) => {
+      // ここでは個別ティッカー取得を使用（すでにフォールバックロジックを含む）
+      const result = await fetchTickerData(ticker);
+      return {
+        ticker,
+        ...result
+      };
+    })
+  );
+  
+  // データソースの情報を集計
+  const sourceStats = results.reduce((stats, result) => {
+    const source = result.data?.source || 'Unknown';
+    stats[source] = (stats[source] || 0) + 1;
+    return stats;
+  }, {});
+  
+  // スクレイピングソースのカウント
+  const jpStockScrapingResults = results.filter(result => result.jpStockScrapingTried);
+  const jpStockScrapingSuccess = jpStockScrapingResults.filter(result => result.jpStockScrapingSuccess);
+  
+  const mutualFundScrapingResults = results.filter(result => result.mutualFundScrapingTried);
+  const mutualFundScrapingSuccess = mutualFundScrapingResults.filter(result => result.mutualFundScrapingSuccess);
+  
+  // 米国株スクレイピングの成功/失敗カウントを計算（新規追加）
+  const usStockScrapingResults = results.filter(result => result.usStockScrapingTried);
+  const usStockScrapingSuccess = usStockScrapingResults.filter(result => result.usStockScrapingSuccess);
+  
+  // Alpacaの成功/失敗カウントを計算
+  const alpacaResults = results.filter(result => result.alpacaTried);
+  const alpacaSuccess = alpacaResults.filter(result => result.alpacaSuccess);
+  
+  // Yahoo Financeの成功/失敗カウントを計算
+  const yahooResults = results.filter(result => result.yahooFinanceTried);
+  const yahooSuccess = yahooResults.filter(result => result.yahooFinanceSuccess);
+  
+  // 債券ETFのカウント
+  const bondETFs = results.filter(result => result.isBondETF);
+  
+  // 日本株・投資信託・米国株の分類
+  const japaneseStocks = results.filter(result => isJapaneseStock(result.ticker) && !isMutualFund(result.ticker));
+  const mutualFunds = results.filter(result => isMutualFund(result.ticker));
+  const usStocks = results.filter(result => !isJapaneseStock(result.ticker) && !isMutualFund(result.ticker));
+  
+  console.log(`Data source statistics:`, sourceStats);
+  console.log(`Stock types: Japanese: ${japaneseStocks.length}, US: ${usStocks.length}, Mutual Funds: ${mutualFunds.length}, Bond ETFs: ${bondETFs.length}`);
+  
+  if (jpStockScrapingResults.length > 0) {
+    console.log(`JP Stock Scraping statistics: tried: ${jpStockScrapingResults.length}, succeeded: ${jpStockScrapingSuccess.length}`);
+  }
+  
+  if (mutualFundScrapingResults.length > 0) {
+    console.log(`Mutual Fund Scraping statistics: tried: ${mutualFundScrapingResults.length}, succeeded: ${mutualFundScrapingSuccess.length}`);
+  }
+  
+  if (usStockScrapingResults.length > 0) {
+    console.log(`US Stock Scraping statistics: tried: ${usStockScrapingResults.length}, succeeded: ${usStockScrapingSuccess.length}`);
+  }
+  
+  if (alpacaResults.length > 0) {
+    console.log(`Alpaca statistics: tried: ${alpacaResults.length}, succeeded: ${alpacaSuccess.length}`);
+  }
+  
+  if (yahooResults.length > 0) {
+    console.log(`Yahoo Finance statistics: tried: ${yahooResults.length}, succeeded: ${yahooSuccess.length}`);
+  }
+  
+  if (bondETFs.length > 0) {
+    console.log(`Bond ETF statistics: total: ${bondETFs.length}`);
+  }
+  
+  // 全体の成功・失敗を判定
+  const hasError = results.some(result => !result.success);
+  const allSuccess = results.every(result => result.success);
+  
+  // 結果のサマリーをログ
+  console.log(`Fetch summary: ${results.filter(r => r.success).length} succeeded, ${results.filter(r => !r.success).length} failed`);
+  
+  // 各APIの情報を含む
+  const resultInfo = {
+    success: allSuccess,
+    data: results.map(result => result.data),
+    partialSuccess: hasError && results.some(result => result.success),
+    message: allSuccess 
+      ? '全ての銘柄データを正常に取得しました' 
+      : hasError 
+        ? '一部の銘柄データの取得に失敗しました' 
+        : '全ての銘柄データの取得に失敗しました',
+    error: hasError,
+    details: results.map(result => ({
+      ticker: result.ticker,
+      success: result.success,
+      message: result.message,
+      source: result.data.source,
+      isBondETF: result.isBondETF || false
+    })),
+    // スクレイピングソースの統計を追加
+    jpStockScrapingStats: {
+      tried: jpStockScrapingResults.length,
+      succeeded: jpStockScrapingSuccess.length,
+      failedTickers: jpStockScrapingResults
+        .filter(r => !r.jpStockScrapingSuccess)
+        .map(r => r.ticker)
+    },
+    mutualFundScrapingStats: {
+      tried: mutualFundScrapingResults.length,
+      succeeded: mutualFundScrapingSuccess.length,
+      failedTickers: mutualFundScrapingResults
+        .filter(r => !r.mutualFundScrapingSuccess)
+        .map(r => r.ticker)
+    },
+    usStockScrapingStats: {
+      tried: usStockScrapingResults.length,
+      succeeded: usStockScrapingSuccess.length,
+      failedTickers: usStockScrapingResults
+        .filter(r => !r.usStockScrapingSuccess)
+        .map(r => r.ticker)
+    },
+    alpacaStats: {
+      tried: alpacaResults.length,
+      succeeded: alpacaSuccess.length,
+      failedTickers: alpacaResults
+        .filter(r => !r.alpacaSuccess)
+        .map(r => r.ticker)
+    },
+    yahooFinanceStats: {
+      tried: yahooResults.length,
+      succeeded: yahooSuccess.length,
+      failedTickers: yahooResults
+        .filter(r => !r.yahooFinanceSuccess)
+        .map(r => r.ticker)
+    },
+    bondETFStats: {
+      total: bondETFs.length,
+      tickers: bondETFs.map(r => r.ticker)
+    },
+    stockTypeStats: {
+      japaneseStocks: japaneseStocks.length,
+      mutualFunds: mutualFunds.length,
+      usStocks: usStocks.length,
+      bondETFs: bondETFs.length
+    }
+  };
+  
+  // APIの統計情報をメッセージに含める
+  if (jpStockScrapingResults.length > 0) {
+    if (jpStockScrapingSuccess.length > 0) {
+      resultInfo.jpStockScrapingSuccessMessage = `${jpStockScrapingSuccess.length}件の日本株はスクレイピングから取得しました`;
+    }
+    if (jpStockScrapingResults.length - jpStockScrapingSuccess.length > 0) {
+      resultInfo.jpStockScrapingFailureMessage = `${jpStockScrapingResults.length - jpStockScrapingSuccess.length}件の日本株はスクレイピングから取得できませんでした`;
+    }
+  }
+  
+  if (mutualFundScrapingResults.length > 0) {
+    if (mutualFundScrapingSuccess.length > 0) {
+      resultInfo.mutualFundScrapingSuccessMessage = `${mutualFundScrapingSuccess.length}件の投資信託はスクレイピングから取得しました`;
+    }
+    if (mutualFundScrapingResults.length - mutualFundScrapingSuccess.length > 0) {
+      resultInfo.mutualFundScrapingFailureMessage = `${mutualFundScrapingResults.length - mutualFundScrapingSuccess.length}件の投資信託はスクレイピングから取得できませんでした`;
+    }
+  }
+  
+  if (usStockScrapingResults.length > 0) {
+    if (usStockScrapingSuccess.length > 0) {
+      resultInfo.usStockScrapingSuccessMessage = `${usStockScrapingSuccess.length}件の米国株/ETFはスクレイピングから取得しました`;
+    }
+    if (usStockScrapingResults.length - usStockScrapingSuccess.length > 0) {
+      resultInfo.usStockScrapingFailureMessage = `${usStockScrapingResults.length - usStockScrapingSuccess.length}件の米国株/ETFはスクレイピングから取得できませんでした`;
+    }
+  }
+  
+  if (alpacaResults.length > 0) {
+    if (alpacaSuccess.length > 0) {
+      resultInfo.alpacaSuccessMessage = `${alpacaSuccess.length}件の銘柄はAlpaca APIから取得しました`;
+    }
+    if (alpacaResults.length - alpacaSuccess.length > 0) {
+      resultInfo.alpacaFailureMessage = `${alpacaResults.length - alpacaSuccess.length}件の銘柄はAlpaca APIから取得できませんでした`;
+    }
+  }
+  
+  if (yahooResults.length > 0) {
+    if (yahooSuccess.length > 0) {
+      resultInfo.yahooFinanceSuccessMessage = `${yahooSuccess.length}件の銘柄はYahoo Financeから取得しました`;
+    }
+    if (yahooResults.length - yahooSuccess.length > 0) {
+      resultInfo.yahooFinanceFailureMessage = `${yahooResults.length - yahooSuccess.length}件の銘柄はYahoo Financeからも取得できませんでした`;
+    }
+  }
+  
+  if (bondETFs.length > 0) {
+    resultInfo.bondETFMessage = `${bondETFs.length}件の債券ETFを処理しました`;
+  }
+  
+  return resultInfo;
+}
