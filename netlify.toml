@@ -73,6 +73,13 @@
   to = "/index.html"
   status = 200
 
+# 株価スクレイピングプロキシのリダイレクト設定
+[[redirects]]
+  from = "/api/stock-scraping-proxy"
+  to = "/.netlify/functions/stock-scraping-proxy"
+  status = 200
+  force = true
+  
 # Functions 設定
 [functions]
   directory = "functions"
