@@ -2355,7 +2355,7 @@ export async function fetchDividendData(ticker) {
     
     if (TICKER_SPECIFIC_DIVIDENDS[ticker] !== undefined) {
       // 特定銘柄の配当データが存在する場合
-      const yield = TICKER_SPECIFIC_DIVIDENDS[ticker];
+      const dividendYield = TICKER_SPECIFIC_DIVIDENDS[ticker];
       
       // 配当頻度の推定
       let frequency = 'quarterly'; // デフォルト頻度は四半期
@@ -2370,9 +2370,9 @@ export async function fetchDividendData(ticker) {
       }
       
       dividendInfo = {
-        yield: yield,
+        yield: dividendYield,
         isEstimated: false, // ティッカー固有のデータなので確定値
-        hasDividend: yield > 0,
+        hasDividend: dividendYield > 0,
         dividendFrequency: frequency
       };
     } else {
