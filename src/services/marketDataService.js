@@ -30,7 +30,10 @@ export const SCRAPING_DATA_SOURCES = {
   MINKABU: 'Minkabu',
   KABUTAN: 'Kabutan',
   TOUSHIN_LIB: '投資信託協会',
-  MORNINGSTAR: 'Morningstar Japan'
+  MORNINGSTAR: 'Morningstar Japan',
+  YAHOO_FINANCE_SCRAPING: 'Yahoo Finance Scraping',
+  MARKET_WATCH: 'MarketWatch',
+  INVESTING_COM: 'Investing.com'
 };
 
 // 環境に応じたベースURL設定
@@ -60,6 +63,11 @@ const MUTUAL_FUND_SCRAPING_URL = isLocalhost
   ? '/api/mutual-fund-scraping-proxy' // ローカル環境では直接プロキシ経由
   : `${BASE_URL}/api/mutual-fund-scraping-proxy`; // 本番環境
 
+// 米国株スクレイピングプロキシ（新規追加）
+const US_STOCK_SCRAPING_URL = isLocalhost
+  ? '/api/stock-scraping-proxy' // ローカル環境では直接プロキシ経由
+  : `${BASE_URL}/api/stock-scraping-proxy`; // 本番環境
+
 // Yahoo Finance APIエンドポイント（米国株のバックアップソース）
 const YAHOO_FINANCE_URL = isLocalhost
   ? '/api/yahoo-finance-proxy' // ローカル環境では直接プロキシ経由
@@ -75,12 +83,14 @@ const ENABLE_YAHOO_FINANCE_API = true;
 const ENABLE_ALPACA_API = true;
 const ENABLE_JP_STOCK_SCRAPING = true;
 const ENABLE_MUTUAL_FUND_SCRAPING = true;
+const ENABLE_US_STOCK_SCRAPING = true; // 米国株スクレイピング有効フラグ（新規追加）
 
 // タイムアウト設定
 const ALPACA_API_TIMEOUT = 10000; // 10秒
 const YAHOO_FINANCE_API_TIMEOUT = 15000; // 15秒
 const JP_STOCK_SCRAPING_TIMEOUT = 20000; // 20秒 (スクレイピングは時間がかかる場合がある)
 const MUTUAL_FUND_SCRAPING_TIMEOUT = 20000; // 20秒
+const US_STOCK_SCRAPING_TIMEOUT = 20000; // 20秒（新規追加）
 const EXCHANGERATE_API_TIMEOUT = 10000; // 10秒
 
 // 設定情報をログ出力（開発時の確認用）
@@ -90,12 +100,13 @@ console.log(`API Configuration:
 - Alpaca API (米国株向け): ${ALPACA_API_URL}
 - JP Stock Scraping (日本株向け): ${JP_STOCK_SCRAPING_URL}
 - Mutual Fund Scraping (投資信託向け): ${MUTUAL_FUND_SCRAPING_URL}
+- US Stock Scraping (米国株向け): ${US_STOCK_SCRAPING_URL}
 - Yahoo Finance API (バックアップソース): ${YAHOO_FINANCE_URL}
 - Exchange Rate API: ${EXCHANGERATE_API_URL} (Alternative version)
 - Alpaca API Enabled: ${ENABLE_ALPACA_API}
 - JP Stock Scraping Enabled: ${ENABLE_JP_STOCK_SCRAPING}
 - Mutual Fund Scraping Enabled: ${ENABLE_MUTUAL_FUND_SCRAPING}
-- Yahoo Finance API Enabled: ${ENABLE_YAHOO_FINANCE_API}
+- US Stock Scraping Enabled: ${ENABLE_US_STOCK_SCRAPING}
 - Bond ETFs registered: ${BOND_ETFS.join(', ')}
 `);
 
@@ -338,6 +349,27 @@ function formatCodeForMutualFundScraping(ticker) {
   // Cがあってもなくても良いように正規化
   // （スクレイピングプロキシ側でCの付け外しを適切に処理する）
   return ticker.replace(/C$/, '');
+}
+
+/**
+ * 米国株・ETFのティッカーをスクレイピングプロキシ用にフォーマットする（新規追加）
+ * @param {string} ticker - 元のティッカーシンボル
+ * @param {string} assetType - アセットタイプ（'stock'または'etf'）
+ * @returns {Object} - フォーマットされたパラメータ
+ */
+function formatParamsForUSStockScraping(ticker, assetType = null) {
+  if (!ticker) return {};
+  
+  // 大文字に変換
+  ticker = ticker.toUpperCase();
+  
+  // ETFかどうかを判定
+  const type = assetType || (US_ETF_LIST.includes(ticker) ? 'etf' : 'stock');
+  
+  return {
+    symbol: ticker,
+    type: type
+  };
 }
 
 /**
@@ -918,6 +950,170 @@ async function fetchFromMutualFundScraping(ticker) {
 }
 
 /**
+ * 米国株・ETFスクレイピングプロキシからデータを取得する（新規追加）
+ * @param {string} ticker - ティッカーシンボル
+ * @param {string} assetType - アセットタイプ（stockまたはetf）
+ * @returns {Promise<Object>} - 株価データまたはnull
+ */
+async function fetchFromUSStockScraping(ticker, assetType = null) {
+  // 米国株スクレイピングが無効化されている場合は直接nullを返す
+  if (!ENABLE_US_STOCK_SCRAPING) {
+    console.log(`US Stock Scraping is disabled. Skipping fetch for ${ticker}`);
+    return null;
+  }
+  
+  // 日本株や投資信託は処理しない
+  if (isJapaneseStock(ticker) || isMutualFund(ticker)) {
+    console.log(`${ticker} is not a US stock/ETF. Skipping US Stock Scraping.`);
+    return null;
+  }
+  
+  try {
+    // スクレイピング用にパラメータをフォーマット
+    const params = formatParamsForUSStockScraping(ticker, assetType);
+    console.log(`Formatted params for US Stock Scraping:`, params);
+    
+    console.log(`Attempting to fetch data for ${ticker} from US Stock Scraping at: ${US_STOCK_SCRAPING_URL}`);
+    
+    // スクレイピングプロキシにリクエスト - リトライメカニズム追加
+    let retries = 2; // 最大3回試行（初回 + 2回リトライ）
+    let response = null;
+    let error = null;
+    
+    while (retries >= 0) {
+      try {
+        response = await axios.get(US_STOCK_SCRAPING_URL, {
+          params: params,
+          timeout: US_STOCK_SCRAPING_TIMEOUT + (2 - retries) * 3000, // リトライごとにタイムアウトを延長
+          validateStatus: function (status) {
+            // 全てのステータスコードを許可して、エラー時にPromiseをリジェクトしないようにする
+            return true;
+          }
+        });
+        
+        // 成功した場合はループを抜ける
+        if (response.status === 200 && response.data && response.data.success) {
+          break;
+        }
+        
+        retries--;
+        if (retries >= 0) {
+          console.log(`Retrying US Stock Scraping for ${ticker}, attempts left: ${retries}`);
+          // 次の試行前に短い遅延を入れる（スクレイピングは時間がかかることがあるため）
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+      } catch (e) {
+        error = e;
+        retries--;
+        if (retries >= 0) {
+          console.log(`Error fetching from US Stock Scraping, retrying... (${retries} attempts left)`);
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+      }
+    }
+    
+    // レスポンスデータをログ（デバッグ用）
+    console.log(`US Stock Scraping response for ${ticker}:`, response?.data);
+    
+    // データの存在を確認
+    if (response?.data?.success) {
+      const stockData = response.data.data;
+      
+      // 価格の存在確認
+      if (stockData && stockData.price) {
+        const price = stockData.price;
+        
+        console.log(`Successfully fetched data for ${ticker} from US Stock Scraping: ${price}`);
+        
+        // 銘柄名を取得
+        const name = stockData.name || ticker;
+        
+        // 債券ETFかどうかを判定
+        const bondETF = isBondETF(ticker);
+        
+        // ファンドタイプを判定
+        const isEtf = params.type === 'etf' || bondETF;
+        const fundType = bondETF ? FUND_TYPES.BOND : 
+                         isEtf ? FUND_TYPES.ETF_US : FUND_TYPES.STOCK;
+        
+        console.log(`Determined fund type for ${ticker} from US Stock Scraping: ${fundType}`);
+        
+        // 個別株かどうかを判定
+        const isStock = fundType === FUND_TYPES.STOCK;
+        
+        // 手数料情報を取得
+        const feeInfo = estimateAnnualFee(ticker, name);
+        
+        // 基本情報を取得
+        const fundInfo = extractFundInfo(ticker, name);
+        
+        // 配当情報の取得
+        const dividendInfo = estimateDividendYield(ticker, name);
+        
+        // 配当情報を確定
+        const hasDividend = determineHasDividend(ticker) || bondETF;
+        
+        // 通貨判定
+        const currency = stockData.currency || 'USD';
+        
+        // 手数料情報（個別株は常に0%）
+        const annualFee = isStock ? 0 : (bondETF ? 0.15 : feeInfo.fee);
+        
+        // データソース表示用（スクレイピング元のサイト名）
+        const dataSource = stockData.source || (
+          stockData.source === 'Yahoo Finance' ? SCRAPING_DATA_SOURCES.YAHOO_FINANCE_SCRAPING :
+          stockData.source === 'MarketWatch' ? SCRAPING_DATA_SOURCES.MARKET_WATCH : 
+          SCRAPING_DATA_SOURCES.INVESTING_COM
+        );
+        
+        return {
+          success: true,
+          data: {
+            id: ticker,
+            name: name,
+            ticker: ticker,
+            exchangeMarket: 'US',
+            price: price,
+            currency: currency,
+            holdings: 0,
+            annualFee: annualFee,
+            fundType: fundType,
+            isStock: isStock,
+            isMutualFund: false,
+            isBondETF: bondETF,
+            feeSource: isStock ? '個別株' : (bondETF ? '債券ETF' : feeInfo.source),
+            feeIsEstimated: isStock ? false : feeInfo.isEstimated,
+            region: fundInfo.region || 'US',
+            lastUpdated: stockData.lastUpdated || new Date().toISOString(),
+            source: dataSource,
+            // 配当情報
+            dividendYield: bondETF ? 3.0 : dividendInfo.yield,
+            hasDividend: hasDividend,
+            dividendFrequency: bondETF ? 'monthly' : dividendInfo.dividendFrequency,
+            dividendIsEstimated: dividendInfo.isEstimated,
+            // 株価表示ラベル
+            priceLabel: '株価'
+          },
+          message: `${dataSource}から正常に取得しました（スクレイピング）`
+        };
+      }
+    }
+    
+    console.log(`No valid data found for ${ticker} from US Stock Scraping`);
+    return null;
+  } catch (error) {
+    console.error(`US Stock Scraping error for ${ticker}:`, error.message);
+    
+    if (error.response) {
+      console.error(`US Stock Scraping response error status: ${error.response.status}`);
+      console.error(`US Stock Scraping response data:`, error.response.data);
+    }
+    
+    return null;
+  }
+}
+
+/**
  * Yahoo Finance APIからデータを取得する
  * @param {string} ticker - ティッカーシンボル
  * @returns {Promise<Object>} - Yahoo Financeからのデータまたはnull
@@ -1154,8 +1350,30 @@ export async function fetchTickerData(ticker) {
       console.error(`Alpaca API error for ${ticker}:`, alpacaError.message);
     }
     
-    // 両方のAPIが失敗した場合はフォールバック値を生成
-    console.log(`Both APIs failed for ${ticker}. Using enhanced fallback for bond ETF.`);
+    // 両APIが失敗した場合は米国株スクレイピングを試行（新規追加）
+    try {
+      console.log(`Both APIs failed for ${ticker}. Trying US Stock Scraping.`);
+      // ETFタイプとして明示的に指定
+      const scrapingResult = await fetchFromUSStockScraping(ticker, 'etf');
+      if (scrapingResult && scrapingResult.success) {
+        console.log(`Successfully fetched ${ticker} from US Stock Scraping`);
+        return {
+          ...scrapingResult,
+          alpacaTried: true,
+          alpacaSuccess: false,
+          yahooFinanceTried: true,
+          yahooFinanceSuccess: false,
+          usStockScrapingTried: true,
+          usStockScrapingSuccess: true,
+          isBondETF: true
+        };
+      }
+    } catch (scrapingError) {
+      console.error(`US Stock Scraping error for ${ticker}:`, scrapingError.message);
+    }
+    
+    // 全てのAPIが失敗した場合はフォールバック値を生成
+    console.log(`All APIs failed for ${ticker}. Using enhanced fallback for bond ETF.`);
     const fallbackData = generateBondETFFallback(ticker);
     return {
       ...fallbackData,
@@ -1163,6 +1381,8 @@ export async function fetchTickerData(ticker) {
       alpacaSuccess: false,
       yahooFinanceTried: true,
       yahooFinanceSuccess: false,
+      usStockScrapingTried: true,
+      usStockScrapingSuccess: false,
       isBondETF: true,
       message: `${ticker}のデータ取得に失敗しました。債券ETF用のフォールバック値を使用します。`
     };
@@ -1181,6 +1401,8 @@ export async function fetchTickerData(ticker) {
   let alpacaSuccess = false;
   let yahooFinanceTried = false;
   let yahooFinanceSuccess = false;
+  let usStockScrapingTried = false;  // 米国株スクレイピング試行フラグ（新規追加）
+  let usStockScrapingSuccess = false;  // 米国株スクレイピング成功フラグ（新規追加）
   
   // 投資信託の場合
   if (isMutualFundTicker) {
@@ -1336,8 +1558,28 @@ export async function fetchTickerData(ticker) {
       };
     }
     
-    // すべてのAPIが失敗した場合は、フォールバック値を使用
-    console.log(`All APIs failed for ${ticker}. Using fallback data.`);
+    // Yahoo Financeも失敗した場合は、米国株スクレイピングを試行（新規追加）
+    console.log(`Yahoo Finance also failed for ${ticker}. Trying US Stock Scraping.`);
+    usStockScrapingTried = true;
+    // ETFかどうかを判定してタイプを指定
+    const isEtf = US_ETF_LIST.includes(ticker);
+    const scrapingResult = await fetchFromUSStockScraping(ticker, isEtf ? 'etf' : 'stock');
+    
+    if (scrapingResult && scrapingResult.success) {
+      usStockScrapingSuccess = true;
+      return {
+        ...scrapingResult,
+        alpacaTried,
+        alpacaSuccess,
+        yahooFinanceTried,
+        yahooFinanceSuccess,
+        usStockScrapingTried,
+        usStockScrapingSuccess
+      };
+    }
+    
+    // すべてのAPIとスクレイピングが失敗した場合は、フォールバック値を使用
+    console.log(`All APIs and scraping failed for ${ticker}. Using fallback data.`);
     const fallbackData = generateFallbackTickerData(ticker);
     
     return {
@@ -1346,7 +1588,9 @@ export async function fetchTickerData(ticker) {
       alpacaSuccess,
       yahooFinanceTried,
       yahooFinanceSuccess,
-      message: `すべてのAPIからのデータ取得に失敗しました: ${ticker}. フォールバック値を使用します。`
+      usStockScrapingTried,
+      usStockScrapingSuccess,
+      message: `すべてのAPIとスクレイピングからのデータ取得に失敗しました: ${ticker}. フォールバック値を使用します。`
     };
   } catch (error) {
     console.error(`Error fetching ${ticker} from APIs:`, error.message);
@@ -1369,6 +1613,33 @@ export async function fetchTickerData(ticker) {
         }
       } catch (yahooError) {
         console.error(`Yahoo Finance also failed for ${ticker}:`, yahooError.message);
+      }
+    }
+    
+    // US Stock Scrapingをまだ試していない場合は試行（新規追加）
+    if (!usStockScrapingTried && ENABLE_US_STOCK_SCRAPING) {
+      try {
+        console.log(`Both APIs failed, trying US Stock Scraping for ${ticker}`);
+        usStockScrapingTried = true;
+        // ETFかどうかを判定してタイプを指定
+        const isEtf = US_ETF_LIST.includes(ticker);
+        const scrapingResult = await fetchFromUSStockScraping(ticker, isEtf ? 'etf' : 'stock');
+        
+        if (scrapingResult && scrapingResult.success) {
+          usStockScrapingSuccess = true;
+          return {
+            ...scrapingResult,
+            alpacaTried,
+            alpacaSuccess: false,
+            yahooFinanceTried,
+            yahooFinanceSuccess: false,
+            usStockScrapingTried,
+            usStockScrapingSuccess,
+            message: `APIが失敗し、スクレイピングから取得しました: ${ticker}`
+          };
+        }
+      } catch (scrapingError) {
+        console.error(`US Stock Scraping also failed for ${ticker}:`, scrapingError.message);
       }
     }
     
@@ -1402,6 +1673,8 @@ export async function fetchTickerData(ticker) {
       alpacaSuccess,
       yahooFinanceTried,
       yahooFinanceSuccess,
+      usStockScrapingTried,
+      usStockScrapingSuccess,
       errorType,
       error: true,
       errorMessage: error.message,
@@ -1651,6 +1924,10 @@ export async function fetchMultipleTickerData(tickers) {
   const mutualFundScrapingResults = results.filter(result => result.mutualFundScrapingTried);
   const mutualFundScrapingSuccess = mutualFundScrapingResults.filter(result => result.mutualFundScrapingSuccess);
   
+  // 米国株スクレイピングの成功/失敗カウントを計算（新規追加）
+  const usStockScrapingResults = results.filter(result => result.usStockScrapingTried);
+  const usStockScrapingSuccess = usStockScrapingResults.filter(result => result.usStockScrapingSuccess);
+  
   // Alpacaの成功/失敗カウントを計算
   const alpacaResults = results.filter(result => result.alpacaTried);
   const alpacaSuccess = alpacaResults.filter(result => result.alpacaSuccess);
@@ -1676,6 +1953,10 @@ export async function fetchMultipleTickerData(tickers) {
   
   if (mutualFundScrapingResults.length > 0) {
     console.log(`Mutual Fund Scraping statistics: tried: ${mutualFundScrapingResults.length}, succeeded: ${mutualFundScrapingSuccess.length}`);
+  }
+  
+  if (usStockScrapingResults.length > 0) {
+    console.log(`US Stock Scraping statistics: tried: ${usStockScrapingResults.length}, succeeded: ${usStockScrapingSuccess.length}`);
   }
   
   if (alpacaResults.length > 0) {
@@ -1730,6 +2011,13 @@ export async function fetchMultipleTickerData(tickers) {
         .filter(r => !r.mutualFundScrapingSuccess)
         .map(r => r.ticker)
     },
+    usStockScrapingStats: {
+      tried: usStockScrapingResults.length,
+      succeeded: usStockScrapingSuccess.length,
+      failedTickers: usStockScrapingResults
+        .filter(r => !r.usStockScrapingSuccess)
+        .map(r => r.ticker)
+    },
     alpacaStats: {
       tried: alpacaResults.length,
       succeeded: alpacaSuccess.length,
@@ -1775,6 +2063,15 @@ export async function fetchMultipleTickerData(tickers) {
     }
   }
   
+  if (usStockScrapingResults.length > 0) {
+    if (usStockScrapingSuccess.length > 0) {
+      resultInfo.usStockScrapingSuccessMessage = `${usStockScrapingSuccess.length}件の米国株/ETFはスクレイピングから取得しました`;
+    }
+    if (usStockScrapingResults.length - usStockScrapingSuccess.length > 0) {
+      resultInfo.usStockScrapingFailureMessage = `${usStockScrapingResults.length - usStockScrapingSuccess.length}件の米国株/ETFはスクレイピングから取得できませんでした`;
+    }
+  }
+  
   if (alpacaResults.length > 0) {
     if (alpacaSuccess.length > 0) {
       resultInfo.alpacaSuccessMessage = `${alpacaSuccess.length}件の銘柄はAlpaca APIから取得しました`;
@@ -1799,342 +2096,3 @@ export async function fetchMultipleTickerData(tickers) {
   
   return resultInfo;
 }
-
-/**
- * 配当データを取得する
- * @param {string} ticker - ティッカーシンボル
- * @returns {Promise<Object>} - 配当データとステータス
- */
-export const fetchDividendData = async function(ticker) {
-  try {
-    // ティッカーを大文字に統一
-    ticker = ticker.toUpperCase();
-    
-    // 債券ETFかどうかを判定
-    const bondETF = isBondETF(ticker);
-    
-    // 債券ETFの場合は固定値を返す
-    if (bondETF) {
-      return {
-        success: true,
-        data: {
-          dividendYield: 3.0, // 債券ETFの一般的な利回り
-          hasDividend: true,
-          dividendFrequency: 'monthly', // 債券ETFは通常月次配当
-          dividendIsEstimated: true,
-          lastUpdated: new Date().toISOString()
-        },
-        message: '債券ETFの配当情報を取得しました'
-      };
-    }
-    
-    // ファンドタイプを判定
-    const fundType = determineFundType(ticker, ticker);
-    
-    // 配当情報の取得
-    const dividendInfo = estimateDividendYield(ticker, ticker);
-    
-    // 配当情報を確定
-    const hasDividend = determineHasDividend(ticker);
-    
-    return {
-      success: true,
-      data: {
-        dividendYield: dividendInfo.yield,
-        hasDividend: hasDividend,
-        dividendFrequency: dividendInfo.dividendFrequency,
-        dividendIsEstimated: dividendInfo.isEstimated,
-        lastUpdated: new Date().toISOString()
-      },
-      message: '配当情報を取得しました'
-    };
-  } catch (error) {
-    console.error('Dividend data fetch error:', error);
-    
-    // 債券ETFかどうかを判定
-    const bondETF = isBondETF(ticker);
-    
-    if (bondETF) {
-      return {
-        success: true,
-        data: {
-          dividendYield: 3.0, // 債券ETFの一般的な利回り
-          hasDividend: true,
-          dividendFrequency: 'monthly', // 債券ETFは通常月次配当
-          dividendIsEstimated: true,
-          lastUpdated: new Date().toISOString()
-        },
-        message: '債券ETFの配当情報を取得しました'
-      };
-    }
-    
-    // エラー時はティッカーからの推定値を返す
-    const dividendInfo = estimateDividendYield(ticker, ticker);
-    const hasDividend = determineHasDividend(ticker);
-    
-    return {
-      success: false,
-      data: {
-        dividendYield: dividendInfo.yield,
-        hasDividend: hasDividend,
-        dividendFrequency: dividendInfo.dividendFrequency,
-        dividendIsEstimated: true,
-        lastUpdated: new Date().toISOString()
-      },
-      message: '配当情報の取得に失敗しました。推定値を使用しています。',
-      error: true
-    };
-  }
-};
-
-/**
- * ファンド情報を取得する
- * @param {string} ticker - ティッカーシンボル
- * @param {string} name - 銘柄名（省略可）
- * @returns {Promise<Object>} - ファンド情報とステータス
- */
-export const fetchFundInfo = async function(ticker, name = '') {
-  try {
-    // ティッカーを大文字に統一
-    ticker = ticker.toUpperCase();
-    
-    // 債券ETFかどうかを判定
-    const bondETF = isBondETF(ticker);
-    
-    // 投資信託かどうかを判定
-    const isMutualFundTicker = isMutualFund(ticker);
-    
-    // ファンドタイプを判定
-    const fundType = isMutualFundTicker
-      ? FUND_TYPES.MUTUAL_FUND
-      : bondETF
-        ? FUND_TYPES.BOND
-        : determineFundType(ticker, name);
-    
-    // 個別株かどうかを判定
-    const isStock = fundType === FUND_TYPES.STOCK;
-    
-    // 手数料情報を推定
-    const feeInfo = estimateAnnualFee(ticker, name);
-    
-    // 配当情報を推定
-    const dividendInfo = estimateDividendYield(ticker, name);
-    
-    // 配当情報を確定
-    const hasDividend = determineHasDividend(ticker) || bondETF;
-    
-    // 債券ETF固有の値
-    const fee = isStock ? 0 : (bondETF ? 0.15 : feeInfo.fee);
-    const source = isStock ? '個別株' : (bondETF ? '債券ETF' : (isMutualFundTicker ? '投資信託' : feeInfo.source));
-    
-    return {
-      success: true,
-      ticker: ticker,
-      name: name || ticker,
-      fundType: fundType,
-      isStock: isStock,
-      isMutualFund: isMutualFundTicker,
-      isBondETF: bondETF,
-      annualFee: fee,
-      feeSource: source,
-      feeIsEstimated: isStock ? false : (bondETF ? true : feeInfo.isEstimated),
-      dividendYield: bondETF ? 3.0 : dividendInfo.yield,
-      hasDividend: hasDividend,
-      dividendFrequency: bondETF ? 'monthly' : dividendInfo.dividendFrequency,
-      dividendIsEstimated: bondETF ? true : dividendInfo.isEstimated,
-      message: 'ファンド情報を取得しました'
-    };
-  } catch (error) {
-    console.error('Fund info fetch error:', error);
-    
-    return {
-      success: false,
-      ticker: ticker,
-      fundType: 'UNKNOWN',
-      isStock: false,
-      isMutualFund: false,
-      isBondETF: false,
-      annualFee: 0,
-      feeSource: '取得失敗',
-      feeIsEstimated: true,
-      dividendYield: 0,
-      hasDividend: false,
-      dividendFrequency: 'unknown',
-      dividendIsEstimated: true,
-      message: 'ファンド情報の取得に失敗しました',
-      error: true
-    };
-  }
-};
-
-/**
- * 為替レートを取得する（改善版）
- * @param {string} fromCurrency - 変換元通貨
- * @param {string} toCurrency - 変換先通貨
- * @returns {Promise<Object>} - 為替レートデータとステータス
- */
-export const fetchExchangeRate = async function(fromCurrency, toCurrency) {
-  try {
-    // 同一通貨の場合は1を返す
-    if (fromCurrency === toCurrency) {
-      return {
-        success: true,
-        rate: 1,
-        source: 'Direct',
-        message: '同一通貨間のレートです',
-        lastUpdated: new Date().toISOString()
-      };
-    }
-    
-    console.log(`Attempting to fetch exchange rate for ${fromCurrency}/${toCurrency} from alternative exchangerate API`);
-    
-    // リトライメカニズムを実装
-    let retries = 2; // 最大3回試行（初回 + 2回リトライ）
-    let response = null;
-    let error = null;
-    
-    while (retries >= 0) {
-      try {
-        // 代替exchangerate APIを呼び出す
-        response = await axios.get(EXCHANGERATE_API_URL, {
-          params: {
-            base: fromCurrency,
-            symbols: toCurrency
-          },
-          timeout: EXCHANGERATE_API_TIMEOUT + (2 - retries) * 2000 // リトライごとにタイムアウトを延長
-        });
-        
-        // 成功した場合はループを抜ける
-        if (response.status === 200 && response.data && response.data.success) {
-          break;
-        }
-        
-        retries--;
-        if (retries >= 0) {
-          console.log(`Retrying exchange rate API for ${fromCurrency}/${toCurrency}, attempts left: ${retries}`);
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-      } catch (e) {
-        error = e;
-        retries--;
-        if (retries >= 0) {
-          console.log(`Error fetching from exchange rate API, retrying... (${retries} attempts left)`);
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-      }
-    }
-    
-    // データの存在確認
-    if (response && response.data && response.data.success && response.data.data) {
-      const rate = response.data.data.rate;
-      const source = response.data.data.source || DATA_SOURCES.EXCHANGERATE;
-      
-      console.log(`Successfully fetched exchange rate for ${fromCurrency}/${toCurrency} from ${source}: ${rate}`);
-      
-      return {
-        success: true,
-        rate: rate,
-        source: source,
-        message: '正常に取得しました',
-        lastUpdated: new Date().toISOString()
-      };
-    }
-    
-    console.log(`No valid exchange rate data from API, using fallback value`);
-    
-    // データがない場合はフォールバック値を使用
-    return generateFallbackExchangeRate(fromCurrency, toCurrency);
-    
-  } catch (error) {
-    console.error('Exchange rate fetch error:', error);
-    console.log(`Error fetching exchange rate, using fallback value`);
-    
-    // フォールバック値を返す
-    return generateFallbackExchangeRate(fromCurrency, toCurrency);
-  }
-};
-
-/**
- * フォールバック為替レートを生成する
- * @param {string} fromCurrency - 変換元通貨
- * @param {string} toCurrency - 変換先通貨
- * @returns {Object} - フォールバック為替レートデータとステータス
- */
-function generateFallbackExchangeRate(fromCurrency, toCurrency) {
-  const pair = `${fromCurrency}/${toCurrency}`;
-  let rate;
-  
-  // デフォルト値から取得を試みる
-  if (DEFAULT_EXCHANGE_RATES[pair]) {
-    rate = DEFAULT_EXCHANGE_RATES[pair];
-  } else if (fromCurrency === 'JPY' && toCurrency === 'USD') {
-    rate = 1 / 150.0; // 円からドル (約0.0067)
-  } else if (fromCurrency === 'USD' && toCurrency === 'JPY') {
-    rate = 150.0; // ドルから円
-  } else {
-    // その他の通貨ペアの場合は1を使用
-    rate = 1;
-  }
-  
-  console.log(`Using fallback exchange rate for ${fromCurrency}/${toCurrency}: ${rate}`);
-  
-  return {
-    success: false,
-    rate: rate,
-    source: DATA_SOURCES.FALLBACK,
-    message: '最新の為替レートを取得できませんでした。デフォルト値を使用しています。',
-    error: true,
-    lastUpdated: new Date().toISOString()
-  };
-}
-
-/**
- * データの鮮度を確認する
- * @param {Array<Object>} assets - 資産データの配列
- * @param {number} staleThresholdHours - 古いとみなす時間（時間単位）
- * @returns {Object} - データの鮮度情報
- */
-export const checkDataFreshness = function(assets, staleThresholdHours = 24) {
-  if (!assets || !assets.length) {
-    return {
-      fresh: true,
-      staleItems: [],
-      missingUpdateTime: [],
-      message: 'データがありません'
-    };
-  }
-  
-  const now = new Date();
-  const staleThreshold = staleThresholdHours * 60 * 60 * 1000; // ミリ秒に変換
-  
-  const staleItems = [];
-  const missingUpdateTime = [];
-  
-  assets.forEach(asset => {
-    if (!asset.lastUpdated) {
-      missingUpdateTime.push(asset.ticker);
-    } else {
-      const updateTime = new Date(asset.lastUpdated);
-      const age = now - updateTime;
-      
-      if (age > staleThreshold) {
-        staleItems.push({
-          ticker: asset.ticker,
-          age: Math.floor(age / (60 * 60 * 1000)), // 時間単位に変換
-          lastUpdated: asset.lastUpdated
-        });
-      }
-    }
-  });
-  
-  return {
-    fresh: staleItems.length === 0 && missingUpdateTime.length === 0,
-    staleItems,
-    missingUpdateTime,
-    message: staleItems.length > 0 
-      ? `${staleItems.length}個の銘柄データが${staleThresholdHours}時間以上更新されていません` 
-      : missingUpdateTime.length > 0 
-        ? `${missingUpdateTime.length}個の銘柄に更新時間情報がありません` 
-        : 'すべてのデータは最新です'
-  };
-};
