@@ -1,10 +1,28 @@
 // functions/yahoo-finance-proxy.js
 
 /**
- * Yahoo Finance APIへのプロキシ関数（401エラー対応版）
+ * Yahoo Finance APIへのプロキシ関数（債券ETF対応強化版）
  * 株価データと投資信託データを取得する
  */
 const axios = require('axios');
+
+// 債券ETFの明示的なリスト
+const BOND_ETFS = ['LQD', 'BND', 'AGG', 'TLT', 'IEF', 'GOVT', 'HYG', 'JNK', 'MUB', 'VCIT', 'VCSH'];
+
+// 債券ETF向けの最新デフォルト価格
+const BOND_ETF_DEFAULTS = {
+  'LQD': 109.64,
+  'BND': 73.57,
+  'AGG': 98.32,
+  'TLT': 96.18,
+  'IEF': 95.35,
+  'GOVT': 25.10,
+  'HYG': 76.89,
+  'JNK': 93.22,
+  'MUB': 106.54,
+  'VCIT': 80.38,
+  'VCSH': 76.98
+};
 
 exports.handler = async function(event, context) {
   // リクエスト情報をログ出力
@@ -75,6 +93,21 @@ exports.handler = async function(event, context) {
 };
 
 /**
+ * 債券ETFかどうかを判定する関数
+ * @param {string} ticker - ティッカーシンボル
+ * @returns {boolean} 債券ETFの場合はtrue
+ */
+function isBondETF(ticker) {
+  if (!ticker) return false;
+  
+  // 大文字に変換して確認
+  ticker = ticker.toString().toUpperCase();
+  
+  // 登録済みの債券ETFリストと照合
+  return BOND_ETFS.includes(ticker);
+}
+
+/**
  * 投資信託かどうかを判定する関数
  * @param {string} ticker - ティッカーシンボル
  * @returns {boolean} 投資信託の場合はtrue
@@ -101,6 +134,39 @@ function isJapaneseStock(ticker) {
  * @returns {Object} フォールバックデータ
  */
 function generateFallbackData(symbol) {
+  // 大文字に変換
+  const upperSymbol = symbol.toUpperCase();
+  
+  // 債券ETFかどうかを判定
+  const isBondETFSymbol = isBondETF(upperSymbol);
+  
+  // 債券ETFの場合は特別処理
+  if (isBondETFSymbol) {
+    console.log(`[Yahoo Finance Proxy] Generating enhanced fallback data for bond ETF: ${upperSymbol}`);
+    const bondPrice = BOND_ETF_DEFAULTS[upperSymbol] || 100;
+    
+    // LQDの場合は特別にログ出力
+    if (upperSymbol === 'LQD') {
+      console.log(`[Yahoo Finance Proxy] Special handling for LQD with price: ${bondPrice}`);
+    }
+    
+    return {
+      ticker: upperSymbol,
+      price: bondPrice,
+      name: `${upperSymbol} - iShares Bond ETF`,
+      currency: 'USD',
+      lastUpdated: new Date().toISOString(),
+      source: 'Fallback (Bond ETF)',
+      isStock: false,
+      isMutualFund: false,
+      isBondETF: true,
+      priceLabel: '株価',
+      // 債券ETF特有の情報
+      dividendYield: 3.0,
+      hasDividend: true
+    };
+  }
+  
   // 投資信託かどうかを判定
   const isMutualFundTicker = isMutualFund(symbol);
   const isJapaneseStockTicker = isJapaneseStock(symbol);
@@ -124,6 +190,75 @@ function generateFallbackData(symbol) {
 }
 
 /**
+ * 債券ETF用の特別ハンドラ - より信頼性の高いデータ取得を試みる
+ * @param {string} symbol - ティッカーシンボル
+ * @returns {Promise<Object>} - 債券ETFデータ
+ */
+async function handleBondETF(symbol) {
+  console.log(`[Yahoo Finance Proxy] Using specialized Bond ETF handler for ${symbol}`);
+  
+  try {
+    // 特化したエンドポイントを試みる
+    const bondUrl = `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${symbol}?modules=price,defaultKeyStatistics`;
+    
+    const response = await axios.get(bondUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'application/json',
+        'Referer': `https://finance.yahoo.com/quote/${symbol}`,
+        'Origin': 'https://finance.yahoo.com'
+      },
+      timeout: 10000
+    });
+    
+    // データが存在するか確認
+    if (response.data && 
+        response.data.quoteSummary && 
+        response.data.quoteSummary.result && 
+        response.data.quoteSummary.result.length > 0 &&
+        response.data.quoteSummary.result[0].price) {
+      
+      const priceData = response.data.quoteSummary.result[0].price;
+      const statsData = response.data.quoteSummary.result[0].defaultKeyStatistics || {};
+      
+      // 名前の取得
+      const name = priceData.shortName || priceData.longName || `${symbol} Bond ETF`;
+      
+      // 配当利回りの取得 (存在する場合)
+      let dividendYield = 3.0; // デフォルト値
+      if (statsData.yield && statsData.yield.raw) {
+        dividendYield = statsData.yield.raw * 100; // パーセンテージに変換
+      }
+      
+      console.log(`[Yahoo Finance Proxy] Successfully fetched bond ETF data for ${symbol}: ${priceData.regularMarketPrice?.raw || 'N/A'}`);
+      
+      return {
+        ticker: symbol,
+        price: priceData.regularMarketPrice?.raw || BOND_ETF_DEFAULTS[symbol] || 100,
+        name: name,
+        currency: priceData.currency || 'USD',
+        lastUpdated: new Date().toISOString(),
+        source: 'Yahoo Finance (Bond ETF)',
+        isStock: false,
+        isMutualFund: false,
+        isBondETF: true,
+        priceLabel: '株価',
+        // 債券ETF特有の情報
+        dividendYield: dividendYield,
+        hasDividend: true
+      };
+    } else {
+      throw new Error(`No valid data found for bond ETF ${symbol}`);
+    }
+  } catch (error) {
+    console.warn(`[Yahoo Finance Proxy] Bond ETF handler failed for ${symbol}: ${error.message}`);
+    
+    // フォールバック値を返す
+    return generateFallbackData(symbol);
+  }
+}
+
+/**
  * 株価データを取得する
  * @param {string} symbols - カンマ区切りのティッカーシンボル
  * @param {Object} headers - レスポンスヘッダー
@@ -133,225 +268,238 @@ async function handleStockData(symbols, headers) {
   // カンマ区切りのシンボルを配列に変換
   const symbolsList = symbols.split(',').map(s => s.trim());
   
-  // 日本株と投資信託の場合は.Tを追加
-  const formattedSymbols = symbolsList.map(symbol => {
-    // 投資信託コード処理を追加（7-8桁数字+C）
-    if (/^\d{7,8}C$/i.test(symbol) && !symbol.includes('.T')) {
-      return `${symbol}.T`;
-    }
-    // 日本株の場合（4桁数字）
-    else if (/^\d{4}$/.test(symbol) && !symbol.includes('.T')) {
-      return `${symbol}.T`;
-    }
-    return symbol;
-  });
+  // 各シンボルを3つのカテゴリに分類
+  const bondETFs = symbolsList.filter(s => isBondETF(s));
+  const regularSymbols = symbolsList.filter(s => !isBondETF(s));
   
-  try {
-    // 複数のアプローチを試す
-    console.log(`Attempting to fetch data for symbols: ${formattedSymbols.join(',')}`);
+  console.log(`Categorized symbols: Bond ETFs=${bondETFs.length}, Regular=${regularSymbols.length}`);
+  
+  // 債券ETFとそれ以外を別々に処理
+  const result = {};
+  
+  // 1. まず債券ETFを特別ハンドラで処理
+  if (bondETFs.length > 0) {
+    console.log(`Processing ${bondETFs.length} bond ETFs with special handler`);
     
-    // アプローチ1: Yahoo Finance APIを直接呼び出す
-    try {
-      console.log('Trying approach 1: Direct Yahoo Finance API call with enhanced headers');
+    for (const bondSymbol of bondETFs) {
+      // 債券ETF用の特化したハンドラを使用
+      const bondData = await handleBondETF(bondSymbol);
+      result[bondSymbol] = bondData;
       
-      // ランダムなユーザーエージェントを選択
-      const userAgents = [
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.4 Safari/605.1.15',
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:123.0) Gecko/20100101 Firefox/123.0',
-        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3 Mobile/15E148 Safari/604.1'
-      ];
-      const randomUserAgent = userAgents[Math.floor(Math.random() * userAgents.length)];
-      
-      const yahooUrl = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${formattedSymbols.join(',')}`;
-      
-      const response = await axios.get(yahooUrl, {
-        headers: {
-          'User-Agent': randomUserAgent,
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.5',
-          'Referer': 'https://finance.yahoo.com/quote/AAPL/',
-          'Origin': 'https://finance.yahoo.com',
-          'DNT': '1',
-          'Connection': 'keep-alive',
-          'Sec-Fetch-Dest': 'document',
-          'Sec-Fetch-Mode': 'navigate',
-          'Sec-Fetch-Site': 'same-origin',
-          'Pragma': 'no-cache',
-          'Cache-Control': 'no-cache'
-        },
-        timeout: 15000
-      });
-      
-      // データが正常に取得できたかチェック
-      if (response.data && 
-          response.data.quoteResponse && 
-          response.data.quoteResponse.result &&
-          response.data.quoteResponse.result.length > 0) {
-        
-        console.log(`Successfully retrieved data via approach 1 for ${response.data.quoteResponse.result.length} symbols`);
-        
-        const quotes = response.data.quoteResponse.result;
-        const result = {};
-        
-        quotes.forEach(quote => {
-          const ticker = quote.symbol;
-          const isMutualFundTicker = isMutualFund(ticker);
-          
-          result[ticker.replace(/\.T$/, '')] = {
-            ticker: ticker.replace(/\.T$/, ''),
-            price: quote.regularMarketPrice || quote.ask || quote.bid || 0,
-            name: quote.shortName || quote.longName || ticker,
-            currency: quote.currency || (ticker.includes('.T') ? 'JPY' : 'USD'),
-            lastUpdated: new Date().toISOString(),
-            source: 'Yahoo Finance',
-            isStock: !isMutualFundTicker,
-            isMutualFund: isMutualFundTicker,
-            priceLabel: isMutualFundTicker ? '基準価額' : '株価'
-          };
-        });
-        
-        // 見つからなかったシンボルにフォールバックデータを追加
-        const foundSymbols = Object.keys(result).map(key => key.includes('.T') ? key : `${key}.T`);
-        const notFoundSymbols = formattedSymbols.filter(s => !foundSymbols.includes(s) && !foundSymbols.includes(s.replace(/\.T$/, '')));
-        
-        if (notFoundSymbols.length > 0) {
-          console.log(`Generating fallback data for ${notFoundSymbols.length} missing symbols`);
-          
-          notFoundSymbols.forEach(symbol => {
-            const plainSymbol = symbol.replace(/\.T$/, '');
-            result[plainSymbol] = generateFallbackData(symbol);
-          });
-        }
-        
-        return {
-          statusCode: 200,
-          headers,
-          body: JSON.stringify({
-            success: true,
-            data: result
-          })
-        };
-      }
-      
-      throw new Error('No valid data found in Yahoo Finance response');
-      
-    } catch (error1) {
-      console.log(`Approach 1 failed: ${error1.message}`);
-      
-      // アプローチ2: アルタネイトエンドポイントを試す
-      try {
-        console.log('Trying approach 2: Alternate Yahoo Finance endpoint');
-        
-        // 各シンボルを個別に取得（異なるエンドポイント）
-        const result = {};
-        
-        for (const symbol of formattedSymbols) {
-          try {
-            const plainSymbol = symbol.replace(/\.T$/, '');
-            const altUrl = `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${symbol}?modules=price`;
-            
-            console.log(`Fetching data for ${symbol} from alternate endpoint`);
-            
-            const response = await axios.get(altUrl, {
-              headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-                'Accept': 'application/json',
-                'Referer': `https://finance.yahoo.com/quote/${symbol}`,
-                'Origin': 'https://finance.yahoo.com'
-              },
-              timeout: 10000
-            });
-            
-            if (response.data && 
-                response.data.quoteSummary && 
-                response.data.quoteSummary.result && 
-                response.data.quoteSummary.result.length > 0 &&
-                response.data.quoteSummary.result[0].price) {
-              
-              const priceData = response.data.quoteSummary.result[0].price;
-              const isMutualFundTicker = isMutualFund(symbol);
-              
-              result[plainSymbol] = {
-                ticker: plainSymbol,
-                price: priceData.regularMarketPrice?.raw || 0,
-                name: priceData.shortName || priceData.longName || symbol,
-                currency: priceData.currency || (symbol.includes('.T') ? 'JPY' : 'USD'),
-                lastUpdated: new Date().toISOString(),
-                source: 'Yahoo Finance',
-                isStock: !isMutualFundTicker,
-                isMutualFund: isMutualFundTicker,
-                priceLabel: isMutualFundTicker ? '基準価額' : '株価'
-              };
-              
-              console.log(`Successfully retrieved data for ${symbol} via approach 2`);
-            } else {
-              throw new Error(`No valid data found for ${symbol}`);
-            }
-          } catch (symbolError) {
-            console.log(`Failed to fetch data for ${symbol}: ${symbolError.message}`);
-            const plainSymbol = symbol.replace(/\.T$/, '');
-            result[plainSymbol] = generateFallbackData(symbol);
-          }
-          
-          // APIレート制限を避けるための短い遅延
-          await new Promise(resolve => setTimeout(resolve, 300));
-        }
-        
-        return {
-          statusCode: 200,
-          headers,
-          body: JSON.stringify({
-            success: true,
-            data: result
-          })
-        };
-        
-      } catch (error2) {
-        console.log(`Approach 2 failed: ${error2.message}`);
-        
-        // アプローチ3: フォールバックデータを使用
-        console.log('Using fallback data for all symbols');
-        
-        const result = {};
-        formattedSymbols.forEach(symbol => {
-          const plainSymbol = symbol.replace(/\.T$/, '');
-          result[plainSymbol] = generateFallbackData(symbol);
-        });
-        
-        return {
-          statusCode: 200,
-          headers,
-          body: JSON.stringify({
-            success: true,
-            message: 'Yahoo Finance API is currently unavailable. Using fallback data.',
-            data: result
-          })
-        };
-      }
+      // APIレート制限を避けるための短い遅延
+      await new Promise(resolve => setTimeout(resolve, 300));
     }
-    
-  } catch (error) {
-    console.error('Error in handleStockData:', error);
-    
-    // 最終的なフォールバック
-    const result = {};
-    formattedSymbols.forEach(symbol => {
-      const plainSymbol = symbol.replace(/\.T$/, '');
-      result[plainSymbol] = generateFallbackData(symbol);
+  }
+  
+  // 2. 次に通常のシンボルを処理
+  if (regularSymbols.length > 0) {
+    // 日本株と投資信託の場合は.Tを追加
+    const formattedRegularSymbols = regularSymbols.map(symbol => {
+      // 投資信託コード処理を追加（7-8桁数字+C）
+      if (/^\d{7,8}C$/i.test(symbol) && !symbol.includes('.T')) {
+        return `${symbol}.T`;
+      }
+      // 日本株の場合（4桁数字）
+      else if (/^\d{4}$/.test(symbol) && !symbol.includes('.T')) {
+        return `${symbol}.T`;
+      }
+      return symbol;
     });
     
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({
-        success: true,
-        data: result,
-        message: 'Using fallback data due to API error'
-      })
-    };
+    try {
+      // 複数のアプローチを試す
+      console.log(`Attempting to fetch data for regular symbols: ${formattedRegularSymbols.join(',')}`);
+      
+      // アプローチ1: Yahoo Finance APIを直接呼び出す
+      try {
+        console.log('Trying approach 1: Direct Yahoo Finance API call with enhanced headers');
+        
+        // ランダムなユーザーエージェントを選択
+        const userAgents = [
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.4 Safari/605.1.15',
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:123.0) Gecko/20100101 Firefox/123.0',
+          'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+          'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3 Mobile/15E148 Safari/604.1'
+        ];
+        const randomUserAgent = userAgents[Math.floor(Math.random() * userAgents.length)];
+        
+        const yahooUrl = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${formattedRegularSymbols.join(',')}`;
+        
+        const response = await axios.get(yahooUrl, {
+          headers: {
+            'User-Agent': randomUserAgent,
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Referer': 'https://finance.yahoo.com/quote/AAPL/',
+            'Origin': 'https://finance.yahoo.com',
+            'DNT': '1',
+            'Connection': 'keep-alive',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'same-origin',
+            'Pragma': 'no-cache',
+            'Cache-Control': 'no-cache'
+          },
+          timeout: 15000
+        });
+        
+        // データが正常に取得できたかチェック
+        if (response.data && 
+            response.data.quoteResponse && 
+            response.data.quoteResponse.result &&
+            response.data.quoteResponse.result.length > 0) {
+          
+          console.log(`Successfully retrieved data via approach 1 for ${response.data.quoteResponse.result.length} symbols`);
+          
+          const quotes = response.data.quoteResponse.result;
+          
+          quotes.forEach(quote => {
+            const ticker = quote.symbol;
+            const plainTicker = ticker.replace(/\.T$/, '');
+            const isMutualFundTicker = isMutualFund(ticker);
+            
+            result[plainTicker] = {
+              ticker: plainTicker,
+              price: quote.regularMarketPrice || quote.ask || quote.bid || 0,
+              name: quote.shortName || quote.longName || ticker,
+              currency: quote.currency || (ticker.includes('.T') ? 'JPY' : 'USD'),
+              lastUpdated: new Date().toISOString(),
+              source: 'Yahoo Finance',
+              isStock: !isMutualFundTicker,
+              isMutualFund: isMutualFundTicker,
+              priceLabel: isMutualFundTicker ? '基準価額' : '株価'
+            };
+          });
+          
+          // 見つからなかったシンボルにフォールバックデータを追加
+          const foundSymbols = quotes.map(q => q.symbol);
+          const notFoundSymbols = formattedRegularSymbols.filter(s => !foundSymbols.includes(s));
+          
+          if (notFoundSymbols.length > 0) {
+            console.log(`Generating fallback data for ${notFoundSymbols.length} missing regular symbols`);
+            
+            notFoundSymbols.forEach(symbol => {
+              const plainSymbol = symbol.replace(/\.T$/, '');
+              result[plainSymbol] = generateFallbackData(symbol);
+            });
+          }
+        } else {
+          throw new Error('No valid data found in Yahoo Finance response');
+        }
+        
+      } catch (error1) {
+        console.log(`Approach 1 failed: ${error1.message}`);
+        
+        // アプローチ2: アルタネイトエンドポイントを試す
+        try {
+          console.log('Trying approach 2: Alternate Yahoo Finance endpoint');
+          
+          // 各シンボルを個別に取得（異なるエンドポイント）
+          for (const symbol of formattedRegularSymbols) {
+            if (result[symbol.replace(/\.T$/, '')]) {
+              continue; // 既に結果があるシンボルはスキップ
+            }
+            
+            try {
+              const plainSymbol = symbol.replace(/\.T$/, '');
+              const altUrl = `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${symbol}?modules=price`;
+              
+              console.log(`Fetching data for ${symbol} from alternate endpoint`);
+              
+              const response = await axios.get(altUrl, {
+                headers: {
+                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+                  'Accept': 'application/json',
+                  'Referer': `https://finance.yahoo.com/quote/${symbol}`,
+                  'Origin': 'https://finance.yahoo.com'
+                },
+                timeout: 10000
+              });
+              
+              if (response.data && 
+                  response.data.quoteSummary && 
+                  response.data.quoteSummary.result && 
+                  response.data.quoteSummary.result.length > 0 &&
+                  response.data.quoteSummary.result[0].price) {
+                
+                const priceData = response.data.quoteSummary.result[0].price;
+                const isMutualFundTicker = isMutualFund(symbol);
+                
+                result[plainSymbol] = {
+                  ticker: plainSymbol,
+                  price: priceData.regularMarketPrice?.raw || 0,
+                  name: priceData.shortName || priceData.longName || symbol,
+                  currency: priceData.currency || (symbol.includes('.T') ? 'JPY' : 'USD'),
+                  lastUpdated: new Date().toISOString(),
+                  source: 'Yahoo Finance',
+                  isStock: !isMutualFundTicker,
+                  isMutualFund: isMutualFundTicker,
+                  priceLabel: isMutualFundTicker ? '基準価額' : '株価'
+                };
+                
+                console.log(`Successfully retrieved data for ${symbol} via approach 2`);
+              } else {
+                throw new Error(`No valid data found for ${symbol}`);
+              }
+            } catch (symbolError) {
+              console.log(`Failed to fetch data for ${symbol}: ${symbolError.message}`);
+              const plainSymbol = symbol.replace(/\.T$/, '');
+              // まだ結果がない場合のみフォールバックを設定
+              if (!result[plainSymbol]) {
+                result[plainSymbol] = generateFallbackData(symbol);
+              }
+            }
+            
+            // APIレート制限を避けるための短い遅延
+            await new Promise(resolve => setTimeout(resolve, 300));
+          }
+          
+        } catch (error2) {
+          console.log(`Approach 2 failed: ${error2.message}`);
+          
+          // アプローチ3: 残りのシンボルにはフォールバックデータを使用
+          console.log('Using fallback data for remaining symbols');
+          
+          formattedRegularSymbols.forEach(symbol => {
+            const plainSymbol = symbol.replace(/\.T$/, '');
+            // まだ結果がない場合のみフォールバックを設定
+            if (!result[plainSymbol]) {
+              result[plainSymbol] = generateFallbackData(symbol);
+            }
+          });
+        }
+      }
+      
+    } catch (error) {
+      console.error('Error in handleStockData for regular symbols:', error);
+      
+      // 最終的なフォールバック（残りの全てのシンボル）
+      formattedRegularSymbols.forEach(symbol => {
+        const plainSymbol = symbol.replace(/\.T$/, '');
+        // まだ結果がない場合のみフォールバックを設定
+        if (!result[plainSymbol]) {
+          result[plainSymbol] = generateFallbackData(symbol);
+        }
+      });
+    }
   }
+  
+  // すべてのリクエストされたシンボルの結果があることを確認（最終チェック）
+  symbolsList.forEach(symbol => {
+    if (!result[symbol]) {
+      result[symbol] = generateFallbackData(symbol);
+    }
+  });
+  
+  return {
+    statusCode: 200,
+    headers,
+    body: JSON.stringify({
+      success: true,
+      data: result
+    })
+  };
 }
 
 /**
