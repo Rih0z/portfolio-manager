@@ -2439,3 +2439,169 @@ export async function fetchDividendData(ticker) {
     };
   }
 }
+
+/**
+ * データの鮮度をチェックする関数
+ * @param {string} lastUpdated - 最終更新日時（ISO形式の文字列）
+ * @param {Object} options - オプション
+ * @param {number} options.maxAgeHours - 許容される最大経過時間（時間単位）、デフォルトは24時間
+ * @param {string} options.assetType - 資産タイプ（'stock', 'mutualFund', 'exchangeRate'など）
+ * @returns {Object} - 鮮度情報とステータス
+ */
+export function checkDataFreshness(lastUpdated, options = {}) {
+  // デフォルトオプション
+  const defaultOptions = {
+    maxAgeHours: 24,
+    assetType: 'unknown'
+  };
+  
+  // オプションをマージ
+  const settings = { ...defaultOptions, ...options };
+  
+  // lastUpdatedがない場合
+  if (!lastUpdated) {
+    return {
+      isFresh: false,
+      needsUpdate: true,
+      ageInHours: Infinity,
+      message: 'データが存在しないか、タイムスタンプがありません',
+      status: 'critical'
+    };
+  }
+  
+  try {
+    // 現在時刻とタイムスタンプを比較
+    const now = new Date();
+    const updateTime = new Date(lastUpdated);
+    
+    // 日付が無効な場合
+    if (isNaN(updateTime.getTime())) {
+      return {
+        isFresh: false,
+        needsUpdate: true,
+        ageInHours: Infinity,
+        message: '無効なタイムスタンプ形式です',
+        status: 'critical'
+      };
+    }
+    
+    // 経過時間を計算（ミリ秒 → 時間）
+    const diffMs = now - updateTime;
+    const ageInHours = diffMs / (1000 * 60 * 60);
+    
+    // 資産タイプに応じた鮮度判定（時間）
+    let freshThreshold;
+    let warningThreshold;
+    
+    switch (settings.assetType) {
+      case 'stock':
+        // 株式は市場取引時間中はより頻繁な更新が必要
+        // 営業時間内かどうかのチェックも加えると理想的
+        freshThreshold = 2; // 2時間以内なら新鮮
+        warningThreshold = 8; // 8時間以内なら許容範囲
+        break;
+      case 'mutualFund':
+        // 投資信託は日次更新のため、24時間あれば十分
+        freshThreshold = 12; // 12時間以内なら新鮮
+        warningThreshold = 36; // 36時間以内なら許容範囲
+        break;
+      case 'exchangeRate':
+        // 為替レートは変動が大きいため、より頻繁な更新が好ましい
+        freshThreshold = 4; // 4時間以内なら新鮮
+        warningThreshold = 12; // 12時間以内なら許容範囲
+        break;
+      default:
+        // デフォルト
+        freshThreshold = 8; 
+        warningThreshold = settings.maxAgeHours;
+        break;
+    }
+    
+    // 鮮度の判定
+    const isFresh = ageInHours <= freshThreshold;
+    const isWarning = ageInHours > freshThreshold && ageInHours <= warningThreshold;
+    const isStale = ageInHours > warningThreshold;
+    const needsUpdate = ageInHours > freshThreshold;
+    
+    // ステータスとメッセージを生成
+    let status, message;
+    
+    if (isFresh) {
+      status = 'fresh';
+      message = `${formatHourDuration(ageInHours)}前に更新されたデータです`;
+    } else if (isWarning) {
+      status = 'warning';
+      message = `${formatHourDuration(ageInHours)}前のデータです。更新を検討してください`;
+    } else {
+      status = 'stale';
+      message = `${formatHourDuration(ageInHours)}前の古いデータです。更新が必要です`;
+    }
+    
+    // 休日・営業時間外の判定（追加機能）
+    const isWeekend = [0, 6].includes(now.getDay()); // 0:日曜日, 6:土曜日
+    const isMarketClosed = isWeekend || now.getHours() < 9 || now.getHours() >= 16;
+    
+    if (isStale && settings.assetType === 'stock' && isMarketClosed) {
+      message += '（現在市場は閉場しているため、データの古さは問題ない可能性があります）';
+    }
+    
+    return {
+      isFresh,
+      needsUpdate,
+      ageInHours,
+      ageFormatted: formatHourDuration(ageInHours),
+      lastUpdated,
+      message,
+      status,
+      maxAgeHours: settings.maxAgeHours,
+      assetType: settings.assetType
+    };
+  } catch (error) {
+    console.error('データ鮮度のチェック中にエラーが発生しました:', error);
+    
+    return {
+      isFresh: false,
+      needsUpdate: true,
+      ageInHours: Infinity,
+      message: `エラーが発生しました: ${error.message}`,
+      status: 'error'
+    };
+  }
+}
+
+/**
+ * 時間の経過を読みやすいフォーマットに変換する補助関数
+ * @param {number} hours - 経過時間（時間単位）
+ * @returns {string} - フォーマットされた経過時間表示
+ */
+function formatHourDuration(hours) {
+  if (isNaN(hours)) return '不明';
+  
+  // 1時間未満
+  if (hours < 1) {
+    const minutes = Math.floor(hours * 60);
+    return `${minutes}分`;
+  }
+  
+  // 24時間未満
+  if (hours < 24) {
+    const intHours = Math.floor(hours);
+    const minutes = Math.floor((hours - intHours) * 60);
+    
+    if (minutes === 0) {
+      return `${intHours}時間`;
+    } else {
+      return `${intHours}時間${minutes}分`;
+    }
+  }
+  
+  // 24時間以上
+  const days = Math.floor(hours / 24);
+  const remainingHours = Math.floor(hours % 24);
+  
+  if (remainingHours === 0) {
+    return `${days}日`;
+  } else {
+    return `${days}日${remainingHours}時間`;
+  }
+}
