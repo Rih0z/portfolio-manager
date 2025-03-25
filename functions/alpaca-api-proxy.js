@@ -1,23 +1,134 @@
 // functions/alpaca-api-proxy.js
+/**
+ * Alpaca APIへのプロキシ関数（すべてのETF対応版）
+ * 株価データを取得する
+ */
 const axios = require('axios');
 
-// 債券ETFの明示的なリスト
-const BOND_ETFS = ['LQD', 'BND', 'AGG', 'TLT', 'IEF', 'GOVT', 'HYG', 'JNK', 'MUB', 'VCIT', 'VCSH'];
+// ------------------ ETF関連の定義 ------------------
 
-// 債券ETF向けの最新デフォルト価格
-const BOND_ETF_DEFAULTS = {
-  'LQD': 109.64,
-  'BND': 73.57,
-  'AGG': 98.32,
-  'TLT': 96.18,
-  'IEF': 95.35,
-  'GOVT': 25.10,
-  'HYG': 76.89,
-  'JNK': 93.22,
-  'MUB': 106.54,
-  'VCIT': 80.38,
-  'VCSH': 76.98
+// 主な発行会社のプレフィックスとパターン
+const ETF_PREFIXES = {
+  VANGUARD: ['V', 'VO', 'VB', 'VT', 'VU', 'VG', 'VA', 'VE', 'VF', 'VD', 'VC'],
+  ISHARES: ['I', 'IW', 'IJR', 'IJH', 'IEF', 'EW', 'IE', 'IA', 'SH'],
+  SPDR: ['SPY', 'XL', 'XBI', 'XLF', 'XLE', 'XLB', 'XLK', 'XLP', 'XLU', 'XLI', 'XLV', 'GLD', 'DIA'],
+  INVESCO: ['Q', 'PG', 'PJ', 'PW', 'PZ', 'REZ', 'RYJ', 'RPG', 'RSP', 'RWJ', 'RYE', 'RYF', 'RYH', 'RYT', 'RYU'],
+  SCHWAB: ['SCH'],
+  ARK: ['ARK'],
+  FIDELITY: ['FID'],
+  GLOBAL_X: ['LIT', 'AIQ', 'BUG', 'CTEC', 'EBIZ', 'BKCH', 'BOTZ', 'FINX', 'MLPA'],
+  WISDOM_TREE: ['DXJ', 'DLS', 'DNL', 'EPI', 'DFE']
 };
+
+// ETFパターンを結合
+const ALL_ETF_PREFIXES = [].concat(
+  ...Object.values(ETF_PREFIXES)
+);
+
+// 債券ETFの明示的なリスト
+const BOND_ETFS = [
+  'LQD', 'BND', 'AGG', 'TLT', 'IEF', 'GOVT', 'HYG', 'JNK', 'MUB', 'VCIT', 'VCSH', 
+  'BNDX', 'SCHZ', 'IGIB', 'VGIT', 'VGLT', 'VGSH', 'SHY', 'VMBS', 'MBB', 'AGNC',
+  'SPTL', 'SPTI', 'SPTS', 'SPLB', 'BSCO', 'LKOR', 'FBND', 'FMHI', 'TDTF', 'TDTT'
+];
+
+// 国際ETFのリスト
+const INTL_ETFS = [
+  'INDA', 'EIDO', 'EWZ', 'EWJ', 'EWY', 'EWM', 'EWT', 'MCHI', 'FXI', 'EWH', 'EWS',
+  'EZU', 'EWG', 'EWQ', 'EWP', 'EWI', 'EWL', 'EWD', 'EWN', 'EWA', 'EWU', 'EWC',
+  'IEUR', 'IEFA', 'IEMG', 'VEA', 'VWO', 'VSS', 'VXUS', 'BBJP', 'GXG', 'EIRL',
+  'FLCH', 'FLJP', 'FLJH', 'FLKR', 'FLBR', 'EPOL', 'ADRE', 'HEEM', 'FNDE'
+];
+
+// ESG/テーマ型ETFのリスト
+const THEMATIC_ETFS = [
+  'ARKK', 'ARKW', 'ARKG', 'ARKF', 'ARKQ', 'IBIT', 'GBTC', 'ETHE', 'BITQ',
+  'ICLN', 'TAN', 'FAN', 'PBW', 'QCLN', 'ACES', 'ESGU', 'ESGE', 'ESGD',
+  'ESML', 'SDG', 'SUSL', 'LRGE', 'SUSA', 'DSI', 'USSG', 'CRBN', 'LOWC',
+  'SPYX', 'NULG', 'NULV', 'FRDM', 'VOTE', 'VEGN', 'GRNB'
+];
+
+// レバレッジ/インバースETFのリスト
+const LEVERAGED_ETFS = [
+  'TQQQ', 'SQQQ', 'UPRO', 'SPXU', 'UDOW', 'SDOW', 'TECL', 'TECS', 'FAS',
+  'FAZ', 'ERX', 'ERY', 'LABU', 'LABD', 'NUGT', 'DUST', 'JNUG', 'JDST',
+  'NAIL', 'DRN', 'DRV', 'SOXL', 'SOXS', 'SPXL', 'SPXS', 'TNA', 'TZA',
+  'UVXY', 'SVXY', 'VXX'
+];
+
+// 米国大型株ETFのリスト
+const US_LARGE_CAP_ETFS = [
+  'SPY', 'VOO', 'IVV', 'VTI', 'QQQ', 'DIA', 'SCHB', 'SCHX', 'SPLG', 'ITOT',
+  'RSP', 'SCHG', 'SCHV', 'SPYG', 'SPYV', 'VOOG', 'VOOV', 'MGC', 'IOO',
+  'OEF', 'MTUM', 'VLUE', 'USMV', 'QUAL', 'SIZE', 'QQQM', 'QQQE'
+];
+
+// セクターETFのリスト
+const SECTOR_ETFS = [
+  'XLF', 'XLE', 'XLK', 'XLV', 'XLB', 'XLI', 'XLP', 'XLU', 'XLY', 'XLRE',
+  'VGT', 'VHT', 'VDC', 'VDE', 'VAW', 'VFH', 'VIS', 'VCR', 'VPU', 'VNQ',
+  'IBB', 'IYH', 'IYE', 'IYF', 'IYK', 'IYM', 'IYC', 'IYZ', 'IYT', 'IYR',
+  'FXI', 'KBWB', 'SMH', 'SOXX', 'HACK', 'SOCL', 'GAMR', 'PBE', 'FBT'
+];
+
+// コモディティETFのリスト
+const COMMODITY_ETFS = [
+  'GLD', 'SLV', 'IAU', 'PPLT', 'PALL', 'USO', 'BNO', 'UNG', 'UGA', 'DBC',
+  'GSG', 'DJP', 'PDBC', 'COMT', 'COM', 'COMB', 'USCI', 'GCC', 'RJI', 
+  'DBA', 'MOO', 'JJG', 'WEAT', 'CORN', 'SOYB', 'NIB', 'JO', 'SGG',
+  'COW', 'WOOD', 'PSCE', 'XME'
+];
+
+// すべてのETFを一つのリストに結合
+const ALL_KNOWN_ETFS = [].concat(
+  BOND_ETFS,
+  INTL_ETFS,
+  THEMATIC_ETFS,
+  LEVERAGED_ETFS,
+  US_LARGE_CAP_ETFS,
+  SECTOR_ETFS,
+  COMMODITY_ETFS
+);
+
+// ETFのデフォルト価格
+const ETF_DEFAULTS = {
+  // 債券ETF
+  'LQD': 109.64, 'BND': 73.57, 'AGG': 98.32, 'TLT': 96.18, 'IEF': 95.35,
+  'GOVT': 25.10, 'HYG': 76.89, 'JNK': 93.22, 'MUB': 106.54, 'VCIT': 80.38,
+  'VCSH': 76.98,
+  
+  // 国際株式ETF
+  'INDA': 50.50, 'EIDO': 25.30, 'EWZ': 32.60, 'EWJ': 65.20, 'MCHI': 46.80,
+  'FXI': 27.30, 'VEA': 48.20, 'VWO': 43.80, 'IEFA': 72.50, 'IEMG': 52.90,
+  'VXUS': 58.40,
+  
+  // 米国大型株ETF
+  'SPY': 540.00, 'VOO': 480.00, 'QQQ': 470.00, 'VTI': 265.00, 'IVV': 539.00,
+  'DIA': 392.00,
+  
+  // テーマ型ETF
+  'ARKK': 48.20, 'ARKW': 75.60, 'ARKG': 31.40, 'IBIT': 44.00, 'GBTC': 42.20,
+  
+  // コモディティETF
+  'GLD': 220.00, 'SLV': 26.20, 'USO': 72.40,
+  
+  // レバレッジETF
+  'TQQQ': 62.80, 'SQQQ': 7.90, 'UPRO': 75.20, 'SPXU': 8.60
+};
+
+// 配当利回りのデフォルト値（％）
+const DEFAULT_DIVIDEND_YIELDS = {
+  'bond': 3.0,               // 債券ETF
+  'international': 2.8,      // 国際株式ETF
+  'us_large_cap': 1.5,       // 米国大型株ETF
+  'sector': 1.8,             // セクターETF
+  'thematic': 0.5,           // テーマ型ETF
+  'commodity': 0.0,          // コモディティETF
+  'leveraged': 0.0,          // レバレッジETF
+  'unknown': 1.5             // 不明なETF
+};
+
+// ------------------ メインハンドラー ------------------
 
 exports.handler = async function(event, context) {
   const headers = {
@@ -52,13 +163,14 @@ exports.handler = async function(event, context) {
 
   console.log(`Alpaca API request for symbol: ${symbol}`);
   
-  // 債券ETFかどうかをチェック
-  const isBondETF = BOND_ETFS.includes(symbol.toUpperCase());
+  // ETFかどうかをチェック
+  const isEtf = isETF(symbol);
   
-  // 債券ETFの場合は特別処理
-  if (isBondETF) {
-    console.log(`${symbol} is a bond ETF. Using enhanced handling...`);
-    return await handleBondETF(symbol, headers);
+  // ETFの場合は特別処理
+  if (isEtf) {
+    const etfType = getETFType(symbol);
+    console.log(`${symbol} is an ETF (${etfType}). Using enhanced handling...`);
+    return await handleETF(symbol, etfType, headers);
   }
 
   // 環境変数からキーを取得
@@ -145,14 +257,266 @@ exports.handler = async function(event, context) {
   }
 };
 
+// ------------------ ETF判定関連の関数 ------------------
+
 /**
- * 債券ETF専用のハンドラー
+ * ティッカーシンボルがETFかどうかを判定する関数
+ * @param {string} ticker - ティッカーシンボル
+ * @returns {boolean} ETFの場合はtrue
+ */
+function isETF(ticker) {
+  if (!ticker) return false;
+  
+  // 大文字に変換
+  ticker = ticker.toString().toUpperCase();
+  
+  // 1. 既知のETFリストにあれば間違いなくETF
+  if (ALL_KNOWN_ETFS.includes(ticker)) {
+    return true;
+  }
+  
+  // 2. プレフィックスによる判定
+  for (const prefix of ALL_ETF_PREFIXES) {
+    if (ticker.startsWith(prefix)) {
+      return true;
+    }
+  }
+  
+  // 3. 構造による判定
+  // ETFはほとんどが3-4文字で構成される
+  if (ticker.length <= 4 && 
+      /^[A-Z]+$/.test(ticker) && // 英字のみ
+      !isMutualFund(ticker) && 
+      !isJapaneseStock(ticker)) {
+    return true;
+  }
+  
+  return false;
+}
+
+/**
+ * ETFの種類を判定する関数
+ * @param {string} ticker - ティッカーシンボル
+ * @returns {string} ETFの種類
+ */
+function getETFType(ticker) {
+  if (!ticker) return 'unknown';
+  
+  // 大文字に変換
+  ticker = ticker.toString().toUpperCase();
+  
+  // ETFリストで種類を判定
+  if (BOND_ETFS.includes(ticker)) {
+    return 'bond';
+  } else if (INTL_ETFS.includes(ticker)) {
+    return 'international';
+  } else if (US_LARGE_CAP_ETFS.includes(ticker)) {
+    return 'us_large_cap';
+  } else if (SECTOR_ETFS.includes(ticker)) {
+    return 'sector';
+  } else if (THEMATIC_ETFS.includes(ticker)) {
+    return 'thematic';
+  } else if (LEVERAGED_ETFS.includes(ticker)) {
+    return 'leveraged';
+  } else if (COMMODITY_ETFS.includes(ticker)) {
+    return 'commodity';
+  }
+  
+  // プレフィックスによる推測
+  for (const [type, prefixes] of Object.entries(ETF_PREFIXES)) {
+    for (const prefix of prefixes) {
+      if (ticker.startsWith(prefix)) {
+        switch (type) {
+          case 'VANGUARD':
+            return ticker.includes('B') ? 'us_large_cap' : 'international';
+          case 'ISHARES':
+            return ticker.startsWith('IE') ? 'international' : 
+                   ticker.startsWith('IEF') ? 'bond' : 'us_large_cap';
+          case 'SPDR':
+            return ticker.startsWith('XL') ? 'sector' : 'us_large_cap';
+          case 'ARK':
+            return 'thematic';
+          default:
+            return 'unknown';
+        }
+      }
+    }
+  }
+  
+  return 'unknown';
+}
+
+/**
+ * 投資信託かどうかを判定する関数
+ * @param {string} ticker - ティッカーシンボル
+ * @returns {boolean} 投資信託の場合はtrue
+ */
+function isMutualFund(ticker) {
+  if (!ticker) return false;
+  return /^\d{7,8}C(\.T)?$/i.test(ticker);
+}
+
+/**
+ * 日本株かどうかを判定する関数
+ * @param {string} ticker - ティッカーシンボル
+ * @returns {boolean} 日本株の場合はtrue
+ */
+function isJapaneseStock(ticker) {
+  if (!ticker) return false;
+  ticker = ticker.toString();
+  return /^\d{4}(\.T)?$/.test(ticker) || ticker.endsWith('.T');
+}
+
+// ------------------ ETF処理関連の関数 ------------------
+
+/**
+ * ETFタイプに基づいてETFの特性を取得する
  * @param {string} symbol - ティッカーシンボル
+ * @param {string} etfType - ETFの種類
+ * @returns {Object} ETFの特性情報
+ */
+function getETFProperties(symbol, etfType) {
+  // 基本情報を初期化
+  const properties = {
+    name: `${symbol} ETF`,
+    typeLabel: 'Unknown',
+    dividendYield: DEFAULT_DIVIDEND_YIELDS[etfType] || DEFAULT_DIVIDEND_YIELDS.unknown,
+    hasDividend: true,
+    dividendFrequency: 'quarterly',
+    flags: {}
+  };
+  
+  // ETFタイプに基づいて情報を設定
+  switch (etfType) {
+    case 'bond':
+      properties.name = `${symbol} - Bond ETF`;
+      properties.typeLabel = 'Bond';
+      properties.dividendFrequency = 'monthly';
+      properties.flags.isBondETF = true;
+      break;
+      
+    case 'international':
+      properties.name = `${symbol} - International Equity ETF`;
+      properties.typeLabel = 'International';
+      properties.flags.isIntlETF = true;
+      break;
+      
+    case 'us_large_cap':
+      properties.name = `${symbol} - US Large Cap ETF`;
+      properties.typeLabel = 'US Large Cap';
+      properties.flags.isUSETF = true;
+      break;
+      
+    case 'sector':
+      properties.name = `${symbol} - Sector ETF`;
+      properties.typeLabel = 'Sector';
+      properties.flags.isSectorETF = true;
+      break;
+      
+    case 'thematic':
+      properties.name = `${symbol} - Thematic ETF`;
+      properties.typeLabel = 'Thematic';
+      properties.flags.isThematicETF = true;
+      break;
+      
+    case 'leveraged':
+      properties.name = `${symbol} - Leveraged ETF`;
+      properties.typeLabel = 'Leveraged';
+      properties.hasDividend = false;
+      properties.dividendYield = 0;
+      properties.flags.isLeveragedETF = true;
+      break;
+      
+    case 'commodity':
+      properties.name = `${symbol} - Commodity ETF`;
+      properties.typeLabel = 'Commodity';
+      properties.hasDividend = false;
+      properties.dividendYield = 0;
+      properties.flags.isCommodityETF = true;
+      break;
+      
+    default:
+      properties.name = `${symbol} ETF`;
+      properties.typeLabel = 'ETF';
+      break;
+  }
+  
+  // シンボル特有の情報を追加
+  if (symbol === 'SPY') {
+    properties.name = 'SPDR S&P 500 ETF Trust';
+  } else if (symbol === 'VOO') {
+    properties.name = 'Vanguard S&P 500 ETF';
+  } else if (symbol === 'QQQ') {
+    properties.name = 'Invesco QQQ Trust (NASDAQ-100 Index)';
+  } else if (symbol === 'VTI') {
+    properties.name = 'Vanguard Total Stock Market ETF';
+  } else if (symbol === 'INDA') {
+    properties.name = 'iShares MSCI India ETF';
+  } else if (symbol === 'LQD') {
+    properties.name = 'iShares iBoxx $ Investment Grade Corporate Bond ETF';
+  } else if (symbol === 'GLD') {
+    properties.name = 'SPDR Gold Shares';
+    properties.hasDividend = false;
+    properties.dividendYield = 0;
+  } else if (symbol === 'ARKK') {
+    properties.name = 'ARK Innovation ETF';
+  }
+  
+  return properties;
+}
+
+/**
+ * ETF用のフォールバックデータを生成する
+ * @param {string} symbol - ティッカーシンボル（ETF）
+ * @param {string} etfType - ETFの種類
+ * @returns {Object} ETF用フォールバックデータ
+ */
+function generateETFFallbackData(symbol, etfType) {
+  // 大文字に変換
+  const upperSymbol = symbol.toUpperCase();
+  
+  // ETFのデフォルト価格を取得（なければ一般的な値を使用）
+  const price = ETF_DEFAULTS[upperSymbol] || 100;
+  
+  // ETFタイプに基づく詳細な特性
+  const properties = getETFProperties(upperSymbol, etfType);
+  
+  // 特定のETFに関するログを表示
+  if (['LQD', 'INDA', 'SPY', 'ARKK', 'GLD'].includes(upperSymbol)) {
+    console.log(`[Alpaca API] Special handling for ${upperSymbol} (${etfType}) with price: ${price}`);
+  }
+  
+  // ETFタイプに基づいてフォールバックデータを生成
+  return {
+    ticker: upperSymbol,
+    price: price,
+    name: properties.name,
+    currency: 'USD',
+    lastUpdated: new Date().toISOString(),
+    source: `Fallback (${properties.typeLabel} ETF)`,
+    isStock: false,
+    isMutualFund: false,
+    isETF: true,
+    etfType: etfType,
+    // ETFタイプごとの特性
+    ...properties.flags,
+    priceLabel: '株価',
+    // 配当情報
+    dividendYield: properties.dividendYield,
+    hasDividend: properties.hasDividend,
+    dividendFrequency: properties.dividendFrequency
+  };
+}
+
+/**
+ * ETF専用のハンドラー - 複数のエンドポイントを試す
+ * @param {string} symbol - ティッカーシンボル
+ * @param {string} etfType - ETFの種類
  * @param {Object} headers - レスポンスヘッダー
  * @returns {Object} レスポンスオブジェクト
  */
-async function handleBondETF(symbol, headers) {
-  console.log(`Using enhanced bond ETF handler for ${symbol}`);
+async function handleETF(symbol, etfType, headers) {
+  console.log(`Using enhanced ETF handler for ${symbol} (${etfType})`);
   
   // 環境変数からキーを取得
   const apiKey = process.env.ALPACA_API_KEY;
@@ -161,13 +525,13 @@ async function handleBondETF(symbol, headers) {
   // APIキーとシークレットが設定されているか確認
   if (!apiKey || !apiSecret) {
     console.error('Alpaca API keys are not configured');
-    return generateBondETFFallbackResponse(symbol, headers, 'APIキーが設定されていません');
+    return generateETFFallbackResponse(symbol, etfType, headers, 'APIキーが設定されていません');
   }
   
   try {
     // 1. まずAlpacaの通常エンドポイントを試す
     try {
-      console.log(`Trying primary Alpaca endpoint for bond ETF ${symbol}...`);
+      console.log(`Trying primary Alpaca endpoint for ${etfType} ETF ${symbol}...`);
       
       const response = await axios.get(`https://data.alpaca.markets/v2/stocks/${symbol}/quotes/latest`, {
         headers: {
@@ -181,22 +545,30 @@ async function handleBondETF(symbol, headers) {
       const quoteData = response.data;
       
       if (quoteData && quoteData.quote && quoteData.quote.ap) {
-        console.log(`Successfully retrieved data for bond ETF ${symbol} from primary Alpaca endpoint`);
+        console.log(`Successfully retrieved data for ${etfType} ETF ${symbol} from primary Alpaca endpoint`);
         
-        // 結果を整形（債券ETF特有の情報を追加）
+        // ETF特性の取得
+        const properties = getETFProperties(symbol, etfType);
+        
+        // 結果を整形
         const result = {
           ticker: symbol,
           price: quoteData.quote.ap,
-          name: `${symbol} Bond ETF`,
+          name: properties.name,
           currency: 'USD',
           lastUpdated: new Date().toISOString(),
-          source: 'Alpaca',
+          source: `Alpaca (${properties.typeLabel} ETF)`,
           isStock: false,
           isMutualFund: false,
-          isBondETF: true,
-          // 債券ETF特有の情報
-          dividendYield: 3.0, // デフォルト利回り
-          hasDividend: true
+          isETF: true,
+          etfType: etfType,
+          // ETFタイプごとの特性
+          ...properties.flags,
+          priceLabel: '株価',
+          // 配当情報
+          dividendYield: properties.dividendYield,
+          hasDividend: properties.hasDividend,
+          dividendFrequency: properties.dividendFrequency
         };
         
         return {
@@ -209,18 +581,18 @@ async function handleBondETF(symbol, headers) {
         };
       }
       
-      console.log(`No valid quote data found for bond ETF ${symbol} from primary endpoint`);
+      console.log(`No valid quote data found for ${etfType} ETF ${symbol} from primary endpoint`);
       throw new Error('Primary endpoint returned no valid data');
       
     } catch (primaryError) {
-      console.warn(`Primary Alpaca endpoint failed for bond ETF ${symbol}:`, primaryError.message);
+      console.warn(`Primary Alpaca endpoint failed for ${etfType} ETF ${symbol}:`, primaryError.message);
       
       // 2. 次にAlpacaの代替エンドポイントを試す
       try {
-        console.log(`Trying alternative Alpaca endpoint for bond ETF ${symbol}...`);
+        console.log(`Trying alternative Alpaca endpoint for ${etfType} ETF ${symbol}...`);
         
         // 代替エンドポイント（バーデータ）を使用
-        const response = await axios.get(`https://data.alpaca.markets/v2/stocks/${symbol}/bars/latest?timeframe=1Min`, {
+        const response = await axios.get(`https://data.alpaca.markets/v2/stocks/${symbol}/bars/latest?timeframe=1Day`, {
           headers: {
             'APCA-API-KEY-ID': apiKey,
             'APCA-API-SECRET-KEY': apiSecret
@@ -232,22 +604,30 @@ async function handleBondETF(symbol, headers) {
         const barData = response.data;
         
         if (barData && barData.bar && barData.bar.c) {
-          console.log(`Successfully retrieved data for bond ETF ${symbol} from alternative Alpaca endpoint`);
+          console.log(`Successfully retrieved data for ${etfType} ETF ${symbol} from alternative Alpaca endpoint`);
           
-          // 結果を整形（債券ETF特有の情報を追加）
+          // ETF特性の取得
+          const properties = getETFProperties(symbol, etfType);
+          
+          // 結果を整形
           const result = {
             ticker: symbol,
             price: barData.bar.c, // 終値を使用
-            name: `${symbol} Bond ETF`,
+            name: properties.name,
             currency: 'USD',
             lastUpdated: barData.bar.t || new Date().toISOString(),
-            source: 'Alpaca (Alternative)',
+            source: `Alpaca (${properties.typeLabel} ETF - Alternative)`,
             isStock: false,
             isMutualFund: false,
-            isBondETF: true,
-            // 債券ETF特有の情報
-            dividendYield: 3.0, // デフォルト利回り
-            hasDividend: true
+            isETF: true,
+            etfType: etfType,
+            // ETFタイプごとの特性
+            ...properties.flags,
+            priceLabel: '株価',
+            // 配当情報
+            dividendYield: properties.dividendYield,
+            hasDividend: properties.hasDividend,
+            dividendFrequency: properties.dividendFrequency
           };
           
           return {
@@ -260,65 +640,112 @@ async function handleBondETF(symbol, headers) {
           };
         }
         
-        console.log(`No valid bar data found for bond ETF ${symbol} from alternative endpoint`);
+        console.log(`No valid bar data found for ${etfType} ETF ${symbol} from alternative endpoint`);
         throw new Error('Alternative endpoint returned no valid data');
         
       } catch (alternativeError) {
-        console.warn(`Alternative Alpaca endpoint failed for bond ETF ${symbol}:`, alternativeError.message);
+        console.warn(`Alternative Alpaca endpoint failed for ${etfType} ETF ${symbol}:`, alternativeError.message);
         
-        // 3. 最後にフォールバック値を使用
-        console.log(`Using fallback data for bond ETF ${symbol}`);
-        return generateBondETFFallbackResponse(symbol, headers, '利用可能なAPIエンドポイントからデータを取得できませんでした');
+        // 3. 最後に別のエンドポイントを試す
+        try {
+          console.log(`Trying last resort endpoint for ${etfType} ETF ${symbol}...`);
+          
+          // 日足の履歴データを使用（最新のデータから取得）
+          const endDate = new Date().toISOString().split('T')[0];
+          const startDate = new Date();
+          startDate.setDate(startDate.getDate() - 7); // 7日前から
+          const startDateStr = startDate.toISOString().split('T')[0];
+          
+          const response = await axios.get(`https://data.alpaca.markets/v2/stocks/${symbol}/bars`, {
+            params: {
+              timeframe: '1Day',
+              start: startDateStr,
+              end: endDate
+            },
+            headers: {
+              'APCA-API-KEY-ID': apiKey,
+              'APCA-API-SECRET-KEY': apiSecret
+            },
+            timeout: 15000
+          });
+          
+          // レスポンスからデータを抽出
+          const barsData = response.data;
+          
+          if (barsData && barsData.bars && barsData.bars.length > 0) {
+            // 最新のデータを使用
+            const latestBar = barsData.bars[barsData.bars.length - 1];
+            console.log(`Successfully retrieved historical data for ${etfType} ETF ${symbol}`);
+            
+            // ETF特性の取得
+            const properties = getETFProperties(symbol, etfType);
+            
+            // 結果を整形
+            const result = {
+              ticker: symbol,
+              price: latestBar.c, // 終値を使用
+              name: properties.name,
+              currency: 'USD',
+              lastUpdated: latestBar.t || new Date().toISOString(),
+              source: `Alpaca (${properties.typeLabel} ETF - Historical)`,
+              isStock: false,
+              isMutualFund: false,
+              isETF: true,
+              etfType: etfType,
+              // ETFタイプごとの特性
+              ...properties.flags,
+              priceLabel: '株価',
+              // 配当情報
+              dividendYield: properties.dividendYield,
+              hasDividend: properties.hasDividend,
+              dividendFrequency: properties.dividendFrequency
+            };
+            
+            return {
+              statusCode: 200,
+              headers,
+              body: JSON.stringify({
+                success: true,
+                data: result
+              })
+            };
+          }
+          
+          console.log(`No valid historical data found for ${etfType} ETF ${symbol}`);
+          throw new Error('Historical data endpoint returned no valid data');
+          
+        } catch (lastResortError) {
+          console.warn(`Last resort endpoint failed for ${etfType} ETF ${symbol}:`, lastResortError.message);
+          
+          // 4. すべてのエンドポイントが失敗した場合はフォールバック
+          console.log(`All Alpaca endpoints failed. Using fallback data for ${etfType} ETF ${symbol}`);
+          return generateETFFallbackResponse(symbol, etfType, headers, '利用可能なAPIエンドポイントからデータを取得できませんでした');
+        }
       }
     }
   } catch (error) {
-    console.error(`Bond ETF handler error for ${symbol}:`, error);
-    return generateBondETFFallbackResponse(symbol, headers, `債券ETF ${symbol} の処理中にエラーが発生しました`);
+    console.error(`ETF handler error for ${symbol}:`, error);
+    return generateETFFallbackResponse(symbol, etfType, headers, `ETF ${symbol} の処理中にエラーが発生しました`);
   }
 }
 
 /**
- * 債券ETF用のフォールバックレスポンスを生成する
- * @param {string} symbol - ティッカーシンボル（債券ETF）
+ * ETF用のフォールバックレスポンスを生成する
+ * @param {string} symbol - ティッカーシンボル
+ * @param {string} etfType - ETFの種類
  * @param {Object} headers - レスポンスヘッダー
  * @param {string} message - メッセージ
  * @returns {Object} レスポンスオブジェクト
  */
-function generateBondETFFallbackResponse(symbol, headers, message) {
-  const upperSymbol = symbol.toUpperCase();
-  
-  // 債券ETFのデフォルト価格を取得（なければ一般的な値を使用）
-  const price = BOND_ETF_DEFAULTS[upperSymbol] || 100;
-  
-  // LQDの場合は特別ログを出力
-  if (upperSymbol === 'LQD') {
-    console.log(`[Alpaca] Special handling for LQD with price: ${price}`);
-  }
-  
-  // フォールバック値を設定（債券ETF向け強化版）
-  const fallbackData = {
-    ticker: upperSymbol,
-    price: price,
-    name: `${upperSymbol} Bond ETF`,
-    currency: 'USD',
-    lastUpdated: new Date().toISOString(),
-    source: 'Fallback (Bond ETF)',
-    isStock: false,
-    isMutualFund: false,
-    isBondETF: true,
-    // 債券ETF特有の情報
-    dividendYield: 3.0, // デフォルト利回り
-    hasDividend: true,
-    priceLabel: '株価'
-  };
-  
-  console.log(`Returning enhanced fallback data for bond ETF ${symbol}`);
+function generateETFFallbackResponse(symbol, etfType, headers, message) {
+  // ETF用のフォールバックデータを生成
+  const fallbackData = generateETFFallbackData(symbol, etfType);
   
   return {
-    statusCode: 200, // エラーでもクライアントには200を返す
+    statusCode: 200,
     headers,
     body: JSON.stringify({
-      success: true, // フォールバックデータを返すので成功とみなす
+      success: true, // ユーザー体験向上のために成功とする
       message: message,
       data: fallbackData
     })
@@ -333,15 +760,16 @@ function generateBondETFFallbackResponse(symbol, headers, message) {
  * @returns {Object} レスポンスオブジェクト
  */
 function generateFallbackResponse(symbol, headers, message) {
-  // 債券ETFかチェック
-  if (BOND_ETFS.includes(symbol.toUpperCase())) {
-    return generateBondETFFallbackResponse(symbol, headers, message);
+  // ETFかどうかをチェック
+  if (isETF(symbol)) {
+    const etfType = getETFType(symbol);
+    return generateETFFallbackResponse(symbol, etfType, headers, message);
   }
   
   // 通常のフォールバック値を設定
   const fallbackData = {
     ticker: symbol,
-    price: 100, // 米国株のデフォルト価格
+    price: ETF_DEFAULTS[symbol.toUpperCase()] || 100, // デフォルト価格
     name: symbol,
     currency: 'USD',
     lastUpdated: new Date().toISOString(),
@@ -349,8 +777,6 @@ function generateFallbackResponse(symbol, headers, message) {
     isStock: true,
     isMutualFund: false
   };
-  
-  console.log(`Returning fallback data for ${symbol} due to API error`);
   
   return {
     statusCode: 200, // エラーでもクライアントには200を返す
