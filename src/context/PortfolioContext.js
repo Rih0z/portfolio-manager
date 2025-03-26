@@ -75,7 +75,11 @@ export const PortfolioProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [currentAssets, setCurrentAssets] = useState([]);
   const [targetPortfolio, setTargetPortfolio] = useState([]);
-  const [additionalBudget, setAdditionalBudget] = useState(300000);
+  // additionalBudgetをオブジェクトに変更（金額と通貨を持つ）
+  const [additionalBudget, setAdditionalBudget] = useState({
+    amount: 300000,
+    currency: 'JPY'
+  });
   const [notifications, setNotifications] = useState([]);
   
   // データソース管理のための状態
@@ -327,7 +331,6 @@ export const PortfolioProvider = ({ children }) => {
     return { updatedAssets: validatedAssets, changes };
   }, []);
 
-  // 市場データの更新（銘柄タイプ、手数料、配当情報の正確な更新を含む）
   // 市場データの更新（銘柄タイプ、手数料、配当情報の正確な更新を含む）
   const refreshMarketPrices = useCallback(async () => {
     setIsLoading(true);
@@ -851,7 +854,34 @@ export const PortfolioProvider = ({ children }) => {
     });
   }, [saveToLocalStorage]);
 
-  // シミュレーション計算
+  // 通貨変換関数（新規追加）
+  const convertCurrency = useCallback((amount, fromCurrency, toCurrency, exchangeRate) => {
+    if (fromCurrency === toCurrency) {
+      return amount;
+    }
+    
+    // 円→ドル
+    if (fromCurrency === 'JPY' && toCurrency === 'USD') {
+      return amount / exchangeRate.rate;
+    }
+    
+    // ドル→円
+    if (fromCurrency === 'USD' && toCurrency === 'JPY') {
+      return amount * exchangeRate.rate;
+    }
+    
+    throw new Error(`Unsupported currency conversion: ${fromCurrency} to ${toCurrency}`);
+  }, []);
+
+  // 購入株数の計算（新規追加）
+  const calculatePurchaseShares = useCallback((purchaseAmount, price) => {
+    if (price <= 0 || purchaseAmount <= 0) {
+      return 0;
+    }
+    return Math.floor((purchaseAmount / price) * 100) / 100;
+  }, []);
+
+  // シミュレーション計算（マルチ通貨対応版）
   const calculateSimulation = useCallback(() => {
     // 総資産額計算
     const totalCurrentAssets = currentAssets.reduce((sum, asset) => {
@@ -869,63 +899,90 @@ export const PortfolioProvider = ({ children }) => {
       return sum + assetValue;
     }, 0);
     
-    const totalWithBudget = totalCurrentAssets + additionalBudget;
+    // 予算通貨の取得
+    const budgetCurrency = additionalBudget.currency;
+    const budgetAmount = additionalBudget.amount;
+    
+    // 予算を基準通貨に変換
+    let budgetInBaseCurrency = budgetAmount;
+    if (budgetCurrency !== baseCurrency) {
+      budgetInBaseCurrency = convertCurrency(budgetAmount, budgetCurrency, baseCurrency, exchangeRate);
+    }
+    
+    const totalWithBudget = totalCurrentAssets + budgetInBaseCurrency;
     
     // 各銘柄ごとの計算
-    return targetPortfolio.map(target => {
+    const results = targetPortfolio.map(target => {
       // 現在の資産から対応する銘柄を検索
-      const currentAsset = currentAssets.find(asset => asset.id === target.id) || {
-        price: target.price,
-        holdings: 0,
-        currency: target.currency
-      };
+      const asset = currentAssets.find(asset => asset.ticker === target.ticker);
+      if (!asset) return null; // 見つからない場合はnullを返す
       
       // 現在評価額計算
-      let currentAmount = currentAsset.price * currentAsset.holdings;
+      let currentValue = asset.price * asset.holdings;
       
-      // 通貨換算
-      if (currentAsset.currency !== baseCurrency) {
-        if (baseCurrency === 'JPY' && currentAsset.currency === 'USD') {
-          currentAmount *= exchangeRate.rate;
-        } else if (baseCurrency === 'USD' && currentAsset.currency === 'JPY') {
-          currentAmount /= exchangeRate.rate;
-        }
+      // 通貨換算（基準通貨に合わせる）
+      if (asset.currency !== baseCurrency) {
+        currentValue = convertCurrency(currentValue, asset.currency, baseCurrency, exchangeRate);
       }
       
       // 目標額
-      const targetAmount = totalWithBudget * (target.targetPercentage / 100);
+      const targetAllocation = target.targetPercentage || 0;
+      const currentAllocation = (currentValue / totalCurrentAssets) * 100 || 0;
+      const diff = targetAllocation - currentAllocation;
       
-      // 不足額
-      const additionalAmount = targetAmount - currentAmount;
-      
-      // 追加必要株数
-      let additionalUnits = 0;
-      if (additionalAmount > 0) {
-        let priceInBaseCurrency = target.price;
+      // 配分差分が正の場合（増やす必要がある場合）のみ購入
+      if (diff > 0) {
+        // 理想的な購入額を計算（基準通貨建て）
+        const idealPurchaseInBaseCurrency = (diff / 100) * totalWithBudget;
         
-        // 通貨換算
-        if (target.currency !== baseCurrency) {
-          if (baseCurrency === 'JPY' && target.currency === 'USD') {
-            priceInBaseCurrency *= exchangeRate.rate;
-          } else if (baseCurrency === 'USD' && target.currency === 'JPY') {
-            priceInBaseCurrency /= exchangeRate.rate;
-          }
+        // 銘柄の通貨に変換した購入額
+        let purchaseAmount = idealPurchaseInBaseCurrency;
+        if (baseCurrency !== asset.currency) {
+          purchaseAmount = convertCurrency(idealPurchaseInBaseCurrency, baseCurrency, asset.currency, exchangeRate);
         }
-        // 小数点以下4桁まで対応（Math.floorではなく小数点以下4桁に丸める）
-        additionalUnits = parseFloat((additionalAmount / priceInBaseCurrency).toFixed(4));
+        
+        // 予算通貨から銘柄通貨への変換（表示用）
+        let purchaseAmountFromBudget = budgetAmount;
+        if (budgetCurrency !== asset.currency) {
+          purchaseAmountFromBudget = convertCurrency(budgetAmount, budgetCurrency, asset.currency, exchangeRate);
+        }
+        
+        // 購入可能株数を計算
+        const purchaseShares = calculatePurchaseShares(purchaseAmount, asset.price);
+        
+        return {
+          id: asset.id,
+          ticker: asset.ticker,
+          name: asset.name,
+          currentAllocation,
+          targetAllocation,
+          diff,
+          currentValue,
+          purchaseAmount,
+          price: asset.price,
+          purchaseShares,
+          currency: asset.currency,
+          isMutualFund: asset.isMutualFund,
+          source: asset.source
+        };
       }
-      
-      return {
-        ...target,
-        currentAmount,
-        targetAmount,
-        additionalAmount,
-        additionalUnits: Math.max(0, additionalUnits),
-        purchaseAmount: Math.max(0, additionalAmount),
-        remark: additionalUnits <= 0 ? '既に目標配分を達成しています' : '',
-      };
+      return null;
+    }).filter(Boolean); // nullをフィルタリング
+    
+    // 購入金額が大きい順にソート
+    return results.sort((a, b) => {
+      // まず通貨を基準通貨に変換して比較
+      const aAmountInBaseCurrency = a.currency !== baseCurrency
+        ? convertCurrency(a.purchaseAmount, a.currency, baseCurrency, exchangeRate)
+        : a.purchaseAmount;
+        
+      const bAmountInBaseCurrency = b.currency !== baseCurrency
+        ? convertCurrency(b.purchaseAmount, b.currency, baseCurrency, exchangeRate)
+        : b.purchaseAmount;
+        
+      return bAmountInBaseCurrency - aAmountInBaseCurrency;
     });
-  }, [currentAssets, targetPortfolio, additionalBudget, baseCurrency, exchangeRate]);
+  }, [currentAssets, targetPortfolio, additionalBudget, baseCurrency, exchangeRate, convertCurrency, calculatePurchaseShares]);
 
   // 購入処理（小数点以下4桁まで対応）
   const executePurchase = useCallback((tickerId, units) => {
@@ -944,8 +1001,8 @@ export const PortfolioProvider = ({ children }) => {
   // 一括購入処理
   const executeBatchPurchase = useCallback((simulationResult) => {
     simulationResult.forEach(result => {
-      if (result.additionalUnits > 0) {
-        executePurchase(result.id, result.additionalUnits);
+      if (result.purchaseShares > 0) {
+        executePurchase(result.id, result.purchaseShares);
       }
     });
     // 一括購入後に自動保存
@@ -991,6 +1048,20 @@ export const PortfolioProvider = ({ children }) => {
       
       if (Array.isArray(data.targetPortfolio)) setTargetPortfolio(data.targetPortfolio);
       
+      // additionalBudgetが存在する場合は設定
+      if (data.additionalBudget !== undefined) {
+        // 古い形式（数値）からオブジェクト形式への変換対応
+        if (typeof data.additionalBudget === 'number') {
+          setAdditionalBudget({
+            amount: data.additionalBudget,
+            currency: data.baseCurrency || 'JPY' // 基本通貨または'JPY'をデフォルトとする
+          });
+        } else if (typeof data.additionalBudget === 'object' && data.additionalBudget !== null) {
+          // 既にオブジェクト形式なら直接セット
+          setAdditionalBudget(data.additionalBudget);
+        }
+      }
+      
       // インポート後に自動保存
       setTimeout(() => saveToLocalStorage(), 100);
       
@@ -1009,9 +1080,10 @@ export const PortfolioProvider = ({ children }) => {
       exchangeRate,
       lastUpdated,
       currentAssets,
-      targetPortfolio
+      targetPortfolio,
+      additionalBudget
     };
-  }, [baseCurrency, exchangeRate, lastUpdated, currentAssets, targetPortfolio]);
+  }, [baseCurrency, exchangeRate, lastUpdated, currentAssets, targetPortfolio, additionalBudget]);
 
   // 為替レートの更新
   const updateExchangeRate = useCallback(async () => {
@@ -1130,7 +1202,20 @@ export const PortfolioProvider = ({ children }) => {
         if (cloudData.baseCurrency) setBaseCurrency(cloudData.baseCurrency);
         if (cloudData.exchangeRate) setExchangeRate(cloudData.exchangeRate);
         if (cloudData.lastUpdated) setLastUpdated(cloudData.lastUpdated);
-        if (cloudData.additionalBudget !== undefined) setAdditionalBudget(cloudData.additionalBudget);
+        
+        // additionalBudgetを適切にインポート
+        if (cloudData.additionalBudget !== undefined) {
+          // 古い形式（数値）からオブジェクト形式への変換対応
+          if (typeof cloudData.additionalBudget === 'number') {
+            setAdditionalBudget({
+              amount: cloudData.additionalBudget,
+              currency: cloudData.baseCurrency || 'JPY' // 基本通貨または'JPY'をデフォルトとする
+            });
+          } else if (typeof cloudData.additionalBudget === 'object' && cloudData.additionalBudget !== null) {
+            // 既にオブジェクト形式なら直接セット
+            setAdditionalBudget(cloudData.additionalBudget);
+          }
+        }
         
         // アセットデータのインポート（銘柄タイプ検証・修正付き）
         if (Array.isArray(cloudData.currentAssets)) {
@@ -1203,9 +1288,19 @@ export const PortfolioProvider = ({ children }) => {
           setLastUpdated(localData.lastUpdated);
         }
         
+        // additionalBudgetを適切にインポート
         if (localData.additionalBudget !== undefined) {
           console.log('追加予算を設定:', localData.additionalBudget);
-          setAdditionalBudget(localData.additionalBudget);
+          // 古い形式（数値）からオブジェクト形式への変換対応
+          if (typeof localData.additionalBudget === 'number') {
+            setAdditionalBudget({
+              amount: localData.additionalBudget,
+              currency: localData.baseCurrency || 'JPY' // 基本通貨または'JPY'をデフォルトとする
+            });
+          } else if (typeof localData.additionalBudget === 'object' && localData.additionalBudget !== null) {
+            // 既にオブジェクト形式なら直接セット
+            setAdditionalBudget(localData.additionalBudget);
+          }
         }
         
         // アセットデータのインポートと検証
@@ -1337,6 +1432,17 @@ export const PortfolioProvider = ({ children }) => {
     return sum + (assetValue * (asset.dividendYield || 0) / 100);
   }, 0);
 
+  // 追加予算設定（通貨指定に対応）
+  const setAdditionalBudgetWithCurrency = useCallback((amount, currency) => {
+    setAdditionalBudget({
+      amount: parseFloat(amount) || 0,
+      currency: currency || 'JPY'
+    });
+    
+    // 予算変更後に自動保存
+    setTimeout(() => saveToLocalStorage(), 100);
+  }, [saveToLocalStorage]);
+
   // コンテキスト値 (データ保存・同期関連の関数を追加)
   const contextValue = {
     baseCurrency, 
@@ -1359,7 +1465,7 @@ export const PortfolioProvider = ({ children }) => {
     updateAnnualFee, // 手数料率更新関数を追加
     updateDividendInfo, // 配当情報更新関数を追加
     removeTicker,
-    setAdditionalBudget, 
+    setAdditionalBudget: setAdditionalBudgetWithCurrency, // 通貨対応版に置き換え
     calculateSimulation,
     executePurchase, 
     executeBatchPurchase,
@@ -1367,6 +1473,8 @@ export const PortfolioProvider = ({ children }) => {
     exportData,
     addNotification,
     removeNotification,
+    convertCurrency, // 通貨変換関数を追加
+    calculatePurchaseShares, // 購入株数計算関数を追加
     // データ保存・同期関連
     saveToLocalStorage,
     loadFromLocalStorage,
