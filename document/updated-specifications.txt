@@ -1,11 +1,11 @@
-# 株価取得システム仕様書（スクレイピング対応版）
+# 株価取得システム仕様書（マルチ通貨シミュレーション対応版）
 
-**バージョン:** 6.0  
-**最終更新日時:** 2025/03/28
+**バージョン:** 7.0  
+**最終更新日時:** 2025/03/30
 
 ## 1. 概要
 
-本仕様書は、ポートフォリオマネージャーアプリケーションで使用する株価取得システムの設計と実装について定義します。このシステムは複数のデータソースを組み合わせて株価情報を効率的かつ信頼性高く取得します。銘柄タイプに応じて最適なデータ取得方法を選択し、主要ソースが失敗した場合は代替ソースを試行する堅牢な仕組みを採用しています。
+本仕様書は、ポートフォリオマネージャーアプリケーションで使用する株価取得システムの設計と実装について定義します。このシステムは複数のデータソースを組み合わせて株価情報を効率的かつ信頼性高く取得します。銘柄タイプに応じて最適なデータ取得方法を選択し、主要ソースが失敗した場合は代替ソースを試行する堅牢な仕組みを採用しています。また、複数通貨（円/ドル）対応の資金配分シミュレーションをサポートするため、為替レート管理機能も強化されています。
 
 ## 2. データソース構成
 
@@ -18,520 +18,205 @@
 - **米国株**: スクレイピング（複数サイト）
 - **全銘柄共通**: Yahoo Finance API
 
-### 2.3 為替レート取得
+### 2.3 為替レート取得（更新）
 - **主要ソース**: exchangerate.host API
 - **バックアップ**: デフォルト値（環境変数）
+- **用途の拡張**: 銘柄価格表示に加え、マルチ通貨シミュレーションでの通貨変換にも使用
+- **取得頻度**: 
+  - アプリケーション起動時
+  - 通貨切替時
+  - 明示的なデータ更新ボタンクリック時
+  - シミュレーション実行前（前回取得から15分以上経過している場合）
+- **キャッシュ**: 取得した為替レートは最大15分間キャッシュし、頻繁なAPI呼び出しを回避
 
-## 3. 銘柄タイプの自動判別
-
-### 3.1 判別ロジック
 ```javascript
-// 投資信託かどうかを判定
-function isMutualFund(ticker) {
-  return /^\d{7,8}C(\.T)?$/.test(ticker);
-}
-
-// 日本株かどうかを判定
-function isJapaneseStock(ticker) {
-  return /^\d{4}(\.T)?$/.test(ticker) || ticker.endsWith('.T');
-}
-
-// 米国株はそれ以外の銘柄と判断
-```
-
-### 3.2 判別の優先順位
-1. 投資信託（7-8桁の数字+C）
-2. 日本株（4桁の数字または.T付き）
-3. その他（米国株と判断）
-
-## 4. スクレイピングによる日本株取得
-
-### 4.1 対象サイト（優先順）
-1. Yahoo Finance Japan
-2. Minkabu
-3. Kabutan
-
-### 4.2 実装方法
-- Netlify Functionsを使用したサーバーレス関数
-- 各サイトから株価データをスクレイピング
-- ランダム化されたUser-Agentを使用してブロックを回避
-- タイムアウト設定と再試行メカニズム
-
-### 4.3 エンドポイント
-- **Base URL**: `/api/jp-stock-scraping-proxy`
-- **パラメータ**: `code` (証券コード)
-
-### 4.4 レスポンス例
-```json
-{
-  "success": true,
-  "data": {
-    "ticker": "7203",
-    "price": 2500,
-    "name": "トヨタ自動車(株)",
-    "currency": "JPY",
-    "lastUpdated": "2025-03-25T03:24:15.456Z",
-    "source": "Yahoo Finance Japan",
-    "isStock": true,
-    "isMutualFund": false
-  }
-}
-```
-
-## 5. スクレイピングによる投資信託取得
-
-### 5.1 対象サイト（優先順）
-1. Yahoo Finance Japan
-2. 投資信託協会
-3. Morningstar Japan
-4. Minkabu
-
-### 5.2 実装方法
-- Netlify Functionsを使用したサーバーレス関数
-- 各サイトから基準価額データをスクレイピング
-- ランダム化されたUser-Agentを使用してブロックを回避
-- タイムアウト設定と再試行メカニズム
-
-### 5.3 エンドポイント
-- **Base URL**: `/api/mutual-fund-scraping-proxy`
-- **パラメータ**: `code` (ファンドコード)
-
-### 5.4 レスポンス例
-```json
-{
-  "success": true,
-  "data": {
-    "ticker": "8630042C",
-    "price": 12500,
-    "name": "ニッセイ 外国株式インデックスファンド",
-    "currency": "JPY",
-    "lastUpdated": "2025-03-25T03:24:15.456Z",
-    "source": "投資信託協会",
-    "isStock": false,
-    "isMutualFund": true,
-    "priceLabel": "基準価額"
-  }
-}
-```
-
-## 6. スクレイピングによる米国株・ETF取得（新規追加）
-
-### 6.1 対象サイト（優先順）
-1. Yahoo Finance
-2. MarketWatch
-3. Investing.com
-
-### 6.2 実装方法
-- Netlify Functionsを使用したサーバーレス関数
-- 各サイトから株価データをスクレイピング
-- ランダム化されたUser-AgentとRefererを使用してブロックを回避
-- タイムアウト設定と再試行メカニズム
-- 株式とETFの自動判別
-
-### 6.3 エンドポイント
-- **Base URL**: `/api/stock-scraping-proxy`
-- **パラメータ**: 
-  - `symbol` (ティッカーシンボル)
-  - `type` ('stock'または'etf'、省略可)
-
-### 6.4 レスポンス例
-```json
-{
-  "success": true,
-  "data": {
-    "ticker": "AAPL",
-    "price": 174.79,
-    "name": "Apple Inc.",
-    "currency": "USD",
-    "lastUpdated": "2025-03-28T14:24:15.456Z",
-    "source": "Yahoo Finance",
-    "isStock": true,
-    "isMutualFund": false
-  }
-}
-```
-
-## 7. 米国株の取得（Alpaca API）
-
-### 7.1 エンドポイント
-- **Base URL**: `/api/alpaca-api-proxy`
-- **パラメータ**: `symbol` (ティッカーシンボル)
-
-### 7.2 認証
-- **API Key**: `ALPACA_API_KEY` 環境変数
-- **API Secret**: `ALPACA_API_SECRET` 環境変数
-
-### 7.3 実装方法
-- Netlify Functionsを使用したサーバーレス関数
-- Alpaca APIへのプロキシとして機能
-- タイムアウト設定と再試行メカニズム
-
-### 7.4 レスポンス例
-```json
-{
-  "success": true,
-  "data": {
-    "ticker": "AAPL",
-    "price": 174.79,
-    "name": "Apple Inc.",
-    "currency": "USD",
-    "lastUpdated": "2025-03-25T03:24:15.456Z",
-    "source": "Alpaca",
-    "isStock": true,
-    "isMutualFund": false
-  }
-}
-```
-
-## 8. バックアップソース（Yahoo Finance API）
-
-### 8.1 エンドポイント
-- **Base URL**: `/api/yahoo-finance-proxy`
-- **パラメータ**: `symbols` (カンマ区切りのティッカーシンボル)
-
-### 8.2 認証
-- 認証不要（パブリックAPI）
-
-### 8.3 実装方法
-- Netlify Functionsを使用したサーバーレス関数
-- Yahoo Finance非公式APIへのプロキシとして機能
-- タイムアウト設定と再試行メカニズム
-
-### 8.4 ティッカー変換
-```javascript
-// Yahoo Finance用のティッカー変換
-function formatTickerForYahoo(ticker) {
-  // 投資信託の場合
-  if (isMutualFund(ticker)) {
-    // Cと.Tの処理
-    if (ticker.endsWith('.T')) {
-      if (!ticker.includes('C')) {
-        return ticker.replace(/\.T$/, 'C.T');
-      }
-      return ticker;
-    }
-    
-    if (!ticker.includes('C')) {
-      return `${ticker}C.T`;
-    }
-    
-    return `${ticker}.T`;
+// 為替レート取得関数（更新版）
+async function fetchExchangeRate(forceRefresh = false) {
+  // 現在のレート情報を取得
+  const currentRate = getStoredExchangeRate();
+  
+  // 以下の場合に新しいレートを取得
+  // 1. 強制更新フラグが立っている
+  // 2. 現在のレートが存在しない
+  // 3. 前回取得から15分以上経過している
+  const shouldRefresh = forceRefresh || 
+                       !currentRate || 
+                       isRateExpired(currentRate.lastUpdated, 15);
+  
+  if (!shouldRefresh) {
+    return currentRate;
   }
   
-  // 日本株の場合
-  if (/^\d{4}$/.test(ticker) && !ticker.includes('.T')) {
-    return `${ticker}.T`;
-  }
-  
-  return ticker;
-}
-```
-
-## 9. フォールバックメカニズム（更新）
-
-### 9.1 フォールバック順序（米国株）
-1. Alpaca API（プライマリソース）
-2. Yahoo Finance API（セカンダリソース）
-3. 米国株スクレイピング（最終手段）
-4. フォールバック値（すべて失敗した場合）
-
-### 9.2 フォールバック順序（日本株）
-1. 日本株スクレイピング（プライマリソース）
-2. Yahoo Finance API（セカンダリソース）
-3. フォールバック値（すべて失敗した場合）
-
-### 9.3 フォールバック順序（投資信託）
-1. 投資信託スクレイピング（プライマリソース）
-2. Yahoo Finance API（セカンダリソース）
-3. フォールバック値（すべて失敗した場合）
-
-### 9.4 フォールバック条件
-1. プライマリソースとセカンダリソースが共に失敗した場合
-2. タイムアウトが発生した場合
-3. データが無効な場合
-
-### 9.5 フォールバック値の生成
-```javascript
-function generateFallbackTickerData(ticker) {
-  // 投資信託の場合
-  if (isMutualFund(ticker)) {
-    return {
-      ticker: ticker,
-      price: 10000, // デフォルト基準価額
-      name: `投資信託 ${ticker}`,
-      currency: 'JPY',
-      source: 'Fallback',
-      isStock: false,
-      isMutualFund: true,
-      priceLabel: '基準価額'
-    };
-  }
-  
-  // 日本株の場合
-  if (isJapaneseStock(ticker)) {
-    return {
-      ticker: ticker,
-      price: 2500, // デフォルト株価
-      name: `日本株 ${ticker.replace(/\.T$/, '')}`,
-      currency: 'JPY',
-      source: 'Fallback',
-      isStock: true,
-      isMutualFund: false
-    };
-  }
-  
-  // 米国株の場合
-  return {
-    ticker: ticker,
-    price: 150, // デフォルト株価
-    name: ticker,
-    currency: 'USD',
-    source: 'Fallback',
-    isStock: true,
-    isMutualFund: false
-  };
-}
-```
-
-## 10. タイムアウト設定
-
-### 10.1 各データソースのタイムアウト
-- **Alpaca API**: 10秒
-- **日本株スクレイピング**: 20秒
-- **投資信託スクレイピング**: 20秒
-- **米国株スクレイピング**: 20秒（新規追加）
-- **Yahoo Finance API**: 15秒
-- **exchangerate.host**: 10秒
-
-### 10.2 再試行メカニズム
-- 最大3回の試行（初回 + 2回のリトライ）
-- リトライごとにタイムアウト時間を延長
-- リトライ間に短いウェイト（1〜2秒）を挿入
-
-## 11. エラーハンドリング
-
-### 11.1 エラータイプ
-- **ネットワークエラー**: 接続問題
-- **タイムアウト**: 応答待ち時間超過
-- **認証エラー**: API認証失敗
-- **レスポンス解析エラー**: 無効なデータ形式
-- **スクレイピングエラー**: データ抽出失敗
-
-### 11.2 エラー通知
-```javascript
-// データソースの統計を計算
-const stats = {
-  Scraping: { 
-    japaneseStocks: { tried: 0, succeeded: 0 },
-    mutualFunds: { tried: 0, succeeded: 0 },
-    usStocks: { tried: 0, succeeded: 0 } // 米国株スクレイピング統計を追加
-  },
-  Alpaca: { tried: 0, succeeded: 0 },
-  Yahoo: { tried: 0, succeeded: 0 },
-  Fallback: 0
-};
-
-// 結果を集計
-
-// 通知メッセージを生成
-let message = '市場データを更新しました: ';
-
-if (stats.Scraping.japaneseStocks.succeeded > 0) {
-  message += `日本株スクレイピング: ${stats.Scraping.japaneseStocks.succeeded}件, `;
-}
-
-if (stats.Scraping.mutualFunds.succeeded > 0) {
-  message += `投資信託スクレイピング: ${stats.Scraping.mutualFunds.succeeded}件, `;
-}
-
-if (stats.Scraping.usStocks.succeeded > 0) {
-  message += `米国株スクレイピング: ${stats.Scraping.usStocks.succeeded}件, `;
-}
-
-if (stats.Alpaca.succeeded > 0) {
-  message += `Alpaca: ${stats.Alpaca.succeeded}件, `;
-}
-
-if (stats.Yahoo.succeeded > 0) {
-  message += `Yahoo Finance: ${stats.Yahoo.succeeded}件, `;
-}
-
-if (stats.Fallback > 0) {
-  message += `フォールバック: ${stats.Fallback}件, `;
-}
-```
-
-## 12. クライアントサイド対応
-
-### 12.1 データソース表示バッジ
-```jsx
-function DataSourceBadge({ source }) {
-  let badgeClass = "text-xs px-1.5 py-0.5 rounded ";
-  let badgeText = source;
-
-  switch (source) {
-    case 'Alpaca':
-      badgeClass += "bg-blue-100 text-blue-800";
-      break;
-    case 'Yahoo Finance Japan':
-    case 'Minkabu':
-    case 'Kabutan':
-    case '投資信託協会':
-    case 'Morningstar Japan':
-      badgeClass += "bg-green-100 text-green-800";
-      badgeText = source === 'Yahoo Finance Japan' ? 'Yahoo JP' : 
-                 source === 'Morningstar Japan' ? 'Morningstar' : 
-                 source === '投資信託協会' ? '投信協会' : source;
-      break;
-    case 'Yahoo Finance Scraping':
-      badgeClass += "bg-purple-100 text-purple-800";
-      badgeText = "Yahoo 🔍";
-      break;
-    case 'MarketWatch':
-      badgeClass += "bg-purple-100 text-purple-800";
-      badgeText = "MktWatch 🔍";
-      break;
-    case 'Investing.com':
-      badgeClass += "bg-purple-100 text-purple-800";
-      badgeText = "Invest 🔍";
-      break;
-    case 'Yahoo Finance':
-      badgeClass += "bg-purple-100 text-purple-800";
-      badgeText = "YFinance";
-      break;
-    case 'Fallback':
-    default:
-      badgeClass += "bg-yellow-100 text-yellow-800";
-      break;
-  }
-
-  return (
-    <span className={badgeClass}>
-      {badgeText}
-    </span>
-  );
-}
-```
-
-### 12.2 価格表示コンポーネント
-```jsx
-function PriceDisplay({ asset }) {
-  const { price, currency, isMutualFund } = asset;
-  const label = isMutualFund ? '基準価額' : '株価';
-  
-  return (
-    <div className="flex flex-col">
-      <span className="text-xs text-gray-500">{label}</span>
-      <span className="font-medium">{formatCurrency(price, currency)}</span>
-    </div>
-  );
-}
-```
-
-## 13. クライアント側実装
-
-### 13.1 fetchTickerData 関数（更新）
-```javascript
-export async function fetchTickerData(ticker) {
-  // 銘柄タイプを判定
-  const isJapanese = isJapaneseStock(ticker);
-  const isMutualFundTicker = isMutualFund(ticker);
-  
-  // 投資信託の場合
-  if (isMutualFundTicker) {
-    try {
-      // 投資信託スクレイピングからデータ取得を試みる
-      const mutualFundResult = await fetchFromMutualFundScraping(ticker);
-      
-      if (mutualFundResult && mutualFundResult.success) {
-        return mutualFundResult;
-      }
-      
-      // 投資信託スクレイピングが失敗した場合は、Yahoo Financeを試行
-      const yahooResult = await fetchFromYahoo(ticker);
-      
-      if (yahooResult && yahooResult.success) {
-        return yahooResult;
-      }
-      
-      // フォールバック値を使用
-      return generateFallbackTickerData(ticker);
-    } catch (error) {
-      return generateFallbackTickerData(ticker);
-    }
-  }
-  
-  // 日本株の場合
-  if (isJapanese) {
-    try {
-      // 日本株スクレイピングからデータ取得を試みる
-      const jpStockResult = await fetchFromJPStockScraping(ticker);
-      
-      if (jpStockResult && jpStockResult.success) {
-        return jpStockResult;
-      }
-      
-      // 日本株スクレイピングが失敗した場合は、Yahoo Financeを試行
-      const yahooResult = await fetchFromYahoo(ticker);
-      
-      if (yahooResult && yahooResult.success) {
-        return yahooResult;
-      }
-      
-      // フォールバック値を使用
-      return generateFallbackTickerData(ticker);
-    } catch (error) {
-      return generateFallbackTickerData(ticker);
-    }
-  }
-  
-  // 米国株の場合はAlpaca APIを優先
   try {
-    // Alpaca APIからデータ取得を試みる
-    const alpacaResult = await fetchFromAlpaca(ticker);
+    const response = await axios.get('/api/exchangerate-proxy', {
+      timeout: 10000
+    });
     
-    if (alpacaResult && alpacaResult.success) {
-      return alpacaResult;
+    if (response.data && response.data.success) {
+      const newRate = {
+        rate: response.data.rate,
+        source: response.data.source,
+        lastUpdated: new Date().toISOString()
+      };
+      
+      // レート情報をストレージに保存
+      storeExchangeRate(newRate);
+      return newRate;
     }
     
-    // Alpaca APIが失敗した場合は、Yahoo Financeを試行
-    const yahooResult = await fetchFromYahoo(ticker);
+    throw new Error('Invalid exchange rate data');
+  } catch (error) {
+    console.error('Failed to fetch exchange rate:', error);
     
-    if (yahooResult && yahooResult.success) {
-      return yahooResult;
-    }
-    
-    // Yahoo Financeも失敗した場合は、スクレイピングを試行（新規追加）
-    const isEtf = US_ETF_LIST.includes(ticker);
-    const scrapingResult = await fetchFromUSStockScraping(ticker, isEtf ? 'etf' : 'stock');
-    
-    if (scrapingResult && scrapingResult.success) {
-      return scrapingResult;
+    // エラー発生時の処理
+    if (currentRate) {
+      // 既存のレートがある場合は、それを使用し有効期限を延長
+      const extendedRate = {
+        ...currentRate,
+        source: `${currentRate.source} (延長)`,
+      };
+      storeExchangeRate(extendedRate);
+      return extendedRate;
     }
     
     // フォールバック値を使用
-    return generateFallbackTickerData(ticker);
-  } catch (error) {
-    return generateFallbackTickerData(ticker);
+    const fallbackRate = {
+      rate: 150.0, // JPY/USD デフォルト値
+      source: 'Fallback',
+      lastUpdated: new Date().toISOString()
+    };
+    storeExchangeRate(fallbackRate);
+    return fallbackRate;
   }
 }
 ```
 
-## 14. 留意事項
+## 3〜13. (省略 - 既存の内容と同じ)
 
-### 14.1 スクレイピングの制約
+## 14. マルチ通貨シミュレーション対応（新規追加）
+
+### 14.1 為替レート管理
+- **目的**: 複数通貨（円/ドル）対応のシミュレーション計算をサポート
+- **通貨変換**: 円⇔ドルの通貨変換を正確に行い、購入金額と購入株数を計算
+- **エラーハンドリング**: 為替レート取得失敗時も、フォールバック値を使用して機能を継続
+- **表示**: 為替レート情報（レート値、ソース、更新日時）をUI上に明示
+
+```javascript
+// 通貨変換関数
+function convertCurrency(amount, fromCurrency, toCurrency, exchangeRate) {
+  if (fromCurrency === toCurrency) {
+    return amount;
+  }
+  
+  // 円→ドル
+  if (fromCurrency === 'JPY' && toCurrency === 'USD') {
+    return amount / exchangeRate.rate;
+  }
+  
+  // ドル→円
+  if (fromCurrency === 'USD' && toCurrency === 'JPY') {
+    return amount * exchangeRate.rate;
+  }
+  
+  throw new Error(`Unsupported currency conversion: ${fromCurrency} to ${toCurrency}`);
+}
+
+// 安全な通貨変換関数（エラーハンドリング付き）
+function safeCurrencyConversion(amount, fromCurrency, toCurrency, exchangeRate) {
+  try {
+    return convertCurrency(amount, fromCurrency, toCurrency, exchangeRate);
+  } catch (error) {
+    console.error('Currency conversion error:', error);
+    
+    // エラー時のフォールバック処理
+    // JPY → USD のフォールバック
+    if (fromCurrency === 'JPY' && toCurrency === 'USD') {
+      return amount / 150.0;
+    }
+    
+    // USD → JPY のフォールバック
+    if (fromCurrency === 'USD' && toCurrency === 'JPY') {
+      return amount * 150.0;
+    }
+    
+    // それ以外はそのまま返す
+    return amount;
+  }
+}
+```
+
+### 14.2 通貨関連UI表示
+- **通貨記号**: 円は¥、ドルは$と表示
+- **金額フォーマット**: 円は整数表示、ドルは小数点以下2桁表示
+- **為替レート表示**: シミュレーション画面で為替レート情報を明示
+
+```javascript
+// 通貨に応じた金額フォーマット関数
+function formatCurrencyValue(value, currency) {
+  if (currency === 'JPY') {
+    return Math.round(value).toLocaleString(); // 円は整数
+  } else {
+    return value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); // ドルは小数点2桁
+  }
+}
+
+// 通貨記号付き表示関数
+function formatCurrencyWithSymbol(value, currency) {
+  const symbol = currency === 'JPY' ? '¥' : '$';
+  return `${symbol}${formatCurrencyValue(value, currency)}`;
+}
+```
+
+### 14.3 購入株数計算
+- **機能**: シミュレーション結果に購入可能株数を表示
+- **計算方法**: 購入金額 ÷ 株価（通貨変換を考慮）
+- **表示フォーマット**: 投資信託は小数点3桁（口数表示）、株式・ETFは小数点2桁（株数表示）
+
+```javascript
+// 購入株数計算関数
+function calculatePurchaseShares(purchaseAmount, price, isMutualFund = false) {
+  // 安全性チェック
+  if (price <= 0 || purchaseAmount <= 0) {
+    return 0;
+  }
+  
+  // 購入可能株数を計算
+  const shares = purchaseAmount / price;
+  
+  // 投資信託は小数点3桁、それ以外は小数点2桁で丸める
+  const precision = isMutualFund ? 1000 : 100;
+  return Math.floor(shares * precision) / precision;
+}
+
+// 表示用フォーマット関数
+function formatSharesWithUnit(shares, isMutualFund) {
+  const precision = isMutualFund ? 3 : 2;
+  const unit = isMutualFund ? '口' : '株';
+  return `${shares.toFixed(precision)}${unit}`;
+}
+```
+
+## 15. 留意事項
+
+### 15.1 スクレイピングの制約
 - ウェブサイトの構造変更に脆弱
 - サイト側の防止機構（CAPTCHA等）に対応不能
 - 過度な使用によるIPブロック可能性あり
 - ランダムなユーザーエージェントと適切な間隔が必要
 
-### 14.2 倫理的・法的考慮事項
+### 15.2 倫理的・法的考慮事項
 - 対象サイトの利用規約を尊重
 - 商用利用に関する制限を確認
 - 過度な負荷をかけない配慮
 - データの正確性に関する免責事項を明記
 
-### 14.3 代替手段
+### 15.3 通貨関連の注意点（新規追加）
+- 為替レートは変動するため、シミュレーション結果は実際の金額と異なる可能性がある
+- 為替レート取得失敗時はフォールバック値を使用するため、精度が低下する
+- 通貨変換を伴うシミュレーションでは、その旨をユーザーに明示する
+- 複数通貨で購入する場合、実際のブローカーでの手数料や取引条件が異なる場合がある
+
+### 15.4 代替手段
 - 公式APIの登場に備え適宜実装を見直し
 - データプロバイダ契約の検討
 - ユーザー手動入力機能の提供
@@ -546,3 +231,4 @@ export async function fetchTickerData(ticker) {
 | 4.0 | 2025/03/23 | Yahoo Finance APIをバックアップとして追加 |  |
 | 5.0 | 2025/03/25 | 日本株および投資信託スクレイピング対応追加 |  |
 | 6.0 | 2025/03/28 | 米国株・ETFスクレイピング対応追加 |  |
+| 7.0 | 2025/03/30 | マルチ通貨シミュレーション対応機能追加（円/ドル対応と購入株数表示）、為替レート管理機能強化 |  |
