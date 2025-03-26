@@ -1,6 +1,6 @@
-# ポートフォリオマネージャー インターフェース仕様書（スクレイピング対応版）
+# ポートフォリオマネージャー インターフェース仕様書（シミュレーション機能拡張版）
 
-**最終更新日時:** 2025/03/28 14:00
+**最終更新日時:** 2025/03/30 12:30
 
 *本仕様書は、AIの別セッションでも開発を引き継げるよう設計されています。*
 
@@ -14,15 +14,21 @@
 - 年間手数料率の自動推定と計算（個別株は0%固定、投資信託は信託報酬として表示）
 - 年間配当金の計算と配当情報の管理
 - 理想ポートフォリオ配分設定
-- 資金配分シミュレーション
+- **複数通貨（円/ドル）対応の資金配分シミュレーション**（更新）
 - データインポート/エクスポート
 - ブラウザローカルストレージによるデータ永続化（URIエンコード+Base64による安全な暗号化）
 - Google認証・Googleドライブ連携（Google Identity Services API対応）
 - 市場データの自動取得（スクレイピングとマルチAPI連携）
-  - 米国株：Alpaca API
-  - 日本株：スクレイピング（複数サイト）
-  - 投資信託：スクレイピング（複数サイト）
-  - バックアップ：Yahoo Finance API
+  - 米国株：
+    - プライマリ: Alpaca API
+    - セカンダリ: Yahoo Finance API
+    - 最終手段: 米国株スクレイピング
+  - 日本株： 
+    - プライマリ: スクレイピング（複数サイト）
+    - バックアップ: Yahoo Finance API
+  - 投資信託：
+    - プライマリ: スクレイピング（複数サイト）
+    - バックアップ: Yahoo Finance API
 - iOS風タブバーによるナビゲーション
 - 自動消去機能付き通知システム
 - エラーバウンダリによるアプリケーション耐障害性の向上
@@ -39,14 +45,16 @@
 - **データ処理**: PapaParse 5.x (CSV処理)
 - **UI拡張**: @headlessui/react 1.x
 - **サーバーレス関数**: Netlify Functions
-- **スクレイピング**: Cheerio 1.x
+- **スクレイピング**: 
+  - Cheerio 1.x (日本株・投資信託)
+  - JSDOM 22.x (米国株・ETF)
 - **デプロイ**: Netlify
 - **データ永続化**: ローカルストレージ（URIエンコード+Base64暗号化）
 - **クラウド連携**: Google Drive API v3
 - **市場データ取得**: 
-  - 米国株: Alpaca API
-  - 日本株: スクレイピング（Yahoo Finance Japan, Minkabu, Kabutan）
-  - 投資信託: スクレイピング（Yahoo Finance Japan, 投資信託協会, Morningstar Japan, Minkabu）
+  - 米国株: Alpaca API（プライマリ）+ スクレイピング（最終手段）
+  - 日本株: スクレイピング（複数サイト）
+  - 投資信託: スクレイピング（複数サイト）
   - バックアップ: Yahoo Finance API
   - 為替レート: exchangerate.host
 
@@ -55,7 +63,7 @@
 ### 2.1 ページ構成
 - **ダッシュボード** (`/`): 資産概要、グラフ、銘柄詳細
 - **設定** (`/settings`): 銘柄追加、保有資産設定、目標配分設定
-- **シミュレーション** (`/simulation`): 追加予算と購入シミュレーション
+- **シミュレーション** (`/simulation`): 追加予算と購入シミュレーション（複数通貨対応、購入株数表示）
 - **データ連携** (`/data`): インポート/エクスポート、データ同期、Googleドライブ連携
 
 ### 2.2 ナビゲーション
@@ -104,16 +112,16 @@
 - 同時に複数の通知を表示可能
 - スタック表示で新しい通知が下に追加される
 
-### 2.6 データソース表示（スクレイピング対応版）
+### 2.6 データソース表示
 - 銘柄データのソースを明示的に表示
   - Alpaca：青色バッジ
-  - スクレイピング（各ソース）：緑色バッジ
+  - 日本株・投資信託スクレイピングソース：緑色バッジ
+  - 米国株スクレイピングソース：紫色バッジ
   - Yahoo Finance：紫色バッジ
   - Fallback：黄色バッジ
 - 更新時に各データソースの利用状況を通知
-  - 例：「市場データを更新しました: 日本株スクレイピング: 3件 (Yahoo Finance Japan: 2件、Minkabu: 1件)、投資信託スクレイピング: 2件 (投資信託協会: 2件)、Alpaca: 5件」
 - フォールバック使用時は注意喚起表示
-- スクレイピングソースの詳細表示（Yahoo Finance Japan、Minkabu、Kabutan、投資信託協会、Morningstar）
+- スクレイピングソースの詳細表示
 - 株価情報の信頼性をユーザーが判断できるようサポート
 
 ## 3. 状態管理
@@ -132,7 +140,7 @@
 - `exchangeRate`: 為替レート情報 ({ rate, source, lastUpdated })
 - `currentAssets`: 保有資産の配列（配当情報を含む）
 - `targetPortfolio`: 目標配分の配列
-- `additionalBudget`: 追加投資予算
+- `additionalBudget`: 追加投資予算情報（金額と通貨）（更新）
 - `isAuthenticated`: 認証状態
 - `user`: ユーザー情報
 - `notifications`: 通知メッセージの配列
@@ -143,7 +151,7 @@
 - `totalAssets`: 総資産額
 - `annualFees`: 年間手数料合計
 - `annualDividends`: 年間配当金合計
-- `scrapingStats`: スクレイピング統計情報（新規追加）
+- `scrapingStats`: スクレイピング統計情報
 
 ### 3.4 データ構造
 #### 保有資産 (Asset)
@@ -164,7 +172,7 @@ interface Asset {
   feeIsEstimated: boolean; // 手数料情報が推定値かどうか
   region?: string; // 対象地域 ('日本', '米国', 'グローバル', '不明')
   lastUpdated?: string;
-  source?: string; // データソース名 ('Alpaca', 'Yahoo Finance Japan', 'Minkabu', 'Kabutan', '投資信託協会', 'Morningstar Japan', 'Yahoo Finance', 'Fallback')
+  source?: string; // データソース名 ('Alpaca', 'Yahoo Finance Japan', 'Minkabu', 'Kabutan', '投資信託協会', 'Morningstar Japan', 'Yahoo Finance', 'Yahoo Finance Scraping', 'MarketWatch', 'Investing.com', 'Fallback')
   dividendYield: number; // 配当利回り（%）
   hasDividend: boolean; // 配当があるかどうか
   dividendFrequency: string; // 配当頻度（'monthly', 'quarterly', 'semi-annual', 'annual'）
@@ -173,7 +181,49 @@ interface Asset {
 }
 ```
 
-#### スクレイピング統計情報（新規追加）
+#### 追加予算（更新）
+```typescript
+// 変更前
+// additionalBudget: number;
+
+// 変更後
+interface BudgetInfo {
+  amount: number;      // 金額
+  currency: string;    // 通貨 ('JPY' | 'USD')
+}
+
+additionalBudget: BudgetInfo;
+```
+
+#### シミュレーション結果（更新）
+```typescript
+// 変更前
+// interface SimulationResult {
+//   ticker: string;
+//   name: string;
+//   currentAllocation: number;
+//   targetAllocation: number;
+//   diff: number;
+//   currentValue: number;
+//   purchaseAmount: number;
+// }
+
+// 変更後
+interface SimulationResult {
+  ticker: string;         // 銘柄シンボル
+  name: string;           // 銘柄名
+  currentAllocation: number; // 現在の配分率（%）
+  targetAllocation: number;  // 目標配分率（%）
+  diff: number;           // 差分（%）
+  currentValue: number;   // 現在の保有価値
+  purchaseAmount: number; // 推奨購入金額
+  purchaseShares: number; // 購入可能株数（新規追加）
+  price: number;          // 現在の株価/基準価額（新規追加）
+  currency: string;       // 通貨 ('JPY' | 'USD')（新規追加）
+}
+```
+
+#### スクレイピング統計情報
 ```typescript
 interface ScrapingStats {
   japaneseStocks: {
@@ -195,6 +245,15 @@ interface ScrapingStats {
       minkabu: number;
     }
   };
+  usStocks: {
+    tried: number; // 試行回数
+    succeeded: number; // 成功回数
+    sources: {
+      yahooFinance: number;
+      marketWatch: number;
+      investingCom: number;
+    }
+  }
 }
 ```
 
@@ -215,7 +274,7 @@ interface StorageData {
   lastUpdated: string;
   currentAssets: Asset[];
   targetPortfolio: TargetAllocation[];
-  additionalBudget: number;
+  additionalBudget: BudgetInfo; // 更新
   version: string; // データバージョン管理用
   timestamp: string; // 保存日時
 }
@@ -261,12 +320,222 @@ interface StorageData {
   - データソースのバッジ表示（スクレイピングソース別）
 - **AllocationEditor**: 目標配分の編集
 
-### 4.3 シミュレーション画面コンポーネント
-- **BudgetInput**: 追加予算の入力と予算プリセット
+### 4.3 シミュレーション画面コンポーネント（更新）
+- **BudgetInput**: 追加予算の入力と予算プリセット（更新）
   - 直接入力と増減ボタン
-  - 予算プリセットボタン（10万、30万、50万、100万）
+  - 通貨選択機能（円/ドル）（新規追加）
+  - 通貨ごとの予算プリセットボタン（新規追加）
+    - 円: 10万、30万、50万、100万
+    - ドル: 1000、3000、5000、10000
+  - 通貨に応じた入力の検証（最小値、最大値）（新規追加）
+  - 現在の基本通貨設定をデフォルト値として使用（新規追加）
   - アクセシビリティ対応済み（ラベルと入力フィールドの関連付け）
-- **SimulationResult**: シミュレーション結果表示と購入機能
+  
+  ```jsx
+  // BudgetInput UI例（更新）
+  <div className="p-4 bg-white rounded-lg shadow">
+    <h2 className="text-lg font-bold mb-3">追加予算</h2>
+    
+    {/* 通貨選択ラジオボタン（新規追加） */}
+    <div className="mb-3">
+      <div className="flex space-x-4">
+        <label className="inline-flex items-center">
+          <input 
+            type="radio" 
+            name="currency" 
+            value="JPY" 
+            checked={currency === 'JPY'} 
+            onChange={() => setCurrency('JPY')} 
+            className="form-radio" 
+          />
+          <span className="ml-2">円 (¥)</span>
+        </label>
+        <label className="inline-flex items-center">
+          <input 
+            type="radio" 
+            name="currency" 
+            value="USD" 
+            checked={currency === 'USD'} 
+            onChange={() => setCurrency('USD')} 
+            className="form-radio" 
+          />
+          <span className="ml-2">ドル ($)</span>
+        </label>
+      </div>
+    </div>
+    
+    {/* 金額入力フィールド */}
+    <div className="flex items-center mb-4">
+      <span className="mr-2">{currency === 'JPY' ? '¥' : '$'}</span>
+      <input 
+        type="number" 
+        id="budget-input" 
+        value={amount} 
+        onChange={handleAmountChange} 
+        className="border rounded px-2 py-1 w-32" 
+        min="0" 
+      />
+      <button 
+        onClick={() => handleAmountChange({ target: { value: Number(amount) + step } })} 
+        className="ml-2 px-3 py-1 bg-gray-200 rounded"
+      >
+        +
+      </button>
+      <button 
+        onClick={() => handleAmountChange({ target: { value: Math.max(0, Number(amount) - step) } })} 
+        className="ml-2 px-3 py-1 bg-gray-200 rounded"
+      >
+        -
+      </button>
+    </div>
+    
+    {/* 通貨に応じたプリセットボタン（更新） */}
+    <div className="flex flex-wrap gap-2">
+      {currency === 'JPY' ? (
+        <>
+          <button 
+            onClick={() => setAmount(100000)} 
+            className="px-3 py-1 bg-blue-100 rounded hover:bg-blue-200"
+          >
+            ¥10万
+          </button>
+          <button 
+            onClick={() => setAmount(300000)} 
+            className="px-3 py-1 bg-blue-100 rounded hover:bg-blue-200"
+          >
+            ¥30万
+          </button>
+          <button 
+            onClick={() => setAmount(500000)} 
+            className="px-3 py-1 bg-blue-100 rounded hover:bg-blue-200"
+          >
+            ¥50万
+          </button>
+          <button 
+            onClick={() => setAmount(1000000)} 
+            className="px-3 py-1 bg-blue-100 rounded hover:bg-blue-200"
+          >
+            ¥100万
+          </button>
+        </>
+      ) : (
+        <>
+          <button 
+            onClick={() => setAmount(1000)} 
+            className="px-3 py-1 bg-blue-100 rounded hover:bg-blue-200"
+          >
+            $1,000
+          </button>
+          <button 
+            onClick={() => setAmount(3000)} 
+            className="px-3 py-1 bg-blue-100 rounded hover:bg-blue-200"
+          >
+            $3,000
+          </button>
+          <button 
+            onClick={() => setAmount(5000)} 
+            className="px-3 py-1 bg-blue-100 rounded hover:bg-blue-200"
+          >
+            $5,000
+          </button>
+          <button 
+            onClick={() => setAmount(10000)} 
+            className="px-3 py-1 bg-blue-100 rounded hover:bg-blue-200"
+          >
+            $10,000
+          </button>
+        </>
+      )}
+    </div>
+  </div>
+  ```
+
+- **SimulationResult**: シミュレーション結果表示と購入機能（更新）
+  - 各銘柄の現在配分と目標配分の表示
+  - 推奨購入金額の表示
+  - 購入可能株数の表示（新規追加）
+  - 株価/基準価額の表示（新規追加）
+  - 銘柄ごとの通貨表示（新規追加）
+  - 自動的な通貨換算結果の表示（新規追加）
+  - 為替レートの明示的な表示（新規追加）
+  
+  ```jsx
+  // SimulationResult UI例（更新）
+  <div className="bg-white rounded-lg shadow p-4 mt-4">
+    <h2 className="text-lg font-bold mb-3">シミュレーション結果</h2>
+    
+    {/* 為替レート表示（新規追加） */}
+    {exchangeRate && (
+      <div className="text-sm text-gray-600 mb-2">
+        為替レート: 1 USD = {exchangeRate.rate.toFixed(2)} JPY
+        <span className="text-xs ml-2">({exchangeRate.source}, {formatDate(exchangeRate.lastUpdated)})</span>
+      </div>
+    )}
+    
+    <div className="overflow-x-auto">
+      <table className="min-w-full divide-y divide-gray-200">
+        <thead>
+          <tr>
+            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">銘柄</th>
+            <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">現配分</th>
+            <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">目標</th>
+            <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">差分</th>
+            <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">購入額</th>
+            <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">株価</th>
+            <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">購入株数</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-200">
+          {simulationResults.map((result) => (
+            <tr key={result.ticker}>
+              <td className="px-4 py-2 whitespace-nowrap">
+                <div className="flex items-center">
+                  <div className="text-sm font-medium text-gray-900">{result.ticker}</div>
+                  <div className="ml-2">
+                    <DataSourceBadge source={result.source} />
+                  </div>
+                </div>
+                <div className="text-sm text-gray-500">{result.name}</div>
+              </td>
+              <td className="px-4 py-2 whitespace-nowrap text-right text-sm text-gray-500">
+                {result.currentAllocation.toFixed(1)}%
+              </td>
+              <td className="px-4 py-2 whitespace-nowrap text-right text-sm text-gray-500">
+                {result.targetAllocation.toFixed(1)}%
+              </td>
+              <td className="px-4 py-2 whitespace-nowrap text-right text-sm">
+                <span className={
+                  result.diff > 0 
+                    ? 'text-green-600' 
+                    : result.diff < 0 
+                      ? 'text-red-600' 
+                      : 'text-gray-500'
+                }>
+                  {result.diff > 0 ? '+' : ''}{result.diff.toFixed(1)}%
+                </span>
+              </td>
+              <td className="px-4 py-2 whitespace-nowrap text-right text-sm text-gray-900">
+                {result.currency === 'JPY' ? '¥' : '$'}
+                {formatCurrency(result.purchaseAmount, result.currency)}
+              </td>
+              <td className="px-4 py-2 whitespace-nowrap text-right text-sm text-gray-900">
+                {result.currency === 'JPY' ? '¥' : '$'}
+                {formatCurrency(result.price, result.currency)}
+              </td>
+              <td className="px-4 py-2 whitespace-nowrap text-right text-sm text-gray-900">
+                {result.purchaseShares > 0 
+                  ? result.purchaseShares.toFixed(
+                      result.isMutualFund ? 3 : 2
+                    )
+                  : 0}{result.isMutualFund ? '口' : '株'}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  ```
 
 ### 4.4 データ連携画面コンポーネント
 - **ExportOptions**: データエクスポート機能
@@ -296,13 +565,9 @@ interface StorageData {
   - 自動消去タイマー機能（情報/成功/警告通知は5秒後に自動消去）
   - 手動消去ボタン
   - 通知タイプ別のスタイリング
-- **DataSourceBadge**: データソース表示バッジ（スクレイピング対応版）
+- **DataSourceBadge**: データソース表示バッジ
   - 各データソースに応じた表示（Alpaca、スクレイピングソース別、Yahoo Finance、Fallback）
   - ソースに応じた色分け
-    - Alpaca: 青色
-    - スクレイピングソース: 緑色
-    - Yahoo Finance: 紫色
-    - Fallback: 黄色
 - **ErrorBoundary**: エラーバウンダリコンポーネント
   - エラー発生時の処理
   - リロード機能
@@ -310,237 +575,44 @@ interface StorageData {
 
 ### 4.6 ユーティリティコンポーネント
 - **FundTypeBadge**: ファンドタイプを表示するバッジ
-  - 個別株: 灰色バッジ
-  - ETF: 青色バッジ
-  - インデックスファンド: 緑色バッジ
-  - 投資信託: 紫色バッジ
-  - アクティブファンド: 紫色バッジ
 - **FeeSourceBadge**: 手数料情報の出所を表示するバッジ
-  - 個別株: 灰色バッジ
-  - 投資信託: 紫色バッジ
-  - 推定値: 黄色バッジ
-  - ティッカー固有の情報: 緑色バッジ
-  - ユーザー設定: 紫色バッジ
 - **DividendBadge**: 配当情報を表示するバッジ
-  - 配当なし: 灰色バッジ
-  - 配当あり（推定値）: 黄色バッジ
-  - 配当あり（確定値）: 緑色バッジ
-  - 配当頻度別のラベル表示
 - **PriceDisplay**: 株価/基準価額を適切に表示するコンポーネント
-  - 投資信託: 「基準価額」として表示
-  - 個別株/ETF: 「株価」として表示
 - **ContextConnector**: コンテキスト間の連携を管理するコンポーネント
 
 ## 5. API・外部連携仕様
 
-### 5.1 マルチソース対応（スクレイピング対応版）
+### 5.1 マルチソース対応
 - **データソース優先順位**:
-  1. 米国株: Alpaca API（プライマリソース）
-  2. 日本株: スクレイピング（複数サイトから自動試行）
-  3. 投資信託: スクレイピング（複数サイトから自動試行）
-  4. バックアップ: Yahoo Finance API
-  5. フォールバック値（すべてのソースが失敗した場合）
+  1. 米国株: 
+     - プライマリ: Alpaca API
+     - セカンダリ: Yahoo Finance API
+     - 最終手段: 米国株スクレイピング
+     - フォールバック: デフォルト値
+  2. 日本株: 
+     - プライマリ: 日本株スクレイピング
+     - セカンダリ: Yahoo Finance API
+     - フォールバック: デフォルト値
+  3. 投資信託: 
+     - プライマリ: 投資信託スクレイピング
+     - セカンダリ: Yahoo Finance API
+     - フォールバック: デフォルト値
 
-- **スクレイピングサイト優先順位**:
-  - 日本株:
-    1. Yahoo Finance Japan
-    2. Minkabu
-    3. Kabutan
-  - 投資信託:
-    1. Yahoo Finance Japan
-    2. 投資信託協会
-    3. Morningstar Japan
-    4. Minkabu
+- **米国株スクレイピングサイト優先順位**:
+  1. Yahoo Finance
+  2. MarketWatch
+  3. Investing.com
 
-- **切り替え条件**:
-  - スクレイピングからデータが取得できない場合
-  - Alpaca APIからデータが取得できない場合
-  - スクレイピングまたはAPIでエラーが発生した場合
+- **日本株スクレイピングサイト優先順位**:
+  1. Yahoo Finance Japan
+  2. Minkabu
+  3. Kabutan
 
-- **実装例**:
-```javascript
-// 銘柄タイプによるデータソース選択
-function selectDataSourceForTicker(ticker) {
-  // 投資信託の判定（7-8桁数字+C）
-  if (isMutualFund(ticker)) {
-    return 'Mutual Fund Scraping';
-  }
-  
-  // 日本株の判定
-  if (isJapaneseStock(ticker)) {
-    return 'Japanese Stock Scraping';
-  }
-  
-  // それ以外は米国株と判断
-  return 'Alpaca';
-}
-
-// 銘柄データの取得
-async function fetchStockData(ticker) {
-  try {
-    // データソースを選択
-    const source = selectDataSourceForTicker(ticker);
-    
-    if (source === 'Alpaca') {
-      // 米国株の場合はAlpaca APIを使用
-      return await fetchFromAlpaca(ticker);
-    } else if (source === 'Japanese Stock Scraping') {
-      // 日本株の場合はスクレイピングを使用
-      return await fetchFromJPStockScraping(ticker);
-    } else {
-      // 投資信託の場合はスクレイピングを使用
-      return await fetchFromMutualFundScraping(ticker);
-    }
-  } catch (error) {
-    console.error(`Error fetching data for ${ticker}:`, error);
-    
-    // バックアップとしてYahoo Finance APIを試す
-    try {
-      return await fetchFromYahooFinance(ticker);
-    } catch (backupError) {
-      // フォールバック値を使用
-      return generateFallbackData(ticker);
-    }
-  }
-}
-```
-
-### 5.2 日本株スクレイピング連携
-- **エンドポイント**: `jp-stock-scraping-proxy` (Netlify Functions経由)
-- **機能**: 複数の金融サイトから日本株の株価データを取得
-- **対象サイト**: Yahoo Finance Japan、Minkabu、Kabutan
-- **実装例**:
-```javascript
-// 日本株スクレイピングから株価データを取得
-async function fetchFromJPStockScraping(code) {
-  try {
-    const response = await axios.get('/api/jp-stock-scraping-proxy', {
-      params: { code },
-      timeout: 20000
-    });
-    
-    // スクレイピング結果を検証
-    if (response.data && response.data.success) {
-      const stockData = response.data.data;
-      return {
-        ticker: stockData.ticker,
-        price: stockData.price,
-        name: stockData.name,
-        currency: stockData.currency,
-        source: stockData.source, // 実際に使用されたスクレイピングソース
-        lastUpdated: stockData.lastUpdated,
-        isStock: true,
-        isMutualFund: false
-      };
-    }
-    throw new Error('Invalid data structure from scraping proxy');
-  } catch (error) {
-    console.error(`JP Stock scraping error for ${code}:`, error);
-    throw error; // 上位の関数でバックアップAPIを試行するため、エラーをスローする
-  }
-}
-```
-
-### 5.3 投資信託スクレイピング連携
-- **エンドポイント**: `mutual-fund-scraping-proxy` (Netlify Functions経由)
-- **機能**: 複数の金融サイトから投資信託の基準価額データを取得
-- **対象サイト**: Yahoo Finance Japan、投資信託協会、Morningstar Japan、Minkabu
-- **実装例**:
-```javascript
-// 投資信託スクレイピングから基準価額データを取得
-async function fetchFromMutualFundScraping(code) {
-  try {
-    const response = await axios.get('/api/mutual-fund-scraping-proxy', {
-      params: { code },
-      timeout: 20000
-    });
-    
-    // スクレイピング結果を検証
-    if (response.data && response.data.success) {
-      const fundData = response.data.data;
-      return {
-        ticker: fundData.ticker,
-        price: fundData.price,
-        name: fundData.name,
-        currency: fundData.currency,
-        source: fundData.source, // 実際に使用されたスクレイピングソース
-        lastUpdated: fundData.lastUpdated,
-        isStock: false,
-        isMutualFund: true,
-        priceLabel: '基準価額'
-      };
-    }
-    throw new Error('Invalid data structure from scraping proxy');
-  } catch (error) {
-    console.error(`Mutual Fund scraping error for ${code}:`, error);
-    throw error; // 上位の関数でバックアップAPIを試行するため、エラーをスローする
-  }
-}
-```
-
-### 5.4 Alpaca API連携
-- **エンドポイント**: `alpaca-api-proxy` (Netlify Functions経由)
-- **機能**: 米国株の市場データ取得
-- **APIキー**: 環境変数 `ALPACA_API_KEY` と `ALPACA_API_SECRET` で設定
-- **タイムアウト設定**: 10秒
-- **フォールバック**: Yahoo Finance APIと米国株フォールバック値による多段階フォールバック
-
-### 5.5 Yahoo Finance API連携（バックアップ）
-- **エンドポイント**: `yahoo-finance-proxy` (Netlify Functions経由)
-- **機能**: バックアップとしての株価データ取得（米国株、日本株、投資信託対応）
-- **フォーマット変換**:
-  - 日本株: 4桁の証券コードに `.T` を追加
-  - 投資信託: ファンドコードに `C.T` を追加
-- **タイムアウト設定**: 15秒
-- **使用条件**: スクレイピングまたはAlpaca APIが失敗した場合
-
-### 5.6 为替レート取得連携
-- **エンドポイント**: `exchangerate-proxy` (Netlify Functions経由)
-- **機能**: USD/JPY為替レートの取得
-- **データソース**: exchangerate.host
-- **レート制限対応**: フォールバック値（150.0）の使用
-- **更新頻度**: 基準通貨変更時、明示的な更新ボタンクリック時
-
-### 5.7 ローカルストレージ連携
-- **ストレージキー**: `portfolioData`
-- **暗号化方式**: URIエンコード + Base64エンコーディングによる安全な暗号化
-- **保存データ**: ポートフォリオデータ、配当情報、設定情報、タイムスタンプ
-- **保存タイミング**: データ変更時、明示的な保存操作時、同期時
-- **読み込みタイミング**: アプリケーション初期化時、明示的な読み込み操作時
-- **フォールバック処理**: 古い形式のデータ読み込みにも対応
-- **データ構造検証**: 復号化後のデータ構造を検証し、整合性を確認
-- **重複初期化防止**: 初期化済みフラグによる重複処理の回避
-
-### 5.8 Google OAuth認証
-- **認証フロー**: Google Identity Services APIを使用した最新のOAuthフロー
-- **スコープ**: ユーザー情報、Googleドライブアクセス（`https://www.googleapis.com/auth/drive.file`）
-- **トークン管理**: localStorage保存、有効期限チェック
-- **ライブラリ**: @react-oauth/google 0.11.0
-- **トークン解析**: jwt-decode 3.x
-- **スクリプト**: Google Identity Services API (`accounts.google.com/gsi/client`)
-
-### 5.9 Googleドライブ連携
-- **機能**: ポートフォリオデータの保存・読み込み
-- **ファイル形式**: JSON
-- **アクセス権**: アプリ固有のファイル権限
-- **同期ロジック**: タイムスタンプに基づく最新データの特定
-- **API対応**: Fetch APIを使用した直接のドライブAPI呼び出し
-- **エンドポイント**:
-  - ファイル保存: `https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart`
-  - ファイル検索: `https://www.googleapis.com/drive/v3/files?q=name='filename' and trashed=false`
-  - ファイル読み込み: `https://www.googleapis.com/drive/v3/files/{fileId}?alt=media`
-- **認証**: OAuth 2.0アクセストークン
-- **エラーハンドリング**: 認証エラー、ネットワークエラー、APIエラーに対応
-
-### 5.10 ファンド情報API
-- **機能**: 銘柄タイプ判定、手数料情報取得、配当情報取得
-- **実装方法**: フロントエンドで実装（`fundUtils.js`）
-- **データソース**: アプリ内DBとロジックによる判定
-- **個別株判定**: ティッカーパターンと名前に基づく判定
-- **投資信託判定**: 7-8桁数字+Cのパターンに基づく判定
-- **配当情報データベース**: `TICKER_SPECIFIC_DIVIDENDS` による特定銘柄の配当情報
-- **配当判定ロジック**: ファンドタイプと名前に基づく配当の有無を判定
-- **配当頻度判定**: 名前に基づく配当頻度（monthly, quarterly, semi-annual, annual）の推定
+- **投資信託スクレイピングサイト優先順位**:
+  1. Yahoo Finance Japan
+  2. 投資信託協会
+  3. Morningstar Japan
+  4. Minkabu
 
 ## 6. イベントフロー
 
@@ -557,512 +629,100 @@ async function fetchFromMutualFundScraping(code) {
 10. 初期化完了のフラグを設定
 11. エラー発生時はエラーバウンダリでキャッチ
 
+### 6.2 シミュレーション計算フロー（更新）
+1. ユーザーが入金額と通貨を選択（円またはドル）
+2. 追加予算の通貨を確認
+3. 必要に応じて銘柄の通貨に換算（為替レートを使用）
+4. 購入金額の計算（現行ロジックと同様）
+5. 購入株数の計算（購入金額 ÷ 株価）（新規追加）
+6. 結果オブジェクトに購入株数、株価、通貨情報を追加（新規追加）
+7. 計算結果を表示（購入株数列を追加）
+
 ```javascript
-// 初期化処理の主要部分（更新版）
-const initializeData = useCallback(() => {
-  try {
-    // 既に初期化済みなら何もせず終了
-    if (initialized) return;
+// 通貨換算処理（新規追加）
+function convertCurrency(amount, fromCurrency, toCurrency, exchangeRate) {
+  if (fromCurrency === toCurrency) {
+    return amount;
+  }
+  
+  // 円→ドル
+  if (fromCurrency === 'JPY' && toCurrency === 'USD') {
+    return amount / exchangeRate.rate;
+  }
+  
+  // ドル→円
+  if (fromCurrency === 'USD' && toCurrency === 'JPY') {
+    return amount * exchangeRate.rate;
+  }
+  
+  throw new Error(`Unsupported currency conversion: ${fromCurrency} to ${toCurrency}`);
+}
+
+// 購入株数の計算（新規追加）
+function calculatePurchaseShares(purchaseAmount, price) {
+  return Math.floor((purchaseAmount / price) * 100) / 100;
+}
+
+// シミュレーション計算のメイン処理（更新）
+function calculateSimulation(assets, targetPortfolio, additionalBudget, exchangeRate) {
+  const totalValue = calculateTotalValue(assets);
+  const results = [];
+  
+  // 予算通貨の取得
+  const budgetCurrency = additionalBudget.currency;
+  const budgetAmount = additionalBudget.amount;
+  
+  for (const target of targetPortfolio) {
+    const asset = assets.find(a => a.ticker === target.ticker);
+    if (!asset) continue;
     
-    console.log('データの初期化を開始...');
-    const localData = loadFromLocalStorage();
+    const currentValue = asset.price * asset.holdings;
+    const currentAllocation = (currentValue / totalValue) * 100;
+    const targetAllocation = target.allocation;
+    const diff = targetAllocation - currentAllocation;
     
-    if (localData) {
-      // 各状態を更新
-      // ...
+    // 差分が正の場合（配分を増やす必要がある場合）のみ購入
+    if (diff > 0) {
+      // 予算から理想的に購入すべき金額を計算
+      const idealPurchase = (diff / 100) * (totalValue + budgetAmount);
       
-      // 通知を表示（5秒後に自動消去）
-      addNotification('前回のデータを読み込みました', 'info');
-    } else {
-      console.log('ローカルストレージにデータがありませんでした。初期状態を使用します。');
+      // 通貨を考慮した購入金額の計算
+      let purchaseAmount = idealPurchase;
+      
+      // 銘柄の通貨と予算の通貨が異なる場合は変換
+      if (asset.currency !== budgetCurrency) {
+        purchaseAmount = convertCurrency(
+          idealPurchase,
+          budgetCurrency,
+          asset.currency,
+          exchangeRate
+        );
+      }
+      
+      // 購入可能株数の計算
+      const purchaseShares = calculatePurchaseShares(purchaseAmount, asset.price);
+      
+      results.push({
+        ticker: asset.ticker,
+        name: asset.name,
+        currentAllocation,
+        targetAllocation,
+        diff,
+        currentValue,
+        purchaseAmount,
+        purchaseShares, // 新規追加
+        price: asset.price, // 新規追加
+        currency: asset.currency, // 新規追加
+        source: asset.source,
+        isMutualFund: asset.isMutualFund
+      });
     }
-    
-    // 初期化完了をマーク
-    setInitialized(true);
-  } catch (error) {
-    console.error('データの初期化中にエラーが発生しました:', error);
-    addNotification(`データの初期化中にエラーが発生しました: ${error.message}`, 'error');
-    setInitialized(true); // エラーが発生しても初期化完了とマークする
-  }
-}, [initialized, /* その他の依存関係 */]);
-```
-
-### 6.2 市場データ更新フロー（スクレイピング対応版）
-1. ユーザーがデータ更新ボタンをクリック
-2. 銘柄タイプに応じてスクレイピングとAPI呼び出しを振り分け
-   - 米国株: Alpaca API
-   - 日本株: 日本株スクレイピングプロキシ
-   - 投資信託: 投資信託スクレイピングプロキシ
-3. スクレイピングまたはAPIからデータを取得し、エラー時はバックアップのYahoo Finance APIを使用
-4. すべてのソースが失敗した場合はフォールバック値を使用
-5. 為替レートはexchangerate.hostから取得、エラー時はデフォルト値を使用
-6. 銘柄ごとに最新の価格、手数料情報、配当情報を更新
-7. 個別株は常に手数料率0%を維持
-8. 投資信託は「基準価額」として表示
-9. データソースの統計情報を計算（スクレイピングソース別、APIソース別の件数）
-10. 使用したデータソースを通知メッセージとして表示
-11. エラー情報を銘柄タイプごとに分類して表示
-12. フォールバック値を使用している場合は警告通知
-13. データをローカルストレージに自動保存
-14. 通知は5秒後に自動消去（エラー以外）
-
-```javascript
-// スクレイピングとAPIソースの統計を計算
-const stats = {
-  scrapingJapaneseStocks: {
-    total: 0,
-    yahooJapan: 0,
-    minkabu: 0,
-    kabutan: 0
-  },
-  scrapingMutualFunds: {
-    total: 0,
-    yahooJapan: 0,
-    toushinLib: 0,
-    morningstar: 0,
-    minkabu: 0
-  },
-  Alpaca: 0,
-  YahooFinance: 0,
-  Fallback: 0
-};
-
-// 各銘柄のデータソースをカウント
-assets.forEach(asset => {
-  if (asset.source === 'Alpaca') {
-    stats.Alpaca++;
-  } else if (['Yahoo Finance Japan', 'Minkabu', 'Kabutan'].includes(asset.source)) {
-    stats.scrapingJapaneseStocks.total++;
-    stats.scrapingJapaneseStocks[
-      asset.source === 'Yahoo Finance Japan' ? 'yahooJapan' :
-      asset.source === 'Minkabu' ? 'minkabu' : 'kabutan'
-    ]++;
-  } else if (['Yahoo Finance Japan', '投資信託協会', 'Morningstar Japan', 'Minkabu'].includes(asset.source) && asset.isMutualFund) {
-    stats.scrapingMutualFunds.total++;
-    stats.scrapingMutualFunds[
-      asset.source === 'Yahoo Finance Japan' ? 'yahooJapan' :
-      asset.source === '投資信託協会' ? 'toushinLib' :
-      asset.source === 'Morningstar Japan' ? 'morningstar' : 'minkabu'
-    ]++;
-  } else if (asset.source === 'Yahoo Finance') {
-    stats.YahooFinance++;
-  } else if (asset.source === 'Fallback') {
-    stats.Fallback++;
-  }
-});
-
-// 通知メッセージを作成
-let message = '市場データを更新しました: ';
-
-if (stats.scrapingJapaneseStocks.total > 0) {
-  message += `日本株スクレイピング: ${stats.scrapingJapaneseStocks.total}件 (`;
-  
-  let details = [];
-  if (stats.scrapingJapaneseStocks.yahooJapan > 0) {
-    details.push(`Yahoo JP: ${stats.scrapingJapaneseStocks.yahooJapan}件`);
-  }
-  if (stats.scrapingJapaneseStocks.minkabu > 0) {
-    details.push(`Minkabu: ${stats.scrapingJapaneseStocks.minkabu}件`);
-  }
-  if (stats.scrapingJapaneseStocks.kabutan > 0) {
-    details.push(`Kabutan: ${stats.scrapingJapaneseStocks.kabutan}件`);
   }
   
-  message += details.join('、') + ')';
-  
-  if (stats.scrapingMutualFunds.total > 0 || stats.Alpaca > 0 || stats.YahooFinance > 0) {
-    message += '、';
-  }
-}
-
-// 他のデータソースについても同様に処理
-// ...
-
-// 成功通知を表示（5秒後に自動消去）
-addNotification(message, stats.Fallback > 0 ? 'warning' : 'success');
-```
-
-### 6.3 通知フロー
-1. 通知表示関数（`addNotification`）が呼び出される
-2. タイムスタンプをIDとして使用
-3. 通知タイプに応じた表示（info, success, warning, error）
-4. 通知タイプが error 以外の場合は5秒後に自動消去するタイマーを設定
-5. 通知がUIに表示される
-6. 自動または手動消去時に通知を配列から削除
-
-```javascript
-// 通知を追加する関数（タイムアウト付き）
-const addNotification = useCallback((message, type = 'info') => {
-  const id = Date.now();
-  setNotifications(prev => [...prev, { id, message, type }]);
-  
-  // 情報・成功・警告通知は自動消去（5秒後）
-  if (type !== 'error') {
-    setTimeout(() => {
-      removeNotification(id);
-    }, 5000);
-  }
-  
-  return id;
-}, []);
-
-// 通知を削除する関数
-const removeNotification = useCallback((id) => {
-  setNotifications(prev => prev.filter(notification => notification.id !== id));
-}, []);
-```
-
-### 6.4 銘柄追加フロー（スクレイピング対応版）
-1. ユーザーが銘柄シンボルまたは投資信託コードを入力
-2. addTicker関数を呼び出し
-3. 銘柄タイプの自動判別（投資信託か日本株か米国株か）
-4. 銘柄タイプに応じて適切なデータ取得方法を選択
-   - 投資信託: 投資信託スクレイピングプロキシ
-   - 日本株: 日本株スクレイピングプロキシ
-   - 米国株: Alpaca API
-5. データ取得に失敗した場合はYahoo Finance APIを試行
-6. すべてのソースが失敗した場合はフォールバック値を使用
-7. 銘柄タイプの詳細判定と手数料情報の推定
-   - 個別株: 手数料を0%に設定
-   - 投資信託: 信託報酬として表示
-8. 配当情報の推定
-9. 保有資産と目標配分リストに追加
-10. データソースの通知を表示
-11. フォールバック使用時は警告通知を表示
-12. データをローカルストレージに自動保存
-
-```javascript
-// TickerSearchコンポーネントの入力処理（例）
-const handleInputChange = (e) => {
-  const value = e.target.value;
-  setTicker(value);
-  
-  // 投資信託コードかどうかを判定
-  if (/^\d{7,8}C$/i.test(value)) {
-    setTickerType('投資信託');
-    setHelperText('投資信託コードを認識しました。基準価額として取得します。');
-  } else if (/^\d{4}$/i.test(value)) {
-    setTickerType('日本株');
-    setHelperText('日本株の証券コードとして認識しました。');
-  } else {
-    setTickerType('');
-    setHelperText('');
-  }
-};
-```
-
-### 6.5 データ保存フロー
-1. データ変更（銘柄追加、保有数量変更、目標配分変更など）
-2. 状態更新関数（useState）による状態更新
-3. 状態更新後のコールバックで `saveToLocalStorage` 呼び出し
-4. 初期化完了フラグ（initialized）をチェック
-5. データをURIエンコード後にBase64暗号化してローカルストレージに保存
-6. 認証中の場合は必要に応じてクラウド同期
-7. 保存結果に応じた通知（成功時は5秒後に自動消去）
-
-### 6.6 データ同期フロー
-1. ユーザーが同期ボタンをクリック
-2. 新しいアクセストークンをGoogle Identity Services APIから取得
-3. ローカルデータとクラウドデータの取得
-4. タイムスタンプを比較して最新データを特定
-5. 最新データを状態に適用
-6. 配当情報が欠けている場合は初期値を設定
-7. 両方のストレージを最新状態に更新
-8. 同期情報（日時、ソース）を更新
-9. 自動消去機能付き通知の表示
-
-## 7. スタイリング規則
-
-### 7.1 カラーパレット（スクレイピング対応版）
-- **プライマリ**: 青系 (#0088FE, #1E88E5, etc.)
-- **アクセント**: 緑系 (#00C49F, #4CAF50, etc.)
-- **警告**: 赤系 (#FF0000, #F44336, etc.)
-- **背景**: 白/グレー系 (#FFFFFF, #F5F5F5, etc.)
-- **テキスト**: 黒/グレー系 (#333333, #666666, etc.)
-- **通知表示用**:
-  - 情報: 青系 (#2196F3) - 背景: bg-blue-100, テキスト: text-blue-700
-  - 成功: 緑系 (#4CAF50) - 背景: bg-green-100, テキスト: text-green-700
-  - 警告: 黄色系 (#FFC107) - 背景: bg-yellow-100, テキスト: text-yellow-700
-  - エラー: 赤系 (#F44336) - 背景: bg-red-100, テキスト: text-red-700
-- **データソース表示用（スクレイピング対応版）**:
-  - Alpaca: 青系 (#2196F3)
-  - スクレイピングソース: 緑系 (#4CAF50)
-  - Yahoo Finance: 紫系 (#9C27B0)
-  - Fallback: 黄色系 (#FFC107)
-- **ファンドタイプ表示用**:
-  - 個別株: グレー系 (#9E9E9E)
-  - ETF: 青系 (#2196F3)
-  - インデックスファンド: 緑系 (#4CAF50)
-  - 投資信託: 紫系 (#9C27B0)
-  - アクティブファンド: 紫系 (#9C27B0)
-- **手数料情報源表示用**:
-  - 個別株: グレー系 (#9E9E9E)
-  - 投資信託: 紫系 (#9C27B0)
-  - ティッカー固有情報: 緑系 (#4CAF50)
-  - 推定値: 黄色系 (#FFC107)
-  - ユーザー設定: 紫系 (#9C27B0)
-- **配当情報表示用**:
-  - 配当なし: グレー系 (#9E9E9E)
-  - 配当あり（確定値）: 緑系 (#4CAF50)
-  - 配当あり（推定値）: 黄色系 (#FFC107)
-  - 高配当: 深緑系 (#2E7D32)
-- **データソース表示用**:
-  - ローカル: 黄色系 (#FFC107)
-  - クラウド: 青系 (#2196F3)
-- **エラー処理用**:
-  - エラー表示: 赤系 (#F44336)
-  - エラーバウンダリ背景: 明るい赤 (#FFEBEE)
-  - リカバリーボタン: 青系 (#2196F3)
-
-### 7.2 タイポグラフィ
-- **フォント**: システムフォント（sans-serif）
-- **見出し**: 16-20px、太字（font-bold）
-- **本文**: 14-16px、通常（font-normal）
-- **小テキスト**: 12px、軽量（font-light）
-- **エラーメッセージ**: 16px、太字（font-bold）、赤色
-- **通知テキスト**: 14px（text-sm）、通常（font-normal）
-
-### 7.3 コンポーネントスタイル
-- **通知コンポーネント**: 角丸（rounded-md）、影付き（shadow-md）、タイプ別の背景色
-```jsx
-<div 
-  key={notification.id}
-  className={`p-3 rounded-md shadow-md text-sm ${
-    notification.type === 'error' ? 'bg-red-100 text-red-700' :
-    notification.type === 'warning' ? 'bg-yellow-100 text-yellow-700' :
-    notification.type === 'success' ? 'bg-green-100 text-green-700' :
-    'bg-blue-100 text-blue-700'
-  }`}
->
-  <div className="flex justify-between items-start">
-    <span>{notification.message}</span>
-    <button 
-      onClick={() => removeNotification(notification.id)}
-      className="ml-2 text-gray-500 hover:text-gray-700"
-    >
-      &times;
-    </button>
-  </div>
-</div>
-```
-
-- **カード**: 白背景、丸角、影付き
-- **ボタン**: 背景色付き、丸角、ホバーエフェクト
-- **入力フィールド**: 境界線付き、フォーカス時強調
-- **テーブル**: 行の区切り線、隔行カラー、レスポンシブ
-- **銘柄タイプバッジ**: 小さい丸型または角丸ラベル、タイプに応じた色
-- **手数料情報バッジ**: 小さい丸型または角丸ラベル、情報源に応じた色
-- **配当情報バッジ**: 小さい丸型または角丸ラベル、配当状況に応じた色
-- **データソースバッジ**: 小さい丸型または角丸ラベル、ソースに応じた色
-- **個別株行**: 灰色背景で視覚的に区別
-- **投資信託行**: 薄い紫色背景で視覚的に区別
-- **同期ステータスインジケーター**: 丸いドット、色による状態表示
-- **エラー表示コンポーネント**: 中央配置のモーダル風デザイン、明確なエラー詳細表示
-
-### 7.4 データソースバッジ（スクレイピング対応版）
-```jsx
-// データソースバッジコンポーネント
-<span className={`text-xs px-1.5 py-0.5 rounded ${
-  dataSource === 'Alpaca'
-    ? 'bg-blue-100 text-blue-800'
-    : ['Yahoo Finance Japan', 'Minkabu', 'Kabutan', '投資信託協会', 'Morningstar Japan'].includes(dataSource)
-      ? 'bg-green-100 text-green-800'
-      : dataSource === 'Yahoo Finance'
-        ? 'bg-purple-100 text-purple-800'
-        : 'bg-yellow-100 text-yellow-800'
-}`}>
-  {dataSource === 'Yahoo Finance Japan' ? 'Yahoo JP' : 
-   dataSource === 'Morningstar Japan' ? 'M★' :
-   dataSource === '投資信託協会' ? '投信協会' :
-   dataSource === 'Yahoo Finance' ? 'YFinance' :
-   dataSource}
-</span>
-```
-
-### 7.5 投資信託バッジとPriceDisplayコンポーネント
-```jsx
-// 投資信託バッジコンポーネント
-<span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-  投資信託
-</span>
-
-// 価格表示コンポーネント（投資信託対応）
-function PriceDisplay({ asset }) {
-  const { price, currency, isMutualFund } = asset;
-  const label = isMutualFund ? '基準価額' : '株価';
-  
-  return (
-    <div className="flex flex-col">
-      <span className="text-xs text-gray-500">{label}</span>
-      <span className="font-medium">{formatCurrency(price, currency)}</span>
-    </div>
-  );
+  // 購入金額の大きい順にソート
+  return results.sort((a, b) => b.purchaseAmount - a.purchaseAmount);
 }
 ```
-
-### 7.6 レスポンシブデザイン
-- **モバイル優先**: 基本はモバイル表示に最適化
-- **ブレークポイント**: sm(640px), md(768px), lg(1024px)
-- **iOS互換**: セーフエリア対応、タブバー設計
-- **通知位置**: 画面右下固定（z-50）、モバイルでも適切に表示
-
-## 8. エラー処理・通知
-
-### 8.1 エラー種別
-- **ネットワークエラー**: API接続失敗
-- **認証エラー**: 認証失敗、トークン期限切れ
-- **データエラー**: 不正なデータ形式、処理失敗
-- **入力エラー**: バリデーション失敗
-- **手数料設定エラー**: 個別株の手数料変更試行
-- **投資信託エラー**: 投資信託に特有のエラー処理
-- **ストレージエラー**: ローカルストレージ読み書き失敗
-- **同期エラー**: データ同期失敗
-- **アプリケーションエラー**: 予期しないJavaScriptエラー
-- **API制限エラー**: APIのリクエスト制限到達
-- **API接続エラー**: API接続失敗
-- **スクレイピングエラー**: ウェブサイトからのデータ抽出失敗（新規追加）
-- **サイト構造変更エラー**: スクレイピング対象サイトの構造変更による失敗（新規追加）
-
-### 8.2 通知表示
-- **成功通知**: 緑色背景、自動消去（5秒）
-- **警告通知**: 黄色背景、自動消去（5秒）
-- **エラー通知**: 赤色背景、手動消去のみ
-- **情報通知**: 青色背景、自動消去（5秒）
-- **通知位置**: 画面右下に固定表示
-- **通知スタック**: 新しい通知が下に追加
-- **閉じるボタン**: すべての通知に手動で閉じるボタンを表示
-- **自動消去**: エラー以外の通知は5秒後に自動消去
-
-### 8.3 マルチソースによるフォールバック（スクレイピング対応版）
-- **プライマリソース**:
-  - 米国株: Alpaca API
-  - 日本株: スクレイピング（複数サイト順次試行）
-  - 投資信託: スクレイピング（複数サイト順次試行）
-- **バックアップソース**:
-  - すべての銘柄: Yahoo Finance API
-- **フォールバック値**:
-  - プライマリおよびバックアップソースが失敗した場合のデフォルト値
-- **ソース選択ロジック**:
-  - 銘柄タイプ自動判定に基づいて適切なソースを選択
-  - 各ソースでエラーが発生した場合は次のソースを試行
-- **ソース切り替え通知**: データソースの使用状況をユーザーに通知
-- **ソース使用統計**: 各データソースの使用状況を統計として表示
-- **フォールバック警告**: フォールバック値使用時は投資判断への注意を促す
-
-```javascript
-// スクレイピングソースの統計と通知
-if (jpStockScrapingStats.succeeded > 0) {
-  const sourceDetail = [];
-  if (jpStockScrapingStats.yahooJapan > 0) sourceDetail.push(`Yahoo JP: ${jpStockScrapingStats.yahooJapan}件`);
-  if (jpStockScrapingStats.minkabu > 0) sourceDetail.push(`Minkabu: ${jpStockScrapingStats.minkabu}件`);
-  if (jpStockScrapingStats.kabutan > 0) sourceDetail.push(`Kabutan: ${jpStockScrapingStats.kabutan}件`);
-  
-  const detailMessage = sourceDetail.length > 0 ? ` (${sourceDetail.join('、')})` : '';
-  addNotification(
-    `日本株スクレイピング: ${jpStockScrapingStats.succeeded}件${detailMessage}`,
-    'info'
-  );
-}
-
-// フォールバックデータを使用している場合は通知
-if (fallbackCount > 0) {
-  addNotification(
-    `${fallbackCount}銘柄の価格情報は最新データを取得できず、推定値を使用しています。実際の市場価格と異なる可能性があります。`,
-    'warning'
-  );
-}
-```
-
-### 8.4 スクレイピング特有のエラー対応（新規追加）
-- **サイト構造変更**:
-  - 対象サイトの構造変更時に適切なエラーメッセージ表示
-  - ユーザーにアップデートを促す通知
-- **アクセス制限**:
-  - スクレイピングブロック検出時の適切な通知
-  - バックアップAPIへの自動切り替え
-- **ネットワークエラー**:
-  - 接続タイムアウト時の再試行
-  - 適切なエラーメッセージ表示
-- **データ不足**:
-  - データが取得できない場合の適切な通知
-  - バックアップAPIへの自動切り替え
-
-### 8.5 API障害対応
-- 銘柄タイプごとの適切なフォールバック値
-  - 米国株: 100 USD
-  - 日本株: 1,000 JPY
-  - 投資信託: 10,000 JPY
-- タイムアウト設定による応答遅延の処理
-- 詳細なエラーログによるデバッグ容易化
-- 銘柄タイプに応じたエラーメッセージ表示
-- データソースの表示によるユーザー通知
-
-### 8.6 ストレージ障害対応
-- ローカルストレージ失敗時のエラー処理強化
-- データ復号化失敗時のフォールバック処理追加
-- 初期化完了フラグによる重複保存・初期化の防止
-- データ構造検証による整合性確認
-- 適切なエラーメッセージと通知
-- ローカルストレージクリア機能による修復オプション
-
-### 8.7 認証障害対応
-- OAuth認証エラーの適切なハンドリング
-- トークン失効時の再認証フロー
-- アクセストークン取得エラーの処理
-- ユーザーフレンドリーな認証エラーメッセージ
-
-### 8.8 アプリケーションエラー対応
-- エラーバウンダリによる予期しないエラーのキャッチ
-- エラー発生時のUIフォールバック表示
-- リロードボタンによる簡単な回復方法の提供
-- 詳細なエラー情報のログ出力
-
-### 8.9 投資信託固有のエラー対応
-- 投資信託コードのバリデーション
-- 投資信託専用のエラーメッセージ表示
-  - 「投資信託 {code} の基準価額が見つかりません」
-  - 「投資信託コード {code} を確認してください」
-- 投資信託データの取得エラー時は専用のフォールバック値使用
-- 投資信託関連エラーはUI上で区別して表示
-
-## 9. データ永続化と同期
-
-### 9.1 データ永続化の仕組み
-- **保存対象データ**: ポートフォリオデータ、配当情報、設定値、タイムスタンプ
-- **保存形式**: URIエンコード + Base64暗号化されたJSON
-- **保存場所**: ブラウザのローカルストレージ
-- **自動保存**: データ変更時に遅延付きで自動保存
-- **重複保存防止**: 初期化フラグによる保存の制御
-- **エラーリカバリ**: 復号化失敗時の適切な処理とフォールバック機能
-- **データ構造検証**: 復号化後のデータ構造を検証し、整合性を確認
-
-### 9.2 データ同期の仕組み
-- **同期対象**: ローカルストレージとGoogleドライブ
-- **同期タイミング**: 
-  - 明示的な同期ボタンクリック時
-  - ログイン直後（オプション）
-- **認証処理**: Google Identity Services APIを使用した最新のOAuth 2.0認証
-- **アクセストークン管理**: Google Drive API用の適切なスコープを持つアクセストークン取得
-- **競合解決**: タイムスタンプによる新しいデータの優先
-- **配当情報の整合性**: 欠けている配当情報には初期値を設定
-- **エラーリカバリ**: 同期失敗時の適切な通知と状態維持
-- **通知表示**: 同期状態に関する通知（5秒後に自動消去）
-
-### 9.3 認証連携の仕組み
-- **認証情報保存**: ローカルストレージにJWTトークン保存
-- **認証状態復元**: アプリケーション起動時にトークン検証
-- **権限スコープ**: ドライブAPI用の適切なスコープ設定
-- **セキュリティ**: トークン有効期限の確認と自動ログアウト
-- **API層連携**: 認証トークンをAPI層にも通知
-- **アクセストークン取得**: Google Identity Services APIを使用した明示的なトークン取得
-- **認証通知**: 認証状態の変更に関する通知（5秒後に自動消去）
-
-### 9.4 エラー回復機能
-- **ローカルストレージクリア**: データ損傷時にストレージをクリアする機能
-- **エラーバウンダリ**: アプリケーションクラッシュを防止するエラーバウンダリ
-- **リロードボタン**: エラー発生時にアプリケーションを再読み込みする機能
-- **詳細なエラー情報**: エラー発生原因を特定しやすいログ出力
-- **永続エラー通知**: エラー通知は手動で閉じるまで表示を維持
 
 ## 改訂履歴
 
@@ -1071,16 +731,8 @@ if (fallbackCount > 0) {
 | 1.0 | 2025/03/6 | 初版作成 |  |
 | 2.0 | 2025/03/7 | jwt-decode対応、アクセシビリティ対応、プロキシ設定更新 |  |
 | 3.0 | 2025/03/07 10:20 | Alpha Vantage API連携強化、環境変数名統一、マルチソースデータ取得フロー実装 |  |
-| 4.0 | 2025/03/09 13:40 | Yahoo Finance API無効化、Alpha Vantageをプライマリソースに変更、401認証エラー問題対応 |  |
-| 5.0 | 2025/03/10 14:35 | 銘柄タイプ自動判定と年間手数料の自動推定機能追加 |  |
-| 6.0 | 2025/03/11 17:20 | 個別株の手数料固定（0%）とファンド手数料計算ロジックの修正 |  |
-| 7.0 | 2025/03/12 10:45 | 人気銘柄リストの更新 |  |
-| 8.0 | 2025/03/13 16:15 | ローカルストレージによるデータ永続化とGoogle認証連携強化 |  |
-| 9.0 | 2025/03/16 19:20 | データ暗号化/復号化処理の強化、Google Drive API連携改善、エラーバウンダリ導入、認証フロー更新 |  |
-| 10.0 | 2025/03/18 15:45 | 配当情報の管理機能追加、配当情報の表示UI実装、PortfolioSummaryとAssetsTableの配当情報表示追加、Google Drive API連携の安定性向上 |  |
-| 3.1 | 2025/03/19 15:00 | 通知システムの自動消去機能追加（タイプ別）、初期化処理の重複実行防止機能追加、通知スタイルの詳細定義追加 |  |
-| 3.2 | 2025/03/20 10:00 | Yahoo Finance APIフォールバック機能を追加、マルチデータソース対応の実装、API障害時の詳細通知機能強化、日本株ティッカー変換の改善 |  |
-| 3.3 | 2025/03/22 12:00 | Yahoo FinanceをPython yfinanceライブラリに変更、プロキシ実装をJavaScriptからPythonスクリプト実行方式に変更、為替および株価データの取得フローを改善、Netlify Functions Python実行環境対応 |  |
 | 3.4 | 2025/03/23 09:45 | Python依存をなくすためYahoo Finance APIをJavaScript実装に変更、Python yfinanceコードは残しつつ実際はyahoo-finance-proxyを使用、データソース名とフォールバック処理の更新 |  |
 | 3.5 | 2025/03/27 18:00 | データソースをAlpaca API（米国株）、日本株スクレイピング、投資信託スクレイピングに変更、フォールバック処理の更新、デザインコンポーネントの追加 |  |
 | 3.6 | 2025/03/28 14:00 | スクレイピングソース対応のインターフェース仕様の詳細化。スクレイピング統計情報データ構造の追加。データソースバッジのスクレイピングソース対応。スクレイピング特有のエラー処理追加。 |  |
+| 3.7 | 2025/03/29 16:30 | 米国株スクレイピング機能の追加。データソース優先順位の更新。ユーザーインターフェースのデータソースバッジとスタイルの更新。マルチソースフローの更新。スクレイピング統計情報のデータ構造更新。|  |
+| 4.0 | 2025/03/30 12:30 | 入金シミュレーション機能の複数通貨対応（円/ドル）、購入株数表示機能を追加。BudgetInputコンポーネントとSimulationResultコンポーネントの更新。通貨換算処理とシミュレーション計算処理の更新。 |  |
