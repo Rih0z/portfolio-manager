@@ -17,9 +17,9 @@ https://67d346c75b27c43ae961a2e5--harmonious-malasada-138c4d.netlify.app/
 ### システムの画面
 
 
-![理想のバランスと現在の状況](./images/images/IMG_0007.png)
+![理想のバランスと現在の状況](./images/IMG_0007.png)
 
-![過不足グラフ](./images/images/IMG_0008.png)
+![過不足グラフ](./images/IMG_0008.png)
 
 ### 処理フロー図
 
