@@ -18,9 +18,10 @@ https://67d346c75b27c43ae961a2e5--harmonious-malasada-138c4d.netlify.app/
 ![過不足グラフ](./images/IMG_0001.jpeg)
 ![過不足グラフ](./images/IMG_0002.png)
 ![過不足グラフ](./images/IMG_0003.jpeg)
-![過不足グラフ](./images/IMG_0004.png)
+![過不足グラフ1](./images/IMG_0004.png)
 ![過不足グラフ](./images/IMG_0005.jpeg)
 ![過不足グラフ](./images/IMG_0006.jpeg)
+![過不足グラフ](./images/IMG_0009.jpeg)
 ## 株価データ取得システム
 
 ### 概要
