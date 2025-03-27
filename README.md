@@ -19,7 +19,7 @@ https://67d346c75b27c43ae961a2e5--harmonious-malasada-138c4d.netlify.app/
 
 ![理想のバランスと現在の状況](./images/IMG_0007.png)
 
-![過不足グラフ](./images/IMG_0008.png)
+![過不足グラフ](./images/IMG_0008.jpeg)
 
 ### 処理フロー図
 
