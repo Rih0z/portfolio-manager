@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { PortfolioContext } from '../../context/PortfolioContext';
+import React, { useState, useEffect } from 'react';
+import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 
 const AiPromptSettings = () => {
   const { aiPromptTemplate, updateAiPromptTemplate } = usePortfolioContext();
