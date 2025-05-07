@@ -15,6 +15,8 @@ const LoginButton = () => {
         text="signin_with"
         shape="pill"
         locale="ja"
+        // 以下のスコープ設定を追加
+        scope="email profile https://www.googleapis.com/auth/drive.file"
       />
     </div>
   );
