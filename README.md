@@ -3,10 +3,12 @@
 ## 概要
 
 このアプリケーションは投資ポートフォリオを管理するためのツールです。複数のデータソースから株価情報を取得し、資産配分の視覚化、リバランス計算、手数料・配当の分析などの機能を提供します。
+投資ポートフォリオについて分析するAIプロンプトを統合予定です。元となるプロンプトはこちら。」
+https://github.com/Rih0z/Job-Automate/blob/main/News/invest.md
 
 ### システムのURL
 
-https://67d346c75b27c43ae961a2e5--harmonious-malasada-138c4d.netlify.app/
+https://delicate-malasada-1fb747.netlify.app/
 
 ### システムの画面
 
