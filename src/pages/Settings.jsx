@@ -3,6 +3,7 @@ import TickerSearch from '../components/settings/TickerSearch';
 import PopularTickers from '../components/settings/PopularTickers';
 import HoldingsEditor from '../components/settings/HoldingsEditor';
 import AllocationEditor from '../components/settings/AllocationEditor';
+import AiPromptSettings from '../components/settings/AiPromptSettings';
 
 const Settings = () => {
   return (
@@ -30,6 +31,9 @@ const Settings = () => {
         <h2 className="text-xl font-semibold mb-4">目標配分の設定</h2>
         <AllocationEditor />
       </div>
+      
+      {/* AI分析プロンプト設定を追加 */}
+      <AiPromptSettings />
     </div>
   );
 };
