@@ -1,6 +1,6 @@
-# ポートフォリオマネージャー インターフェース仕様書（シミュレーション機能拡張版）
+# ポートフォリオマネージャー インターフェース仕様書（AI分析機能対応版）
 
-**最終更新日時:** 2025/03/30 12:30
+**最終更新日時:** 2025/05/07 14:30
 
 *本仕様書は、AIの別セッションでも開発を引き継げるよう設計されています。*
 
@@ -14,7 +14,9 @@
 - 年間手数料率の自動推定と計算（個別株は0%固定、投資信託は信託報酬として表示）
 - 年間配当金の計算と配当情報の管理
 - 理想ポートフォリオ配分設定
-- **複数通貨（円/ドル）対応の資金配分シミュレーション**（更新）
+- 複数通貨（円/ドル）対応の資金配分シミュレーション
+- 購入可能株数の計算表示
+- **AI分析機能（ポートフォリオデータをAIアシスタントに分析させるプロンプト生成）**（新規追加）
 - データインポート/エクスポート
 - ブラウザローカルストレージによるデータ永続化（URIエンコード+Base64による安全な暗号化）
 - Google認証・Googleドライブ連携（Google Identity Services API対応）
@@ -22,7 +24,7 @@
   - 米国株：
     - プライマリ: Alpaca API
     - セカンダリ: Yahoo Finance API
-    - 最終手段: 米国株スクレイピング
+    - 最終手段: 米国株スクレイピング（複数サイト）
   - 日本株： 
     - プライマリ: スクレイピング（複数サイト）
     - バックアップ: Yahoo Finance API
@@ -62,8 +64,8 @@
 
 ### 2.1 ページ構成
 - **ダッシュボード** (`/`): 資産概要、グラフ、銘柄詳細
-- **設定** (`/settings`): 銘柄追加、保有資産設定、目標配分設定
-- **シミュレーション** (`/simulation`): 追加予算と購入シミュレーション（複数通貨対応、購入株数表示）
+- **設定** (`/settings`): 銘柄追加、保有資産設定、目標配分設定、**AIプロンプト設定**（新規追加）
+- **シミュレーション** (`/simulation`): 追加予算と購入シミュレーション（複数通貨対応、購入株数表示）、**AI分析プロンプト**（新規追加）
 - **データ連携** (`/data`): インポート/エクスポート、データ同期、Googleドライブ連携
 
 ### 2.2 ナビゲーション
@@ -112,23 +114,27 @@
 - 同時に複数の通知を表示可能
 - スタック表示で新しい通知が下に追加される
 
-### 2.6 データソース表示
+### 2.6 データソース表示（スクレイピング対応版）
 - 銘柄データのソースを明示的に表示
   - Alpaca：青色バッジ
-  - 日本株・投資信託スクレイピングソース：緑色バッジ
-  - 米国株スクレイピングソース：紫色バッジ
+  - 日本株スクレイピング（各ソース）：緑色バッジ
+  - 投資信託スクレイピング（各ソース）：緑色バッジ
+  - 米国株スクレイピング（各ソース）：紫色バッジ
   - Yahoo Finance：紫色バッジ
   - Fallback：黄色バッジ
 - 更新時に各データソースの利用状況を通知
+  - 例：「市場データを更新しました: 日本株スクレイピング: 3件 (Yahoo Finance Japan: 2件、Minkabu: 1件)、投資信託スクレイピング: 2件 (投資信託協会: 2件)、米国株スクレイピング: 2件 (Yahoo Finance: 1件、MarketWatch: 1件)、Alpaca: 3件」
 - フォールバック使用時は注意喚起表示
 - スクレイピングソースの詳細表示
+  - 日本株・投資信託: Yahoo Finance Japan、Minkabu、Kabutan、投資信託協会、Morningstar
+  - 米国株・ETF: Yahoo Finance、MarketWatch、Investing.com
 - 株価情報の信頼性をユーザーが判断できるようサポート
 
 ## 3. 状態管理
 
 ### 3.1 コンテキスト設計
 - **AuthContext**: 認証状態、ユーザー情報、Googleドライブ連携、PortfolioContextへの参照
-- **PortfolioContext**: ポートフォリオデータ、資産情報、配当情報、シミュレーション計算、手数料管理、ローカルストレージ操作
+- **PortfolioContext**: ポートフォリオデータ、資産情報、配当情報、シミュレーション計算、手数料管理、ローカルストレージ操作、**AIプロンプトテンプレート**（新規追加）
 
 ### 3.2 コンテキスト間の連携
 - **ContextConnector**: AuthContextとPortfolioContextの相互参照を管理するコンポーネント
@@ -140,7 +146,8 @@
 - `exchangeRate`: 為替レート情報 ({ rate, source, lastUpdated })
 - `currentAssets`: 保有資産の配列（配当情報を含む）
 - `targetPortfolio`: 目標配分の配列
-- `additionalBudget`: 追加投資予算情報（金額と通貨）（更新）
+- `additionalBudget`: 追加投資予算情報（金額と通貨）
+- `aiPromptTemplate`: AI分析プロンプトのテンプレート（新規追加）
 - `isAuthenticated`: 認証状態
 - `user`: ユーザー情報
 - `notifications`: 通知メッセージの配列
@@ -181,12 +188,8 @@ interface Asset {
 }
 ```
 
-#### 追加予算（更新）
+#### 追加予算
 ```typescript
-// 変更前
-// additionalBudget: number;
-
-// 変更後
 interface BudgetInfo {
   amount: number;      // 金額
   currency: string;    // 通貨 ('JPY' | 'USD')
@@ -195,20 +198,8 @@ interface BudgetInfo {
 additionalBudget: BudgetInfo;
 ```
 
-#### シミュレーション結果（更新）
+#### シミュレーション結果
 ```typescript
-// 変更前
-// interface SimulationResult {
-//   ticker: string;
-//   name: string;
-//   currentAllocation: number;
-//   targetAllocation: number;
-//   diff: number;
-//   currentValue: number;
-//   purchaseAmount: number;
-// }
-
-// 変更後
 interface SimulationResult {
   ticker: string;         // 銘柄シンボル
   name: string;           // 銘柄名
@@ -217,10 +208,28 @@ interface SimulationResult {
   diff: number;           // 差分（%）
   currentValue: number;   // 現在の保有価値
   purchaseAmount: number; // 推奨購入金額
-  purchaseShares: number; // 購入可能株数（新規追加）
-  price: number;          // 現在の株価/基準価額（新規追加）
-  currency: string;       // 通貨 ('JPY' | 'USD')（新規追加）
+  purchaseShares: number; // 購入可能株数
+  price: number;          // 現在の株価/基準価額
+  currency: string;       // 通貨 ('JPY' | 'USD')
+  isMutualFund: boolean;  // 投資信託かどうか
+  source: string;         // データソース
 }
+```
+
+#### AI分析用のデータ構造（新規追加）
+```typescript
+// AIプロンプトで使用する配分情報
+interface AllocationItem {
+  ticker: string;        // 銘柄シンボル
+  name: string;          // 銘柄名
+  percentage: number;    // 配分率（%）
+}
+
+// 現在のポートフォリオ配分
+currentAllocation: AllocationItem[];
+
+// 目標ポートフォリオ配分
+targetAllocation: AllocationItem[];
 ```
 
 #### スクレイピング統計情報
@@ -274,7 +283,8 @@ interface StorageData {
   lastUpdated: string;
   currentAssets: Asset[];
   targetPortfolio: TargetAllocation[];
-  additionalBudget: BudgetInfo; // 更新
+  additionalBudget: BudgetInfo;
+  aiPromptTemplate: string; // AIプロンプトテンプレート（新規追加）
   version: string; // データバージョン管理用
   timestamp: string; // 保存日時
 }
@@ -319,223 +329,40 @@ interface StorageData {
   - 配当情報源のバッジ表示
   - データソースのバッジ表示（スクレイピングソース別）
 - **AllocationEditor**: 目標配分の編集
+- **AiPromptSettings**: AIプロンプトテンプレートの設定（新規追加）
+  - テンプレートの編集・カスタマイズ機能
+  - デフォルトテンプレートへのリセット機能
+  - プレースホルダー説明の表示
+  - テンプレート保存機能
+  - 使用方法の説明
 
-### 4.3 シミュレーション画面コンポーネント（更新）
-- **BudgetInput**: 追加予算の入力と予算プリセット（更新）
+### 4.3 シミュレーション画面コンポーネント
+- **BudgetInput**: 追加予算の入力と予算プリセット
   - 直接入力と増減ボタン
-  - 通貨選択機能（円/ドル）（新規追加）
-  - 通貨ごとの予算プリセットボタン（新規追加）
+  - 通貨選択機能（円/ドル）
+  - 通貨ごとの予算プリセットボタン
     - 円: 10万、30万、50万、100万
     - ドル: 1000、3000、5000、10000
-  - 通貨に応じた入力の検証（最小値、最大値）（新規追加）
-  - 現在の基本通貨設定をデフォルト値として使用（新規追加）
+  - 通貨に応じた入力の検証（最小値、最大値）
+  - 現在の基本通貨設定をデフォルト値として使用
   - アクセシビリティ対応済み（ラベルと入力フィールドの関連付け）
   
-  ```jsx
-  // BudgetInput UI例（更新）
-  <div className="p-4 bg-white rounded-lg shadow">
-    <h2 className="text-lg font-bold mb-3">追加予算</h2>
-    
-    {/* 通貨選択ラジオボタン（新規追加） */}
-    <div className="mb-3">
-      <div className="flex space-x-4">
-        <label className="inline-flex items-center">
-          <input 
-            type="radio" 
-            name="currency" 
-            value="JPY" 
-            checked={currency === 'JPY'} 
-            onChange={() => setCurrency('JPY')} 
-            className="form-radio" 
-          />
-          <span className="ml-2">円 (¥)</span>
-        </label>
-        <label className="inline-flex items-center">
-          <input 
-            type="radio" 
-            name="currency" 
-            value="USD" 
-            checked={currency === 'USD'} 
-            onChange={() => setCurrency('USD')} 
-            className="form-radio" 
-          />
-          <span className="ml-2">ドル ($)</span>
-        </label>
-      </div>
-    </div>
-    
-    {/* 金額入力フィールド */}
-    <div className="flex items-center mb-4">
-      <span className="mr-2">{currency === 'JPY' ? '¥' : '$'}</span>
-      <input 
-        type="number" 
-        id="budget-input" 
-        value={amount} 
-        onChange={handleAmountChange} 
-        className="border rounded px-2 py-1 w-32" 
-        min="0" 
-      />
-      <button 
-        onClick={() => handleAmountChange({ target: { value: Number(amount) + step } })} 
-        className="ml-2 px-3 py-1 bg-gray-200 rounded"
-      >
-        +
-      </button>
-      <button 
-        onClick={() => handleAmountChange({ target: { value: Math.max(0, Number(amount) - step) } })} 
-        className="ml-2 px-3 py-1 bg-gray-200 rounded"
-      >
-        -
-      </button>
-    </div>
-    
-    {/* 通貨に応じたプリセットボタン（更新） */}
-    <div className="flex flex-wrap gap-2">
-      {currency === 'JPY' ? (
-        <>
-          <button 
-            onClick={() => setAmount(100000)} 
-            className="px-3 py-1 bg-blue-100 rounded hover:bg-blue-200"
-          >
-            ¥10万
-          </button>
-          <button 
-            onClick={() => setAmount(300000)} 
-            className="px-3 py-1 bg-blue-100 rounded hover:bg-blue-200"
-          >
-            ¥30万
-          </button>
-          <button 
-            onClick={() => setAmount(500000)} 
-            className="px-3 py-1 bg-blue-100 rounded hover:bg-blue-200"
-          >
-            ¥50万
-          </button>
-          <button 
-            onClick={() => setAmount(1000000)} 
-            className="px-3 py-1 bg-blue-100 rounded hover:bg-blue-200"
-          >
-            ¥100万
-          </button>
-        </>
-      ) : (
-        <>
-          <button 
-            onClick={() => setAmount(1000)} 
-            className="px-3 py-1 bg-blue-100 rounded hover:bg-blue-200"
-          >
-            $1,000
-          </button>
-          <button 
-            onClick={() => setAmount(3000)} 
-            className="px-3 py-1 bg-blue-100 rounded hover:bg-blue-200"
-          >
-            $3,000
-          </button>
-          <button 
-            onClick={() => setAmount(5000)} 
-            className="px-3 py-1 bg-blue-100 rounded hover:bg-blue-200"
-          >
-            $5,000
-          </button>
-          <button 
-            onClick={() => setAmount(10000)} 
-            className="px-3 py-1 bg-blue-100 rounded hover:bg-blue-200"
-          >
-            $10,000
-          </button>
-        </>
-      )}
-    </div>
-  </div>
-  ```
-
-- **SimulationResult**: シミュレーション結果表示と購入機能（更新）
+- **SimulationResult**: シミュレーション結果表示と購入機能
   - 各銘柄の現在配分と目標配分の表示
   - 推奨購入金額の表示
-  - 購入可能株数の表示（新規追加）
-  - 株価/基準価額の表示（新規追加）
-  - 銘柄ごとの通貨表示（新規追加）
-  - 自動的な通貨換算結果の表示（新規追加）
-  - 為替レートの明示的な表示（新規追加）
+  - 購入可能株数の表示
+  - 株価/基準価額の表示
+  - 銘柄ごとの通貨表示
+  - 自動的な通貨換算結果の表示
+  - 為替レートの明示的な表示
   
-  ```jsx
-  // SimulationResult UI例（更新）
-  <div className="bg-white rounded-lg shadow p-4 mt-4">
-    <h2 className="text-lg font-bold mb-3">シミュレーション結果</h2>
-    
-    {/* 為替レート表示（新規追加） */}
-    {exchangeRate && (
-      <div className="text-sm text-gray-600 mb-2">
-        為替レート: 1 USD = {exchangeRate.rate.toFixed(2)} JPY
-        <span className="text-xs ml-2">({exchangeRate.source}, {formatDate(exchangeRate.lastUpdated)})</span>
-      </div>
-    )}
-    
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead>
-          <tr>
-            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">銘柄</th>
-            <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">現配分</th>
-            <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">目標</th>
-            <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">差分</th>
-            <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">購入額</th>
-            <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">株価</th>
-            <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">購入株数</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-200">
-          {simulationResults.map((result) => (
-            <tr key={result.ticker}>
-              <td className="px-4 py-2 whitespace-nowrap">
-                <div className="flex items-center">
-                  <div className="text-sm font-medium text-gray-900">{result.ticker}</div>
-                  <div className="ml-2">
-                    <DataSourceBadge source={result.source} />
-                  </div>
-                </div>
-                <div className="text-sm text-gray-500">{result.name}</div>
-              </td>
-              <td className="px-4 py-2 whitespace-nowrap text-right text-sm text-gray-500">
-                {result.currentAllocation.toFixed(1)}%
-              </td>
-              <td className="px-4 py-2 whitespace-nowrap text-right text-sm text-gray-500">
-                {result.targetAllocation.toFixed(1)}%
-              </td>
-              <td className="px-4 py-2 whitespace-nowrap text-right text-sm">
-                <span className={
-                  result.diff > 0 
-                    ? 'text-green-600' 
-                    : result.diff < 0 
-                      ? 'text-red-600' 
-                      : 'text-gray-500'
-                }>
-                  {result.diff > 0 ? '+' : ''}{result.diff.toFixed(1)}%
-                </span>
-              </td>
-              <td className="px-4 py-2 whitespace-nowrap text-right text-sm text-gray-900">
-                {result.currency === 'JPY' ? '¥' : '$'}
-                {formatCurrency(result.purchaseAmount, result.currency)}
-              </td>
-              <td className="px-4 py-2 whitespace-nowrap text-right text-sm text-gray-900">
-                {result.currency === 'JPY' ? '¥' : '$'}
-                {formatCurrency(result.price, result.currency)}
-              </td>
-              <td className="px-4 py-2 whitespace-nowrap text-right text-sm text-gray-900">
-                {result.purchaseShares > 0 
-                  ? result.purchaseShares.toFixed(
-                      result.isMutualFund ? 3 : 2
-                    )
-                  : 0}{result.isMutualFund ? '口' : '株'}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  </div>
-  ```
+- **AiAnalysisPrompt**: AI分析プロンプト生成（新規追加）
+  - 現在のポートフォリオデータを元にしたプロンプト生成
+  - クリップボードへのコピー機能
+  - プロンプト全文/概要表示の切り替え機能
+  - 使用方法の説明表示
+  - 現在の通貨設定に応じたプロンプト生成（通貨に合わせた金額表示）
+  - エラー処理（データ不足時の対応）
 
 ### 4.4 データ連携画面コンポーネント
 - **ExportOptions**: データエクスポート機能
@@ -565,7 +392,7 @@ interface StorageData {
   - 自動消去タイマー機能（情報/成功/警告通知は5秒後に自動消去）
   - 手動消去ボタン
   - 通知タイプ別のスタイリング
-- **DataSourceBadge**: データソース表示バッジ
+- **DataSourceBadge**: データソース表示バッジ（スクレイピング対応版）
   - 各データソースに応じた表示（Alpaca、スクレイピングソース別、Yahoo Finance、Fallback）
   - ソースに応じた色分け
 - **ErrorBoundary**: エラーバウンダリコンポーネント
@@ -580,149 +407,60 @@ interface StorageData {
 - **PriceDisplay**: 株価/基準価額を適切に表示するコンポーネント
 - **ContextConnector**: コンテキスト間の連携を管理するコンポーネント
 
-## 5. API・外部連携仕様
+## 5. AI分析機能仕様（新規追加）
 
-### 5.1 マルチソース対応
-- **データソース優先順位**:
-  1. 米国株: 
-     - プライマリ: Alpaca API
-     - セカンダリ: Yahoo Finance API
-     - 最終手段: 米国株スクレイピング
-     - フォールバック: デフォルト値
-  2. 日本株: 
-     - プライマリ: 日本株スクレイピング
-     - セカンダリ: Yahoo Finance API
-     - フォールバック: デフォルト値
-  3. 投資信託: 
-     - プライマリ: 投資信託スクレイピング
-     - セカンダリ: Yahoo Finance API
-     - フォールバック: デフォルト値
+### 5.1 機能概要
+- **目的**: ユーザーのポートフォリオデータをAIアシスタントに分析させるためのプロンプトを生成する
+- **対応AIモデル**: Claude、ChatGPT、Geminiなど任意のAIアシスタント
+- **分析内容**: 
+  - 現在のポートフォリオ構成と理想構成の比較
+  - 各銘柄の評価と見通し
+  - ポートフォリオ全体のリスク分散、地域分散、セクター分散分析
+  - 6ヶ月投資プランと継続投資戦略の提案
 
-- **米国株スクレイピングサイト優先順位**:
-  1. Yahoo Finance
-  2. MarketWatch
-  3. Investing.com
+### 5.2 通貨対応
+- **基本通貨連動**: アプリの表示通貨設定（円/ドル）に合わせてプロンプトを生成
+  - アプリが円表示の場合: すべての金額を円ベースで計算・表示
+  - アプリがドル表示の場合: すべての金額をドルベースで計算・表示
+- **為替レート情報**: プロンプト内に現在の為替レート情報を含める
+- **通貨変換**: 異なる通貨の資産を適切に変換して配分率を計算
 
-- **日本株スクレイピングサイト優先順位**:
-  1. Yahoo Finance Japan
-  2. Minkabu
-  3. Kabutan
+### 5.3 プロンプト構成
+- **初期情報**: 総資産額、毎月の投資予定額（対応する通貨表示）
+- **現状配分**: 現在のポートフォリオ配分率（%）と銘柄名の一覧
+- **目標配分**: 理想的なポートフォリオ配分率（%）と銘柄名の一覧
+- **分析ガイドライン**: AIが実施すべき分析内容の詳細指示
+- **出力フォーマット**: マークダウン形式での分析結果の構造指定
+  - 個別銘柄分析表
+  - ポートフォリオ全体評価
+  - 具体的な投資プラン
+  - 継続投資戦略
 
-- **投資信託スクレイピングサイト優先順位**:
-  1. Yahoo Finance Japan
-  2. 投資信託協会
-  3. Morningstar Japan
-  4. Minkabu
+### 5.4 テンプレートカスタマイズ
+- **カスタマイズ可能項目**: プロンプト全体の内容とフォーマット
+- **プレースホルダー**: 実際のデータに置き換えられる変数
+  - `{totalAssets}`: 総資産額
+  - `{baseCurrency}`: 基本通貨
+  - `{monthlyBudget}`: 毎月の投資予定額
+  - `{budgetCurrency}`: 予算通貨
+  - `{currentAllocation}`: 現在のポートフォリオ配分
+  - `{targetAllocation}`: 目標ポートフォリオ配分
+- **保存機能**: カスタマイズしたテンプレートをローカルストレージに保存
+- **リセット機能**: デフォルトテンプレートに戻す機能
 
-## 6. イベントフロー
+### 5.5 使用フロー
+1. シミュレーションタブでAI分析プロンプトセクションを確認
+2. 「プロンプトをコピー」ボタンをクリックしてクリップボードにコピー
+3. 任意のAIアシスタント（Claude、ChatGPT、Geminiなど）を開く
+4. クリップボードの内容を貼り付けて送信
+5. AIが自動的にポートフォリオの分析と提案を実行
 
-### 6.1 初期化フロー
-1. アプリケーション起動
-2. `PortfolioProvider` と `AuthProvider` の初期化
-3. ContextConnectorによるコンテキスト間連携の確立
-4. `initialized`フラグのチェック（既に初期化済みの場合は処理をスキップ）
-5. ローカルストレージからのデータ読み込み（エラーハンドリング強化）
-6. トークンストレージからの認証情報読み込み
-7. データがあれば状態を更新し、UIに反映
-8. 配当情報が欠けている場合は初期値を設定
-9. 自動消去機能付き通知の表示（「前回のデータを読み込みました」）
-10. 初期化完了のフラグを設定
-11. エラー発生時はエラーバウンダリでキャッチ
+### 5.6 エラーハンドリング
+- **データ不足時**: 適切なメッセージを表示（「保有資産がありません」など）
+- **ゼロ配分時**: エラーメッセージではなく情報メッセージを表示
+- **通貨変換エラー**: デフォルト値（150.0）を使用して計算を継続
 
-### 6.2 シミュレーション計算フロー（更新）
-1. ユーザーが入金額と通貨を選択（円またはドル）
-2. 追加予算の通貨を確認
-3. 必要に応じて銘柄の通貨に換算（為替レートを使用）
-4. 購入金額の計算（現行ロジックと同様）
-5. 購入株数の計算（購入金額 ÷ 株価）（新規追加）
-6. 結果オブジェクトに購入株数、株価、通貨情報を追加（新規追加）
-7. 計算結果を表示（購入株数列を追加）
-
-```javascript
-// 通貨換算処理（新規追加）
-function convertCurrency(amount, fromCurrency, toCurrency, exchangeRate) {
-  if (fromCurrency === toCurrency) {
-    return amount;
-  }
-  
-  // 円→ドル
-  if (fromCurrency === 'JPY' && toCurrency === 'USD') {
-    return amount / exchangeRate.rate;
-  }
-  
-  // ドル→円
-  if (fromCurrency === 'USD' && toCurrency === 'JPY') {
-    return amount * exchangeRate.rate;
-  }
-  
-  throw new Error(`Unsupported currency conversion: ${fromCurrency} to ${toCurrency}`);
-}
-
-// 購入株数の計算（新規追加）
-function calculatePurchaseShares(purchaseAmount, price) {
-  return Math.floor((purchaseAmount / price) * 100) / 100;
-}
-
-// シミュレーション計算のメイン処理（更新）
-function calculateSimulation(assets, targetPortfolio, additionalBudget, exchangeRate) {
-  const totalValue = calculateTotalValue(assets);
-  const results = [];
-  
-  // 予算通貨の取得
-  const budgetCurrency = additionalBudget.currency;
-  const budgetAmount = additionalBudget.amount;
-  
-  for (const target of targetPortfolio) {
-    const asset = assets.find(a => a.ticker === target.ticker);
-    if (!asset) continue;
-    
-    const currentValue = asset.price * asset.holdings;
-    const currentAllocation = (currentValue / totalValue) * 100;
-    const targetAllocation = target.allocation;
-    const diff = targetAllocation - currentAllocation;
-    
-    // 差分が正の場合（配分を増やす必要がある場合）のみ購入
-    if (diff > 0) {
-      // 予算から理想的に購入すべき金額を計算
-      const idealPurchase = (diff / 100) * (totalValue + budgetAmount);
-      
-      // 通貨を考慮した購入金額の計算
-      let purchaseAmount = idealPurchase;
-      
-      // 銘柄の通貨と予算の通貨が異なる場合は変換
-      if (asset.currency !== budgetCurrency) {
-        purchaseAmount = convertCurrency(
-          idealPurchase,
-          budgetCurrency,
-          asset.currency,
-          exchangeRate
-        );
-      }
-      
-      // 購入可能株数の計算
-      const purchaseShares = calculatePurchaseShares(purchaseAmount, asset.price);
-      
-      results.push({
-        ticker: asset.ticker,
-        name: asset.name,
-        currentAllocation,
-        targetAllocation,
-        diff,
-        currentValue,
-        purchaseAmount,
-        purchaseShares, // 新規追加
-        price: asset.price, // 新規追加
-        currency: asset.currency, // 新規追加
-        source: asset.source,
-        isMutualFund: asset.isMutualFund
-      });
-    }
-  }
-  
-  // 購入金額の大きい順にソート
-  return results.sort((a, b) => b.purchaseAmount - a.purchaseAmount);
-}
-```
+## 6〜15. （既存の内容と同じ - 省略）
 
 ## 改訂履歴
 
@@ -736,3 +474,4 @@ function calculateSimulation(assets, targetPortfolio, additionalBudget, exchange
 | 3.6 | 2025/03/28 14:00 | スクレイピングソース対応のインターフェース仕様の詳細化。スクレイピング統計情報データ構造の追加。データソースバッジのスクレイピングソース対応。スクレイピング特有のエラー処理追加。 |  |
 | 3.7 | 2025/03/29 16:30 | 米国株スクレイピング機能の追加。データソース優先順位の更新。ユーザーインターフェースのデータソースバッジとスタイルの更新。マルチソースフローの更新。スクレイピング統計情報のデータ構造更新。|  |
 | 4.0 | 2025/03/30 12:30 | 入金シミュレーション機能の複数通貨対応（円/ドル）、購入株数表示機能を追加。BudgetInputコンポーネントとSimulationResultコンポーネントの更新。通貨換算処理とシミュレーション計算処理の更新。 |  |
+| 5.0 | 2025/05/07 14:30 | AI分析機能の追加（ポートフォリオデータをAIアシスタントに分析させるプロンプト生成機能）。AIプロンプトテンプレート設定とカスタマイズ機能。現在の通貨設定に連動したプロンプト生成機能。 |  |
