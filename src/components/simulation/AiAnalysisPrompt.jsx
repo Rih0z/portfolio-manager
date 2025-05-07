@@ -14,18 +14,24 @@ const AiAnalysisPrompt = () => {
   
   const [isCopied, setIsCopied] = useState(false);
   const [showFullPrompt, setShowFullPrompt] = useState(false);
-  const [selectedAI, setSelectedAI] = useState('claude');
   
   // 現在のポートフォリオ構成の計算
   const calculateCurrentAllocation = () => {
+    // 保有資産がない場合は空配列を返す
+    if (!currentAssets || currentAssets.length === 0) {
+      return [];
+    }
+    
     const total = currentAssets.reduce((sum, asset) => {
+      if (!asset.price || !asset.holdings) return sum;
+      
       let assetValue = asset.price * asset.holdings;
       
       // 通貨換算
       if (asset.currency !== baseCurrency) {
-        if (baseCurrency === 'JPY' && asset.currency === 'USD') {
+        if (baseCurrency === 'JPY' && asset.currency === 'USD' && exchangeRate) {
           assetValue *= exchangeRate.rate;
-        } else if (baseCurrency === 'USD' && asset.currency === 'JPY') {
+        } else if (baseCurrency === 'USD' && asset.currency === 'JPY' && exchangeRate) {
           assetValue /= exchangeRate.rate;
         }
       }
@@ -33,14 +39,25 @@ const AiAnalysisPrompt = () => {
       return sum + assetValue;
     }, 0);
     
+    // 合計が0の場合は空配列を返す
+    if (total <= 0) return [];
+    
     return currentAssets.map(asset => {
+      if (!asset.price || !asset.holdings) {
+        return {
+          ticker: asset.ticker,
+          name: asset.name || asset.ticker,
+          percentage: 0
+        };
+      }
+      
       let assetValue = asset.price * asset.holdings;
       
       // 通貨換算
       if (asset.currency !== baseCurrency) {
-        if (baseCurrency === 'JPY' && asset.currency === 'USD') {
+        if (baseCurrency === 'JPY' && asset.currency === 'USD' && exchangeRate) {
           assetValue *= exchangeRate.rate;
-        } else if (baseCurrency === 'USD' && asset.currency === 'JPY') {
+        } else if (baseCurrency === 'USD' && asset.currency === 'JPY' && exchangeRate) {
           assetValue /= exchangeRate.rate;
         }
       }
@@ -49,7 +66,7 @@ const AiAnalysisPrompt = () => {
       
       return {
         ticker: asset.ticker,
-        name: asset.name,
+        name: asset.name || asset.ticker,
         percentage: percentage
       };
     }).sort((a, b) => b.percentage - a.percentage); // 割合が大きい順にソート
@@ -57,13 +74,18 @@ const AiAnalysisPrompt = () => {
 
   // 目標ポートフォリオの配分取得
   const getTargetAllocation = () => {
+    // 目標配分がない場合は空配列を返す
+    if (!targetPortfolio || targetPortfolio.length === 0) {
+      return [];
+    }
+    
     return targetPortfolio
       .map(target => {
-        const asset = currentAssets.find(a => a.ticker === target.ticker);
+        const asset = currentAssets?.find(a => a.ticker === target.ticker);
         return {
           ticker: target.ticker,
-          name: asset ? asset.name : target.ticker,
-          percentage: target.targetPercentage
+          name: asset ? (asset.name || target.ticker) : target.ticker,
+          percentage: target.targetPercentage || 0
         };
       })
       .filter(target => target.percentage > 0)
@@ -72,6 +94,8 @@ const AiAnalysisPrompt = () => {
   
   // 通貨に応じた金額フォーマット
   const formatBudget = (budget, currency) => {
+    if (!budget || !currency) return '0';
+    
     if (currency === 'JPY') {
       return `${budget.toLocaleString()} 円`;
     } else {
@@ -84,22 +108,26 @@ const AiAnalysisPrompt = () => {
     const currentAllocation = calculateCurrentAllocation();
     const targetAllocation = getTargetAllocation();
     
-    // 月間追加予算
-    const monthlyBudget = additionalBudget.amount;
-    const budgetCurrency = additionalBudget.currency;
+    // 月間追加予算（未定義の場合は対応）
+    const monthlyBudget = additionalBudget?.amount || 0;
+    const budgetCurrency = additionalBudget?.currency || baseCurrency || 'JPY';
     
     const prompt = `あなたは投資分析に特化した AI アシスタントです。
 目的: ユーザーの投資ポートフォリオを分析し、最適な配分戦略と具体的な投資プランを提案すること。
 
 ### 初期情報収集
-- 現在の総資産額: ${formatBudget(totalAssets, baseCurrency)} (${baseCurrency})
+- 現在の総資産額: ${formatBudget(totalAssets || 0, baseCurrency || 'JPY')} (${baseCurrency || 'JPY'})
 - 毎月の新規投資予定額: ${formatBudget(monthlyBudget, budgetCurrency)} (${budgetCurrency})
 
 ### 現状の投資ポートフォリオ構成:
-${currentAllocation.map(item => `- ${item.ticker}: ${formatPercent(item.percentage)}（${item.name}）`).join('\n')}
+${currentAllocation.length > 0 
+  ? currentAllocation.map(item => `- ${item.ticker}: ${formatPercent(item.percentage)}（${item.name}）`).join('\n')
+  : '現在、保有資産はありません。'}
 
 ### 理想的と考えるポートフォリオ構成:
-${targetAllocation.map(item => `- ${item.ticker}: ${formatPercent(item.percentage)}（${item.name}）`).join('\n')}
+${targetAllocation.length > 0
+  ? targetAllocation.map(item => `- ${item.ticker}: ${formatPercent(item.percentage)}（${item.name}）`).join('\n')
+  : '目標配分が設定されていません。'}
 
 ▼ 分析ガイドライン
 各銘柄について：
@@ -141,7 +169,7 @@ ${targetAllocation.map(item => `- ${item.ticker}: ${formatPercent(item.percentag
   - 比較と改善点：（コメント）
 
 #### 具体的な投資プラン
-- **現在の総資産額**：${formatBudget(totalAssets, baseCurrency)}
+- **現在の総資産額**：${formatBudget(totalAssets || 0, baseCurrency || 'JPY')}
 - **毎月の投資予定額**：${formatBudget(monthlyBudget, budgetCurrency)}
 
 ##### 6ヶ月投資プラン
@@ -183,17 +211,9 @@ ${targetAllocation.map(item => `- ${item.ticker}: ${formatPercent(item.percentag
   
   // プロンプトプレビューの表示（一部のみ表示）
   const getPromptPreview = () => {
+    if (!promptText) return 'プロンプトを生成できません。';
     const lines = promptText.split('\n');
     return lines.slice(0, 10).join('\n') + '\n...';
-  };
-  
-  // 選択したAIアシスタントに応じたスタイルクラスを返す
-  const getAiButtonClass = (aiName) => {
-    return `px-3 py-2 rounded ${
-      selectedAI === aiName 
-        ? 'bg-blue-500 text-white' 
-        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-    }`;
   };
   
   return (
@@ -201,32 +221,8 @@ ${targetAllocation.map(item => `- ${item.ticker}: ${formatPercent(item.percentag
       <h2 className="text-xl font-semibold mb-4">AI分析プロンプト</h2>
       <p className="text-sm text-gray-600 mb-4">
         あなたのポートフォリオデータを使って、AIアシスタントに詳細な分析を依頼するためのプロンプトです。
-        以下のプロンプトをコピーして、お好みのAIアシスタントに貼り付けるだけで高度な投資分析を得られます。
+        以下のプロンプトをコピーして、Claude、ChatGPT、Geminiなど、お好みのAIアシスタントに貼り付けるだけで高度な投資分析を得られます。
       </p>
-      
-      <div className="mb-4">
-        <label className="text-sm font-medium text-gray-700">AIモデルの選択</label>
-        <div className="flex mt-2 space-x-4">
-          <button
-            onClick={() => setSelectedAI('claude')}
-            className={getAiButtonClass('claude')}
-          >
-            Claude
-          </button>
-          <button
-            onClick={() => setSelectedAI('chatgpt')}
-            className={getAiButtonClass('chatgpt')}
-          >
-            ChatGPT
-          </button>
-          <button
-            onClick={() => setSelectedAI('gemini')}
-            className={getAiButtonClass('gemini')}
-          >
-            Gemini
-          </button>
-        </div>
-      </div>
       
       <div className="bg-gray-100 p-3 rounded-md mb-4 text-sm font-mono overflow-auto max-h-64">
         {showFullPrompt ? promptText : getPromptPreview()}
@@ -261,16 +257,16 @@ ${targetAllocation.map(item => `- ${item.ticker}: ${formatPercent(item.percentag
         </button>
       </div>
       
-      <div className="mt-4 text-sm text-gray-500">
-        <p>
-          選択したAI: <span className="font-medium">{
-            selectedAI === 'claude' ? 'Claude (Anthropic)' : 
-            selectedAI === 'chatgpt' ? 'ChatGPT (OpenAI)' : 'Gemini (Google)'
-          }</span>
-        </p>
-        <p className="mt-2">
-          <span className="text-blue-600 font-medium">使い方:</span> 「プロンプトをコピー」ボタンをクリックしてプロンプトをコピーし、
-          選択したAIアシスタントに貼り付けてください。AIは自動的にあなたのポートフォリオを分析します。
+      <div className="mt-4 text-sm text-gray-600 p-4 bg-blue-50 rounded-md">
+        <h3 className="font-semibold mb-2">使い方</h3>
+        <ol className="list-decimal pl-5 space-y-2">
+          <li>「プロンプトをコピー」ボタンをクリックしてプロンプトをコピーします</li>
+          <li>Claude、ChatGPT、Geminiなど、お好みのAIアシスタントを開きます</li>
+          <li>プロンプトを新しい会話に貼り付けます</li>
+          <li>AIが自動的にあなたのポートフォリオを分析し、最適な投資戦略を提案します</li>
+        </ol>
+        <p className="mt-3">
+          プロンプトには現在のポートフォリオ情報が自動的に組み込まれています。異なるAIモデルを試すと、異なる視点や分析結果が得られることがあります。
         </p>
       </div>
     </div>
