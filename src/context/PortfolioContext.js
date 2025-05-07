@@ -75,6 +75,8 @@ export const PortfolioProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [currentAssets, setCurrentAssets] = useState([]);
   const [targetPortfolio, setTargetPortfolio] = useState([]);
+  // aiPromptTemplate状態を追加
+  const [aiPromptTemplate, setAiPromptTemplate] = useState(null);
   // additionalBudgetをオブジェクトに変更（金額と通貨を持つ）
   const [additionalBudget, setAdditionalBudget] = useState({
     amount: 300000,
@@ -106,6 +108,14 @@ export const PortfolioProvider = ({ children }) => {
     setNotifications(prev => prev.filter(notification => notification.id !== id));
   }, []);
 
+  // AI分析プロンプトテンプレート更新関数
+  const updateAiPromptTemplate = useCallback((template) => {
+    setAiPromptTemplate(template);
+    
+    // 設定後に自動保存
+    setTimeout(() => saveToLocalStorage(), 100);
+  }, []);
+
   // ローカルストレージにデータを保存
   const saveToLocalStorage = useCallback(() => {
     if (!initialized) return false; // 初期化前は保存しない
@@ -118,6 +128,7 @@ export const PortfolioProvider = ({ children }) => {
         currentAssets,
         targetPortfolio,
         additionalBudget,
+        aiPromptTemplate, // 追加
         version: '1.0.0', // データバージョン管理
         timestamp: new Date().toISOString()
       };
@@ -138,7 +149,7 @@ export const PortfolioProvider = ({ children }) => {
       addNotification('データの保存に失敗しました', 'error');
       return false;
     }
-  }, [initialized, baseCurrency, exchangeRate, lastUpdated, currentAssets, targetPortfolio, additionalBudget, addNotification]);
+  }, [initialized, baseCurrency, exchangeRate, lastUpdated, currentAssets, targetPortfolio, additionalBudget, aiPromptTemplate, addNotification]);
 
   // ローカルストレージからデータを読み込み（改善版）
   const loadFromLocalStorage = useCallback(() => {
@@ -1062,6 +1073,11 @@ export const PortfolioProvider = ({ children }) => {
         }
       }
       
+      // AIプロンプトテンプレートがあれば設定
+      if (data.aiPromptTemplate) {
+        setAiPromptTemplate(data.aiPromptTemplate);
+      }
+      
       // インポート後に自動保存
       setTimeout(() => saveToLocalStorage(), 100);
       
@@ -1081,9 +1097,10 @@ export const PortfolioProvider = ({ children }) => {
       lastUpdated,
       currentAssets,
       targetPortfolio,
-      additionalBudget
+      additionalBudget,
+      aiPromptTemplate  // 追加
     };
-  }, [baseCurrency, exchangeRate, lastUpdated, currentAssets, targetPortfolio, additionalBudget]);
+  }, [baseCurrency, exchangeRate, lastUpdated, currentAssets, targetPortfolio, additionalBudget, aiPromptTemplate]);
 
   // 為替レートの更新
   const updateExchangeRate = useCallback(async () => {
@@ -1143,6 +1160,7 @@ export const PortfolioProvider = ({ children }) => {
         currentAssets,
         targetPortfolio,
         additionalBudget,
+        aiPromptTemplate, // 追加
         version: '1.0.0',
         timestamp: new Date().toISOString()
       };
@@ -1167,7 +1185,7 @@ export const PortfolioProvider = ({ children }) => {
       addNotification('クラウドへの保存に失敗しました', 'error');
       return { success: false, message: 'クラウド保存に失敗しました' };
     }
-  }, [baseCurrency, exchangeRate, lastUpdated, currentAssets, targetPortfolio, additionalBudget, addNotification]);
+  }, [baseCurrency, exchangeRate, lastUpdated, currentAssets, targetPortfolio, additionalBudget, aiPromptTemplate, addNotification]);
 
   // Googleドライブからデータを読み込み（修正版）
   const loadFromGoogleDrive = useCallback(async (userData) => {
@@ -1215,6 +1233,11 @@ export const PortfolioProvider = ({ children }) => {
             // 既にオブジェクト形式なら直接セット
             setAdditionalBudget(cloudData.additionalBudget);
           }
+        }
+        
+        // AIプロンプトテンプレートがあれば設定
+        if (cloudData.aiPromptTemplate) {
+          setAiPromptTemplate(cloudData.aiPromptTemplate);
         }
         
         // アセットデータのインポート（銘柄タイプ検証・修正付き）
@@ -1301,6 +1324,12 @@ export const PortfolioProvider = ({ children }) => {
             // 既にオブジェクト形式なら直接セット
             setAdditionalBudget(localData.additionalBudget);
           }
+        }
+        
+        // AIプロンプトテンプレートがあれば設定
+        if (localData.aiPromptTemplate) {
+          console.log('AIプロンプトテンプレートを設定');
+          setAiPromptTemplate(localData.aiPromptTemplate);
         }
         
         // アセットデータのインポートと検証
@@ -1457,6 +1486,8 @@ export const PortfolioProvider = ({ children }) => {
     annualDividends, // 年間配当金を追加
     dataSource,
     lastSyncTime,
+    aiPromptTemplate,           // 追加
+    updateAiPromptTemplate,     // 追加
     toggleCurrency, 
     refreshMarketPrices, 
     addTicker,
