@@ -1,10 +1,17 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import BudgetInput from '../components/simulation/BudgetInput';
 import SimulationResult from '../components/simulation/SimulationResult';
-import { usePortfolioContext } from '../hooks/usePortfolioContext';
+import AiAnalysisPrompt from '../components/simulation/AiAnalysisPrompt';
+import { PortfolioContext } from '../context/PortfolioContext';
 
 const Simulation = () => {
-  const { totalAssets, additionalBudget, calculateSimulation, executeBatchPurchase } = usePortfolioContext();
+  const { 
+    totalAssets, 
+    additionalBudget, 
+    calculateSimulation, 
+    executeBatchPurchase, 
+    baseCurrency 
+  } = useContext(PortfolioContext);
   
   // シミュレーション結果を計算
   const simulationResults = calculateSimulation();
@@ -14,6 +21,15 @@ const Simulation = () => {
     if (window.confirm('シミュレーション結果に基づいて購入を実行しますか？')) {
       executeBatchPurchase(simulationResults);
       alert('購入処理が完了しました。');
+    }
+  };
+
+  // 通貨に応じたフォーマット
+  const formatCurrencyValue = (value, currency) => {
+    if (currency === 'JPY') {
+      return `${value.toLocaleString()} 円`;
+    } else {
+      return `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     }
   };
 
@@ -31,15 +47,21 @@ const Simulation = () => {
           <div className="flex justify-between items-center">
             <div>
               <p className="text-sm text-gray-600">現在の総資産</p>
-              <p className="text-lg font-semibold">{totalAssets.toLocaleString()} 円</p>
+              <p className="text-lg font-semibold">
+                {formatCurrencyValue(totalAssets, baseCurrency)}
+              </p>
             </div>
             <div className="text-center">
               <p className="text-sm text-gray-600">追加予算</p>
-              <p className="text-lg font-semibold">{additionalBudget.toLocaleString()} 円</p>
+              <p className="text-lg font-semibold">
+                {formatCurrencyValue(additionalBudget.amount, additionalBudget.currency)}
+              </p>
             </div>
             <div className="text-right">
               <p className="text-sm text-gray-600">シミュレーション後の総資産</p>
-              <p className="text-lg font-semibold">{(totalAssets + additionalBudget).toLocaleString()} 円</p>
+              <p className="text-lg font-semibold">
+                {formatCurrencyValue(totalAssets + additionalBudget.amount, baseCurrency)}
+              </p>
             </div>
           </div>
         </div>
@@ -58,6 +80,9 @@ const Simulation = () => {
         
         <SimulationResult simulationResults={simulationResults} />
       </div>
+      
+      {/* AI分析プロンプト生成コンポーネントを追加 */}
+      <AiAnalysisPrompt />
     </div>
   );
 };
