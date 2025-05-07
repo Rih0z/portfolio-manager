@@ -4,22 +4,8 @@ import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 const AiPromptSettings = () => {
   const { aiPromptTemplate, updateAiPromptTemplate } = usePortfolioContext();
   
-  const [template, setTemplate] = useState(aiPromptTemplate);
-  const [isSaved, setIsSaved] = useState(false);
-  
-  useEffect(() => {
-    setTemplate(aiPromptTemplate);
-  }, [aiPromptTemplate]);
-  
-  const handleSave = () => {
-    updateAiPromptTemplate(template);
-    setIsSaved(true);
-    setTimeout(() => setIsSaved(false), 3000);
-  };
-  
-  const handleReset = () => {
-    // デフォルトテンプレートを設定
-    const defaultTemplate = `あなたは投資分析に特化した AI アシスタントです。
+  // デフォルトテンプレート
+  const defaultTemplate = `あなたは投資分析に特化した AI アシスタントです。
 目的: ユーザーの投資ポートフォリオを分析し、最適な配分戦略と具体的な投資プランを提案すること。
 
 ### 初期情報収集
@@ -92,7 +78,27 @@ const AiPromptSettings = () => {
   - 税金や取引コストの考慮：（コメント）
 
 上記の分析を踏まえて、現在のポートフォリオから理想ポートフォリオへの移行方法と今後の投資戦略について、具体的なアドバイスを提供してください。`;
-    
+  
+  // aiPromptTemplateが未定義の場合はデフォルトテンプレートを使用
+  const [template, setTemplate] = useState(aiPromptTemplate || defaultTemplate);
+  const [isSaved, setIsSaved] = useState(false);
+  
+  // aiPromptTemplateが変更された場合に更新（未定義でなければ）
+  useEffect(() => {
+    if (aiPromptTemplate) {
+      setTemplate(aiPromptTemplate);
+    }
+  }, [aiPromptTemplate]);
+  
+  const handleSave = () => {
+    if (template) {
+      updateAiPromptTemplate(template);
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 3000);
+    }
+  };
+  
+  const handleReset = () => {
     setTemplate(defaultTemplate);
   };
   
@@ -115,7 +121,7 @@ const AiPromptSettings = () => {
       
       <div className="mb-4">
         <textarea
-          value={template}
+          value={template || defaultTemplate}
           onChange={(e) => setTemplate(e.target.value)}
           className="w-full h-96 border border-gray-300 rounded-md p-3 font-mono text-sm"
           spellCheck="false"
@@ -144,6 +150,15 @@ const AiPromptSettings = () => {
             保存しました
           </span>
         )}
+      </div>
+      
+      <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+        <h3 className="text-md font-semibold mb-2">AI分析プロンプトについて</h3>
+        <p className="text-sm text-gray-700">
+          このテンプレートは、シミュレーションタブの「AI分析プロンプト」機能で使用されます。
+          プロンプトには現在のポートフォリオデータが自動的に挿入され、AIアシスタントがあなたの投資戦略を分析するために使用します。
+          Claude、ChatGPT、Geminiなど、様々なAIモデルで利用可能です。
+        </p>
       </div>
     </div>
   );
