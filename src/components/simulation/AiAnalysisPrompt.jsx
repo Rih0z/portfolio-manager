@@ -1,5 +1,6 @@
-import React, { useState, useContext } from 'react';
-import { PortfolioContext } from '../../context/PortfolioContext';
+import React, { useState } from 'react';
+import { usePortfolioContext } from '../../hooks/usePortfolioContext';
+import { formatCurrency, formatPercent, formatDate } from '../../utils/formatters';
 
 const AiAnalysisPrompt = () => {
   const {
