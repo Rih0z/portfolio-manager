@@ -1,3 +1,20 @@
+/** 
+ * プロジェクト: https://portfolio-wise.com/ 
+ * ファイルパス: src/index.js 
+ * 
+ * 作成者: Koki Riho （https://github.com/Rih0z） 
+ * 作成日: 2025-03-01 10:00:00 
+ * 
+ * 更新履歴: 
+ * - 2025-03-01 10:00:00 Koki Riho 初回作成
+ * - 2025-05-08 11:20:00 Koki Riho ファイルヘッダーを追加
+ * 
+ * 説明: 
+ * アプリケーションのエントリーポイント。
+ * React DOMを使用してAppコンポーネントをルートDOMノードにレンダリングする。
+ * また、パフォーマンス測定のためのWeb Vitalsレポート機能を含む。
+ */
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
