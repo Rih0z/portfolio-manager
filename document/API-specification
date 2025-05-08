@@ -1,10 +1,10 @@
-# 市場データ取得API仕様書（スクレイピング対応版）
+# 市場データ取得API仕様書（ETF対応とマルチ通貨機能対応版）
 
-**最終更新日時:** 2025/03/28 12:30
+**最終更新日時:** 2025/05/07 14:30
 
 ## 1. 概要
 
-この仕様書は、ポートフォリオマネージャーアプリケーションで使用する市場データ取得APIについて定義します。株価データと為替レートデータの取得方法、スクレイピング連携、API連携、エラーハンドリングについて説明します。
+この仕様書は、ポートフォリオマネージャーアプリケーションで使用する市場データ取得APIおよび関連機能について定義します。株価データと為替レートデータの取得方法、スクレイピング連携、API連携、エラーハンドリング、ETF対応機能、マルチ通貨対応について説明します。
 
 ## 2. データソース構成
 
@@ -95,6 +95,39 @@ const response = await axios.get(`https://data.alpaca.markets/v2/stocks/${symbol
 - **無料プラン**: 米国株市場データのみ、リアルタイムデータなし、制限あり
 - **有料プラン**: 拡張データアクセス、高頻度リクエスト許可
 - **対応市場**: 米国市場のみ（日本株は対応していない）
+
+### 3.7 ETF対応機能
+Alpaca API ProxyはETF（上場投資信託）の識別と特殊処理に対応しています。ETFのタイプを自動判別し、適切な情報を提供します。
+
+#### 3.7.1 ETFの自動識別
+以下の方法でETFを識別します：
+- 既知のETFリストとの照合
+- 発行会社のプレフィックスパターンとの照合
+- ティッカー形式の構造分析
+
+#### 3.7.2 サポートされるETFタイプ
+- 債券ETF（例: LQD, BND, AGG, TLT）
+- 国際株式ETF（例: INDA, EWJ, VEA, VWO）
+- 米国大型株ETF（例: SPY, VOO, IVV, VTI）
+- セクターETF（例: XLF, XLE, XLK, VGT）
+- テーマ型ETF（例: ARKK, ICLN, ESGU）
+- レバレッジETF（例: TQQQ, UPRO, SQQQ）
+- コモディティETF（例: GLD, SLV, USO）
+
+#### 3.7.3 ETF固有の追加情報
+ETFが検出された場合、以下の追加情報が返されます：
+- `etfType`: ETFの種類（'bond', 'international', 'us_large_cap'など）
+- `dividendYield`: 配当利回り（%）
+- `hasDividend`: 配当の有無（true/false）
+- `dividendFrequency`: 配当頻度（'monthly', 'quarterly'など）
+- その他ETFタイプ固有のフラグ（`isBondETF`, `isIntlETF`など）
+
+#### 3.7.4 高信頼性ETFデータ取得
+ETFが検出された場合、複数のエンドポイントを順次試行し、高信頼性のデータ取得を試みます：
+1. 通常のクオートエンドポイント
+2. 代替バーデータエンドポイント
+3. 履歴データエンドポイント
+4. フォールバックデータ
 
 ## 4. 日本株スクレイピングプロキシ（日本株）
 
@@ -310,6 +343,46 @@ function formatTickerForYahoo(ticker) {
 }
 ```
 
+### 6.7 専用ETF処理機能
+Yahoo Finance Proxyには、ETF（上場投資信託）専用の拡張処理機能が実装されています。
+
+#### 6.7.1 ETF専用エンドポイント
+ETF特有の詳細情報を取得するために異なるYahoo Financeエンドポイントを使用します：
+```javascript
+const etfUrl = `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${symbol}?modules=price,defaultKeyStatistics,summaryDetail`;
+```
+
+#### 6.7.2 ETF特有のレスポンスフィールド
+```json
+{
+  "ticker": "SPY",
+  "price": 540.00,
+  "name": "SPDR S&P 500 ETF Trust",
+  "currency": "USD",
+  "lastUpdated": "2025-05-07T12:34:56.789Z",
+  "source": "Yahoo Finance (US Large Cap ETF)",
+  "isStock": false,
+  "isMutualFund": false,
+  "isETF": true,
+  "etfType": "us_large_cap",
+  "isUSETF": true,
+  "priceLabel": "株価",
+  "dividendYield": 1.5,
+  "hasDividend": true,
+  "dividendFrequency": "quarterly"
+}
+```
+
+#### 6.7.3 ETFタイプの自動判別
+ETFのティッカーシンボルを分析し、以下のタイプに自動分類します：
+- 債券ETF: `bond`
+- 国際株ETF: `international`
+- 米国大型株ETF: `us_large_cap`
+- セクターETF: `sector`
+- テーマ型ETF: `thematic`
+- レバレッジETF: `leveraged`
+- コモディティETF: `commodity`
+
 ## 7. exchangerate.host（為替レート取得）
 
 ### 7.1 概要
@@ -523,101 +596,16 @@ exports.handler = async function(event, context) {
     }
 
     // ソース2: Minkabu
-    try {
-      console.log(`Trying Minkabu for ${stockCode}`);
-      const minkabuData = await scrapeMinkabu(stockCode);
-      
-      if (minkabuData && minkabuData.price) {
-        console.log(`Successfully fetched stock data from Minkabu for ${stockCode}`);
-        return {
-          statusCode: 200,
-          headers,
-          body: JSON.stringify({
-            success: true,
-            data: {
-              ticker: stockCode,
-              ...minkabuData,
-              source: 'Minkabu',
-              isStock: true,
-              isMutualFund: false
-            }
-          })
-        };
-      }
-    } catch (minkabuError) {
-      console.error(`Minkabu scraping failed for ${stockCode}:`, minkabuError.message);
-    }
+    // ...（略）
 
     // ソース3: Kabutan
-    try {
-      console.log(`Trying Kabutan for ${stockCode}`);
-      const kabutanData = await scrapeKabutan(stockCode);
-      
-      if (kabutanData && kabutanData.price) {
-        console.log(`Successfully fetched stock data from Kabutan for ${stockCode}`);
-        return {
-          statusCode: 200,
-          headers,
-          body: JSON.stringify({
-            success: true,
-            data: {
-              ticker: stockCode,
-              ...kabutanData,
-              source: 'Kabutan',
-              isStock: true,
-              isMutualFund: false
-            }
-          })
-        };
-      }
-    } catch (kabutanError) {
-      console.error(`Kabutan scraping failed for ${stockCode}:`, kabutanError.message);
-    }
+    // ...（略）
 
     // すべてのソースが失敗した場合はフォールバックデータを返す
-    console.log(`All sources failed, using fallback data for ${stockCode}`);
-    
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({
-        success: true,
-        data: {
-          ticker: stockCode,
-          price: 2500, // フォールバック価格
-          name: `日本株 ${stockCode}`,
-          currency: 'JPY',
-          lastUpdated: new Date().toISOString(),
-          source: 'Fallback',
-          isStock: true,
-          isMutualFund: false
-        },
-        message: 'すべてのソースからデータ取得に失敗したため、フォールバック値を使用しています'
-      })
-    };
+    // ...（略）
     
   } catch (error) {
-    console.error(`Stock scraping error for ${stockCode}:`, error);
-    
-    // エラー発生時もフォールバックデータを返す
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({
-        success: true,
-        data: {
-          ticker: stockCode,
-          price: 2500, // フォールバック価格
-          name: `日本株 ${stockCode}`,
-          currency: 'JPY',
-          lastUpdated: new Date().toISOString(),
-          source: 'Fallback',
-          isStock: true,
-          isMutualFund: false
-        },
-        message: 'データ取得中にエラーが発生したため、フォールバック値を使用しています'
-      })
-    };
+    // ...（エラーハンドリング）
   }
 };
 
@@ -664,141 +652,11 @@ exports.handler = async function(event, context) {
     };
   }
 
-  // 1. ファンドコードの形式を正規化（末尾のCとTを取り除く）
+  // ファンドコードの形式を正規化（末尾のCとTを取り除く）
   let fundCode = params.code.replace(/\.T$/i, '').replace(/C$/i, '');
-  console.log(`Original fund code: ${params.code}, Normalized code: ${fundCode}`);
   
-  // 2. 追加: ファンドコードの形式をチェック（7桁から8桁の数字）
-  if (!/^\d{7,8}$/.test(fundCode)) {
-    console.warn(`Fund code ${fundCode} does not match expected format (7-8 digits)`);
-    
-    // 4桁のコードの場合は、日本株の誤判定の可能性がある
-    if (/^\d{4}$/.test(fundCode)) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({
-          success: false,
-          message: `${fundCode}は日本株の証券コードの可能性があります。投資信託コードは通常7-8桁の数字+Cの形式です。`
-        })
-      };
-    }
-  }
+  // ...（略）
   
-  console.log(`Fetching mutual fund data for ${fundCode}`);
-  
-  // 複数のソースにアクセスして基準価額データを取得
-  try {
-    // ソース1: Yahoo Finance Japan
-    try {
-      console.log(`Trying Yahoo Finance Japan for ${fundCode}`);
-      // Yahoo Finance形式の投資信託コード（数字+C.T）
-      const yahooFundCode = `${fundCode}C.T`;
-      console.log(`Yahoo Finance fund code format: ${yahooFundCode}`);
-      
-      const yahooData = await scrapeYahooFinanceFund(yahooFundCode);
-      
-      if (yahooData && yahooData.price) {
-        console.log(`Successfully fetched fund data from Yahoo Finance Japan for ${fundCode}: ${yahooData.price}`);
-        return {
-          statusCode: 200,
-          headers,
-          body: JSON.stringify({
-            success: true,
-            data: {
-              ticker: `${fundCode}C`,
-              ...yahooData,
-              source: 'Yahoo Finance Japan',
-              isStock: false,
-              isMutualFund: true
-            }
-          })
-        };
-      } else {
-        console.log(`No valid data from Yahoo Finance Japan for ${fundCode}`);
-      }
-    } catch (yahooError) {
-      console.error(`Yahoo Finance Japan scraping failed for ${fundCode}:`, yahooError.message);
-    }
-
-    // ソース2: 投資信託協会
-    try {
-      console.log(`Trying 投資信託協会 for ${fundCode}`);
-      const toushinData = await scrapeToushinLib(fundCode);
-      
-      if (toushinData && toushinData.price) {
-        console.log(`Successfully fetched fund data from 投資信託協会 for ${fundCode}: ${toushinData.price}`);
-        return {
-          statusCode: 200,
-          headers,
-          body: JSON.stringify({
-            success: true,
-            data: {
-              ticker: `${fundCode}C`,
-              ...toushinData,
-              source: '投資信託協会',
-              isStock: false,
-              isMutualFund: true
-            }
-          })
-        };
-      } else {
-        console.log(`No valid data from 投資信託協会 for ${fundCode}`);
-      }
-    } catch (toushinError) {
-      console.error(`投資信託協会 scraping failed for ${fundCode}:`, toushinError.message);
-    }
-
-    // その他のソースを試行（Morningstar Japan, Minkabu）
-    // ...
-
-    // すべてのソースが失敗した場合はフォールバックデータを返す
-    console.log(`All sources failed, using fallback data for ${fundCode}`);
-    
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({
-        success: true,
-        data: {
-          ticker: `${fundCode}C`,
-          price: 10000, // フォールバック基準価額
-          name: `投資信託 ${fundCode}C`,
-          currency: 'JPY',
-          lastUpdated: new Date().toISOString(),
-          source: 'Fallback',
-          isStock: false,
-          isMutualFund: true,
-          priceLabel: '基準価額'
-        },
-        message: 'すべてのソースからデータ取得に失敗したため、フォールバック値を使用しています'
-      })
-    };
-    
-  } catch (error) {
-    console.error(`Mutual fund scraping error for ${fundCode}:`, error);
-    
-    // エラー発生時もフォールバックデータを返す
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({
-        success: true,
-        data: {
-          ticker: `${fundCode}C`,
-          price: 10000, // フォールバック基準価額
-          name: `投資信託 ${fundCode}C`,
-          currency: 'JPY',
-          lastUpdated: new Date().toISOString(),
-          source: 'Fallback',
-          isStock: false,
-          isMutualFund: true,
-          priceLabel: '基準価額'
-        },
-        message: 'データ取得中にエラーが発生したため、フォールバック値を使用しています'
-      })
-    };
-  }
 };
 
 // スクレイピング関数の実装（略）
@@ -920,70 +778,38 @@ exports.handler = async function(event, context) {
     'Content-Type': 'application/json'
   };
 
-  // デフォルトでUSD/JPYレートを取得
-  const base = event.queryStringParameters?.base || 'USD';
-  const symbols = event.queryStringParameters?.symbols || 'JPY';
-  
-  try {
-    // exchangerate.host APIを呼び出す
-    const response = await axios.get('https://api.exchangerate.host/latest', {
-      params: {
-        base: base,
-        symbols: symbols
-      },
-      timeout: 5000
-    });
-    
-    const data = response.data;
-    
-    if (!data || !data.rates || !data.rates[symbols]) {
-      return {
-        statusCode: 404,
-        headers,
-        body: JSON.stringify({
-          success: false,
-          message: `為替レートが見つかりません`,
-          data: {
-            rate: parseFloat(process.env.DEFAULT_EXCHANGE_RATE) || 150.0,
-            source: 'Fallback',
-            timestamp: new Date().toISOString()
-          }
-        })
-      };
-    }
-    
+  // OPTIONSリクエストの処理
+  if (event.httpMethod === 'OPTIONS') {
     return {
-      statusCode: 200,
+      statusCode: 204,
       headers,
-      body: JSON.stringify({
-        success: true,
-        data: {
-          rate: data.rates[symbols],
-          source: 'exchangerate.host',
-          base: data.base,
-          currency: symbols,
-          timestamp: data.date || new Date().toISOString()
-        }
-      })
-    };
-  } catch (error) {
-    console.error('Exchange rate API error:', error);
-    
-    // エラー時はフォールバック値を返す
-    return {
-      statusCode: 200, // エラーでもクライアントには200を返す
-      headers,
-      body: JSON.stringify({
-        success: true,
-        message: `為替レートの取得に失敗したため、デフォルト値を使用します: ${error.message}`,
-        data: {
-          rate: parseFloat(process.env.DEFAULT_EXCHANGE_RATE) || 150.0,
-          source: 'Fallback',
-          timestamp: new Date().toISOString()
-        }
-      })
+      body: ''
     };
   }
+
+  // パラメータを取得
+  let base = event.queryStringParameters?.base || 'USD';
+  let symbols = event.queryStringParameters?.symbols || 'JPY';
+  
+  // 要求されたオリジナルの通貨ペアを記録
+  const originalBase = base;
+  const originalSymbols = symbols;
+  
+  // JPY/USDの場合のフラグ
+  const isJpyToUsd = base === 'JPY' && symbols === 'USD';
+  
+  // JPY/USDの場合はUSD/JPYとして取得して後で逆数を計算
+  if (isJpyToUsd) {
+    base = 'USD';
+    symbols = 'JPY';
+  }
+  
+  // 環境変数からデフォルト値を取得、または固定値を使用
+  const defaultRate = process.env.DEFAULT_EXCHANGE_RATE 
+    ? parseFloat(process.env.DEFAULT_EXCHANGE_RATE) 
+    : 150.0;
+    
+  // ...（以下略）
 };
 ```
 
@@ -1063,7 +889,207 @@ DEFAULT_EXCHANGE_RATE=150.0
    - 同時に発行するスクレイピングリクエスト数を制限
    - スロットリングメカニズムの実装
 
-## 13. 改訂履歴
+## 13. 為替レート管理機能
+
+### 13.1 複数通貨対応
+- 為替レートを使用して円⇔ドルの通貨換算を行う機能
+- 現在の為替レートに基づいた正確な通貨換算
+
+### 13.2 為替レート取得ロジック
+- **主要ソース**: exchangerate.host API
+- **セカンダリソース**: alternative-exchangerate-proxy（複数のAPIをフォールバックとして使用）
+- **バックアップ**: ハードコードされたデフォルト値
+
+### 13.3 為替レートの表示
+- レート値の表示（例: 150.0円/ドル）
+- レートソースの表示（例: exchangerate.host, Fallback）
+- 最終更新日時の表示
+
+### 13.4 通貨変換関数
+```javascript
+// 通貨変換関数
+function convertCurrency(amount, fromCurrency, toCurrency, exchangeRate) {
+  if (fromCurrency === toCurrency) {
+    return amount;
+  }
+  
+  // 円→ドル
+  if (fromCurrency === 'JPY' && toCurrency === 'USD') {
+    return amount / exchangeRate.rate;
+  }
+  
+  // ドル→円
+  if (fromCurrency === 'USD' && toCurrency === 'JPY') {
+    return amount * exchangeRate.rate;
+  }
+  
+  throw new Error(`Unsupported currency conversion: ${fromCurrency} to ${toCurrency}`);
+}
+```
+
+## 14. Python yfinance連携
+
+### 14.1 概要
+`yfinance-proxy.js`は、Pythonのyfinanceライブラリを子プロセスとして実行し、株価データと為替レートデータを取得するためのプロキシ機能を提供します。この機能は他のデータソースがエラーや遅延を起こした場合のバックアップとして使用できます。
+
+### 14.2 エンドポイント
+- **ベースURL**: `/api/yfinance-proxy`
+- **メソッド**: GET
+- **パラメータ**: 
+  - `symbols` - カンマ区切りのティッカーシンボル（例: 'AAPL,MSFT,7203.T'）
+  - `exchange_rate` - 通貨ペア（例: 'USDJPY'）
+
+### 14.3 リクエスト例
+```javascript
+// 株価データの取得
+async function fetchStockData(symbols) {
+  try {
+    const response = await axios.get(`/api/yfinance-proxy`, {
+      params: { symbols: symbols }
+    });
+    
+    return response.data;
+  } catch (error) {
+    console.error(`yfinance APIエラー: ${error.message}`);
+    throw error;
+  }
+}
+
+// 為替レートの取得
+async function fetchExchangeRate(fromCurrency, toCurrency) {
+  try {
+    const response = await axios.get(`/api/yfinance-proxy`, {
+      params: { exchange_rate: `${fromCurrency}${toCurrency}` }
+    });
+    
+    return response.data;
+  } catch (error) {
+    console.error(`yfinance APIエラー: ${error.message}`);
+    throw error;
+  }
+}
+```
+
+### 14.4 レスポンス例（株価データ）
+```json
+{
+  "success": true,
+  "data": {
+    "AAPL": {
+      "ticker": "AAPL",
+      "price": 176.82,
+      "name": "Apple Inc.",
+      "currency": "USD",
+      "lastUpdated": "2025-05-07T12:34:56.789Z"
+    },
+    "7203.T": {
+      "ticker": "7203.T",
+      "price": 2540,
+      "name": "トヨタ自動車(株)",
+      "currency": "JPY",
+      "lastUpdated": "2025-05-07T12:34:56.789Z"
+    }
+  }
+}
+```
+
+### 14.5 レスポンス例（為替レート）
+```json
+{
+  "success": true,
+  "rate": 150.25,
+  "source": "Python yfinance",
+  "lastUpdated": "2025-05-07T12:34:56.789Z"
+}
+```
+
+### 14.6 技術的詳細
+このAPIは以下の技術を使用しています：
+- **Python**: バックエンドでPythonスクリプトを実行
+- **yfinance**: 株価データと為替レートを取得するPythonライブラリ
+- **pandas**: データ処理用のPythonライブラリ
+
+### 14.7 依存関係
+以下のPythonパッケージが必要です（`requirements.txt`）：
+```
+yfinance==0.2.35
+pandas==2.1.0
+numpy==1.25.0
+pytz==2023.3
+```
+
+## 15. AIプロンプト生成
+
+### 15.1 概要
+アプリケーションでは、ポートフォリオデータを外部AIアシスタント（Claude、ChatGPT、Geminiなど）に送信するための構造化プロンプトを生成する機能を提供します。この機能は、ユーザーがポートフォリオ分析のためにAIアシスタントを活用できるようサポートします。
+
+### 15.2 プロンプト生成の目的
+- ポートフォリオデータを構造化された形式でAIアシスタントに提供
+- 分析の質を高めるためのガイドラインを含める
+- 一貫性のある分析結果を得るための標準フォーマットを提供
+
+### 15.3 プロンプト構成
+- **初期情報**: 総資産額、毎月の投資予定額（対応する通貨表示）
+- **現状配分**: 現在のポートフォリオ配分率（%）と銘柄名の一覧
+- **目標配分**: 理想的なポートフォリオ配分率（%）と銘柄名の一覧
+- **分析ガイドライン**: AIが実施すべき分析内容の詳細指示
+- **出力フォーマット**: マークダウン形式での分析結果の構造指定
+
+### 15.4 使用例
+1. ユーザーがシミュレーション画面でプロンプト生成を要求
+2. アプリケーションが現在のポートフォリオデータを基にプロンプトを生成
+3. ユーザーがプロンプトをコピーして外部AIアシスタントに貼り付け
+4. 外部AIがプロンプトに基づいてポートフォリオ分析を実施
+
+### 15.5 プロンプト例（抜粋）
+```
+あなたは投資分析に特化した AI アシスタントです。
+目的: ユーザーの投資ポートフォリオを分析し、最適な配分戦略と具体的な投資プランを提案すること。
+
+### 初期情報収集
+- 現在の総資産額: 1,000,000 円 (JPY)
+- 毎月の新規投資予定額: 300,000 円 (JPY)
+
+### 現状の投資ポートフォリオ構成:
+- AAPL: 25.9%（Apple Inc.）
+- 7203.T: 74.1%（トヨタ自動車(株)）
+
+### 理想的と考えるポートフォリオ構成:
+- AAPL: 30.0%（Apple Inc.）
+- 7203.T: 40.0%（トヨタ自動車(株)）
+
+▼ 分析ガイドライン
+各銘柄について：
+1. 直近の市場パフォーマンスと価格動向を調査
+2. マクロ経済環境と当該資産クラスへの影響を考慮
+...
+```
+
+## 16. 留意事項
+
+### 16.1 スクレイピングの制約
+- ウェブサイトの構造変更に脆弱
+- サイト側の防止機構（CAPTCHA等）に対応不能
+- 過度な使用によるIPブロック可能性あり
+- ランダムなユーザーエージェントと適切な間隔が必要
+
+### 16.2 倫理的・法的考慮事項
+- 対象サイトの利用規約を尊重
+- 商用利用に関する制限を確認
+- 過度な負荷をかけない配慮
+- データの正確性に関する免責事項を明記
+
+### 16.3 通貨関連の注意点
+- 為替レートは変動するため、シミュレーション結果は実際の金額と異なる可能性がある
+- 為替レート取得失敗時はフォールバック値を使用するため、精度が低下する
+- 通貨変換を伴う表示では、その旨をユーザーに明示する
+
+### 16.4 AIプロンプト生成の注意点
+- 生成されたプロンプトはあくまで外部AIアシスタント用のテンプレート
+- 分析結果の品質は使用するAIアシスタントの能力に依存
+- 個人情報や機密情報を含めないよう注意
+
+## 改訂履歴
 
 | バージョン | 日付 | 内容 | 担当者 |
 |---|---|---|---|
@@ -1072,3 +1098,4 @@ DEFAULT_EXCHANGE_RATE=150.0
 | 3.0 | 2025/03/20 | Yahoo Finance APIをバックアップソースとして追加 |  |
 | 4.0 | 2025/03/25 | JPX API追加、データソース別のエラーハンドリング強化 |  |
 | 5.0 | 2025/03/28 | スクレイピングベースの株価取得システムに変更。日本株と投資信託のスクレイピングプロキシを追加。 |  |
+| 6.0 | 2025/05/07 | ETF対応機能の詳細を追記。Python yfinance連携についての詳細を追記。AIプロンプト生成機能とマルチ通貨対応を追加。 |  |
