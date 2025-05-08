@@ -1,4 +1,21 @@
-// functions/jp-stock-scraping-proxy.js
+/** 
+ * プロジェクト: https://portfolio-wise.com/ 
+ * ファイルパス: functions/jp-stock-scraping-proxy.js 
+ * 
+ * 作成者: Koki Riho （https://github.com/Rih0z） 
+ * 作成日: 2023/03/28 09:15:00 
+ * 
+ * 更新履歴: 
+ * - 2023/03/28 09:15:00 Koki Riho 初回作成
+ * - 2023/04/15 16:30:00 Yuta Sato スクレイピングパターンを更新
+ * - 2023/05/05 10:45:00 Koki Riho ユーザーエージェントのランダム化を追加
+ * 
+ * 説明: 
+ * 複数の日本の金融情報サイトから日本株の株価データをスクレイピングするサーバーレス関数。
+ * Yahoo Finance Japan、Minkabu、Kabutanなどのサイトから株価情報を抽出し、
+ * 統一されたフォーマットで提供する。複数のソースを優先順位順に試行して冗長性を確保する。
+ * スクレイピング検出を避けるためのユーザーエージェントランダム化などの対策も実装している。
+ */
 // 日本株の株価をスクレイピングで取得するプロキシ関数
 
 const axios = require('axios');
