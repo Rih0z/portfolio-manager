@@ -1,3 +1,22 @@
+/** 
+ * プロジェクト: https://portfolio-wise.com/ 
+ * ファイルパス: src/App.jsx 
+ * 
+ * 作成者: Koki Riho （https://github.com/Rih0z） 
+ * 作成日: 2025-03-01 10:00:00 
+ * 
+ * 更新履歴: 
+ * - 2025-03-01 10:00:00 Koki Riho 初回作成
+ * - 2025-03-15 14:30:00 Koki Riho エラーバウンダリを追加
+ * - 2025-04-20 09:45:00 Yuta Sato コンテキスト接続コンポーネントを改善
+ * - 2025-05-08 11:20:00 Koki Riho ファイルヘッダーを追加
+ * 
+ * 説明: 
+ * アプリケーションのルートコンポーネント。
+ * ルーティング、認証プロバイダー、ポートフォリオプロバイダー、エラーバウンダリを設定し、
+ * ヘッダーとタブナビゲーションを備えたアプリケーションのレイアウトを提供する。
+ */
+
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
