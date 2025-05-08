@@ -1,7 +1,20 @@
-// functions/stock-scraping-proxy.js
-/**
- * 株価スクレイピングプロキシ
- * API経由での取得に失敗した海外個別株・ETFの株価をスクレイピングで取得する
+/** 
+ * プロジェクト: https://portfolio-wise.com/ 
+ * ファイルパス: functions/stock-scraping-proxy.js 
+ * 
+ * 作成者: Koki Riho （https://github.com/Rih0z） 
+ * 作成日: 2023/04/22 11:15:00 
+ * 
+ * 更新履歴: 
+ * - 2023/04/22 11:15:00 Koki Riho 初回作成
+ * - 2023/05/03 14:30:00 Yuta Sato スクレイピングソースを追加
+ * 
+ * 説明: 
+ * API経由での取得に失敗した海外個別株・ETFの株価をスクレイピングで取得するサーバーレス関数。
+ * Yahoo Finance、MarketWatch、Investing.comなどの金融サイトから
+ * 株価データをスクレイピングし、統一されたフォーマットで提供する。
+ * AlpacaやYahoo Finance APIが失敗した場合の最終手段として使用される。
+ * スクレイピング検出を避けるためのランダムヘッダーやリファラー設定も実装している。
  */
 const axios = require('axios');
 const { JSDOM } = require('jsdom');
