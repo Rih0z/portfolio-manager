@@ -1,4 +1,21 @@
-// functions/mutual-fund-scraping-proxy.js
+/** 
+ * プロジェクト: https://portfolio-wise.com/ 
+ * ファイルパス: functions/mutual-fund-scraping-proxy.js 
+ * 
+ * 作成者: Koki Riho （https://github.com/Rih0z） 
+ * 作成日: 2023/03/30 14:20:00 
+ * 
+ * 更新履歴: 
+ * - 2023/03/30 14:20:00 Koki Riho 初回作成
+ * - 2023/04/18 17:15:00 Yuta Sato スクレイピングパターンを更新
+ * - 2023/05/05 11:30:00 Koki Riho Yahoo Finance APIフォールバックを追加
+ * 
+ * 説明: 
+ * 複数の日本の金融情報サイトから投資信託の基準価額データをスクレイピングするサーバーレス関数。
+ * Yahoo Finance Japan、投資信託協会、Morningstar Japan、Minkabuなどのサイトから
+ * 基準価額情報を抽出し、統一されたフォーマットで提供する。
+ * 投資信託コードの正規化や複数のソースを優先順位順に試行する冗長性の確保も実装している。
+ */
 // 投資信託の基準価額をスクレイピングで取得するプロキシ関数
 
 const axios = require('axios');
