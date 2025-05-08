@@ -1,3 +1,20 @@
+/** 
+ * プロジェクト: https://portfolio-wise.com/ 
+ * ファイルパス: functions/exchangerate-proxy.js 
+ * 
+ * 作成者: Koki Riho （https://github.com/Rih0z） 
+ * 作成日: 2023/03/20 11:30:00 
+ * 
+ * 更新履歴: 
+ * - 2023/03/20 11:30:00 Koki Riho 初回作成
+ * - 2023/04/10 15:45:00 Yuta Sato エラーハンドリングとフォールバックを強化
+ * 
+ * 説明: 
+ * exchangerate.host APIを使用して為替レートデータを取得するサーバーレス関数。
+ * USD/JPYなどの通貨ペアのレートをAPIから取得し、統一されたフォーマットで返す。
+ * APIエラーやタイムアウト時には環境変数のデフォルト値を使用してフォールバックする。
+ * 様々な通貨ペアのリクエストに対応し、JPY/USDの場合は適切に逆数計算を行う。
+ */
 // functions/exchangerate-proxy.js
 const axios = require('axios');
 
