@@ -1,8 +1,20 @@
-// functions/yahoo-finance-proxy.js
-
-/**
- * Yahoo Finance APIへのプロキシ関数（すべてのETF対応版）
- * 株価データと投資信託データを取得する
+/** 
+ * プロジェクト: https://portfolio-wise.com/ 
+ * ファイルパス: functions/yahoo-finance-proxy.js 
+ * 
+ * 作成者: Koki Riho （https://github.com/Rih0z） 
+ * 作成日: 2023/03/25 10:45:00 
+ * 
+ * 更新履歴: 
+ * - 2023/03/25 10:45:00 Koki Riho 初回作成
+ * - 2023/04/15 15:30:00 Yuta Sato ETF対応機能を追加
+ * - 2023/05/05 09:15:00 Koki Riho 代替エンドポイント試行機能を強化
+ * 
+ * 説明: 
+ * Yahoo Finance非公式APIを使用して株価データを取得するサーバーレス関数。
+ * 米国株、日本株、投資信託、ETFなど様々な金融商品の価格データに対応し、
+ * 統一されたフォーマットで提供する。Alpacaやスクレイピングのバックアップとして機能する。
+ * ETF（上場投資信託）の識別と特殊処理、日本株や投資信託のティッカー形式変換なども実装している。
  */
 const axios = require('axios');
 
