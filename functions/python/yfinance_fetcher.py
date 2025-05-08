@@ -1,5 +1,22 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""
+プロジェクト: https://portfolio-wise.com/ 
+ファイルパス: functions/python/yfinance_fetcher.py 
+
+作成者: Koki Riho （https://github.com/Rih0z） 
+作成日: 2023/05/01 09:30:00 
+
+更新履歴: 
+- 2023/05/01 09:30:00 Koki Riho 初回作成
+- 2023/05/05 16:15:00 Yuta Sato エラーハンドリングとフォールバック値を追加
+
+説明: 
+Pythonのyfinanceライブラリを使用して株価データと為替データを取得するスクリプト。
+yfinance-proxy.jsから子プロセスとして実行され、結果をJSON形式で標準出力に返す。
+主要なAPIやスクレイピングが失敗した場合のバックアップとして使用される。
+シンボルの適切な整形、エラーハンドリング、フォールバック値の提供などを実装している。
+"""
 
 """
 yfinance_fetcher.py - Pythonのyfinanceライブラリを使用して株価データと為替データを取得するスクリプト
