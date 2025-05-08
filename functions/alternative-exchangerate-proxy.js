@@ -1,4 +1,20 @@
-// functions/alternative-exchangerate-proxy.js
+/** 
+ * プロジェクト: https://portfolio-wise.com/ 
+ * ファイルパス: functions/alternative-exchangerate-proxy.js 
+ * 
+ * 作成者: Koki Riho （https://github.com/Rih0z） 
+ * 作成日: 2023/04/20 16:45:00 
+ * 
+ * 更新履歴: 
+ * - 2023/04/20 16:45:00 Koki Riho 初回作成
+ * - 2023/05/05 14:30:00 Yuta Sato 複数のデータソースを追加
+ * 
+ * 説明: 
+ * 複数の為替レートAPIをカスケード的に利用する代替為替レートプロキシ。
+ * 主要な為替レートAPIが利用できない場合のフォールバックとして機能する。
+ * exchangerate.host、openexchangerates.org、fixer.io、ハードコードされた値の順に試行し、
+ * 最初に成功したソースからのデータを返す。常に何らかのレート値を返すことを保証する。
+ */
 const axios = require('axios');
 
 // デフォルト為替レート
