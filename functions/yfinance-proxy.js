@@ -1,8 +1,19 @@
-// functions/yfinance-proxy.js
-
-/**
- * Python yfinanceライブラリを使用したデータ取得プロキシ関数
- * Pythonスクリプトを子プロセスとして実行し、yfinanceライブラリからデータを取得する
+/** 
+ * プロジェクト: https://portfolio-wise.com/ 
+ * ファイルパス: functions/yfinance-proxy.js 
+ * 
+ * 作成者: Koki Riho （https://github.com/Rih0z） 
+ * 作成日: 2023/05/01 09:00:00 
+ * 
+ * 更新履歴: 
+ * - 2023/05/01 09:00:00 Koki Riho 初回作成
+ * - 2023/05/05 16:30:00 Yuta Sato エラーハンドリングを強化
+ * 
+ * 説明: 
+ * Pythonのyfinanceライブラリを使用してデータ取得を行うサーバーレス関数。
+ * child_processモジュールを使用してPythonスクリプトを子プロセスとして実行し、
+ * 株価データと為替レートを取得する。他のAPIやスクレイピングが失敗した場合の
+ * バックアップとして機能し、常にデータを提供することを目指している。
  */
 const { execFile } = require('child_process');
 const path = require('path');
