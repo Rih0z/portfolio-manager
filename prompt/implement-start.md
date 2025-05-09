@@ -38,7 +38,7 @@
 
 2. **API仕様書（API-specification）**
    - 株価データと為替レートデータの取得方法、API連携、スクレイピング連携
-   - **主な内容**: データソース構成、Alpaca API仕様、日本株スクレイピング、投資信託スクレイピング、Yahoo Finance API、為替レート取得、API連携実装、エラーハンドリング
+   - **主な内容**: データソース構成、Alpaca API仕様、Alpha Vantage API、日本株スクレイピング、投資信託スクレイピング、Yahoo Finance API、為替レート取得、API連携実装、エラーハンドリング
 
 3. **インターフェース仕様書（updated-interface-specifications.txt）**
    - UIコンポーネント、状態管理、データ構造の詳細仕様
@@ -63,7 +63,7 @@
 - **コード規約書** - React Contextsの使用方法と命名規則
 
 実装開始のポイント：
-- `src/context/PortfolioContext.jsx` でAIプロンプトテンプレート管理の状態を追加
+- `src/context/PortfolioContext.js` でAIプロンプトテンプレート管理の状態を追加
 - `src/components/simulation/AiAnalysisPrompt.jsx` コンポーネントを作成
 - `src/components/settings/AiPromptSettings.jsx` コンポーネントを作成
 
@@ -76,6 +76,17 @@
 実装開始のポイント：
 - `functions/jp-stock-scraping-proxy.js` を確認
 - スクレイピングパターンの更新やエラーハンドリングを改善
+
+### 例3：為替レート取得機能を拡張したい場合
+
+参照すべきドキュメント：
+- **株価取得システム仕様書** - 「14. マルチ通貨シミュレーション対応」セクション
+- **インターフェース仕様書** - 「6. 為替レート管理機能」セクション
+
+実装開始のポイント：
+- `functions/exchangerate-proxy.js` を確認
+- `functions/alternative-exchangerate-proxy.js` を確認
+- `functions/mof-exchange-rate-proxy.js` を確認
 
 ## 開始のためのチェックリスト
 
@@ -91,5 +102,6 @@
 - このプロジェクトはReact.js 18、Tailwind CSS、React Context APIを使用しています
 - スクレイピング機能はNetlify Functionsで実装されています
 - AIプロンプト生成機能とマルチ通貨シミュレーションは最近追加された機能です
+- 複数の為替レートAPIを使用する代替取得パスが実装されています
 
 あなたの実装目標に基づいて、より詳細な情報と具体的なスタート地点をご案内します。
