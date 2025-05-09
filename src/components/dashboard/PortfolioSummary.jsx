@@ -1,3 +1,19 @@
+/** 
+ * プロジェクト: https://portfolio-wise.com/ 
+ * ファイルパス: src/components/dashboard/PortfolioSummary.jsx 
+ * 
+ * 作成者: Koki Riho （https://github.com/Rih0z） 
+ * 作成日: 2025-05-08 14:30:00 
+ * 
+ * 更新履歴: 
+ * - 2025-05-08 14:30:00 Koki Riho 初回作成
+ * 
+ * 説明: 
+ * ポートフォリオの概要情報を表示するコンポーネント。
+ * 総資産、設定銘柄数、年間手数料、年間配当金などの主要指標を表示する。
+ * また、手数料や配当に関する詳細情報やファンドタイプ別の集計情報も提供する。
+ */
+
 import React from 'react';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 import { formatCurrency, formatPercent } from '../../utils/formatters';
