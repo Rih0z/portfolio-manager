@@ -1,3 +1,20 @@
+/** 
+ * プロジェクト: https://portfolio-wise.com/ 
+ * ファイルパス: src/pages/Settings.jsx
+ * 
+ * 作成者: Koki Riho （https://github.com/Rih0z） 
+ * 作成日: 2025-03-18 09:20:45 
+ * 
+ * 更新履歴: 
+ * - 2025-03-18 09:20:45 Koki Riho 初回作成
+ * - 2025-04-10 14:25:30 Yuta Sato 銘柄検索機能の改善
+ * - 2025-04-28 11:05:10 Koki Riho AI分析プロンプト設定コンポーネントを追加
+ * 
+ * 説明: 
+ * ポートフォリオの設定画面コンポーネント。銘柄の追加、保有資産設定、
+ * 目標配分設定、およびAI分析プロンプト設定機能を提供する。
+ */
+
 import React from 'react';
 import TickerSearch from '../components/settings/TickerSearch';
 import PopularTickers from '../components/settings/PopularTickers';
