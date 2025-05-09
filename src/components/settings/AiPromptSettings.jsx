@@ -1,3 +1,18 @@
+/** 
+ * プロジェクト: https://portfolio-wise.com/ 
+ * ファイルパス: src/components/settings/AiPromptSettings.jsx 
+ * 
+ * 作成者: Koki Riho （https://github.com/Rih0z） 
+ * 作成日: 2025-05-08 14:30:00 
+ * 
+ * 更新履歴: 
+ * - 2025-05-08 14:30:00 Koki Riho 初回作成
+ * 
+ * 説明: 
+ * AI分析プロンプトのテンプレート設定コンポーネント。
+ * シミュレーションタブで使用するAI分析プロンプトのテンプレートを編集し、
+ * 保存または初期設定に戻す機能を提供する。
+ */
 import React, { useState, useEffect } from 'react';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 
