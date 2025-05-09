@@ -11,46 +11,31 @@
 
 ### 2.0 ファイルヘッダー
 
-すべてのソースコードファイルには、以下の形式のヘッダーコメントを含めるものとします：
+ファイルヘッダーコメントは現在のコードベースでは必須ではありません。既存の多くのファイルではヘッダーコメントは省略されています。
+
+##### 新規ファイル追加時のヘッダー推奨形式
+新しいファイルを追加する場合は、必要に応じて以下の形式のヘッダーコメントを含めることが推奨されます：
 
 ```javascript
-/** 
- * プロジェクト: https://portfolio-wise.com/ 
- * ファイルパス: [プロジェクトルートからの相対パス] 
- * 
- * 作成者: Koki Riho （https://github.com/Rih0z） 
- * 作成日: [YYYY-MM-DD HH:mm:ss] 
- * 
- * 更新履歴: 
- * - [YYYY-MM-DD HH:mm:ss] [名前] [更新内容の簡潔な説明] 
- * 
- * 説明: 
- * [このファイルの目的と機能の簡潔な説明] 
- */
+// ファイルの目的と機能の簡潔な説明
 ```
 
-#### 2.0.1 ヘッダー項目の記入例
+より詳細なドキュメンテーションが必要な場合は、各関数やクラスのJSDocコメントを活用してください。
 
 ```javascript
-/** 
- * プロジェクト: https://portfolio-wise.com/ 
- * ファイルパス: src/components/dashboard/AssetCard.jsx 
- * 
- * 作成者: Koki Riho （https://github.com/Rih0z） 
- * 作成日: 2025-03-25 13:45:22 
- * 
- * 更新履歴: 
- * - 2025-03-25 13:45:22 Koki Riho 初回作成
- * - 2025-04-15 17:32:10 Yuta Sato データソースバッジを追加
- * - 2025-05-01 09:22:45 Koki Riho 投資信託対応を強化
- * 
- * 説明: 
- * ポートフォリオ内の個別資産を表示するカードコンポーネント。
- * 各資産の基本情報、価格、データソース、配当情報を表示する。
+/**
+ * 関数の説明
+ * @param {型} 引数名 - 引数の説明
+ * @returns {型} - 戻り値の説明
  */
+function exampleFunction(param) {
+  // 実装
+}
 ```
 
 ### 2.1 ディレクトリ構造
+
+現在のコードベースの詳細な構造は以下の通りです：
 
 ```
 src/
@@ -58,15 +43,45 @@ src/
 │   ├── auth/        # 認証関連コンポーネント 
 │   ├── common/      # 共通UIコンポーネント
 │   ├── dashboard/   # ダッシュボード画面コンポーネント
+│   │   ├── AssetsTable.jsx       # 資産一覧テーブル
+│   │   ├── DifferenceChart.jsx   # 差異チャート
+│   │   ├── PortfolioCharts.jsx   # ポートフォリオチャート
+│   │   └── PortfolioSummary.jsx  # ポートフォリオサマリー
 │   ├── data/        # データ連携コンポーネント
+│   │   ├── ExportOptions.jsx     # エクスポートオプション
+│   │   ├── GoogleDriveIntegration.jsx  # Google Drive連携
+│   │   └── ImportOptions.jsx     # インポートオプション
 │   ├── layout/      # レイアウト関連コンポーネント
+│   │   └── DataStatusBar.jsx     # データステータスバー
 │   ├── settings/    # 設定画面コンポーネント
+│   │   ├── AiPromptSettings.jsx  # AI分析プロンプト設定
+│   │   ├── AllocationEditor.jsx  # 配分編集
+│   │   ├── HoldingsEditor.jsx    # 保有銘柄編集
+│   │   ├── PopularTickers.jsx    # 人気銘柄
+│   │   └── TickerSearch.jsx      # 銘柄検索
 │   └── simulation/  # シミュレーション画面コンポーネント
+│       ├── AiAnalysisPrompt.jsx  # AI分析プロンプト
+│       ├── BudgetInput.jsx       # 予算入力
+│       └── SimulationResult.jsx  # シミュレーション結果
 ├── context/         # React Context定義
+│   ├── AuthContext.js           # 認証コンテキスト
+│   └── PortfolioContext.js      # ポートフォリオコンテキスト
 ├── hooks/           # カスタムReact Hooks
+│   ├── useAuth.js               # 認証フック
+│   ├── usePortfolioContext.js   # ポートフォリオコンテキストフック
+│   └── useLocalStorage.js       # ローカルストレージフック
 ├── pages/           # ページコンポーネント
+│   ├── Dashboard.jsx           # ダッシュボードページ
+│   ├── DataIntegration.jsx     # データ連携ページ
+│   ├── Settings.jsx            # 設定ページ
+│   └── Simulation.jsx          # シミュレーションページ
 ├── services/        # APIサービスとデータ処理
+│   ├── api.js                   # API関連のエントリーポイント
+│   ├── marketDataService.js     # 市場データサービス
+│   └── scrapingMarketDataService.js  # スクレイピング市場データサービス
 ├── utils/           # ユーティリティ関数
+│   ├── formatters.js           # フォーマット関数
+│   └── fundUtils.js            # ファンドユーティリティ
 └── App.jsx          # アプリケーションルート
 
 functions/
@@ -228,6 +243,27 @@ functions/
   // 良い例 - 両方のエクスポート形式
   export const useAuth = () => {...}
   export default useAuth;
+  ```
+
+- **useContext の使用**: コンテキストにアクセスする際は直接 useContext を使用することもできますが、可能であればラッパーフックを作成することを推奨します
+
+  ```javascript
+  // 許容される例 - 直接useContextを使用
+  import React, { useContext } from 'react';
+  import { PortfolioContext } from '../context/PortfolioContext';
+
+  const Component = () => {
+    const portfolioData = useContext(PortfolioContext);
+    // ...
+  };
+
+  // 推奨される例 - カスタムフックを使用
+  import { usePortfolioContext } from '../hooks/usePortfolioContext';
+
+  const Component = () => {
+    const portfolioData = usePortfolioContext();
+    // ...
+  };
   ```
 
 ### 3.5 イベントハンドラ
@@ -1611,4 +1647,4 @@ functions/
 | 4.0 | 2025-03-25 14:30 | データソースをAlpaca API（米国株）、JPX API（日本株）、exchangerate.host（為替）に変更、エラーハンドリングとフォールバック処理の強化、データソース関連の命名規則とコード例の更新、フォールバックメカニズムの標準化 |  |
 | 4.1 | 2025-03-27 17:30 | データソースをAlpaca API（米国株）、Yahoo Finance（日本株・投資信託）、exchangerate.host（為替）に変更、投資信託対応の強化、エラーハンドリングとフォールバック処理の更新、命名規則とコンポーネント例の更新 |  |
 | 4.2 | 2025-05-07 14:30 | ファイルヘッダー規約の追加、すべてのソースコードファイルのヘッダーに統一フォーマットを適用 | Claude |
-| 4.3 | 2025-05-08 11:30 | ファイル命名規則を修正し、Reactコンポーネントで`.js`拡張子の使用も許容するように更新 | Claude |
+| 4.3 | 2025-05-08 11:30 | ファイル命名規則を修正し、Reactコンポーネントで`.js`拡張子の使用も許容するように更新、ファイルヘッダーをオプション化、ディレクトリ構造の詳細化 | Claude |
