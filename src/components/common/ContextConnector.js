@@ -7,6 +7,7 @@
  * 
  * 更新履歴: 
  * - 2025-05-08 14:30:00 Koki Riho 初回作成
+ * - 2025-05-08 16:45:00 修正者名 インポートパスを修正
  * 
  * 説明: 
  * AuthContextとPortfolioContextを連携させるコネクタコンポーネント。
@@ -14,8 +15,8 @@
  */
 
 import React, { useEffect } from 'react';
-import { useAuth } from '../hooks/useAuth';
-import { usePortfolioContext } from '../hooks/usePortfolioContext';
+import { useAuth } from '../../hooks/useAuth';
+import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 
 const ContextConnector = () => {
   const auth = useAuth();
