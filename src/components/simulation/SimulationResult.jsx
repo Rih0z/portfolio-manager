@@ -1,3 +1,20 @@
+/** 
+ * プロジェクト: https://portfolio-wise.com/ 
+ * ファイルパス: src/components/simulation/SimulationResult.jsx 
+ * 
+ * 作成者: Koki Riho （https://github.com/Rih0z） 
+ * 作成日: 2025-05-08 14:30:00 
+ * 
+ * 更新履歴: 
+ * - 2025-05-08 14:30:00 Koki Riho 初回作成
+ * 
+ * 説明: 
+ * 投資シミュレーション結果を表示するコンポーネント。
+ * 目標配分に基づいて計算された各銘柄の購入株数と金額を表示し、
+ * 実際の購入操作や購入株数の編集機能も提供する。
+ * 小数点以下4桁まで対応した精度の高い株数管理が可能。
+ */
+
 import React, { useState } from 'react';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 import { formatCurrency, formatPercent, formatDate } from '../../utils/formatters';
