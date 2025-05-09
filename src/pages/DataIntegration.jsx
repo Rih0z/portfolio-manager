@@ -1,3 +1,20 @@
+/** 
+ * プロジェクト: https://portfolio-wise.com/ 
+ * ファイルパス: src/pages/DataIntegration.jsx
+ * 
+ * 作成者: Koki Riho （https://github.com/Rih0z） 
+ * 作成日: 2025-03-22 10:15:30 
+ * 
+ * 更新履歴: 
+ * - 2025-03-22 10:15:30 Koki Riho 初回作成
+ * - 2025-04-05 15:40:12 Koki Riho Google Drive連携機能を追加
+ * - 2025-04-25 11:05:45 Yuta Sato 認証状態に応じた表示制御を改善
+ * 
+ * 説明: 
+ * データのインポート・エクスポート機能を提供するページコンポーネント。
+ * ローカルストレージおよびGoogle Driveとの連携機能を実装。
+ */
+
 import React from 'react';
 import ExportOptions from '../components/data/ExportOptions';
 import ImportOptions from '../components/data/ImportOptions';
