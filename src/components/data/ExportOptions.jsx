@@ -1,3 +1,19 @@
+/** 
+ * プロジェクト: https://portfolio-wise.com/ 
+ * ファイルパス: src/components/data/ExportOptions.jsx 
+ * 
+ * 作成者: Koki Riho （https://github.com/Rih0z） 
+ * 作成日: 2025-05-08 14:30:00 
+ * 
+ * 更新履歴: 
+ * - 2025-05-08 14:30:00 Koki Riho 初回作成
+ * 
+ * 説明: 
+ * ポートフォリオデータのエクスポート機能を提供するコンポーネント。
+ * JSON形式またはCSV形式でデータをエクスポートし、ファイルダウンロードまたは
+ * クリップボードへのコピーが可能。エクスポート状態の視覚的フィードバックも提供する。
+ */
+
 import React, { useState, useCallback } from 'react';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 
