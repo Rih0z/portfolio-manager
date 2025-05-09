@@ -1,3 +1,19 @@
+/** 
+ * プロジェクト: https://portfolio-wise.com/ 
+ * ファイルパス: src/context/AuthContext.js 
+ * 
+ * 作成者: Koki Riho （https://github.com/Rih0z） 
+ * 作成日: 2025-05-08 10:00:00 
+ * 
+ * 更新履歴: 
+ * - 2025-05-08 10:00:00 Koki Riho 初回作成
+ * 
+ * 説明: 
+ * 認証関連のReact Contextを提供するコンポーネント。
+ * Google認証を管理し、ログイン状態の維持、トークンの処理、
+ * Googleドライブとの連携機能を提供します。
+ */
+
 import React, { createContext, useState, useEffect, useCallback, useRef } from 'react';
 import jwtDecode from 'jwt-decode'; // 修正: 正しいインポート方法
 import { setGoogleAccessToken } from '../services/api';
