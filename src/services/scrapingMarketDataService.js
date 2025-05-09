@@ -1,3 +1,22 @@
+/** 
+ * プロジェクト: https://portfolio-wise.com/ 
+ * ファイルパス: src/services/scrapingMarketDataService.js
+ * 
+ * 作成者: Koki Riho （https://github.com/Rih0z） 
+ * 作成日: 2025-03-25 09:15:30 
+ * 
+ * 更新履歴: 
+ * - 2025-03-25 09:15:30 Koki Riho 初回作成
+ * - 2025-04-10 14:20:45 Koki Riho キャッシュ機能を追加
+ * - 2025-04-28 11:35:20 Yuta Sato エラー処理とフォールバック処理を強化
+ * 
+ * 説明: 
+ * スクレイピングベースの市場データサービス。
+ * 日本株と投資信託のデータをYahoo Finance Japan、Minkabu、投資信託協会などから
+ * スクレイピングで取得する機能を提供する。キャッシュ機能も実装。
+ */
+
+
 // src/services/scrapingMarketDataService.js
 // スクレイピングベースの市場データサービス
 
