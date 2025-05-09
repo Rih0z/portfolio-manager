@@ -1,3 +1,19 @@
+/** 
+ * プロジェクト: https://portfolio-wise.com/ 
+ * ファイルパス: src/components/settings/HoldingsEditor.jsx 
+ * 
+ * 作成者: Koki Riho （https://github.com/Rih0z） 
+ * 作成日: 2025-05-08 14:30:00 
+ * 
+ * 更新履歴: 
+ * - 2025-05-08 14:30:00 Koki Riho 初回作成
+ * 
+ * 説明: 
+ * 保有資産の数量編集を行うコンポーネント。
+ * 各銘柄の保有数量の増減、編集、削除機能を提供する。
+ * 銘柄ごとの評価額、年間手数料、年間配当金の計算と表示も行う。
+ * 小数点以下4桁まで対応した精度の高い保有数量管理が可能。
+ */
 import React, { useState } from 'react';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 import { formatCurrency, formatPercent } from '../../utils/formatters';
