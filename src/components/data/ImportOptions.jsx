@@ -1,3 +1,18 @@
+/** 
+ * プロジェクト: https://portfolio-wise.com/ 
+ * ファイルパス: src/components/data/ImportOptions.jsx 
+ * 
+ * 作成者: Koki Riho （https://github.com/Rih0z） 
+ * 作成日: 2025-05-08 14:30:00 
+ * 
+ * 更新履歴: 
+ * - 2025-05-08 14:30:00 Koki Riho 初回作成
+ * 
+ * 説明: 
+ * ポートフォリオデータのインポート機能を提供するコンポーネント。
+ * ファイル、クリップボード、テキスト入力の3種類のインポート方法をサポートし、
+ * JSONとCSV形式のデータをインポート可能。Papa Parseライブラリを使用してCSVを解析する。
+ */
 import React, { useState, useCallback } from 'react';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 import Papa from 'papaparse';
