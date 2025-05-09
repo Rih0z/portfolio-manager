@@ -1,3 +1,20 @@
+// PortfolioContext.js のファイルヘッダー
+/** 
+ * プロジェクト: https://portfolio-wise.com/ 
+ * ファイルパス: src/context/PortfolioContext.js 
+ * 
+ * 作成者: Koki Riho （https://github.com/Rih0z） 
+ * 作成日: 2025-05-08 10:00:00 
+ * 
+ * 更新履歴: 
+ * - 2025-05-08 10:00:00 Koki Riho 初回作成
+ * 
+ * 説明: 
+ * ポートフォリオ管理のためのReact Contextを提供するコンポーネント。
+ * 保有資産、目標配分、市場データの取得、シミュレーション計算、
+ * ローカルストレージとGoogleドライブの同期機能などを提供します。
+ * マルチ通貨対応、AIプロンプト生成機能も含まれています。
+ */
 import React, { createContext, useState, useCallback, useEffect } from 'react';
 import { 
   fetchTickerData, 
