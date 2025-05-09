@@ -1,7 +1,7 @@
 # ポートフォリオマネージャー コード規約書（更新版4.2）
 
 **バージョン:** 4.2  
-**最終更新日時:** 2025/05/07 14:30
+**最終更新日時:** 2025-05-07 14:30
 
 ## 1. 概要
 
@@ -70,9 +70,19 @@ src/
 └── App.jsx          # アプリケーションルート
 
 functions/
-├── alpaca-api-proxy.js        # Alpaca APIプロキシ（米国株向け）
-├── yfinance-api-proxy.js      # Yahoo Finance APIプロキシ（日本株・投資信託向け）
-├── exchangerate-proxy.js      # exchangerate.host APIプロキシ（為替レート向け）
+├── alpaca-api-proxy.js                # Alpaca APIプロキシ（米国株・ETF向け）
+├── alpha-vantage-proxy.js             # Alpha Vantage APIプロキシ
+├── alternative-exchangerate-proxy.js  # 代替為替レートプロキシ
+├── exchangerate-proxy.js              # exchangerate.host APIプロキシ（為替レート向け）
+├── jp-stock-scraping-proxy.js         # 日本株スクレイピングプロキシ
+├── mof-exchange-rate-proxy.js         # 財務省為替レートプロキシ
+├── mutual-fund-scraping-proxy.js      # 投資信託スクレイピングプロキシ
+├── stock-scraping-proxy.js            # 株価スクレイピングプロキシ
+├── yahoo-finance-proxy.js             # Yahoo Finance APIプロキシ
+├── yfinance-proxy.js                  # Python yfinanceプロキシ
+└── python/                            # Pythonスクリプト
+    ├── requirements.txt               # Pythonパッケージ要件
+    └── yfinance_fetcher.py            # yfinanceデータ取得スクリプト
 ```
 
 ### 2.2 ファイル命名規則
@@ -81,7 +91,7 @@ functions/
 - **ユーティリティファイル**: camelCase を使用（例: `formatters.js`, `fundUtils.js`）
 - **テストファイル**: `.test.js` または `.spec.js` を追加（例: `PortfolioSummary.test.jsx`）
 - **CSS/SCSS**: コンポーネントと同じ名前で `.module.css` サフィックス（例: `Button.module.css`）
-- **サーバーレス関数**: camelCase を使用し、機能を表す名前（例: `alpaca-api-proxy.js`, `yfinance-api-proxy.js`, `exchangerate-proxy.js`）
+- **サーバーレス関数**: camelCase を使用し、機能を表す名前（例: `alpaca-api-proxy.js`, `yahoo-finance-proxy.js`, `exchangerate-proxy.js`）
 
 ## 3. 命名規則
 
@@ -136,7 +146,7 @@ functions/
   const MAX_RETRY_COUNT = 3;
   const DEFAULT_CURRENCY = 'JPY';
   const ALPACA_API_URL = '/api/alpaca-api-proxy';
-  const YFINANCE_API_URL = '/api/yfinance-api-proxy'; 
+  const YFINANCE_API_URL = '/api/yfinance-proxy'; 
   const EXCHANGERATE_API_URL = '/api/exchangerate-proxy';
   const FUND_TYPES = {
     STOCK: '個別株',
@@ -164,8 +174,28 @@ functions/
   // データソース定数（更新）
   const DATA_SOURCES = {
     ALPACA: 'Alpaca',
+    ALPHA_VANTAGE: 'Alpha Vantage',
+    YAHOO_FINANCE: 'Yahoo Finance',
     YFINANCE: 'Yfinance',
     EXCHANGERATE: 'exchangerate.host',
+    ALTERNATIVE_EXCHANGERATE: 'Alternative Exchange Rate',
+    MOF: 'Ministry of Finance',
+    JP_STOCK_SCRAPING: {
+      YAHOO_FINANCE: 'Yahoo Finance Japan',
+      MINKABU: 'Minkabu',
+      KABUTAN: 'Kabutan'
+    },
+    MUTUAL_FUND_SCRAPING: {
+      YAHOO_FINANCE: 'Yahoo Finance Japan',
+      TOUSHIN: '投資信託協会',
+      MORNINGSTAR: 'Morningstar Japan',
+      MINKABU: 'Minkabu'
+    },
+    STOCK_SCRAPING: {
+      YAHOO_FINANCE: 'Yahoo Finance',
+      MARKET_WATCH: 'MarketWatch',
+      INVESTING_COM: 'Investing.com'
+    },
     FALLBACK: 'Fallback'
   };
   // データソース優先順位（更新）
@@ -1198,8 +1228,28 @@ functions/
   // データソース定数
   const DATA_SOURCES = {
     ALPACA: 'Alpaca',
+    ALPHA_VANTAGE: 'Alpha Vantage',
+    YAHOO_FINANCE: 'Yahoo Finance',
     YFINANCE: 'Yfinance',
     EXCHANGERATE: 'exchangerate.host',
+    ALTERNATIVE_EXCHANGERATE: 'Alternative Exchange Rate',
+    MOF: 'Ministry of Finance',
+    JP_STOCK_SCRAPING: {
+      YAHOO_FINANCE: 'Yahoo Finance Japan',
+      MINKABU: 'Minkabu',
+      KABUTAN: 'Kabutan'
+    },
+    MUTUAL_FUND_SCRAPING: {
+      YAHOO_FINANCE: 'Yahoo Finance Japan',
+      TOUSHIN: '投資信託協会',
+      MORNINGSTAR: 'Morningstar Japan',
+      MINKABU: 'Minkabu'
+    },
+    STOCK_SCRAPING: {
+      YAHOO_FINANCE: 'Yahoo Finance',
+      MARKET_WATCH: 'MarketWatch',
+      INVESTING_COM: 'Investing.com'
+    },
     FALLBACK: 'Fallback'
   };
   
@@ -1547,17 +1597,17 @@ functions/
 
 | バージョン | 日付 | 内容 | 担当者 |
 |---|---|---|---|
-| 1.0 | 2025/03/06 10:30 | 初版作成 |  |
-| 1.1 | 2025/03/08 13:45 | jwt-decode対応、アクセシビリティ対応、ESLint設定更新 |  |
-| 1.2 | 2025/03/10 09:15 | データ取得フォールバック機構、環境変数名統一、ログ出力強化 |  |
-| 1.3 | 2025/03/12 16:25 | ファンドタイプ判定と年間手数料計算に関する規約追加、個別株の取り扱い追加 |  |
-| 1.4 | 2025/03/15 10:50 | ローカルストレージによるデータ永続化、コンテキスト間連携、React Hooksルール強化 |  |
-| 2.0 | 2025/03/17 18:45 | 暗号化/復号化処理の強化、エラーハンドリング改善、Google Drive API連携機能の実装、エラーバウンダリ導入 |  |
-| 3.0 | 2025/03/18 16:00 | 配当情報関連の変数と関数の命名規則、配当情報の表示・計算機能の実装規則、コンポーネントスタイルの更新 |  |
-| 3.1 | 2025/03/19 15:30 | 通知システムの自動消去機能追加、通知コンポーネントとスタイルの規約追加、初期化処理の重複実行防止対策の規約追加 |  |
-| 3.2 | 2025/03/20 10:30 | マルチデータソース対応の規約追加、データソース表示コンポーネント、フォールバック処理の標準化、Yahoo Finance対応の命名規則追加 |  |
-| 3.3 | 2025/03/22 12:30 | Yahoo FinanceをPython yfinance形式に変更、Pythonスクリプト実行に関する命名規則の追加、Python関連の関数名・変数名の規約追加、データソース名の更新 |  |
-| 3.4 | 2025/03/23 09:30 | Yahoo Finance APIをJavaScript実装に変更、データソース名とフォールバック処理の更新、Python yfinance実装の廃止予定化、関連する命名規則の更新 |  |
-| 4.0 | 2025/03/25 14:30 | データソースをAlpaca API（米国株）、JPX API（日本株）、exchangerate.host（為替）に変更、エラーハンドリングとフォールバック処理の強化、データソース関連の命名規則とコード例の更新、フォールバックメカニズムの標準化 |  |
-| 4.1 | 2025/03/27 17:30 | データソースをAlpaca API（米国株）、Yahoo Finance（日本株・投資信託）、exchangerate.host（為替）に変更、投資信託対応の強化、エラーハンドリングとフォールバック処理の更新、命名規則とコンポーネント例の更新 |  |
-| 4.2 | 2025/05/07 14:30 | ファイルヘッダー規約の追加、すべてのソースコードファイルのヘッダーに統一フォーマットを適用 | Claude |
+| 1.0 | 2025-03-06 10:30 | 初版作成 |  |
+| 1.1 | 2025-03-08 13:45 | jwt-decode対応、アクセシビリティ対応、ESLint設定更新 |  |
+| 1.2 | 2025-03-10 09:15 | データ取得フォールバック機構、環境変数名統一、ログ出力強化 |  |
+| 1.3 | 2025-03-12 16:25 | ファンドタイプ判定と年間手数料計算に関する規約追加、個別株の取り扱い追加 |  |
+| 1.4 | 2025-03-15 10:50 | ローカルストレージによるデータ永続化、コンテキスト間連携、React Hooksルール強化 |  |
+| 2.0 | 2025-03-17 18:45 | 暗号化/復号化処理の強化、エラーハンドリング改善、Google Drive API連携機能の実装、エラーバウンダリ導入 |  |
+| 3.0 | 2025-03-18 16:00 | 配当情報関連の変数と関数の命名規則、配当情報の表示・計算機能の実装規則、コンポーネントスタイルの更新 |  |
+| 3.1 | 2025-03-19 15:30 | 通知システムの自動消去機能追加、通知コンポーネントとスタイルの規約追加、初期化処理の重複実行防止対策の規約追加 |  |
+| 3.2 | 2025-03-20 10:30 | マルチデータソース対応の規約追加、データソース表示コンポーネント、フォールバック処理の標準化、Yahoo Finance対応の命名規則追加 |  |
+| 3.3 | 2025-03-22 12:30 | Yahoo FinanceをPython yfinance形式に変更、Pythonスクリプト実行に関する命名規則の追加、Python関連の関数名・変数名の規約追加、データソース名の更新 |  |
+| 3.4 | 2025-03-23 09:30 | Yahoo Finance APIをJavaScript実装に変更、データソース名とフォールバック処理の更新、Python yfinance実装の廃止予定化、関連する命名規則の更新 |  |
+| 4.0 | 2025-03-25 14:30 | データソースをAlpaca API（米国株）、JPX API（日本株）、exchangerate.host（為替）に変更、エラーハンドリングとフォールバック処理の強化、データソース関連の命名規則とコード例の更新、フォールバックメカニズムの標準化 |  |
+| 4.1 | 2025-03-27 17:30 | データソースをAlpaca API（米国株）、Yahoo Finance（日本株・投資信託）、exchangerate.host（為替）に変更、投資信託対応の強化、エラーハンドリングとフォールバック処理の更新、命名規則とコンポーネント例の更新 |  |
+| 4.2 | 2025-05-07 14:30 | ファイルヘッダー規約の追加、すべてのソースコードファイルのヘッダーに統一フォーマットを適用 | Claude |
