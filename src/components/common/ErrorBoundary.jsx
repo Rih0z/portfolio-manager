@@ -1,3 +1,18 @@
+/** 
+ * プロジェクト: https://portfolio-wise.com/ 
+ * ファイルパス: src/components/common/ErrorBoundary.jsx 
+ * 
+ * 作成者: Koki Riho （https://github.com/Rih0z） 
+ * 作成日: 2025-05-08 14:30:00 
+ * 
+ * 更新履歴: 
+ * - 2025-05-08 14:30:00 Koki Riho 初回作成
+ * 
+ * 説明: 
+ * Reactのエラーバウンダリコンポーネント。
+ * 子コンポーネントで発生した例外をキャッチし、アプリケーション全体のクラッシュを防止する。
+ * フォールバックUIの表示と再読み込み機能を提供する。
+ */
 // src/components/common/ErrorBoundary.jsx
 
 import React, { Component } from 'react';
