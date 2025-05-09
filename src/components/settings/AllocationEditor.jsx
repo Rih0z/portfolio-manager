@@ -1,3 +1,18 @@
+/** 
+ * プロジェクト: https://portfolio-wise.com/ 
+ * ファイルパス: src/components/settings/AllocationEditor.jsx 
+ * 
+ * 作成者: Koki Riho （https://github.com/Rih0z） 
+ * 作成日: 2025-05-08 14:30:00 
+ * 
+ * 更新履歴: 
+ * - 2025-05-08 14:30:00 Koki Riho 初回作成
+ * 
+ * 説明: 
+ * 目標資産配分の編集を行うコンポーネント。
+ * 各銘柄の目標配分率を個別に設定したり、自動調整機能で合計を100%に調整したりできる。
+ * 現在の合計配分率を表示し、100%になっているかどうかを視覚的にフィードバックする。
+ */
 import React, { useState, useEffect } from 'react';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 
