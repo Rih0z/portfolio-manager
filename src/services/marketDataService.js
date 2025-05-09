@@ -1,3 +1,22 @@
+/** 
+ * プロジェクト: https://portfolio-wise.com/ 
+ * ファイルパス: src/services/marketDataService.js
+ * 
+ * 作成者: Koki Riho （https://github.com/Rih0z） 
+ * 作成日: 2025-03-15 13:20:45 
+ * 
+ * 更新履歴: 
+ * - 2025-03-15 13:20:45 Koki Riho 初回作成
+ * - 2025-03-28 16:35:10 Koki Riho マルチデータソース対応を追加
+ * - 2025-04-15 10:45:30 Yuta Sato 債券ETF対応を強化
+ * - 2025-05-02 11:30:15 Koki Riho フォールバック処理の改善
+ * 
+ * 説明: 
+ * 市場データ取得サービス（スクレイピングベース版）。
+ * Alpaca API、Yahoo Finance、投資信託・日本株スクレイピングなどの
+ * 複数データソースから統合的に市場データを取得する機能を提供する。
+ */
+
 // src/services/marketDataService.js
 // 市場データ取得サービス（スクレイピングベース版）
 
