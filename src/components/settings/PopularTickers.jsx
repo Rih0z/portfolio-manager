@@ -1,3 +1,18 @@
+/** 
+ * プロジェクト: https://portfolio-wise.com/ 
+ * ファイルパス: src/components/settings/PopularTickers.jsx 
+ * 
+ * 作成者: Koki Riho （https://github.com/Rih0z） 
+ * 作成日: 2025-05-08 14:30:00 
+ * 
+ * 更新履歴: 
+ * - 2025-05-08 14:30:00 Koki Riho 初回作成
+ * 
+ * 説明: 
+ * 人気銘柄を簡単に追加できるコンポーネント。
+ * インデックス・ETF、人気個別株、日本市場の3カテゴリの人気銘柄をボタン一つで
+ * ポートフォリオに追加できる。追加済み銘柄には追加済みマークを表示する。
+ */
 import React, { useState } from 'react';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 
