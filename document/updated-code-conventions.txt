@@ -1,7 +1,7 @@
-# ポートフォリオマネージャー コード規約書（更新版4.2）
+# ポートフォリオマネージャー コード規約書（更新版4.3）
 
-**バージョン:** 4.2  
-**最終更新日時:** 2025-05-07 14:30
+**バージョン:** 4.3  
+**最終更新日時:** 2025-05-08 11:30
 
 ## 1. 概要
 
@@ -87,7 +87,7 @@ functions/
 
 ### 2.2 ファイル命名規則
 
-- **コンポーネントファイル**: PascalCase を使用（例: `PortfolioSummary.jsx`）
+- **コンポーネントファイル**: PascalCase を使用し、拡張子は `.js` または `.jsx` を使用（例: `PortfolioSummary.js`, `PortfolioSummary.jsx`）
 - **ユーティリティファイル**: camelCase を使用（例: `formatters.js`, `fundUtils.js`）
 - **テストファイル**: `.test.js` または `.spec.js` を追加（例: `PortfolioSummary.test.jsx`）
 - **CSS/SCSS**: コンポーネントと同じ名前で `.module.css` サフィックス（例: `Button.module.css`）
@@ -538,7 +538,7 @@ functions/
   
   // 参照使用
   if (portfolioContextRef.current?.handleAuthStateChange) {
-    portfolioContextRef.current.handleAuthStateChange(true, user);
+    portfolioContextRef.current.handleAuthStateChange(isAuthenticated, user);
   }
   ```
 
@@ -1611,3 +1611,4 @@ functions/
 | 4.0 | 2025-03-25 14:30 | データソースをAlpaca API（米国株）、JPX API（日本株）、exchangerate.host（為替）に変更、エラーハンドリングとフォールバック処理の強化、データソース関連の命名規則とコード例の更新、フォールバックメカニズムの標準化 |  |
 | 4.1 | 2025-03-27 17:30 | データソースをAlpaca API（米国株）、Yahoo Finance（日本株・投資信託）、exchangerate.host（為替）に変更、投資信託対応の強化、エラーハンドリングとフォールバック処理の更新、命名規則とコンポーネント例の更新 |  |
 | 4.2 | 2025-05-07 14:30 | ファイルヘッダー規約の追加、すべてのソースコードファイルのヘッダーに統一フォーマットを適用 | Claude |
+| 4.3 | 2025-05-08 11:30 | ファイル命名規則を修正し、Reactコンポーネントで`.js`拡張子の使用も許容するように更新 | Claude |
