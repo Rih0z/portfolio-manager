@@ -1,3 +1,21 @@
+/** 
+ * プロジェクト: https://portfolio-wise.com/ 
+ * ファイルパス: src/services/api.js
+ * 
+ * 作成者: Koki Riho （https://github.com/Rih0z） 
+ * 作成日: 2025-03-15 11:10:35 
+ * 
+ * 更新履歴: 
+ * - 2025-03-15 11:10:35 Koki Riho 初回作成
+ * - 2025-03-30 14:25:50 Koki Riho Google Drive API連携を追加
+ * - 2025-04-20 09:15:30 Yuta Sato 配当データ取得関数を追加
+ * - 2025-05-05 15:40:22 Koki Riho トークン取得処理の改善
+ * 
+ * 説明: 
+ * API関連の関数をまとめたエントリーポイント。市場データ取得関数と
+ * Google Drive APIへのアクセス機能を提供する。
+ */
+
 // src/services/api.js
 // API関連の関数をまとめたエントリーポイント
 
