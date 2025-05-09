@@ -1,3 +1,18 @@
+/** 
+ * プロジェクト: https://portfolio-wise.com/ 
+ * ファイルパス: src/components/layout/Header.jsx 
+ * 
+ * 作成者: Koki Riho （https://github.com/Rih0z） 
+ * 作成日: 2025-05-08 14:30:00 
+ * 
+ * 更新履歴: 
+ * - 2025-05-08 14:30:00 Koki Riho 初回作成
+ * 
+ * 説明: 
+ * アプリケーションのヘッダーコンポーネント。
+ * アプリ名の表示、通貨切り替えボタン、データ更新ボタン、最終更新日時の表示、
+ * および認証状態に応じたユーザープロフィールまたはログインボタンを表示する。
+ */
 import React from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
