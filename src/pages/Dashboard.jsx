@@ -1,3 +1,20 @@
+/** 
+ * プロジェクト: https://portfolio-wise.com/ 
+ * ファイルパス: src/pages/Dashboard.jsx
+ * 
+ * 作成者: Koki Riho （https://github.com/Rih0z） 
+ * 作成日: 2025-03-20 14:30:15 
+ * 
+ * 更新履歴: 
+ * - 2025-03-20 14:30:15 Koki Riho 初回作成
+ * - 2025-04-10 09:45:22 Koki Riho データ読み込み状態の表示を追加
+ * - 2025-05-01 16:20:30 Yuta Sato 空の状態のUI改善
+ * 
+ * 説明: 
+ * ポートフォリオのダッシュボード画面を表示するメインページコンポーネント。
+ * ポートフォリオのサマリー、チャート、資産配分と差異、保有銘柄テーブルを表示する。
+ */
+
 import React from 'react';
 import PortfolioSummary from '../components/dashboard/PortfolioSummary';
 import PortfolioCharts from '../components/dashboard/PortfolioCharts';
