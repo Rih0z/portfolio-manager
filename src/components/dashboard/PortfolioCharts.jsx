@@ -1,3 +1,19 @@
+/** 
+ * プロジェクト: https://portfolio-wise.com/ 
+ * ファイルパス: src/components/dashboard/PortfolioCharts.jsx 
+ * 
+ * 作成者: Koki Riho （https://github.com/Rih0z） 
+ * 作成日: 2025-05-08 14:30:00 
+ * 
+ * 更新履歴: 
+ * - 2025-05-08 14:30:00 Koki Riho 初回作成
+ * 
+ * 説明: 
+ * ポートフォリオの現在配分と理想配分を円グラフで表示するコンポーネント。
+ * 左右に並べて表示することで、現在と理想の資産配分の違いを視覚的に比較できる。
+ * recharts ライブラリを使用して実装。
+ */
+
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
