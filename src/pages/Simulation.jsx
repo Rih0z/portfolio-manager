@@ -1,3 +1,20 @@
+/** 
+ * プロジェクト: https://portfolio-wise.com/ 
+ * ファイルパス: src/pages/Simulation.jsx
+ * 
+ * 作成者: Koki Riho （https://github.com/Rih0z） 
+ * 作成日: 2025-03-19 16:40:22 
+ * 
+ * 更新履歴: 
+ * - 2025-03-19 16:40:22 Koki Riho 初回作成
+ * - 2025-04-12 11:35:40 Koki Riho シミュレーション結果表示の改善
+ * - 2025-04-30 15:20:15 Yuta Sato AI分析プロンプト生成機能を追加
+ * 
+ * 説明: 
+ * 追加投資のシミュレーション機能を提供するページコンポーネント。
+ * 予算設定、最適な購入配分のシミュレーション、一括購入実行機能を実装。
+ */
+
 import React, { useContext } from 'react';
 import BudgetInput from '../components/simulation/BudgetInput';
 import SimulationResult from '../components/simulation/SimulationResult';
