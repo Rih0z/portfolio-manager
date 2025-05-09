@@ -1,3 +1,18 @@
+/** 
+ * プロジェクト: https://portfolio-wise.com/ 
+ * ファイルパス: src/components/layout/TabNavigation.jsx 
+ * 
+ * 作成者: Koki Riho （https://github.com/Rih0z） 
+ * 作成日: 2025-05-08 14:30:00 
+ * 
+ * 更新履歴: 
+ * - 2025-05-08 14:30:00 Koki Riho 初回作成
+ * 
+ * 説明: 
+ * アプリケーションの主要ページへのナビゲーションタブを提供するコンポーネント。
+ * ホーム、設定、シミュレーション、データの各タブを表示し、現在のページを強調表示する。
+ * モバイル対応のタブナビゲーションで、画面下部に固定表示される。
+ */
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 
