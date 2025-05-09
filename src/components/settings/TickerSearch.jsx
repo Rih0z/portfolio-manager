@@ -1,3 +1,18 @@
+/** 
+ * プロジェクト: https://portfolio-wise.com/ 
+ * ファイルパス: src/components/settings/TickerSearch.jsx 
+ * 
+ * 作成者: Koki Riho （https://github.com/Rih0z） 
+ * 作成日: 2025-05-08 14:30:00 
+ * 
+ * 更新履歴: 
+ * - 2025-05-08 14:30:00 Koki Riho 初回作成
+ * 
+ * 説明: 
+ * ティッカーシンボルを検索してポートフォリオに追加するコンポーネント。
+ * 銘柄コードを入力し、検証を行った上でポートフォリオに追加する。
+ * 米国株や日本株などの入力例も表示してユーザーをガイドする。
+ */
 import React, { useState } from 'react';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 
