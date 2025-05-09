@@ -1,6 +1,6 @@
 # ポートフォリオマネージャー インターフェース仕様書（AI分析機能対応版）
 
-**最終更新日時:** 2025/05/07 14:30
+**最終更新日時:** 2025/05/08 14:30
 
 *本仕様書は、AIの別セッションでも開発を引き継げるよう設計されています。*
 
@@ -23,7 +23,7 @@
 - 市場データの自動取得（スクレイピングとマルチAPI連携）
   - 米国株：
     - プライマリ: Alpaca API
-    - セカンダリ: Yahoo Finance API
+    - セカンダリ: Alpha Vantage API、Yahoo Finance API
     - 最終手段: 米国株スクレイピング（複数サイト）
   - 日本株： 
     - プライマリ: スクレイピング（複数サイト）
@@ -54,11 +54,11 @@
 - **データ永続化**: ローカルストレージ（URIエンコード+Base64暗号化）
 - **クラウド連携**: Google Drive API v3
 - **市場データ取得**: 
-  - 米国株: Alpaca API（プライマリ）+ スクレイピング（最終手段）
+  - 米国株: Alpaca API（プライマリ）+ Alpha Vantage API（セカンダリ）+ スクレイピング（最終手段）
   - 日本株: スクレイピング（複数サイト）
   - 投資信託: スクレイピング（複数サイト）
-  - バックアップ: Yahoo Finance API
-  - 為替レート: exchangerate.host
+  - バックアップ: Yahoo Finance API、Python yfinance
+  - 為替レート: exchangerate.host、alternative-exchangerate-proxy、mof-exchange-rate-proxy
 
 ## 2. インターフェース構造
 
@@ -117,6 +117,7 @@
 ### 2.6 データソース表示（スクレイピング対応版）
 - 銘柄データのソースを明示的に表示
   - Alpaca：青色バッジ
+  - Alpha Vantage：灰色バッジ
   - 日本株スクレイピング（各ソース）：緑色バッジ
   - 投資信託スクレイピング（各ソース）：緑色バッジ
   - 米国株スクレイピング（各ソース）：紫色バッジ
@@ -179,7 +180,7 @@ interface Asset {
   feeIsEstimated: boolean; // 手数料情報が推定値かどうか
   region?: string; // 対象地域 ('日本', '米国', 'グローバル', '不明')
   lastUpdated?: string;
-  source?: string; // データソース名 ('Alpaca', 'Yahoo Finance Japan', 'Minkabu', 'Kabutan', '投資信託協会', 'Morningstar Japan', 'Yahoo Finance', 'Yahoo Finance Scraping', 'MarketWatch', 'Investing.com', 'Fallback')
+  source?: string; // データソース名 ('Alpaca', 'Alpha Vantage', 'Yahoo Finance Japan', 'Minkabu', 'Kabutan', '投資信託協会', 'Morningstar Japan', 'Yahoo Finance', 'Yahoo Finance Scraping', 'MarketWatch', 'Investing.com', 'Fallback')
   dividendYield: number; // 配当利回り（%）
   hasDividend: boolean; // 配当があるかどうか
   dividendFrequency: string; // 配当頻度（'monthly', 'quarterly', 'semi-annual', 'annual'）
@@ -393,7 +394,7 @@ interface StorageData {
   - 手動消去ボタン
   - 通知タイプ別のスタイリング
 - **DataSourceBadge**: データソース表示バッジ（スクレイピング対応版）
-  - 各データソースに応じた表示（Alpaca、スクレイピングソース別、Yahoo Finance、Fallback）
+  - 各データソースに応じた表示（Alpaca、Alpha Vantage、スクレイピングソース別、Yahoo Finance、Fallback）
   - ソースに応じた色分け
 - **ErrorBoundary**: エラーバウンダリコンポーネント
   - エラー発生時の処理
@@ -460,7 +461,41 @@ interface StorageData {
 - **ゼロ配分時**: エラーメッセージではなく情報メッセージを表示
 - **通貨変換エラー**: デフォルト値（150.0）を使用して計算を継続
 
-## 6〜15. （既存の内容と同じ - 省略）
+## 6. 為替レート管理機能
+
+### 6.1 機能概要
+- **目的**: 複数通貨（円/ドル）対応の資産管理と資金配分シミュレーションをサポート
+- **対応通貨**: JPY(円)、USD(ドル)
+- **主要機能**: 通貨間の換算、表示通貨の切り替え、購入金額と購入株数の計算
+
+### 6.2 データソース構成
+- **プライマリソース**: exchangerate.host API
+- **セカンダリソース**: 
+  - alternative-exchangerate-proxy（複数の為替レートAPIを利用）
+  - mof-exchange-rate-proxy（財務省の為替レートデータ）
+- **最終バックアップ**: デフォルト固定値（150.0）
+- **キャッシュ期間**: 最大15分間
+
+### 6.3 取得タイミング
+- アプリケーション起動時
+- 通貨切替時
+- データ更新ボタンクリック時
+- シミュレーション実行前（前回取得から15分以上経過している場合）
+
+### 6.4 表示機能
+- **通貨記号**: 円は「¥」、ドルは「$」
+- **金額フォーマット**: 円は整数表示、ドルは小数点以下2桁表示
+- **為替レート情報**: シミュレーション画面で為替レート情報を表示
+  - レート値
+  - データソース
+  - 更新日時
+
+### 6.5 フォールバック機能
+- 為替レート取得失敗時はフォールバック値を使用
+- 複数のソースを順次試行
+- 常に何らかのレート値を提供する
+
+## 7〜15. （既存の内容と同じ - 省略）
 
 ## 改訂履歴
 
@@ -474,4 +509,4 @@ interface StorageData {
 | 3.6 | 2025/03/28 14:00 | スクレイピングソース対応のインターフェース仕様の詳細化。スクレイピング統計情報データ構造の追加。データソースバッジのスクレイピングソース対応。スクレイピング特有のエラー処理追加。 |  |
 | 3.7 | 2025/03/29 16:30 | 米国株スクレイピング機能の追加。データソース優先順位の更新。ユーザーインターフェースのデータソースバッジとスタイルの更新。マルチソースフローの更新。スクレイピング統計情報のデータ構造更新。|  |
 | 4.0 | 2025/03/30 12:30 | 入金シミュレーション機能の複数通貨対応（円/ドル）、購入株数表示機能を追加。BudgetInputコンポーネントとSimulationResultコンポーネントの更新。通貨換算処理とシミュレーション計算処理の更新。 |  |
-| 5.0 | 2025/05/07 14:30 | AI分析機能の追加（ポートフォリオデータをAIアシスタントに分析させるプロンプト生成機能）。AIプロンプトテンプレート設定とカスタマイズ機能。現在の通貨設定に連動したプロンプト生成機能。 |  |
+| 5.0 | 2025/05/08 14:30 | AI分析機能の追加（ポートフォリオデータをAIアシスタントに分析させるプロンプト生成機能）。AIプロンプトテンプレート設定とカスタマイズ機能。現在の通貨設定に連動したプロンプト生成機能。Alpha Vantage APIとPython yfinanceの参照追加。alternative-exchangerate-proxyとmof-exchange-rate-proxyの追加。為替レート管理機能の詳細を追加。 |  |
