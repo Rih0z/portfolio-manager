@@ -1,3 +1,19 @@
+/** 
+ * プロジェクト: https://portfolio-wise.com/ 
+ * ファイルパス: src/components/dashboard/AssetsTable.jsx 
+ * 
+ * 作成者: Koki Riho （https://github.com/Rih0z） 
+ * 作成日: 2025-05-08 14:30:00 
+ * 
+ * 更新履歴: 
+ * - 2025-05-08 14:30:00 Koki Riho 初回作成
+ * 
+ * 説明: 
+ * 保有資産の詳細テーブルコンポーネント。
+ * 各銘柄の名前、価格、保有数、評価額、現在割合、目標割合、差分、手数料、配当情報などを
+ * 表形式で表示する。バッジによる銘柄タイプやデータソースの視覚化も行う。
+ */
+
 import React from 'react';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 import { formatCurrency, formatPercent } from '../../utils/formatters';
