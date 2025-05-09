@@ -1,3 +1,18 @@
+/** 
+ * プロジェクト: https://portfolio-wise.com/ 
+ * ファイルパス: src/components/common/DataSourceBadge.jsx 
+ * 
+ * 作成者: Koki Riho （https://github.com/Rih0z） 
+ * 作成日: 2025-05-08 14:30:00 
+ * 
+ * 更新履歴: 
+ * - 2025-05-08 14:30:00 Koki Riho 初回作成
+ * 
+ * 説明: 
+ * データソースを表示するバッジコンポーネント。
+ * 各種データソース（Alpaca、Yahoo Finance、exchangerate.hostなど）に応じた
+ * 色分けとアイコン表示を行う。
+ */
 // src/components/common/DataSourceBadge.jsx
 
 import React from 'react';
