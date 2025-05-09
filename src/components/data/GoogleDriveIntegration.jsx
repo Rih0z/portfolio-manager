@@ -1,3 +1,18 @@
+/** 
+ * プロジェクト: https://portfolio-wise.com/ 
+ * ファイルパス: src/components/data/GoogleDriveIntegration.jsx 
+ * 
+ * 作成者: Koki Riho （https://github.com/Rih0z） 
+ * 作成日: 2025-05-08 14:30:00 
+ * 
+ * 更新履歴: 
+ * - 2025-05-08 14:30:00 Koki Riho 初回作成
+ * 
+ * 説明: 
+ * Google Driveとの連携機能を提供するコンポーネント。
+ * ポートフォリオデータのクラウド保存、読み込み、同期機能を実装。
+ * データソースの状態表示や最終同期時間の表示も行う。
+ */
 import React, { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
