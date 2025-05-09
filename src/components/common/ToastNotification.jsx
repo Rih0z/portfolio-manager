@@ -1,3 +1,18 @@
+/** 
+ * プロジェクト: https://portfolio-wise.com/ 
+ * ファイルパス: src/components/common/ToastNotification.jsx 
+ * 
+ * 作成者: Koki Riho （https://github.com/Rih0z） 
+ * 作成日: 2025-05-08 14:30:00 
+ * 
+ * 更新履歴: 
+ * - 2025-05-08 14:30:00 Koki Riho 初回作成
+ * 
+ * 説明: 
+ * トースト通知コンポーネント。
+ * 成功、エラー、警告、情報の各種メッセージを画面上部または下部に一定時間表示する。
+ * 自動消去機能とユーザー操作による消去機能を備える。
+ */
 // src/components/common/ToastNotification.jsx
 
 import React, { useState, useEffect } from 'react';
