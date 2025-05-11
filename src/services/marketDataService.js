@@ -18,7 +18,7 @@
 import axios from 'axios';
 
 // 環境変数からAPI設定を取得
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000';
+const API_URL = process.env.REACT_APP_MARKET_DATA_API_URL || 'http://localhost:3000';
 const API_STAGE = process.env.REACT_APP_API_STAGE || 'dev';
 
 // タイムアウト設定

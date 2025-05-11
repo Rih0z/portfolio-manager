@@ -1,7 +1,7 @@
-# ポートフォリオマネージャー 総合仕様書
+# ポートフォリオマネージャー 総合仕様書（リファクタリング版）
 
-**バージョン:** 5.0  
-**最終更新日時:** 2025-05-08 15:30
+**バージョン:** 6.0  
+**最終更新日時:** 2025-05-12 15:30
 
 ## 1. プロジェクト概要
 
@@ -15,21 +15,11 @@
 - 理想ポートフォリオ配分設定
 - 複数通貨（円/ドル）対応の資金配分シミュレーション
 - 購入可能株数の計算表示
-- **AI分析機能（ポートフォリオデータをAIアシスタントに分析させるプロンプト生成）**
+- AI分析機能（ポートフォリオデータをAIアシスタントに分析させるプロンプト生成）
 - データインポート/エクスポート
 - ブラウザローカルストレージによるデータ永続化（URIエンコード+Base64による安全な暗号化）
 - Google認証・Googleドライブ連携（Google Identity Services API対応）
-- 市場データの自動取得（スクレイピングとマルチAPI連携）
-  - 米国株：
-    - プライマリ: Alpaca API
-    - セカンダリ: Alpha Vantage API、Yahoo Finance API
-    - 最終手段: 米国株スクレイピング（複数サイト）
-  - 日本株： 
-    - プライマリ: スクレイピング（複数サイト）
-    - バックアップ: Yahoo Finance API
-  - 投資信託：
-    - プライマリ: スクレイピング（複数サイト）
-    - バックアップ: Yahoo Finance API
+- 市場データの自動取得（単一APIサーバーから取得）
 - iOS風タブバーによるナビゲーション
 - 自動消去機能付き通知システム
 - エラーバウンダリによるアプリケーション耐障害性の向上
@@ -45,19 +35,10 @@
 - **ユーティリティ**: Lodash 4.x, Day.js 1.x, jwt-decode 3.x
 - **データ処理**: PapaParse 5.x (CSV処理)
 - **UI拡張**: @headlessui/react 1.x
-- **サーバーレス関数**: Netlify Functions
-- **スクレイピング**: 
-  - Cheerio 1.x (日本株・投資信託)
-  - JSDOM 22.x (米国株・ETF)
 - **デプロイ**: Netlify
 - **データ永続化**: ローカルストレージ（URIエンコード+Base64暗号化）
 - **クラウド連携**: Google Drive API v3
-- **市場データ取得**: 
-  - 米国株: Alpaca API（プライマリ）+ Alpha Vantage API（セカンダリ）+ スクレイピング（最終手段）
-  - 日本株: スクレイピング（複数サイト）
-  - 投資信託: スクレイピング（複数サイト）
-  - バックアップ: Yahoo Finance API、Python yfinance
-  - 為替レート: exchangerate.host、alternative-exchangerate-proxy、mof-exchange-rate-proxy
+- **市場データ取得**: 単一の市場データAPIサーバー（`REACT_APP_MARKET_DATA_API_URL`）
 
 ## 2. インターフェース構造
 
@@ -115,19 +96,11 @@
 
 ### 2.6 データソース表示
 - 銘柄データのソースを明示的に表示
-  - Alpaca：青色バッジ
-  - Alpha Vantage：灰色バッジ
-  - 日本株スクレイピング（各ソース）：緑色バッジ
-  - 投資信託スクレイピング（各ソース）：緑色バッジ
-  - 米国株スクレイピング（各ソース）：紫色バッジ
-  - Yahoo Finance：紫色バッジ
+  - Market Data API：青色バッジ
   - Fallback：黄色バッジ
-- 更新時に各データソースの利用状況を通知
-  - 例：「市場データを更新しました: 日本株スクレイピング: 3件 (Yahoo Finance Japan: 2件、Minkabu: 1件)、投資信託スクレイピング: 2件 (投資信託協会: 2件)、米国株スクレイピング: 2件 (Yahoo Finance: 1件、MarketWatch: 1件)、Alpaca: 3件」
+- 更新時にデータソースの利用状況を通知
+  - 例：「市場データを更新しました: Market Data API: 8件、Fallback: 2件」
 - フォールバック使用時は注意喚起表示
-- スクレイピングソースの詳細表示
-  - 日本株・投資信託: Yahoo Finance Japan、Minkabu、Kabutan、投資信託協会、Morningstar
-  - 米国株・ETF: Yahoo Finance、MarketWatch、Investing.com
 - 株価情報の信頼性をユーザーが判断できるようサポート
 
 ## 3. 状態管理
@@ -158,7 +131,6 @@
 - `totalAssets`: 総資産額
 - `annualFees`: 年間手数料合計
 - `annualDividends`: 年間配当金合計
-- `scrapingStats`: スクレイピング統計情報
 
 ### 3.4 データ構造
 #### 保有資産 (Asset)
@@ -179,7 +151,7 @@ interface Asset {
   feeIsEstimated: boolean; // 手数料情報が推定値かどうか
   region?: string; // 対象地域 ('日本', '米国', 'グローバル', '不明')
   lastUpdated?: string;
-  source?: string; // データソース名 ('Alpaca', 'Alpha Vantage', 'Yahoo Finance Japan', 'Minkabu', 'Kabutan', '投資信託協会', 'Morningstar Japan', 'Yahoo Finance', 'Yahoo Finance Scraping', 'MarketWatch', 'Investing.com', 'Fallback')
+  source?: string; // データソース名 ('Market Data API', 'Fallback')
   dividendYield: number; // 配当利回り（%）
   hasDividend: boolean; // 配当があるかどうか
   dividendFrequency: string; // 配当頻度（'monthly', 'quarterly', 'semi-annual', 'annual'）
@@ -232,40 +204,6 @@ currentAllocation: AllocationItem[];
 targetAllocation: AllocationItem[];
 ```
 
-#### スクレイピング統計情報
-```typescript
-interface ScrapingStats {
-  japaneseStocks: {
-    tried: number; // 試行回数
-    succeeded: number; // 成功回数
-    sources: {
-      yahooJapan: number;
-      minkabu: number;
-      kabutan: number;
-    }
-  };
-  mutualFunds: {
-    tried: number; // 試行回数
-    succeeded: number; // 成功回数
-    sources: {
-      yahooJapan: number;
-      toushinLib: number;
-      morningstar: number;
-      minkabu: number;
-    }
-  };
-  usStocks: {
-    tried: number; // 試行回数
-    succeeded: number; // 成功回数
-    sources: {
-      yahooFinance: number;
-      marketWatch: number;
-      investingCom: number;
-    }
-  }
-}
-```
-
 #### 通知メッセージ
 ```typescript
 interface Notification {
@@ -307,7 +245,7 @@ interface StorageData {
   - 年間手数料の表示（個別株は0%、投資信託は信託報酬として表示）
   - 配当情報の表示（利回り、頻度、年間配当金）
   - 配当情報源のバッジ表示（推定値/確定値）
-  - データソースのバッジ表示（スクレイピングソース別のバッジ）
+  - データソースのバッジ表示
   - 投資信託専用の表示（基準価額ラベル）
 - **DataStatusBar**: データ更新状態と最終更新時刻の表示
 
@@ -327,7 +265,7 @@ interface StorageData {
   - 手数料情報源を表示（個別株、投資信託、推定値、固有情報、ユーザー設定）
   - 配当情報の表示（利回り、頻度）
   - 配当情報源のバッジ表示
-  - データソースのバッジ表示（スクレイピングソース別）
+  - データソースのバッジ表示
 - **AllocationEditor**: 目標配分の編集
 - **AiPromptSettings**: AIプロンプトテンプレートの設定
   - テンプレートの編集・カスタマイズ機能
@@ -392,8 +330,8 @@ interface StorageData {
   - 自動消去タイマー機能（情報/成功/警告通知は5秒後に自動消去）
   - 手動消去ボタン
   - 通知タイプ別のスタイリング
-- **DataSourceBadge**: データソース表示バッジ（スクレイピング対応版）
-  - 各データソースに応じた表示（Alpaca、Alpha Vantage、スクレイピングソース別、Yahoo Finance、Fallback）
+- **DataSourceBadge**: データソース表示バッジ
+  - 各データソースに応じた表示（Market Data API、Fallback）
   - ソースに応じた色分け
 - **ErrorBoundary**: エラーバウンダリコンポーネント
   - エラー発生時の処理
@@ -407,25 +345,18 @@ interface StorageData {
 - **PriceDisplay**: 株価/基準価額を適切に表示するコンポーネント
 - **ContextConnector**: コンテキスト間の連携を管理するコンポーネント
 
-## 5. 株価取得システム仕様
+## 5. 市場データ取得システム仕様
 
 ### 5.1 データソース構成
-- **プライマリソース**:
-  - 米国株: Alpaca API
-  - 日本株: スクレイピング（複数サイト）
-  - 投資信託: スクレイピング（複数サイト）
-  - ETF: Alpaca API（米国ETF向け）
-
-- **セカンダリソース（バックアップ）**:
-  - 米国株: Alpha Vantage API、スクレイピング（複数サイト）
-  - ETF: スクレイピング（複数サイト）
-  - 全銘柄共通: Yahoo Finance API、Python yfinance
+- **市場データソース**: 単一の市場データAPIサーバー（`REACT_APP_MARKET_DATA_API_URL`）
+  - 米国株、日本株、投資信託、ETFのデータを一元的に提供
+  - 株価/基準価額、銘柄情報、配当情報、手数料情報を取得
 
 - **データ取得フロー**:
   1. 銘柄タイプを自動判別（個別株、ETF、投資信託など）
-  2. タイプに応じたプライマリソースでデータ取得を試行
-  3. 失敗した場合はセカンダリソースを順次試行
-  4. すべて失敗した場合はフォールバック値を使用
+  2. タイプに応じたリクエストパラメータを構築
+  3. 市場データAPIを呼び出し
+  4. 失敗した場合はフォールバック値を使用
 
 ### 5.2 データ取得機能
 - **株価/基準価額取得**: 各銘柄の最新価格データを取得
@@ -434,42 +365,26 @@ interface StorageData {
 - **手数料情報推定**: 銘柄タイプに基づいて年間手数料率を推定
 - **データソース管理**: 各銘柄のデータソースを記録・表示
 
-### 5.3 スクレイピング機能
-- **日本株スクレイピング**:
-  - 対象サイト: Yahoo Finance Japan、Minkabu、Kabutan
-  - 取得情報: 株価、銘柄名、配当利回り
-  - ランダムなユーザーエージェントの使用
-  - 適切な間隔でのリクエスト送信
+### 5.3 APIエンドポイント
+- **基本URL**: `${REACT_APP_MARKET_DATA_API_URL}/${API_STAGE}/api/${path}`
+- **主要エンドポイント**:
+  - 市場データ: `/api/market-data`
+  - 管理者ステータス: `/admin/status`
+  - 使用量リセット: `/admin/reset`
 
-- **投資信託スクレイピング**:
-  - 対象サイト: Yahoo Finance Japan、投資信託協会、Morningstar Japan、Minkabu
-  - 取得情報: 基準価額、ファンド名、信託報酬率
-  - 複数ソースからのデータ統合
-
-- **米国株スクレイピング**:
-  - 対象サイト: Yahoo Finance、MarketWatch、Investing.com
-  - 取得情報: 株価、銘柄名、配当情報
-  - バックアップとしての使用（Alpaca API障害時）
-
-### 5.4 マルチレベルのフォールバック処理
-- **米国株取得フロー**: Alpaca API → Alpha Vantage API → スクレイピング → フォールバック値
-- **日本株取得フロー**: スクレイピング → Yahoo Finance API → フォールバック値
-- **投資信託取得フロー**: スクレイピング → Yahoo Finance API → フォールバック値
-- **データソース追跡**: 各銘柄のデータソースを記録し、UI上で明示的に表示
-
-### 5.5 エラーハンドリング
-- **API呼び出しエラー**: タイムアウト設定と再試行機構
-- **スクレイピングエラー**: サイト構造変更の検出と代替ソースへの切り替え
-- **エラー通知**: 詳細なエラー情報の記録と適切な通知表示
-- **エラーコード別処理**: エラーの種類に応じた適切なメッセージを生成
+### 5.4 エラーハンドリング
+- **リトライメカニズム**: 設定回数のリトライと指数バックオフを実装
+- **タイムアウト設定**: 銘柄タイプに応じたタイムアウト設定
+  - 米国株: 10秒
+  - 日本株: 20秒
+  - 投資信託: 20秒
+  - 為替レート: 5秒
+- **フォールバック値**: API取得失敗時にデフォルト値を提供
 
 ## 6. 為替レート管理機能
 
 ### 6.1 為替レート取得
-- **主要ソース**: exchangerate.host API
-- **代替ソース**:
-  - alternative-exchangerate-proxy（複数の為替レートAPIを利用）
-  - mof-exchange-rate-proxy（財務省の為替レートデータ）
+- **取得ソース**: 市場データAPI（`REACT_APP_MARKET_DATA_API_URL`）
 - **最終バックアップ**: デフォルト固定値（150.0）
 - **取得タイミング**:
   - アプリケーション起動時
@@ -586,7 +501,7 @@ interface StorageData {
 - **HTTPS通信**: すべてのAPI通信でHTTPS使用
 
 ### 9.2 API連携
-- **API Key管理**: サーバーレス関数内でのAPIキー保持（クライアントサイドに露出しない）
+- **API Key管理**: 管理者APIキーの安全な管理（環境変数による設定）
 - **レート制限対応**: API呼び出し頻度の制限と適切なエラーハンドリング
 - **フォールバック機構**: API障害時の代替処理
 
@@ -611,32 +526,56 @@ interface StorageData {
 - **フォントサイズ**: ブラウザの拡大機能に対応したレイアウト
 - **タッチ操作**: モバイルデバイスでの適切なタッチターゲットサイズ
 
-## 11. 確認が必要なソースコード
+## 11. 環境変数設定
+
+### 11.1 環境変数一覧
+- **`REACT_APP_MARKET_DATA_API_URL`**: 市場データAPIサーバーのベースURL（株価、為替、投資信託情報取得用）
+- **`REACT_APP_API_STAGE`**: APIのステージ環境（'dev'、'prod'など）
+- **`REACT_APP_ADMIN_API_KEY`**: 管理者API用認証キー
+- **`REACT_APP_GOOGLE_CLIENT_ID`**: Google OAuth認証用クライアントID
+- **`REACT_APP_DEFAULT_EXCHANGE_RATE`**: フォールバック用デフォルト為替レート
+
+### 11.2 環境変数設定例
+```
+# 市場データAPI URL（株価・為替レート・投資信託情報取得用）
+REACT_APP_MARKET_DATA_API_URL=https://api.marketdata.example.com
+
+# API実行環境
+REACT_APP_API_STAGE=dev
+
+# 管理者API認証キー
+REACT_APP_ADMIN_API_KEY=your_admin_api_key_here
+
+# GoogleログインとDrive API用
+REACT_APP_GOOGLE_CLIENT_ID=your_google_client_id.apps.googleusercontent.com
+
+# フォールバック用デフォルト為替レート
+REACT_APP_DEFAULT_EXCHANGE_RATE=150.0
+```
+
+## 12. 確認が必要なソースコード
 
 以下のソースコードの確認が推奨されます：
 
-### 11.1 新規追加されたAI分析機能関連
+### 12.1 市場データ関連
+- **`src/services/marketDataService.js`**: 市場データ取得サービス
+- **`src/services/api.js`**: API関連のエントリーポイント
+- **`src/services/adminService.js`**: 管理者向けAPIサービス
+
+### 12.2 AI分析機能関連
 - **`src/components/settings/AiPromptSettings.jsx`**: AIプロンプトテンプレート設定コンポーネント
 - **`src/components/simulation/AiAnalysisPrompt.jsx`**: AI分析プロンプト生成コンポーネント
 - **`src/context/PortfolioContext.jsx`**: AIプロンプトテンプレート状態管理
-- **`src/utils/formatters.js`**: 通貨フォーマットや配分率表示関数
 
-### 11.2 マルチ通貨シミュレーション関連
+### 12.3 マルチ通貨シミュレーション関連
 - **`src/components/simulation/BudgetInput.jsx`**: 追加予算入力コンポーネント（通貨選択機能）
 - **`src/components/simulation/SimulationResult.jsx`**: シミュレーション結果表示（購入株数表示）
 - **`src/utils/currencyUtils.js`**: 通貨変換関数
-- **`src/context/PortfolioContext.jsx`**: 為替レート管理とシミュレーション計算処理
 
-### 11.3 データ永続化関連
+### 12.4 データ永続化関連
 - **`src/services/storageService.js`**: ローカルストレージ操作
 - **`src/services/googleDriveService.js`**: Google Drive API連携
 - **`src/context/AuthContext.jsx`**: Google認証管理
-
-### 11.4 市場データ取得関連
-- **`functions/alpaca-api-proxy.js`**: Alpaca API連携
-- **`functions/jp-stock-scraping-proxy.js`**: 日本株スクレイピング
-- **`functions/mutual-fund-scraping-proxy.js`**: 投資信託スクレイピング
-- **`functions/exchangerate-proxy.js`**: 為替レート取得
 
 ## 改訂履歴
 
@@ -647,3 +586,4 @@ interface StorageData {
 | 3.0 | 2025/03/27 | 複数データソース対応とスクレイピング機能の詳細追加、コンポーネント仕様の詳細化 | |
 | 4.0 | 2025/03/30 | マルチ通貨シミュレーション対応機能（円/ドル）と購入株数表示機能を追加 | |
 | 5.0 | 2025/05/08 | AI分析機能（ポートフォリオデータをAIアシスタントに分析させるプロンプト生成機能）を追加 | Claude |
+| 6.0 | 2025/05/12 | リファクタリング - スクレイピング機能を削除し、単一市場データAPIサーバーに集約。環境変数名を`REACT_APP_MARKET_DATA_API_URL`に変更 | Claude |
