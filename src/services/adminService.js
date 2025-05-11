@@ -7,6 +7,7 @@
  * 
  * 更新履歴: 
  * - 2025-05-11 16:30:00 Koki Riho 初回作成
+ * - 2025-05-12 11:00:00 外部APIサーバー利用に修正
  * 
  * 説明: 
  * 管理者向けAPI呼び出しをまとめたサービスファイル。
@@ -15,29 +16,17 @@
 
 import axios from 'axios';
 
-// 環境に応じたベースURL設定
-const isLocalhost = 
-  window.location.hostname === 'localhost' || 
-  window.location.hostname === '127.0.0.1';
-
-// 本番環境のURLは環境変数から取得、未設定の場合は現在のオリジンを使用
-const PROD_BASE_URL = process.env.REACT_APP_API_BASE_URL || 
-                      (!isLocalhost ? window.location.origin : 'https://delicate-malasada-1fb747.netlify.app');
-
-// ベースURLの設定
-const BASE_URL = isLocalhost ? '' : PROD_BASE_URL;
+// 環境変数からAPI設定を取得
+const API_URL = process.env.REACT_APP_MARKET_DATA_API_URL || 'http://localhost:3000';
+const API_STAGE = process.env.REACT_APP_API_STAGE || 'dev';
 
 // 管理者APIの設定
 const ADMIN_API_KEY = process.env.REACT_APP_ADMIN_API_KEY || 'd41d8cd98f00b204e9800998ecf8427e'; // デフォルト値はサンプルです
 const ADMIN_API_TIMEOUT = 5000; // 5秒
 
-// 各環境のAPIエンドポイント
+// APIエンドポイントを取得
 const getBaseEndpoint = () => {
-  if (isLocalhost) {
-    return '/dev';
-  } else {
-    return `${BASE_URL}/prod`;
-  }
+  return `${API_URL}/${API_STAGE}`;
 };
 
 // 管理者APIクライアント
