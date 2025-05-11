@@ -7,12 +7,12 @@
  * 
  * 更新履歴: 
  * - 2025-05-08 14:30:00 Koki Riho 初回作成
- * - 2025-05-08 16:45:00 修正者名 インポートパスを修正
+ * - 2025-05-12 15:30:00 Koki Riho バックエンド連携型認証に対応
  * 
  * 説明: 
  * AuthContextとPortfolioContextを連携させるコネクタコンポーネント。
  * 循環参照を防ぐためにuseRefを使用して一方向参照を実装する。
-
+ */
  
 import React, { useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
@@ -32,4 +32,3 @@ const ContextConnector = () => {
 };
 
 export default ContextConnector;
- */

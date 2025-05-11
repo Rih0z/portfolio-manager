@@ -7,16 +7,17 @@
  * 
  * 更新履歴: 
  * - 2025-05-08 10:00:00 Koki Riho 初回作成
+ * - 2025-05-12 15:30:00 Koki Riho バックエンド連携型認証に修正
  * 
  * 説明: 
  * 認証関連のReact Contextを提供するコンポーネント。
- * Google認証を管理し、ログイン状態の維持、トークンの処理、
+ * Google認証を管理し、ログイン状態の維持、セッションの処理、
  * Googleドライブとの連携機能を提供します。
  */
 
 import React, { createContext, useState, useEffect, useCallback, useRef } from 'react';
-import jwtDecode from 'jwt-decode'; // 修正: 正しいインポート方法
-import { setGoogleAccessToken } from '../services/api';
+import axios from 'axios';
+import { getApiEndpoint } from '../services/api';
 
 // コンテキスト作成
 export const AuthContext = createContext();
@@ -24,51 +25,47 @@ export const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
-  const [googleToken, setGoogleToken] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [lastSyncTime, setLastSyncTime] = useState(null);
   
   // PortfolioContextの参照を保持するためのRef
   const portfolioContextRef = useRef(null);
 
-  // 初期化時に保存されたトークンがあれば読み込む
+  // API設定
+  const API_URL = getApiEndpoint('auth');
+
+  // 初期化時にセッション情報を取得
   useEffect(() => {
-    const loadStoredAuth = () => {
+    const checkSession = async () => {
       try {
-        const storedToken = localStorage.getItem('googleToken');
+        console.log('[Auth] Checking session');
+        const response = await axios.get(`${API_URL}/session`, {
+          withCredentials: true // Cookieを含める
+        });
         
-        if (storedToken) {
-          const decodedToken = jwtDecode(storedToken);
-          const currentTime = Date.now() / 1000;
-          
-          if (decodedToken.exp > currentTime) {
-            setGoogleToken(storedToken);
-            const userData = {
-              name: decodedToken.name,
-              email: decodedToken.email,
-              picture: decodedToken.picture
-            };
-            setUser(userData);
-            setIsAuthenticated(true);
-            
-            // API層にもトークンを設定
-            setGoogleAccessToken(storedToken);
-            
-            // 認証状態の通知はポートフォリオコンテキストが利用可能になった時に行う
-          } else {
-            // トークンの有効期限切れ
-            localStorage.removeItem('googleToken');
+        if (response.data.success && response.data.isAuthenticated) {
+          console.log('[Auth] Valid session found');
+          setUser(response.data.user);
+          setIsAuthenticated(true);
+          if (response.data.lastSyncTime) {
+            setLastSyncTime(response.data.lastSyncTime);
           }
+        } else {
+          console.log('[Auth] No valid session');
+          setIsAuthenticated(false);
+          setUser(null);
         }
       } catch (error) {
-        console.error('認証情報の読み込みエラー:', error);
-        localStorage.removeItem('googleToken');
+        console.error('[Auth] Session check error:', error);
+        setIsAuthenticated(false);
+        setUser(null);
       } finally {
         setLoading(false);
       }
     };
 
-    loadStoredAuth();
-  }, []);
+    checkSession();
+  }, [API_URL]);
 
   // PortfolioContextへの参照を通知するための簡単なメソッド
   const notifyAuthStateToPortfolio = useCallback(() => {
@@ -78,102 +75,170 @@ export const AuthProvider = ({ children }) => {
     }
   }, [isAuthenticated, user]);
 
-  // Googleログイン成功時の処理（修正版）
-  const handleLogin = useCallback((credentialResponse) => {
+  // 認可コードを使用したGoogleログイン処理
+  const handleLogin = useCallback(async (credentialResponse) => {
     try {
-      // IDトークンをデコード
-      const decodedToken = jwtDecode(credentialResponse.credential);
+      console.log('[Auth] Processing login with auth code');
       
-      // トークンを保存
-      setGoogleToken(credentialResponse.credential);
+      // 認可コードを取得
+      const authCode = credentialResponse.code;
       
-      const userData = {
-        name: decodedToken.name,
-        email: decodedToken.email,
-        picture: decodedToken.picture
-      };
+      if (!authCode) {
+        console.error('[Auth] No auth code received');
+        return;
+      }
       
-      setUser(userData);
-      setIsAuthenticated(true);
+      // バックエンドAPIにコードを送信
+      const response = await axios.post(`${API_URL}/google/login`, {
+        code: authCode
+      }, {
+        withCredentials: true // Cookieを含める
+      });
       
-      // トークンをローカルストレージに保存
-      localStorage.setItem('googleToken', credentialResponse.credential);
-      
-      // API層にもトークンを設定
-      setGoogleAccessToken(credentialResponse.credential);
-      
-      // ContextRef経由でも設定
-      if (portfolioContextRef.current) {
-        if (portfolioContextRef.current.handleAuthStateChange) {
-          portfolioContextRef.current.handleAuthStateChange(true, userData);
+      if (response.data.success && response.data.user) {
+        // ユーザー情報を設定
+        setUser(response.data.user);
+        setIsAuthenticated(true);
+        
+        if (response.data.lastSyncTime) {
+          setLastSyncTime(response.data.lastSyncTime);
         }
         
-        // 少し遅延させてからデータ読み込みを試行
-        setTimeout(() => {
-          if (portfolioContextRef.current.loadFromGoogleDrive) {
-            portfolioContextRef.current.loadFromGoogleDrive(userData);
+        // ContextRef経由でも設定
+        if (portfolioContextRef.current) {
+          if (portfolioContextRef.current.handleAuthStateChange) {
+            portfolioContextRef.current.handleAuthStateChange(true, response.data.user);
           }
-        }, 1000);
+          
+          // 少し遅延させてからデータ読み込みを試行
+          setTimeout(() => {
+            if (portfolioContextRef.current.loadFromGoogleDrive) {
+              portfolioContextRef.current.loadFromGoogleDrive(response.data.user);
+            }
+          }, 1000);
+        }
+      } else {
+        throw new Error(response.data.message || 'Login failed');
       }
     } catch (error) {
-      console.error('ログインエラー:', error);
+      console.error('[Auth] Login error:', error);
     }
-  }, []);
+  }, [API_URL]);
 
   // ログアウト処理
-  const handleLogout = useCallback(() => {
-    setGoogleToken(null);
-    setUser(null);
-    setIsAuthenticated(false);
-    localStorage.removeItem('googleToken');
-    
-    // PortfolioContextが利用可能な場合、認証状態を通知
-    if (portfolioContextRef.current?.handleAuthStateChange) {
-      portfolioContextRef.current.handleAuthStateChange(false, null);
+  const handleLogout = useCallback(async () => {
+    try {
+      console.log('[Auth] Processing logout');
+      
+      // バックエンドAPIにログアウトリクエストを送信
+      await axios.post(`${API_URL}/logout`, {}, {
+        withCredentials: true // Cookieを含める
+      });
+      
+      setUser(null);
+      setIsAuthenticated(false);
+      setLastSyncTime(null);
+      
+      // PortfolioContextが利用可能な場合、認証状態を通知
+      if (portfolioContextRef.current?.handleAuthStateChange) {
+        portfolioContextRef.current.handleAuthStateChange(false, null);
+      }
+    } catch (error) {
+      console.error('[Auth] Logout error:', error);
+      // エラーがあっても、フロントエンド上ではログアウト状態にする
+      setUser(null);
+      setIsAuthenticated(false);
     }
-  }, []);
+  }, [API_URL]);
 
   // Googleドライブ保存機能
-  const saveToDrive = useCallback(async (data, filename = 'portfolio_data.json') => {
-    if (!isAuthenticated || !googleToken) {
+  const saveToDrive = useCallback(async (data) => {
+    if (!isAuthenticated || !user) {
       throw new Error('ログインが必要です');
     }
     
     try {
-      // PortfolioContextが利用可能な場合
-      if (portfolioContextRef.current?.saveToGoogleDrive) {
-        return await portfolioContextRef.current.saveToGoogleDrive(user);
-      }
+      console.log('[Auth] Saving data to Google Drive');
       
-      // フォールバック処理（シミュレーション）
-      console.log('データをGoogleドライブに保存:', { data, filename });
-      return { success: true, message: `${filename}をGoogleドライブに保存しました` };
+      // バックエンドAPIにデータを送信
+      const response = await axios.post(`${getApiEndpoint('drive')}/save`, {
+        data
+      }, {
+        withCredentials: true // Cookieを含める
+      });
+      
+      if (response.data.success) {
+        if (response.data.lastSyncTime) {
+          setLastSyncTime(response.data.lastSyncTime);
+        }
+        return response.data;
+      } else {
+        throw new Error(response.data.message || 'Failed to save to Google Drive');
+      }
     } catch (error) {
-      console.error('Googleドライブへの保存エラー:', error);
-      return { success: false, message: 'クラウド保存に失敗しました' };
+      console.error('[Auth] Google Drive save error:', error);
+      return { 
+        success: false, 
+        message: error.response?.data?.message || 'クラウド保存に失敗しました' 
+      };
     }
-  }, [isAuthenticated, googleToken, user]);
+  }, [isAuthenticated, user]);
 
   // Googleドライブから読み込み機能
-  const loadFromDrive = useCallback(async (filename = 'portfolio_data.json') => {
-    if (!isAuthenticated || !googleToken) {
+  const loadFromDrive = useCallback(async () => {
+    if (!isAuthenticated || !user) {
       throw new Error('ログインが必要です');
     }
     
     try {
-      // PortfolioContextが利用可能な場合
-      if (portfolioContextRef.current?.loadFromGoogleDrive) {
-        return await portfolioContextRef.current.loadFromGoogleDrive(user);
-      }
+      console.log('[Auth] Loading data from Google Drive');
       
-      // フォールバック処理（シミュレーション）
-      console.log('Googleドライブからデータを読み込み:', filename);
-      return { success: true, data: { message: 'サンプルデータが読み込まれました' } };
+      // バックエンドAPIからデータを取得
+      const response = await axios.get(`${getApiEndpoint('drive')}/load`, {
+        withCredentials: true // Cookieを含める
+      });
+      
+      if (response.data.success) {
+        if (response.data.lastSyncTime) {
+          setLastSyncTime(response.data.lastSyncTime);
+        }
+        return response.data;
+      } else {
+        throw new Error(response.data.message || 'Failed to load from Google Drive');
+      }
     } catch (error) {
-      console.error('Googleドライブからの読み込みエラー:', error);
-      return { success: false, message: 'クラウド読み込みに失敗しました' };
+      console.error('[Auth] Google Drive load error:', error);
+      return { 
+        success: false, 
+        message: error.response?.data?.message || 'クラウド読み込みに失敗しました' 
+      };
     }
-  }, [isAuthenticated, googleToken, user]);
+  }, [isAuthenticated, user]);
+  
+  // Google Driveのファイル一覧を取得
+  const listDriveFiles = useCallback(async () => {
+    if (!isAuthenticated || !user) {
+      throw new Error('ログインが必要です');
+    }
+    
+    try {
+      console.log('[Auth] Listing Google Drive files');
+      
+      // バックエンドAPIからファイル一覧を取得
+      const response = await axios.get(`${getApiEndpoint('drive')}/files`, {
+        withCredentials: true // Cookieを含める
+      });
+      
+      return response.data;
+    } catch (error) {
+      console.error('[Auth] Google Drive list files error:', error);
+      return { 
+        success: false, 
+        message: error.response?.data?.message || 'ファイル一覧の取得に失敗しました',
+        files: [] 
+      };
+    }
+  }, [isAuthenticated, user]);
   
   // アカウント同期の実行
   const synchronizeData = useCallback(async () => {
@@ -184,15 +249,21 @@ export const AuthProvider = ({ children }) => {
     try {
       // PortfolioContextが利用可能な場合
       if (portfolioContextRef.current?.loadFromGoogleDrive) {
-        return await portfolioContextRef.current.loadFromGoogleDrive(user);
+        const result = await loadFromDrive();
+        if (result.success && result.data && portfolioContextRef.current) {
+          // 既存データとの同期処理
+          const syncResult = await portfolioContextRef.current.mergeWithGoogleDriveData(result.data);
+          return syncResult;
+        }
+        return result;
       }
       
       return { success: false, message: '同期機能が利用できません' };
     } catch (error) {
-      console.error('データ同期エラー:', error);
+      console.error('[Auth] Data synchronization error:', error);
       return { success: false, message: 'データ同期に失敗しました' };
     }
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user, loadFromDrive]);
 
   // PortfolioContextへの参照を設定するためのメソッド
   // 循環参照を解決するため、外部からこのメソッドを呼び出す
@@ -206,12 +277,13 @@ export const AuthProvider = ({ children }) => {
       value={{
         isAuthenticated,
         user,
-        googleToken,
         loading,
+        lastSyncTime,
         handleLogin,
         handleLogout,
         saveToDrive,
         loadFromDrive,
+        listDriveFiles,
         synchronizeData,
         setPortfolioContextRef
       }}

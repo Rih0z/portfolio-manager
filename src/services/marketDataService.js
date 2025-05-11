@@ -515,3 +515,4 @@ export default {
   fetchDividendData,
   checkDataFreshness
 };
+
