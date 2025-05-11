@@ -7,29 +7,60 @@
  * 
  * 更新履歴: 
  * - 2025-05-08 14:30:00 Koki Riho 初回作成
+ * - 2025-05-12 15:30:00 Koki Riho バックエンド連携型認証に対応
  * 
  * 説明: 
  * Google Driveとの連携機能を提供するコンポーネント。
  * ポートフォリオデータのクラウド保存、読み込み、同期機能を実装。
  * データソースの状態表示や最終同期時間の表示も行う。
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 
 const GoogleDriveIntegration = () => {
-  const { user, saveToDrive, loadFromDrive, synchronizeData } = useAuth();
+  const { 
+    user, 
+    saveToDrive, 
+    loadFromDrive, 
+    synchronizeData, 
+    listDriveFiles,
+    lastSyncTime 
+  } = useAuth();
+  
   const { 
     exportData, 
     importData, 
     dataSource, 
-    lastSyncTime, 
     saveToLocalStorage
   } = usePortfolioContext();
   
   const [statusMessage, setStatusMessage] = useState('');
   const [statusType, setStatusType] = useState(''); // 'success' or 'error'
   const [isLoading, setIsLoading] = useState(false);
+  const [driveFiles, setDriveFiles] = useState([]);
+  const [isLoadingFiles, setIsLoadingFiles] = useState(false);
+
+  // コンポーネントマウント時にファイル一覧を取得
+  useEffect(() => {
+    const fetchFiles = async () => {
+      if (user) {
+        try {
+          setIsLoadingFiles(true);
+          const result = await listDriveFiles();
+          if (result.success && result.files) {
+            setDriveFiles(result.files);
+          }
+        } catch (error) {
+          console.error('ファイル一覧取得エラー:', error);
+        } finally {
+          setIsLoadingFiles(false);
+        }
+      }
+    };
+    
+    fetchFiles();
+  }, [user, listDriveFiles]);
 
   // 最終同期時間のフォーマット
   const formatSyncTime = (timeString) => {
@@ -62,6 +93,12 @@ const GoogleDriveIntegration = () => {
       
       if (result.success) {
         showStatus(result.message || 'データをGoogleドライブに保存しました', 'success');
+        
+        // ファイル一覧を更新
+        const filesResult = await listDriveFiles();
+        if (filesResult.success && filesResult.files) {
+          setDriveFiles(filesResult.files);
+        }
       } else {
         showStatus(result.message || 'データの保存に失敗しました', 'error');
       }
@@ -224,6 +261,28 @@ const GoogleDriveIntegration = () => {
             {isLoading ? '読み込み中...' : 'Googleドライブから読み込み'}
           </button>
         </div>
+      </div>
+      
+      {/* ファイル一覧 */}
+      <div className="mt-4 bg-gray-50 p-4 rounded">
+        <h3 className="text-md font-medium mb-2">保存済みファイル</h3>
+        
+        {isLoadingFiles ? (
+          <p className="text-sm text-gray-600">ファイル一覧を読み込み中...</p>
+        ) : driveFiles.length > 0 ? (
+          <ul className="text-sm text-gray-600 divide-y">
+            {driveFiles.map((file, index) => (
+              <li key={file.id || index} className="py-2">
+                {file.name} 
+                <span className="text-xs text-gray-500 ml-2">
+                  {formatSyncTime(file.modifiedTime)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-gray-600">保存済みファイルはありません</p>
+        )}
       </div>
       
       {/* ステータスメッセージの表示 */}

@@ -7,6 +7,7 @@
  * 
  * 更新履歴: 
  * - 2025-05-08 14:30:00 Koki Riho 初回作成
+ * - 2025-05-12 15:30:00 Koki Riho バックエンド連携型認証に対応
  * 
  * 説明: 
  * アプリケーションのヘッダーコンポーネント。
@@ -20,7 +21,7 @@ import UserProfile from '../auth/UserProfile';
 import LoginButton from '../auth/LoginButton';
 
 const Header = () => {
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { isAuthenticated, loading: authLoading } = useAuth();
   const { 
     baseCurrency, 
     toggleCurrency, 

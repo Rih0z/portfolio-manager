@@ -10,6 +10,7 @@
  * - 2025-03-15 14:30:00 Koki Riho エラーバウンダリを追加
  * - 2025-04-20 09:45:00 Yuta Sato コンテキスト接続コンポーネントを改善
  * - 2025-05-08 11:20:00 Koki Riho ファイルヘッダーを追加
+ * - 2025-05-12 14:30:00 Koki Riho 認可コードフロー対応
  * 
  * 説明: 
  * アプリケーションのルートコンポーネント。
@@ -30,7 +31,6 @@ import Simulation from './pages/Simulation';
 import DataIntegration from './pages/DataIntegration';
 import { useAuth } from './hooks/useAuth';
 import { usePortfolioContext } from './hooks/usePortfolioContext';
-import { setGoogleAccessToken } from './services/api';
 
 // Google認証クライアントID
 const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID || '243939385276-0gga06ocrn3vumf7lasubcpdqjk49j3n.apps.googleusercontent.com';
@@ -45,11 +45,6 @@ const ContextConnector = () => {
     try {
       if (auth && auth.setPortfolioContextRef && portfolio) {
         auth.setPortfolioContextRef(portfolio);
-        
-        // 既存の認証情報があればAPI層にも通知
-        if (auth.googleToken) {
-          setGoogleAccessToken(auth.googleToken);
-        }
       }
     } catch (err) {
       console.error('コンテキスト接続中にエラーが発生しました:', err);
@@ -133,3 +128,4 @@ function App() {
 }
 
 export default App;
+
