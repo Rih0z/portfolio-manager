@@ -3,13 +3,14 @@
  * ファイルパス: src/services/api.js
  * 
  * 作成者: Koki Riho （https://github.com/Rih0z） 
- * 作成日: 2025-03-15 11:10:35 
+ * 作成日: 2025-05-11 17:20:00 
  * 
  * 更新履歴: 
  * - 2025-03-15 11:10:35 Koki Riho 初回作成
  * - 2025-03-30 14:25:50 Koki Riho Google Drive API連携を追加
  * - 2025-04-20 09:15:30 Yuta Sato 配当データ取得関数を追加
  * - 2025-05-05 15:40:22 Koki Riho トークン取得処理の改善
+ * - 2025-05-11 17:20:00 Koki Riho リファクタリング - 市場データ関連の関数を marketDataService.js に移動
  * 
  * 説明: 
  * API関連の関数をまとめたエントリーポイント。市場データ取得関数と
@@ -19,12 +20,13 @@
 // src/services/api.js
 // API関連の関数をまとめたエントリーポイント
 
+// 市場データサービスをインポート
 import { 
   fetchTickerData as fetchTickerDataService, 
   fetchExchangeRate as fetchExchangeRateService,
   fetchMultipleTickerData as fetchMultipleTickerDataService,
   fetchFundInfo as fetchFundInfoService,
-  fetchDividendData as fetchDividendDataService, // 配当データ取得関数を追加
+  fetchDividendData as fetchDividendDataService,
   checkDataFreshness as checkDataFreshnessService
 } from './marketDataService';
 
@@ -39,7 +41,7 @@ export const fetchTickerData = fetchTickerDataService;
 export const fetchExchangeRate = fetchExchangeRateService;
 export const fetchMultipleTickerData = fetchMultipleTickerDataService;
 export const fetchFundInfo = fetchFundInfoService;
-export const fetchDividendData = fetchDividendDataService; // 配当データ取得関数をエクスポート
+export const fetchDividendData = fetchDividendDataService; 
 export const checkDataFreshness = checkDataFreshnessService;
 
 /**
