@@ -1,11 +1,11 @@
-# ポートフォリオマネージャー コード規約書（リファクタリング版 5.0）
+# ポートフォリオマネージャー コード規約書（AWS環境移行対応版）
 
-**バージョン:** 5.0（リファクタリング版）  
-**最終更新日時:** 2025-05-12 15:00
+**ファイルパス:** document/code-convention.md  
+**最終更新日時:** 2025-05-20 15:30
 
 ## 1. 概要
 
-このドキュメントは、ポートフォリオマネージャーアプリケーションの開発に関する一貫したコーディング規約を定義します。すべての貢献者は、コードの品質、一貫性、保守性を確保するためにこれらの規約に従うものとします。
+このドキュメントは、ポートフォリオマネージャーアプリケーションの開発に関する一貫したコーディング規約を定義します。すべての貢献者は、コードの品質、一貫性、保守性を確保するためにこれらの規約に従うものとします。AWS環境対応のための新しい実装手法も含んでいます。
 
 ## 2. ファイル構造とプロジェクト編成
 
@@ -47,7 +47,7 @@ src/
 ├── index.js                   # アプリケーションエントリーポイント
 ├── logo.svg                   # Reactロゴ
 ├── reportWebVitals.js         # パフォーマンス測定ユーティリティ
-├── setupProxy.js              # 開発環境用プロキシ設定
+├── setupProxy.js              # 開発環境用プロキシ設定（AWS環境対応版）
 ├── setupTests.js              # テスト環境セットアップ
 ├── components/      # UIコンポーネント
 │   ├── auth/        # 認証関連コンポーネント 
@@ -65,7 +65,7 @@ src/
 │   │   └── PortfolioSummary.jsx   # ポートフォリオサマリー
 │   ├── data/        # データ連携コンポーネント
 │   │   ├── ExportOptions.jsx      # エクスポートオプション
-│   │   ├── GoogleDriveIntegration.jsx  # Google Drive連携
+│   │   ├── GoogleDriveIntegration.jsx  # Google Drive連携（AWS環境対応版）
 │   │   └── ImportOptions.jsx      # インポートオプション
 │   ├── layout/      # レイアウト関連コンポーネント
 │   │   ├── DataStatusBar.jsx      # データステータスバー
@@ -82,10 +82,11 @@ src/
 │       ├── BudgetInput.jsx        # 予算入力
 │       └── SimulationResult.jsx   # シミュレーション結果
 ├── context/         # React Context定義
-│   ├── AuthContext.js           # 認証コンテキスト
+│   ├── AuthContext.js           # 認証コンテキスト（AWS環境対応版）
 │   └── PortfolioContext.js      # ポートフォリオコンテキスト
 ├── hooks/           # カスタムReact Hooks
 │   ├── useAuth.js               # 認証フック
+│   ├── useGoogleDrive.js        # Googleドライブ連携フック（新規追加）
 │   ├── usePortfolioContext.js   # ポートフォリオコンテキストフック
 │   └── useLocalStorage.js       # ローカルストレージフック
 ├── pages/           # ページコンポーネント
@@ -96,13 +97,15 @@ src/
 ├── services/        # APIサービスとデータ処理
 │   ├── adminService.js         # 管理者向けAPIサービス
 │   ├── api.js                   # API関連のエントリーポイント
-│   └── marketDataService.js     # 市場データサービス
+│   └── marketDataService.js     # 市場データサービス（AWS環境対応版）
 └── utils/           # ユーティリティ関数
+    ├── apiUtils.js              # API連携ユーティリティ（新規追加）
+    ├── envUtils.js              # 環境設定ユーティリティ（新規追加）
     ├── formatters.js           # フォーマット関数
     └── fundUtils.js            # ファンドユーティリティ
 ```
 
-**注記**: リファクタリングにより、`scrapingMarketDataService.js`と`functions/`ディレクトリのサーバーレス関数ファイルは削除されました。すべての市場データAPIアクセスは`marketDataService.js`に集約されています。
+**注記**: AWS環境対応のため、新たに環境ユーティリティ（`envUtils.js`）とAPI連携ユーティリティ（`apiUtils.js`）が追加されました。また、Google Drive連携のための専用フック（`useGoogleDrive.js`）も新規追加されています。
 
 ### 2.2 ファイル命名規則
 
@@ -251,6 +254,8 @@ src/
   const handleUpdateDividendInfo = (asset, yield) => {...} // 配当情報更新ハンドラ
   const handleRemoveNotification = (id) => {...} // 通知削除ハンドラ
   const handleRefreshMarketPrices = () => {...} // 市場データ更新ハンドラ
+  const handleAuthStateChange = (isAuthenticated, user) => {...} // 認証状態変更ハンドラ
+  const handleEnvironmentCheck = () => {...} // 環境判定ハンドラ
   ```
 
 ### 3.6 ユーティリティ関数
@@ -258,21 +263,17 @@ src/
 - **ユーティリティ関数**: 目的が明確な名前を使用
   ```javascript
   // 良い例
-  const formatCurrency = (amount, currency) => {...}
-  const estimateAnnualFee = (ticker, name) => {...}
-  const guessFundType = (ticker, name) => {...}
-  const encryptData = (data) => {...} // データ暗号化関数
-  const decryptData = (encrypted) => {...} // データ復号化関数
-  const estimateDividendYield = (ticker, name) => {...} // 配当利回り推定関数
-  const calculateAnnualDividend = (asset, exchangeRate, baseCurrency) => {...} // 年間配当金計算関数
-  const formatDividendFrequency = (frequency) => {...} // 配当頻度の表示変換関数
-  const determineHasDividend = (ticker, fundType) => {...} // 配当の有無判定関数
-  const addNotificationWithTimeout = (message, type) => {...} // タイムアウト付き通知追加関数
-  const formatErrorResponse = (error, ticker) => {...} // エラーレスポンス形式化関数
-  const generateFallbackData = (ticker) => {...} // フォールバックデータ生成関数
-  const isJapaneseStock = (ticker) => {...} // 日本株かどうかを判定する関数
-  const isMutualFund = (ticker) => {...} // 投資信託かどうかを判定する関数
-  const getErrorMessage = (error, ticker) => {...} // エラー詳細に基づいたメッセージを取得する関数
+  const formatCurrency = (amount, currency) => {...} // 通貨フォーマット
+  const estimateAnnualFee = (ticker, name) => {...} // 年間手数料推定
+  const guessFundType = (ticker, name) => {...} // ファンドタイプ推測
+  
+  // AWS環境対応関連
+  const getApiBaseUrl = () => {...} // API基本URL取得
+  const getApiStage = () => {...} // APIステージ取得
+  const isDevEnvironment = () => {...} // 開発環境判定
+  const isProdEnvironment = () => {...} // 本番環境判定
+  const buildApiEndpoint = (path) => {...} // APIエンドポイント構築
+  const fetchWithRetry = (url, method, data, params, config) => {...} // リトライ機能付きAPI呼び出し
   ```
 
 ### 3.7 データソース関連（更新）
@@ -496,6 +497,7 @@ src/
   export const useDataSources = () => {...} // データソース管理フック
   export const useMarketData = () => {...} // 市場データ取得フック
   export const useErrorHandling = () => {...} // エラーハンドリングフック
+  export const useGoogleDrive = () => {...} // Google Drive連携フック
   ```
 
 ### 5.3 環境依存のライブラリ対応
@@ -751,20 +753,43 @@ src/
 
 ### 7.1 リトライ機構とフォールバック処理
 
-- **APIリクエストのリトライ**: リトライメカニズム付きのfetch関数を定義
+- **APIリクエストのリトライ**: 改良版リトライメカニズム付きのfetch関数を定義
   ```javascript
-  // リトライメカニズム付きのfetch関数
-  const fetchWithRetry = async (url, params = {}, timeout = TIMEOUT.DEFAULT, maxRetries = RETRY.MAX_ATTEMPTS) => {
+  // リトライメカニズム付きのfetch関数（apiUtils.js）
+  export const fetchWithRetry = async (url, method = 'get', data = null, params = null, config = {}, maxRetries = RETRY.MAX_ATTEMPTS) => {
     let retries = 0;
+    
+    // デフォルトのタイムアウト設定
+    const timeout = config.timeout || TIMEOUT.DEFAULT;
+    
+    // デフォルトの設定をマージ
+    const requestConfig = {
+      ...config,
+      timeout: timeout
+    };
+    
+    // パラメータがある場合は設定に追加
+    if (params) {
+      requestConfig.params = params;
+    }
     
     while (retries <= maxRetries) {
       try {
-        const response = await marketDataClient.get(url, {
-          params,
-          timeout: timeout + (retries * 2000) // リトライごとにタイムアウトを延長
-        });
+        let response;
         
-        // 成功したらレスポンスを返す
+        if (method.toLowerCase() === 'get') {
+          response = await axios.get(url, requestConfig);
+        } else if (method.toLowerCase() === 'post') {
+          response = await axios.post(url, data, requestConfig);
+        } else if (method.toLowerCase() === 'put') {
+          response = await axios.put(url, data, requestConfig);
+        } else if (method.toLowerCase() === 'delete') {
+          response = await axios.delete(url, requestConfig);
+        } else {
+          throw new Error(`未対応のHTTPメソッド: ${method}`);
+        }
+        
+        // 成功したらレスポンスデータを返す
         return response.data;
       } catch (error) {
         console.error(`API fetch error (attempt ${retries+1}/${maxRetries+1}):`, error.message);
@@ -780,43 +805,62 @@ src/
         
         // リトライカウントを増やす
         retries++;
+        
+        // タイムアウトを延長
+        requestConfig.timeout = timeout + (retries * 2000);
       }
     }
   };
   ```
 
-- **フォールバック値の使用**: API取得失敗時にデフォルト値を提供
+- **フォールバック値の生成**: API取得失敗時のデフォルト値を提供する関数を定義
   ```javascript
-  try {
-    const endpoint = getApiEndpoint('market-data');
-    const response = await fetchWithRetry(
-      endpoint,
-      {
-        type: 'exchange-rate',
-        base: fromCurrency,
-        target: toCurrency,
-        refresh: refresh ? 'true' : 'false'
-      },
-      TIMEOUT.EXCHANGE_RATE
-    );
-    
-    return response;
-  } catch (error) {
-    console.error(`Error fetching exchange rate ${fromCurrency}/${toCurrency}:`, error);
-    
-    // フォールバック値を返す
+  // フォールバックデータ生成関数（apiUtils.js）
+  export const generateFallbackData = (ticker) => {
     return {
+      [ticker]: {
+        ticker: ticker,
+        price: 100, // デフォルト値
+        name: ticker,
+        currency: ticker.includes('.T') ? 'JPY' : 'USD',
+        lastUpdated: new Date().toISOString(),
+        source: 'Fallback',
+        isStock: !ticker.includes('JP') && !ticker.includes('US'),
+        isMutualFund: ticker.includes('JP') || ticker.includes('US')
+      }
+    };
+  };
+  
+  // エラーレスポンス整形関数（apiUtils.js）
+  export const formatErrorResponse = (error, ticker) => {
+    const errorResponse = {
       success: false,
       error: true,
-      message: '為替レートの取得に失敗しました',
-      ...formatErrorResponse(error),
-      // デフォルト値も含める
-      rate: fromCurrency === 'USD' && toCurrency === 'JPY' ? 150.0 : 
-            fromCurrency === 'JPY' && toCurrency === 'USD' ? 1/150.0 : 1.0,
-      source: 'Fallback',
-      lastUpdated: new Date().toISOString()
+      message: 'データの取得に失敗しました',
+      errorType: 'UNKNOWN',
+      errorDetail: error.message
     };
-  }
+    
+    // エラーの種類に応じた情報を追加
+    if (error.response) {
+      errorResponse.status = error.response.status;
+      errorResponse.errorType = error.response.status === 429 ? 'RATE_LIMIT' : 'API_ERROR';
+      errorResponse.message = error.response.data?.message || `API エラー (${error.response.status})`;
+    } else if (error.code === 'ECONNABORTED') {
+      errorResponse.errorType = 'TIMEOUT';
+      errorResponse.message = 'リクエストがタイムアウトしました';
+    } else if (error.message.includes('Network Error')) {
+      errorResponse.errorType = 'NETWORK';
+      errorResponse.message = 'ネットワーク接続に問題があります';
+    }
+    
+    // 銘柄情報がある場合は追加
+    if (ticker) {
+      errorResponse.ticker = ticker;
+    }
+    
+    return errorResponse;
+  };
   ```
 
 ### 7.2 エラーキャッチと表示
@@ -838,12 +882,17 @@ src/
     console.log(`Attempting to fetch data for ${ticker} from Market Data API`);
     const response = await fetchWithRetry(
       endpoint,
+      'get',
+      null,
       {
         type,
         symbols: ticker,
         refresh: refresh ? 'true' : 'false'
       },
-      timeout
+      { 
+        timeout,
+        withCredentials: true 
+      }
     );
     
     return response;
@@ -1051,12 +1100,78 @@ src/
 ### 8.2 環境変数の使用方法
 
 ```javascript
-// 環境変数からAPI設定を取得
-const MARKET_DATA_API_URL = process.env.REACT_APP_MARKET_DATA_API_URL || 'http://localhost:3000';
-const API_STAGE = process.env.REACT_APP_API_STAGE || 'dev';
-const ADMIN_API_KEY = process.env.REACT_APP_ADMIN_API_KEY || 'd41d8cd98f00b204e9800998ecf8427e';
-const DEFAULT_EXCHANGE_RATE = parseFloat(process.env.REACT_APP_DEFAULT_EXCHANGE_RATE || '150.0');
-const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
+// 環境ユーティリティを使用した環境変数の取得
+import { getApiBaseUrl, getApiStage, getAdminApiKey, getGoogleClientId, getDefaultExchangeRate } from '../utils/envUtils';
+
+// 環境に応じたAPI基本URLの取得
+const MARKET_DATA_API_URL = getApiBaseUrl();
+// 環境に応じたAPIステージの取得
+const API_STAGE = getApiStage();
+// 管理者APIキーの取得
+const ADMIN_API_KEY = getAdminApiKey();
+// デフォルト為替レートの取得
+const DEFAULT_EXCHANGE_RATE = getDefaultExchangeRate();
+// Google Client IDの取得
+const GOOGLE_CLIENT_ID = getGoogleClientId();
+```
+
+### 8.3 環境固有の設定ファイル
+
+- **`.env.development`**: 開発環境用の環境変数設定
+  ```
+  REACT_APP_MARKET_DATA_API_URL=https://dev-api.example.com
+  REACT_APP_API_STAGE=dev
+  REACT_APP_ADMIN_API_KEY=dev_admin_api_key
+  REACT_APP_GOOGLE_CLIENT_ID=your_dev_client_id.apps.googleusercontent.com
+  REACT_APP_DEFAULT_EXCHANGE_RATE=150.0
+  ```
+
+- **`.env.production`**: 本番環境用の環境変数設定
+  ```
+  REACT_APP_MARKET_DATA_API_URL=https://api.example.com
+  REACT_APP_API_STAGE=prod
+  REACT_APP_ADMIN_API_KEY=prod_admin_api_key
+  REACT_APP_GOOGLE_CLIENT_ID=your_prod_client_id.apps.googleusercontent.com
+  REACT_APP_DEFAULT_EXCHANGE_RATE=150.0
+  ```
+
+## 9. 環境判定と最適化（AWS対応）
+
+### 9.1 環境判定関数
+
+```javascript
+// 環境判定ユーティリティ（envUtils.js）
+export const isDevEnvironment = () => {
+  return process.env.NODE_ENV === 'development' || process.env.REACT_APP_API_STAGE === 'dev';
+};
+
+export const isProdEnvironment = () => {
+  return process.env.NODE_ENV === 'production' && process.env.REACT_APP_API_STAGE === 'prod';
+};
+
+export const isLocalDevelopment = () => {
+  return process.env.NODE_ENV === 'development' && window.location.hostname === 'localhost';
+};
+```
+
+### 9.2 環境に応じたAPI URL生成
+
+```javascript
+// API URL生成ユーティリティ（envUtils.js）
+export const getApiBaseUrl = () => {
+  return process.env.REACT_APP_MARKET_DATA_API_URL || 'http://localhost:3000';
+};
+
+export const getApiStage = () => {
+  return process.env.REACT_APP_API_STAGE || 'dev';
+};
+
+// APIエンドポイント構築関数
+export const buildApiEndpoint = (path) => {
+  const baseUrl = getApiBaseUrl();
+  const stage = getApiStage();
+  return `${baseUrl}/${stage}/${path}`;
+};
 ```
 
 ## 改訂履歴
@@ -1069,3 +1184,4 @@ const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID;
 | 3.0 | 2025-03-18 16:00 | 配当情報関連の変数と関数の命名規則、通知システムの実装 |  |
 | 4.0 | 2025-03-22 12:30 | マルチデータソース対応、フォールバック処理の標準化 |  |
 | 5.0 | 2025-05-12 15:00 | リファクタリング - スクレイピング機能削除、環境変数名を`REACT_APP_MARKET_DATA_API_URL`に変更、市場データAPIへの一元化 | Claude |
+| 5.1 | 2025-05-20 15:30 | AWS環境対応 - 環境変数管理の強化、API通信の共通化、Google Drive連携の最適化 | Claude |
