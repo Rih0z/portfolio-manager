@@ -1,17 +1,18 @@
-# 市場データ取得API仕様書（リファクタリング版）
+# 市場データ取得API仕様書（認証バックエンド連携対応版）
 
-**最終更新日時:** 2025-05-12 14:30
+**最終更新日時:** 2025-05-12 16:30
 
 ## 1. 概要
 
-この仕様書は、ポートフォリオマネージャーアプリケーションで使用する市場データ取得APIおよび関連機能について定義します。リファクタリングに伴い、すべての市場データ取得機能は単一の市場データAPIサーバー（`REACT_APP_MARKET_DATA_API_URL`）に集約されました。以前のスクレイピング機能やマルチソース対応は削除され、シンプルで統一されたAPIアクセスに変更されています。
+この仕様書は、ポートフォリオマネージャーアプリケーションで使用する市場データ取得APIおよび関連機能について定義します。リファクタリングに伴い、すべての市場データ取得機能は単一の市場データAPIサーバー（`REACT_APP_MARKET_DATA_API_URL`）に集約されました。加えて、Google認証およびGoogle Drive連携もバックエンドAPI経由に移行され、セキュリティと機能性が向上しています。
 
 ## 2. 環境設定
 
 ### 2.1 環境変数
-- **`REACT_APP_MARKET_DATA_API_URL`**: 市場データAPIサーバーのベースURL（株価、為替、投資信託情報取得用）
+- **`REACT_APP_MARKET_DATA_API_URL`**: 市場データAPIサーバーのベースURL（株価、為替、投資信託情報取得、認証連携用）
 - **`REACT_APP_API_STAGE`**: APIのステージ環境（'dev'、'prod'など）
 - **`REACT_APP_ADMIN_API_KEY`**: 管理者API用認証キー
+- **`REACT_APP_GOOGLE_CLIENT_ID`**: Google OAuth認証用クライアントID（フロントエンド側で必要）
 
 ## 3. APIエンドポイント構造
 
@@ -28,6 +29,32 @@ ${REACT_APP_MARKET_DATA_API_URL}/dev/api/market-data
 管理者用APIエンドポイントは以下の形式となります：
 ```
 ${REACT_APP_MARKET_DATA_API_URL}/${REACT_APP_API_STAGE}/admin/${path}
+```
+
+### 3.1 認証関連エンドポイント（バックエンド連携）
+
+```
+# Google認証処理
+${REACT_APP_MARKET_DATA_API_URL}/${REACT_APP_API_STAGE}/auth/google/login
+
+# セッション情報取得
+${REACT_APP_MARKET_DATA_API_URL}/${REACT_APP_API_STAGE}/auth/session
+
+# ログアウト処理
+${REACT_APP_MARKET_DATA_API_URL}/${REACT_APP_API_STAGE}/auth/logout
+```
+
+### 3.2 Google Drive連携エンドポイント（バックエンド連携）
+
+```
+# ポートフォリオデータの保存
+${REACT_APP_MARKET_DATA_API_URL}/${REACT_APP_API_STAGE}/drive/save
+
+# ポートフォリオデータの読み込み
+${REACT_APP_MARKET_DATA_API_URL}/${REACT_APP_API_STAGE}/drive/load
+
+# ファイル一覧の取得
+${REACT_APP_MARKET_DATA_API_URL}/${REACT_APP_API_STAGE}/drive/files
 ```
 
 ## 4. 市場データ取得API
@@ -50,7 +77,8 @@ const response = await axios.get(`${apiEndpoint}`, {
     symbols: 'AAPL',
     refresh: 'false'
   },
-  timeout: 10000
+  timeout: 10000,
+  withCredentials: true // Cookieベースの認証に必要
 });
 ```
 
@@ -75,521 +103,618 @@ const response = await axios.get(`${apiEndpoint}`, {
 }
 ```
 
-#### 4.1.2 複数銘柄一括取得
-- **パス**: `/api/market-data`
-- **メソッド**: GET
-- **パラメーター**:
-  - `type`: 銘柄タイプ（'us-stock'、'jp-stock'、'mutual-fund'）
-  - `symbols`: カンマ区切りのティッカーシンボルまたは証券コード
-  - `refresh`: データを強制更新するかどうか（'true'/'false'）
+[以下、市場データ取得APIの部分は変更なし]
 
+## 5. 認証API（バックエンド連携）
+
+### 5.1 Google認証プロセス
+
+#### 5.1.1 Google認証フロー初期化
+
+- **パス**: `/auth/google/login`
+- **メソッド**: POST
+- **ヘッダー**: 
+  - `Content-Type`: `application/json`
+- **ボディ**:
+  - `code`: Google OAuth認可コード
+  - `redirectUri`: リダイレクトURI（通常は `${window.location.origin}/auth/callback`）
 - **リクエスト例**:
 ```javascript
-const response = await axios.get(`${apiEndpoint}`, {
-  params: {
-    type: 'us-stock',
-    symbols: 'AAPL,MSFT,GOOG',
-    refresh: 'false'
+const response = await axios.post(
+  `${apiBaseUrl}/${apiStage}/auth/google/login`,
+  {
+    code: credentialResponse.code,
+    redirectUri: window.location.origin + '/auth/callback'
   },
-  timeout: 10000
-});
+  {
+    withCredentials: true // Cookieを送受信するために必要
+  }
+);
 ```
 
 - **レスポンス例**:
 ```json
 {
   "success": true,
-  "data": [
-    {
-      "ticker": "AAPL",
-      "price": 174.79,
-      "name": "Apple Inc.",
-      "currency": "USD",
-      "isStock": true,
-      "isMutualFund": false,
-      "lastUpdated": "2025-05-12T14:23:45.678Z"
-    },
-    {
-      "ticker": "MSFT",
-      "price": 342.50,
-      "name": "Microsoft Corporation",
-      "currency": "USD",
-      "isStock": true,
-      "isMutualFund": false,
-      "lastUpdated": "2025-05-12T14:23:45.678Z"
-    },
-    {
-      "ticker": "GOOG",
-      "price": 2785.65,
-      "name": "Alphabet Inc. Class C",
-      "currency": "USD",
-      "isStock": true,
-      "isMutualFund": false,
-      "lastUpdated": "2025-05-12T14:23:45.678Z"
-    }
-  ],
-  "message": "データを取得しました"
+  "isAuthenticated": true,
+  "user": {
+    "id": "109476395873295845628",
+    "email": "user@example.com",
+    "name": "サンプルユーザー",
+    "picture": "https://lh3.googleusercontent.com/a/..."
+  },
+  "session": {
+    "expiresAt": "2025-05-18T12:34:56.789Z"
+  }
 }
 ```
 
-### 4.2 為替レート取得
+#### 5.1.2 セッション確認
 
-- **パス**: `/api/market-data`
-- **メソッド**: GET
-- **パラメーター**:
-  - `type`: 'exchange-rate'
-  - `base`: 基準通貨（例: 'USD'）
-  - `target`: 対象通貨（例: 'JPY'）
-  - `refresh`: データを強制更新するかどうか（'true'/'false'）
-
-- **リクエスト例**:
-```javascript
-const response = await axios.get(`${apiEndpoint}`, {
-  params: {
-    type: 'exchange-rate',
-    base: 'USD',
-    target: 'JPY',
-    refresh: 'false'
-  },
-  timeout: 5000
-});
-```
-
-- **レスポンス例**:
-```json
-{
-  "success": true,
-  "data": {
-    "rate": 150.25,
-    "source": "Market Data API",
-    "base": "USD",
-    "target": "JPY",
-    "lastUpdated": "2025-05-12T14:20:30.123Z"
-  },
-  "message": "為替レートを取得しました"
-}
-```
-
-### 4.3 ファンド情報取得
-
-- **パス**: `/api/market-data`
-- **メソッド**: GET
-- **パラメーター**:
-  - `type`: 'fund-info'
-  - `ticker`: ティッカーシンボルまたはファンドコード
-  - `name`: 銘柄名（オプション）
-
-- **リクエスト例**:
-```javascript
-const response = await axios.get(`${apiEndpoint}`, {
-  params: {
-    type: 'fund-info',
-    ticker: '8630042C',
-    name: 'ニッセイ 外国株式インデックスファンド'
-  },
-  timeout: 10000
-});
-```
-
-- **レスポンス例**:
-```json
-{
-  "success": true,
-  "data": {
-    "ticker": "8630042C",
-    "name": "ニッセイ 外国株式インデックスファンド",
-    "fundType": "index",
-    "category": "international-equity",
-    "annualFee": 0.22,
-    "currency": "JPY",
-    "establishedDate": "2016-02-25",
-    "benchmark": "MSCI Kokusai Index",
-    "assetSize": 1234567890,
-    "lastUpdated": "2025-05-12T14:15:10.456Z"
-  },
-  "message": "ファンド情報を取得しました"
-}
-```
-
-### 4.4 配当情報取得
-
-- **パス**: `/api/market-data`
-- **メソッド**: GET
-- **パラメーター**:
-  - `type`: 'dividend-info'
-  - `ticker`: ティッカーシンボル
-
-- **リクエスト例**:
-```javascript
-const response = await axios.get(`${apiEndpoint}`, {
-  params: {
-    type: 'dividend-info',
-    ticker: 'AAPL'
-  },
-  timeout: 10000
-});
-```
-
-- **レスポンス例**:
-```json
-{
-  "success": true,
-  "data": {
-    "ticker": "AAPL",
-    "dividendYield": 0.5,
-    "annualDividend": 0.92,
-    "payoutRatio": 14.8,
-    "hasDividend": true,
-    "dividendFrequency": "quarterly",
-    "exDividendDate": "2025-05-09",
-    "paymentDate": "2025-05-16",
-    "dividendHistory": [
-      {
-        "date": "2025-02-14",
-        "amount": 0.23
-      },
-      {
-        "date": "2024-11-15",
-        "amount": 0.23
-      }
-    ],
-    "lastUpdated": "2025-05-12T14:10:25.789Z"
-  },
-  "message": "配当情報を取得しました"
-}
-```
-
-## 5. 管理者API
-
-### 5.1 APIステータス取得
-
-- **パス**: `/admin/status`
+- **パス**: `/auth/session`
 - **メソッド**: GET
 - **ヘッダー**:
-  - `x-api-key`: 管理者API認証キー
-
+  - Cookie: セッションクッキー（自動送信）
 - **リクエスト例**:
 ```javascript
-const response = await axios.get(`${baseEndpoint}/admin/status`, {
-  headers: {
-    'x-api-key': ADMIN_API_KEY
-  },
-  timeout: 5000
-});
+const response = await axios.get(
+  `${apiBaseUrl}/${apiStage}/auth/session`,
+  { withCredentials: true }
+);
 ```
 
 - **レスポンス例**:
 ```json
 {
   "success": true,
-  "data": {
-    "status": "operational",
-    "uptime": 1234567,
-    "apiVersion": "1.2.3",
-    "requestCount": {
-      "total": 12345,
-      "usStock": 5678,
-      "jpStock": 3456,
-      "mutualFund": 2345,
-      "exchangeRate": 876
-    },
-    "lastUpdated": "2025-05-12T14:05:40.123Z"
+  "isAuthenticated": true,
+  "user": {
+    "id": "109476395873295845628",
+    "email": "user@example.com",
+    "name": "サンプルユーザー",
+    "picture": "https://lh3.googleusercontent.com/a/..."
   },
-  "message": "APIステータスを取得しました"
+  "session": {
+    "expiresAt": "2025-05-18T12:34:56.789Z"
+  }
 }
 ```
 
-### 5.2 API使用量リセット
+#### 5.1.3 ログアウト処理
 
-- **パス**: `/admin/reset`
+- **パス**: `/auth/logout`
 - **メソッド**: POST
 - **ヘッダー**:
-  - `x-api-key`: 管理者API認証キー
-
+  - Cookie: セッションクッキー（自動送信）
 - **リクエスト例**:
 ```javascript
-const response = await axios.post(`${baseEndpoint}/admin/reset`, {}, {
-  headers: {
-    'x-api-key': ADMIN_API_KEY
-  },
-  timeout: 5000
-});
+const response = await axios.post(
+  `${apiBaseUrl}/${apiStage}/auth/logout`,
+  {},
+  { withCredentials: true }
+);
 ```
 
 - **レスポンス例**:
 ```json
 {
   "success": true,
-  "data": {
-    "resetTime": "2025-05-12T14:30:00.000Z",
-    "previousCount": {
-      "total": 12345,
-      "usStock": 5678,
-      "jpStock": 3456,
-      "mutualFund": 2345,
-      "exchangeRate": 876
-    },
-    "newCount": {
-      "total": 0,
-      "usStock": 0,
-      "jpStock": 0,
-      "mutualFund": 0,
-      "exchangeRate": 0
-    }
-  },
-  "message": "API使用量をリセットしました"
+  "message": "ログアウトしました"
 }
 ```
 
-## 6. フロントエンドAPIクライアント
+## 6. Google Drive連携API（バックエンド連携）
 
-### 6.1 単一銘柄データ取得
+### 6.1 ポートフォリオデータの保存
 
+- **パス**: `/drive/save`
+- **メソッド**: POST
+- **ヘッダー**:
+  - `Content-Type`: `application/json`
+  - Cookie: セッションクッキー（自動送信）
+- **ボディ**:
+  - `portfolioData`: 保存するポートフォリオデータ（JSONオブジェクト）
+- **リクエスト例**:
 ```javascript
-/**
- * 銘柄データを取得する
- * @param {string} ticker - ティッカーシンボル
- * @param {boolean} refresh - キャッシュを無視して最新データを取得するか
- * @returns {Promise<Object>} 銘柄データ
- */
-export const fetchTickerData = async (ticker, refresh = false) => {
-  if (!ticker) {
-    return {
-      success: false,
-      message: 'ティッカーシンボルが指定されていません',
-      error: true
-    };
-  }
-  
-  try {
-    const endpoint = getApiEndpoint('market-data');
-    
-    // 銘柄タイプを判定
-    const isJapaneseStock = /^\d{4}(\.T)?$/.test(ticker);
-    const isMutualFund = /^\d{7,8}C(\.T)?$/.test(ticker);
-    
-    // 銘柄タイプに応じたパラメータ設定
-    const type = isJapaneseStock 
-      ? 'jp-stock' 
-      : isMutualFund 
-        ? 'mutual-fund' 
-        : 'us-stock';
-    
-    const timeout = isJapaneseStock 
-      ? TIMEOUT.JP_STOCK 
-      : isMutualFund 
-        ? TIMEOUT.MUTUAL_FUND 
-        : TIMEOUT.US_STOCK;
-    
-    // APIリクエスト
-    const response = await fetchWithRetry(
-      endpoint,
-      {
-        type,
-        symbols: ticker,
-        refresh: refresh ? 'true' : 'false'
-      },
-      timeout
-    );
-    
-    return response;
-  } catch (error) {
-    console.error(`Error fetching data for ${ticker}:`, error);
-    return {
-      ...formatErrorResponse(error, ticker),
-      // フォールバックデータも含める
-      data: generateFallbackData(ticker)
-    };
-  }
-};
+const response = await axios.post(
+  `${apiBaseUrl}/${apiStage}/drive/save`,
+  {
+    portfolioData: portfolioData
+  },
+  { withCredentials: true }
+);
 ```
 
-### 6.2 為替レート取得
-
-```javascript
-/**
- * 為替レートを取得する
- * @param {string} fromCurrency - 変換元通貨
- * @param {string} toCurrency - 変換先通貨
- * @param {boolean} refresh - キャッシュを無視して最新データを取得するか
- * @returns {Promise<Object>} 為替レートデータ
- */
-export const fetchExchangeRate = async (fromCurrency = 'USD', toCurrency = 'JPY', refresh = false) => {
-  try {
-    const endpoint = getApiEndpoint('market-data');
-    
-    const response = await fetchWithRetry(
-      endpoint,
-      {
-        type: 'exchange-rate',
-        base: fromCurrency,
-        target: toCurrency,
-        refresh: refresh ? 'true' : 'false'
-      },
-      TIMEOUT.EXCHANGE_RATE
-    );
-    
-    return response;
-  } catch (error) {
-    console.error(`Error fetching exchange rate ${fromCurrency}/${toCurrency}:`, error);
-    
-    // フォールバック値を返す
-    return {
-      success: false,
-      error: true,
-      message: '為替レートの取得に失敗しました',
-      ...formatErrorResponse(error),
-      // デフォルト値も含める
-      rate: fromCurrency === 'USD' && toCurrency === 'JPY' ? 150.0 : 
-            fromCurrency === 'JPY' && toCurrency === 'USD' ? 1/150.0 : 1.0,
-      source: 'Fallback',
-      lastUpdated: new Date().toISOString()
-    };
+- **レスポンス例**:
+```json
+{
+  "success": true,
+  "message": "ポートフォリオデータをGoogle Driveに保存しました",
+  "file": {
+    "id": "1Zt8jKX7H3gFzN9v2X5yM6fGhJkLpQr7s",
+    "name": "portfolio-data-2025-05-11T12-34-56-789Z.json",
+    "url": "https://drive.google.com/file/d/1Zt8jKX7H3gFzN9v2X5yM6fGhJkLpQr7s/view",
+    "createdAt": "2025-05-11T12:34:56.789Z"
   }
-};
+}
+```
+
+### 6.2 ポートフォリオデータの読み込み
+
+- **パス**: `/drive/load`
+- **メソッド**: GET
+- **ヘッダー**:
+  - Cookie: セッションクッキー（自動送信）
+- **パラメータ**:
+  - `fileId`: 読み込むファイルのID（オプション、指定がない場合は最新ファイル）
+- **リクエスト例**:
+```javascript
+const response = await axios.get(
+  `${apiBaseUrl}/${apiStage}/drive/load`,
+  {
+    params: { fileId }, // fileIdがnullの場合は最新ファイルを取得
+    withCredentials: true
+  }
+);
+```
+
+- **レスポンス例**:
+```json
+{
+  "success": true,
+  "message": "ポートフォリオデータをGoogle Driveから読み込みました",
+  "file": {
+    "name": "portfolio-data-2025-05-10T15-22-33-456Z.json",
+    "createdAt": "2025-05-10T15:22:33.456Z",
+    "modifiedAt": "2025-05-10T15:22:33.456Z"
+  },
+  "data": {
+    "name": "マイポートフォリオ",
+    "holdings": [
+      {
+        "ticker": "AAPL",
+        "shares": 10,
+        "costBasis": 150.25
+      },
+      {
+        "ticker": "7203.T",
+        "shares": 100,
+        "costBasis": 2100
+      }
+    ],
+    "createdAt": "2025-05-10T15:22:33.456Z"
+  }
+}
+```
+
+### 6.3 ファイル一覧の取得
+
+- **パス**: `/drive/files`
+- **メソッド**: GET
+- **ヘッダー**:
+  - Cookie: セッションクッキー（自動送信）
+- **リクエスト例**:
+```javascript
+const response = await axios.get(
+  `${apiBaseUrl}/${apiStage}/drive/files`,
+  { withCredentials: true }
+);
+```
+
+- **レスポンス例**:
+```json
+{
+  "success": true,
+  "files": [
+    {
+      "id": "1Zt8jKX7H3gFzN9v2X5yM6fGhJkLpQr7s",
+      "name": "portfolio-data-2025-05-11T12-34-56-789Z.json",
+      "size": 1024,
+      "mimeType": "application/json",
+      "createdAt": "2025-05-11T12:34:56.789Z",
+      "modifiedAt": "2025-05-11T12:34:56.789Z",
+      "webViewLink": "https://drive.google.com/file/d/1Zt8jKX7H3gFzN9v2X5yM6fGhJkLpQr7s/view"
+    },
+    {
+      "id": "2Ab9cDe3F4gHi5J6kLmN7oP8qRsT9uVw",
+      "name": "portfolio-data-2025-05-10T15-22-33-456Z.json",
+      "size": 980,
+      "mimeType": "application/json",
+      "createdAt": "2025-05-10T15:22:33.456Z",
+      "modifiedAt": "2025-05-10T15:22:33.456Z",
+      "webViewLink": "https://drive.google.com/file/d/2Ab9cDe3F4gHi5J6kLmN7oP8qRsT9uVw/view"
+    }
+  ],
+  "count": 2
+}
 ```
 
 ## 7. エラーハンドリング
 
-### 7.1 リトライ機構
+### 7.1 基本的なエラーハンドリング
 
 ```javascript
-/**
- * リトライメカニズム付きのfetch関数
- * @param {string} url - APIエンドポイント
- * @param {Object} params - クエリパラメータ
- * @param {number} timeout - タイムアウト（ミリ秒）
- * @param {number} maxRetries - 最大リトライ回数
- * @returns {Promise<Object>} レスポンスデータ
- */
-const fetchWithRetry = async (url, params = {}, timeout = TIMEOUT.DEFAULT, maxRetries = RETRY.MAX_ATTEMPTS) => {
-  let retries = 0;
-  
-  while (retries <= maxRetries) {
-    try {
-      const response = await marketDataClient.get(url, {
-        params,
-        timeout: timeout + (retries * 2000) // リトライごとにタイムアウトを延長
-      });
+const fetchMarketData = async (type, symbols) => {
+  try {
+    const response = await axios.get('${apiBaseUrl}/${apiStage}/api/market-data', {
+      params: { type, symbols },
+      withCredentials: true // 認証情報を送信するために必要
+    });
+    
+    if (response.data.success) {
+      return response.data.data;
+    } else {
+      console.error('APIエラー:', response.data.error);
+      return null;
+    }
+  } catch (error) {
+    // ネットワークエラーや5xx系エラー
+    if (error.response) {
+      // サーバーからレスポンスがあった場合
+      console.error('APIエラーレスポンス:', error.response.status, error.response.data);
       
-      // 成功したらレスポンスを返す
-      return response.data;
-    } catch (error) {
-      console.error(`API fetch error (attempt ${retries+1}/${maxRetries+1}):`, error.message);
+      // 認証エラーの場合は適切に処理
+      if (error.response.status === 401) {
+        console.error('認証エラー - ログインが必要です');
+        // 認証画面への遷移処理等
+      }
+    } else if (error.request) {
+      // リクエストは送信されたがレスポンスがない場合
+      console.error('APIレスポンスなし:', error.request);
+    } else {
+      // リクエスト設定エラー
+      console.error('APIリクエストエラー:', error.message);
+    }
+    return null;
+  }
+};
+```
+
+### 7.2 認証エラーの処理
+
+```javascript
+const handleApiRequest = async (url, method = 'get', data = null, params = null) => {
+  try {
+    const config = {
+      withCredentials: true // Cookie送受信のために必要
+    };
+    
+    if (params) {
+      config.params = params;
+    }
+    
+    let response;
+    if (method === 'get') {
+      response = await axios.get(url, config);
+    } else {
+      response = await axios.post(url, data, config);
+    }
+    
+    return response.data;
+  } catch (error) {
+    // 認証エラー（401）の場合はログイン画面にリダイレクト
+    if (error.response && error.response.status === 401) {
+      console.error('認証エラー - ログインが必要です');
       
-      // 最後の試行で失敗した場合はエラーを投げる
-      if (retries === maxRetries) {
-        throw error;
+      // 認証状態をクリア
+      if (typeof onAuthChange === 'function') {
+        onAuthChange(false);
       }
       
-      // リトライ前に遅延を入れる（指数バックオフ+ジッター）
-      const delay = RETRY.INITIAL_DELAY * Math.pow(RETRY.BACKOFF_FACTOR, retries) * (0.9 + Math.random() * 0.2);
-      await new Promise(resolve => setTimeout(resolve, delay));
-      
-      // リトライカウントを増やす
-      retries++;
+      // ログインページへリダイレクト
+      window.location.href = '/login';
+      return { success: false, error: 'ログインが必要です' };
     }
+    
+    // その他のエラー処理
+    console.error('APIエラー:', error);
+    return { success: false, error: error.message };
   }
 };
 ```
 
-### 7.2 エラーメッセージ形式
+### 7.3 使用量制限の処理
+
+APIには日次と月次の使用量制限があります。制限に達した場合は`429 Too Many Requests`エラーが返されます。
 
 ```javascript
-/**
- * エラーメッセージを整形する
- * @param {Error} error - エラーオブジェクト
- * @returns {Object} エラー情報
- */
-const formatErrorResponse = (error, ticker) => {
-  const errorResponse = {
-    success: false,
-    error: true,
-    message: 'データの取得に失敗しました',
-    errorType: 'UNKNOWN',
-    errorDetail: error.message
+const fetchStockDataWithRateLimitHandling = async (ticker) => {
+  try {
+    const response = await axios.get('${apiBaseUrl}/${apiStage}/api/market-data', {
+      params: { 
+        type: 'us-stock', 
+        symbols: ticker 
+      },
+      withCredentials: true
+    });
+    return response.data;
+  } catch (error) {
+    // 使用量制限エラーの処理
+    if (error.response && error.response.status === 429) {
+      console.warn('API使用量制限に達しました。ローカルデータを使用します。');
+      
+      // クライアント側でフォールバックデータを提供
+      return {
+        success: true,
+        data: {
+          [ticker]: {
+            ticker: ticker,
+            price: 100, // デフォルト値
+            name: ticker,
+            currency: 'USD',
+            lastUpdated: new Date().toISOString(),
+            source: 'Client Fallback',
+            isStock: true,
+            isMutualFund: false
+          }
+        }
+      };
+    }
+    
+    // その他のエラー処理
+    console.error('APIエラー:', error);
+    throw error;
+  }
+};
+```
+
+## 8. React用認証フック（更新版）
+
+```javascript
+import { useState, useEffect, useContext, createContext } from 'react';
+import axios from 'axios';
+
+// 環境変数からAPIの設定を取得
+const API_URL = process.env.REACT_APP_MARKET_DATA_API_URL || 'http://localhost:3000';
+const API_STAGE = process.env.REACT_APP_API_STAGE || 'dev';
+
+// 認証コンテキストの作成
+const AuthContext = createContext();
+
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  
+  // セッション確認
+  const checkSession = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(
+        `${API_URL}/${API_STAGE}/auth/session`,
+        { withCredentials: true }
+      );
+      
+      if (response.data.success && response.data.isAuthenticated) {
+        setUser(response.data.user);
+        setIsAuthenticated(true);
+      } else {
+        setUser(null);
+        setIsAuthenticated(false);
+      }
+    } catch (error) {
+      console.error('セッション確認エラー:', error);
+      setUser(null);
+      setIsAuthenticated(false);
+    } finally {
+      setLoading(false);
+    }
   };
   
-  if (error.response) {
-    // サーバーからのレスポンスがある場合
-    errorResponse.status = error.response.status;
-    errorResponse.errorType = error.response.status === 429 ? 'RATE_LIMIT' : 'API_ERROR';
-    errorResponse.message = error.response.data?.message || `API エラー (${error.response.status})`;
-  } else if (error.code === 'ECONNABORTED') {
-    // タイムアウトの場合
-    errorResponse.errorType = 'TIMEOUT';
-    errorResponse.message = 'リクエストがタイムアウトしました';
-  } else if (error.message.includes('Network Error')) {
-    // ネットワークエラーの場合
-    errorResponse.errorType = 'NETWORK';
-    errorResponse.message = 'ネットワーク接続に問題があります';
-  }
+  // ログアウト処理
+  const logout = async () => {
+    try {
+      await axios.post(
+        `${API_URL}/${API_STAGE}/auth/logout`,
+        {},
+        { withCredentials: true }
+      );
+      setUser(null);
+      setIsAuthenticated(false);
+    } catch (error) {
+      console.error('ログアウトエラー:', error);
+    }
+  };
   
-  if (ticker) {
-    errorResponse.ticker = ticker;
-  }
+  // Googleログイン処理
+  const loginWithGoogle = async (credentialResponse) => {
+    try {
+      const response = await axios.post(
+        `${API_URL}/${API_STAGE}/auth/google/login`,
+        {
+          code: credentialResponse.code,
+          redirectUri: window.location.origin + '/auth/callback'
+        },
+        { withCredentials: true }
+      );
+      
+      if (response.data.success) {
+        setUser(response.data.user);
+        setIsAuthenticated(true);
+        return true;
+      }
+    } catch (error) {
+      console.error('Google認証エラー:', error);
+    }
+    return false;
+  };
   
-  return errorResponse;
+  // 初回マウント時にセッション確認
+  useEffect(() => {
+    checkSession();
+  }, []);
+  
+  // 提供する値
+  const value = {
+    user,
+    isAuthenticated,
+    loading,
+    loginWithGoogle,
+    logout,
+    checkSession
+  };
+  
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+};
+
+// カスタムフック
+export const useAuth = () => {
+  return useContext(AuthContext);
 };
 ```
 
-### 7.3 フォールバックデータ生成
+## 9. Google Drive連携フック（更新版）
 
 ```javascript
-/**
- * フォールバックデータを生成する
- * @param {string} ticker - ティッカーシンボル
- * @returns {Object} フォールバックデータ
- */
-const generateFallbackData = (ticker) => {
-  if (!ticker) return null;
+import { useState } from 'react';
+import axios from 'axios';
+import { useAuth } from './useAuth';
+
+// 環境変数からAPIの設定を取得
+const API_URL = process.env.REACT_APP_MARKET_DATA_API_URL || 'http://localhost:3000';
+const API_STAGE = process.env.REACT_APP_API_STAGE || 'dev';
+
+export const useGoogleDrive = () => {
+  const { isAuthenticated } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   
-  // 銘柄タイプを判定
-  const isJapaneseStock = /^\d{4}(\.T)?$/.test(ticker);
-  const isMutualFund = /^\d{7,8}C(\.T)?$/.test(ticker);
+  // ファイル一覧取得
+  const listFiles = async () => {
+    if (!isAuthenticated) {
+      setError('認証が必要です');
+      return null;
+    }
+    
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await axios.get(
+        `${API_URL}/${API_STAGE}/drive/files`,
+        { withCredentials: true }
+      );
+      
+      if (response.data.success) {
+        return response.data.files;
+      } else {
+        setError(response.data.message || '不明なエラー');
+        return null;
+      }
+    } catch (error) {
+      setError(error.message || 'ファイル一覧取得エラー');
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
   
-  // 通貨とデフォルト価格を設定
-  const currency = isJapaneseStock || isMutualFund ? 'JPY' : 'USD';
-  let price;
+  // ファイル保存
+  const saveFile = async (portfolioData) => {
+    if (!isAuthenticated) {
+      setError('認証が必要です');
+      return null;
+    }
+    
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await axios.post(
+        `${API_URL}/${API_STAGE}/drive/save`,
+        { portfolioData },
+        { withCredentials: true }
+      );
+      
+      if (response.data.success) {
+        return response.data.file;
+      } else {
+        setError(response.data.message || '不明なエラー');
+        return null;
+      }
+    } catch (error) {
+      setError(error.message || 'ファイル保存エラー');
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
   
-  if (isJapaneseStock) {
-    price = 2500; // 日本株のデフォルト価格
-  } else if (isMutualFund) {
-    price = 10000; // 投資信託のデフォルト価格
-  } else {
-    price = 100; // 米国株のデフォルト価格
-  }
+  // ファイル読み込み
+  const loadFile = async (fileId) => {
+    if (!isAuthenticated) {
+      setError('認証が必要です');
+      return null;
+    }
+    
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await axios.get(
+        `${API_URL}/${API_STAGE}/drive/load`,
+        {
+          params: { fileId },
+          withCredentials: true
+        }
+      );
+      
+      if (response.data.success) {
+        return response.data.data;
+      } else {
+        setError(response.data.message || '不明なエラー');
+        return null;
+      }
+    } catch (error) {
+      setError(error.message || 'ファイル読み込みエラー');
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
   
   return {
-    ticker: ticker,
-    price: price,
-    name: ticker,
-    currency: currency,
-    lastUpdated: new Date().toISOString(),
-    source: 'Fallback',
-    isStock: !isMutualFund,
-    isMutualFund: isMutualFund,
-    priceLabel: isMutualFund ? '基準価額' : '株価'
+    listFiles,
+    saveFile,
+    loadFile,
+    loading,
+    error
   };
 };
 ```
 
-## 8. 環境変数定義
+## 10. Googleログインボタン（認可コードフロー対応版）
 
-プロジェクトで使用される環境変数の設定例:
+```jsx
+import React from 'react';
+import { GoogleLogin } from '@react-oauth/google';
+import { useAuth } from '../hooks/useAuth';
 
-```
-# 市場データAPI URL（株価・為替レート・投資信託情報取得用）
-REACT_APP_MARKET_DATA_API_URL=https://api.marketdata.example.com
+const LoginButton = () => {
+  const { loginWithGoogle, loading } = useAuth();
+  
+  const handleGoogleLoginSuccess = async (credentialResponse) => {
+    await loginWithGoogle(credentialResponse);
+  };
+  
+  return (
+    <div className="login-container">
+      <GoogleLogin
+        flow="auth-code" // 重要: 認可コードフローを使用
+        onSuccess={handleGoogleLoginSuccess}
+        onError={() => console.error('ログイン失敗')}
+        useOneTap
+        shape="pill"
+        theme="filled_blue"
+        text="continue_with"
+        disabled={loading}
+      />
+      {loading && <div className="mt-2 text-sm text-gray-500">認証処理中...</div>}
+    </div>
+  );
+};
 
-# API実行環境
-REACT_APP_API_STAGE=dev
-
-# 管理者API認証キー
-REACT_APP_ADMIN_API_KEY=your_admin_api_key_here
-
-# フォールバック用デフォルト為替レート
-REACT_APP_DEFAULT_EXCHANGE_RATE=150.0
+export default LoginButton;
 ```
 
 ## 改訂履歴
@@ -600,3 +725,4 @@ REACT_APP_DEFAULT_EXCHANGE_RATE=150.0
 | 2.0 | 2025-05-07 | ETF対応機能、Python yfinance連携、AIプロンプト生成機能、マルチ通貨対応を追加 |  |
 | 3.0 | 2025-05-08 | 代替為替レートソース、株価スクレイピングプロキシ、Alpha Vantage API連携を追加 |  |
 | 4.0 | 2025-05-12 | リファクタリング - スクレイピング機能を削除し、市場データAPIに集約。環境変数名を`REACT_APP_MARKET_DATA_API_URL`に変更 | Claude |
+| 4.1 | 2025-05-12 | Google認証機能のバックエンド連携対応を追加。クライアントサイド完結型の認証から、認可コードフローを使用したセキュアなバックエンド連携型認証に移行 | Claude |

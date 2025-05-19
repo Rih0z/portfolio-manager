@@ -1,625 +1,1254 @@
-# ポートフォリオマネージャー サーバー機能移行計画
+# ポートフォリオマネージャーAWS移行実装計画
 
-**バージョン:** 1.0  
-**作成日:** 2025-05-08  
-**作成者:** [担当者名]
+提供された文書を詳しく分析し、AWSに移行したサーバー機能とGoogleログイン機能を使用できるようにするための具体的な計画を作成しました。開発環境と本番環境の切り替えにも対応します。
 
-## 1. 移行の目的と背景
+## 1. 現状と目標
 
-Netlify Functions の使用制限（月間125,000回）を超過したため、より効率的なサーバー構成へ移行する必要がある。現状では複数の個別関数が連鎖的に呼び出され、キャッシュ戦略も最適化されていない。この移行計画では、サーバー側機能の統合、キャッシュ機構の強化、専用サーバーへの移行を行い、安定したサービス提供を実現する。
+**現状**：
+- サーバー機能とGoogleログイン機能がAWSに移行済み
+- how-to-call-api.mdでAPI呼び出し方法が詳細に説明されている
+- アプリケーションコードは古いエンドポイントを使用している
 
-## 2. 移行の概要
+**目標**：
+- マーケットデータAPI呼び出しをAWS環境に対応させる
+- 開発環境ではローカルホスト、本番環境ではAWSエンドポイントを自動的に使用するよう設定する
+- Google認証をAWS環境と連携させる
+- Google Drive連携機能をAWS環境用に更新する
+- エラーハンドリングを強化し、信頼性を向上させる
 
-### 2.1 主要変更点
+## 2. 主要な変更点
 
-1. **関数の統合**: 複数の個別関数（米国株、日本株、投資信託、為替レート取得）を単一のAPIエンドポイントに統合
-2. **キャッシュ強化**: データの有効期間を延長し、スクレイピング頻度を最小限に抑制
-3. **専用サーバー**: レンタルサーバーを導入し、すべてのAPI機能を移行
-4. **Python実装**: 日本株取得をPythonスクリプトで実装し、定期実行
-
-### 2.2 アーキテクチャ変更
-
-**現在のアーキテクチャ:**
+### 2.1 環境に応じたエンドポイント切り替え
 ```
-[ユーザー] → [Netlify (静的コンテンツ + Functions)] → [各種外部API/スクレイピング]
-```
+// 開発環境
+http://localhost:3000/dev/api/market-data
 
-**移行後のアーキテクチャ:**
-```
-[ユーザー] → [Netlify (静的コンテンツのみ)]
-                ↓
-              API呼び出し
-                ↓
-[レンタルサーバー (統合API + キャッシュ)] ← [Python日本株スクレイピング (定期実行)]
-                ↓
-[各種外部API/スクレイピング (最小限の呼び出し)]
+// 本番環境
+https://[api-id].execute-api.ap-northeast-1.amazonaws.com/[stage]/api/market-data
 ```
 
-## 3. 詳細実装計画
+### 2.2 API呼び出し方法の変更
+- クエリパラメータの形式が変更（例：`refresh: true`→`refresh: 'true'`）
+- データ取得のパスとパラメータ構造の変更
+- 認証関連のエンドポイントとパラメータの変更
+- Google Drive連携エンドポイントの追加
 
-### 3.1 統合APIエンドポイントの実装
+### 2.3 認証フロー更新
+- Cookieベースの認証に対応するための設定変更
+- `withCredentials: true` フラグの追加
+- Google OAuth認証フローの更新
 
-#### 3.1.1 単一APIエンドポイント設計
+## 3. 実装計画
 
-新しいAPIエンドポイントは、全ての株価・為替レート取得機能を統合し、以下の機能を提供する：
+### Phase 1: 環境変数設定とユーティリティ関数作成（1日）
 
-- **エンドポイント**: `/api/market-data`
-- **メソッド**: GET
-- **クエリパラメータ**:
-  - `type`: 'us-stock', 'jp-stock', 'mutual-fund', 'exchange-rate'のいずれか
-  - `symbols`: 取得する銘柄のシンボル（カンマ区切り）
-  - `refresh`: キャッシュを強制的に更新するフラグ（オプション）
+1. **環境変数の更新**
+   ```
+   # .env.development
+   REACT_APP_ENV=development
+   REACT_APP_LOCAL_API_URL=http://localhost:3000
+   REACT_APP_AWS_API_URL=https://[dev-api-id].execute-api.ap-northeast-1.amazonaws.com
+   REACT_APP_API_STAGE=dev
+   REACT_APP_GOOGLE_CLIENT_ID=your_google_client_id
+   REACT_APP_DEFAULT_EXCHANGE_RATE=150.0
+   
+   # .env.production
+   REACT_APP_ENV=production
+   REACT_APP_LOCAL_API_URL=http://localhost:3000
+   REACT_APP_AWS_API_URL=https://[prod-api-id].execute-api.ap-northeast-1.amazonaws.com
+   REACT_APP_API_STAGE=prod
+   REACT_APP_GOOGLE_CLIENT_ID=your_google_client_id
+   REACT_APP_DEFAULT_EXCHANGE_RATE=150.0
+   ```
 
-#### 3.1.2 コード例（Node.js/Express）
+2. **環境設定ユーティリティの作成**
+   ```javascript
+   // src/utils/envUtils.js
+   
+   // 環境の判定
+   export const isDevelopment = process.env.REACT_APP_ENV === 'development';
+   
+   // ローカル開発環境かどうかの判定（ローカルホストの場合true）
+   export const isLocalDevelopment = () => {
+     return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+   };
+   
+   // 環境に応じたベースURLの取得
+   export const getBaseApiUrl = () => {
+     // ローカル開発環境の場合はローカルURLを返す
+     if (isLocalDevelopment()) {
+       return process.env.REACT_APP_LOCAL_API_URL;
+     }
+     // それ以外の場合はAWS URLを返す
+     return process.env.REACT_APP_AWS_API_URL;
+   };
+   
+   // 環境に応じたAPIステージの取得
+   export const getApiStage = () => {
+     return process.env.REACT_APP_API_STAGE;
+   };
+   
+   // 完全なエンドポイントURLの生成
+   export const getApiEndpoint = (path) => {
+     const baseUrl = getBaseApiUrl();
+     const stage = getApiStage();
+     
+     // ローカル開発環境の場合はパスの形式が異なる
+     if (isLocalDevelopment()) {
+       // ローカル環境では /dev/api/market-data のような形式
+       return `${baseUrl}/${stage}/${path}`;
+     }
+     
+     // AWS環境ではAPIゲートウェイの形式に合わせる
+     return `${baseUrl}/${stage}/${path}`;
+   };
+   ```
+
+3. **API呼び出しユーティリティの作成**
+   ```javascript
+   // src/utils/apiUtils.js
+   
+   import axios from 'axios';
+   import { getApiEndpoint } from './envUtils';
+   
+   // リトライ設定
+   export const RETRY = {
+     MAX_ATTEMPTS: 2,
+     INITIAL_DELAY: 500,
+     BACKOFF_FACTOR: 2
+   };
+   
+   // タイムアウト設定
+   export const TIMEOUT = {
+     DEFAULT: 10000,        // 10秒
+     EXCHANGE_RATE: 5000,   // 5秒
+     US_STOCK: 10000,       // 10秒
+     JP_STOCK: 20000,       // 20秒
+     MUTUAL_FUND: 20000     // 20秒
+   };
+   
+   // Axiosインスタンスの作成
+   export const createApiClient = (withAuth = false) => {
+     const client = axios.create({
+       timeout: TIMEOUT.DEFAULT,
+       withCredentials: withAuth // 認証が必要な場合はクッキーを送信
+     });
+     
+     // インターセプターの設定（必要に応じて）
+     client.interceptors.request.use(
+       config => {
+         console.log(`API Request: ${config.url}`);
+         return config;
+       },
+       error => {
+         console.error('Request Error:', error);
+         return Promise.reject(error);
+       }
+     );
+     
+     return client;
+   };
+   
+   // マーケットデータAPI用のクライアント
+   export const marketDataClient = createApiClient(false);
+   
+   // 認証が必要なAPI用のクライアント
+   export const authApiClient = createApiClient(true);
+   
+   // リトライ付きフェッチ関数
+   export const fetchWithRetry = async (url, params = {}, timeout = TIMEOUT.DEFAULT, maxRetries = RETRY.MAX_ATTEMPTS) => {
+     let retries = 0;
+     
+     while (retries <= maxRetries) {
+       try {
+         const response = await marketDataClient.get(url, {
+           params,
+           timeout: timeout + (retries * 2000) // リトライごとにタイムアウトを延長
+         });
+         
+         // 成功したらレスポンスを返す
+         return response.data;
+       } catch (error) {
+         console.error(`API fetch error (attempt ${retries+1}/${maxRetries+1}):`, error.message);
+         
+         // 最後の試行で失敗した場合はエラーを投げる
+         if (retries === maxRetries) {
+           throw error;
+         }
+         
+         // リトライ前に遅延を入れる（指数バックオフ+ジッター）
+         const delay = RETRY.INITIAL_DELAY * Math.pow(RETRY.BACKOFF_FACTOR, retries) * (0.9 + Math.random() * 0.2);
+         await new Promise(resolve => setTimeout(resolve, delay));
+         
+         // リトライカウントを増やす
+         retries++;
+       }
+     }
+   };
+   
+   // エラーレスポンスをフォーマットする関数
+   export const formatErrorResponse = (error, ticker) => {
+     const errorResponse = {
+       success: false,
+       error: true,
+       message: 'データの取得に失敗しました',
+       errorType: 'UNKNOWN',
+       errorDetail: error.message
+     };
+     
+     if (error.response) {
+       // サーバーからのレスポンスがある場合
+       errorResponse.status = error.response.status;
+       errorResponse.errorType = error.response.status === 429 ? 'RATE_LIMIT' : 'API_ERROR';
+       errorResponse.message = error.response.data?.message || `API エラー (${error.response.status})`;
+     } else if (error.code === 'ECONNABORTED') {
+       // タイムアウトの場合
+       errorResponse.errorType = 'TIMEOUT';
+       errorResponse.message = 'リクエストがタイムアウトしました';
+     } else if (error.message.includes('Network Error')) {
+       // ネットワークエラーの場合
+       errorResponse.errorType = 'NETWORK';
+       errorResponse.message = 'ネットワーク接続に問題があります';
+     }
+     
+     if (ticker) {
+       errorResponse.ticker = ticker;
+     }
+     
+     return errorResponse;
+   };
+   
+   // フォールバックデータを生成する関数
+   export const generateFallbackData = (ticker) => {
+     // 銘柄のタイプを判定
+     const isJPStock = /^\d{4}(\.T)?$/.test(ticker);
+     const isMutualFund = /^\d{7}C(\.T)?$/.test(ticker);
+     
+     // デフォルト値
+     return {
+       ticker: ticker,
+       price: isJPStock ? 1000 : isMutualFund ? 10000 : 100,
+       name: `${ticker} (フォールバック)`,
+       currency: isJPStock || isMutualFund ? 'JPY' : 'USD',
+       lastUpdated: new Date().toISOString(),
+       source: 'Fallback',
+       isStock: !isMutualFund,
+       isMutualFund: isMutualFund
+     };
+   };
+   ```
+
+### Phase 2: マーケットデータサービスの更新（1.5日）
+
+1. **marketDataService.jsの更新**
+   ```javascript
+   // src/services/marketDataService.js
+   
+   import { getApiEndpoint } from '../utils/envUtils';
+   import { fetchWithRetry, formatErrorResponse, generateFallbackData, TIMEOUT } from '../utils/apiUtils';
+   
+   // 通貨換算レート取得
+   export const fetchExchangeRate = async (fromCurrency = 'USD', toCurrency = 'JPY', refresh = false) => {
+     try {
+       const endpoint = getApiEndpoint('api/market-data');
+       const response = await fetchWithRetry(
+         endpoint,
+         {
+           type: 'exchange-rate',
+           base: fromCurrency,
+           target: toCurrency,
+           refresh: refresh ? 'true' : 'false'
+         },
+         TIMEOUT.EXCHANGE_RATE
+       );
+       
+       return response;
+     } catch (error) {
+       console.error(`Error fetching exchange rate ${fromCurrency}/${toCurrency}:`, error);
+       
+       // フォールバック値を返す
+       return {
+         success: false,
+         error: true,
+         message: '為替レートの取得に失敗しました',
+         ...formatErrorResponse(error),
+         // デフォルト値も含める
+         rate: fromCurrency === 'USD' && toCurrency === 'JPY' ? 150.0 : 
+               fromCurrency === 'JPY' && toCurrency === 'USD' ? 1/150.0 : 1.0,
+         source: 'Fallback',
+         lastUpdated: new Date().toISOString()
+       };
+     }
+   };
+   
+   // 単一銘柄データ取得
+   export const fetchStockData = async (ticker, refresh = false) => {
+     // 銘柄タイプに基づくタイムアウト設定
+     let type = 'us-stock';
+     let timeout = TIMEOUT.US_STOCK;
+     
+     // 日本株判定（数字4桁 + オプションの.T）
+     if (/^\d{4}(\.T)?$/.test(ticker)) {
+       type = 'jp-stock';
+       timeout = TIMEOUT.JP_STOCK;
+     }
+     // 投資信託判定（数字7桁 + C + オプションの.T）
+     else if (/^\d{7}C(\.T)?$/.test(ticker)) {
+       type = 'mutual-fund';
+       timeout = TIMEOUT.MUTUAL_FUND;
+     }
+     
+     try {
+       console.log(`Attempting to fetch data for ${ticker} from Market Data API`);
+       const endpoint = getApiEndpoint('api/market-data');
+       const response = await fetchWithRetry(
+         endpoint,
+         {
+           type,
+           symbols: ticker,
+           refresh: refresh ? 'true' : 'false'
+         },
+         timeout
+       );
+       
+       return response;
+     } catch (error) {
+       console.error(`Error fetching ${ticker} from Market Data API:`, {
+         message: error.message,
+         status: error.response?.status,
+         data: error.response?.data,
+         code: error.code
+       });
+       
+       // フォールバック処理
+       return {
+         success: false,
+         ...formatErrorResponse(error, ticker),
+         // フォールバックデータも含める
+         data: {
+           [ticker]: generateFallbackData(ticker)
+         },
+         source: 'Fallback'
+       };
+     }
+   };
+   
+   // 複数銘柄データ一括取得
+   export const fetchMultipleStocks = async (tickers, refresh = false) => {
+     if (!tickers || tickers.length === 0) {
+       return { success: true, data: {} };
+     }
+     
+     // 銘柄をタイプ別に分類
+     const jpStocks = tickers.filter(ticker => /^\d{4}(\.T)?$/.test(ticker));
+     const mutualFunds = tickers.filter(ticker => /^\d{7}C(\.T)?$/.test(ticker));
+     const usStocks = tickers.filter(ticker => 
+       !(/^\d{4}(\.T)?$/.test(ticker)) && !(/^\d{7}C(\.T)?$/.test(ticker))
+     );
+     
+     const results = {
+       success: true,
+       data: {},
+       errors: [],
+       sources: {}
+     };
+     
+     // 並列にAPI呼び出し
+     const requests = [];
+     
+     if (usStocks.length > 0) {
+       requests.push(
+         fetchStockBatch('us-stock', usStocks, refresh, TIMEOUT.US_STOCK)
+         .then(data => {
+           Object.assign(results.data, data.data || {});
+           if (data.errors) results.errors = [...results.errors, ...data.errors];
+           if (data.source) {
+             results.sources[data.source] = (results.sources[data.source] || 0) + Object.keys(data.data || {}).length;
+           }
+         })
+         .catch(error => {
+           console.error('Error fetching US stocks:', error);
+           // フォールバック処理
+           usStocks.forEach(ticker => {
+             results.data[ticker] = generateFallbackData(ticker);
+             results.sources['Fallback'] = (results.sources['Fallback'] || 0) + 1;
+           });
+         })
+       );
+     }
+     
+     if (jpStocks.length > 0) {
+       requests.push(
+         fetchStockBatch('jp-stock', jpStocks, refresh, TIMEOUT.JP_STOCK)
+         .then(data => {
+           Object.assign(results.data, data.data || {});
+           if (data.errors) results.errors = [...results.errors, ...data.errors];
+           if (data.source) {
+             results.sources[data.source] = (results.sources[data.source] || 0) + Object.keys(data.data || {}).length;
+           }
+         })
+         .catch(error => {
+           console.error('Error fetching JP stocks:', error);
+           // フォールバック処理
+           jpStocks.forEach(ticker => {
+             results.data[ticker] = generateFallbackData(ticker);
+             results.sources['Fallback'] = (results.sources['Fallback'] || 0) + 1;
+           });
+         })
+       );
+     }
+     
+     if (mutualFunds.length > 0) {
+       requests.push(
+         fetchStockBatch('mutual-fund', mutualFunds, refresh, TIMEOUT.MUTUAL_FUND)
+         .then(data => {
+           Object.assign(results.data, data.data || {});
+           if (data.errors) results.errors = [...results.errors, ...data.errors];
+           if (data.source) {
+             results.sources[data.source] = (results.sources[data.source] || 0) + Object.keys(data.data || {}).length;
+           }
+         })
+         .catch(error => {
+           console.error('Error fetching mutual funds:', error);
+           // フォールバック処理
+           mutualFunds.forEach(ticker => {
+             results.data[ticker] = generateFallbackData(ticker);
+             results.sources['Fallback'] = (results.sources['Fallback'] || 0) + 1;
+           });
+         })
+       );
+     }
+     
+     // すべてのリクエストが完了するのを待つ
+     await Promise.all(requests);
+     
+     // 結果をソースごとに集計
+     results.sourcesSummary = Object.entries(results.sources)
+       .map(([source, count]) => `${source}: ${count}件`)
+       .join(', ');
+     
+     return results;
+   };
+   
+   // バッチでのデータ取得（内部関数）
+   const fetchStockBatch = async (type, symbols, refresh, timeout) => {
+     try {
+       const endpoint = getApiEndpoint('api/market-data');
+       return await fetchWithRetry(
+         endpoint,
+         {
+           type,
+           symbols: symbols.join(','),
+           refresh: refresh ? 'true' : 'false'
+         },
+         timeout
+       );
+     } catch (error) {
+       console.error(`Error in fetchStockBatch (${type}):`, error);
+       throw error;
+     }
+   };
+   
+   // ステータス取得（管理者用）
+   export const fetchApiStatus = async () => {
+     try {
+       const endpoint = getApiEndpoint('admin/status');
+       const response = await fetchWithRetry(
+         endpoint,
+         {
+           apiKey: process.env.REACT_APP_ADMIN_API_KEY
+         }
+       );
+       return response;
+     } catch (error) {
+       console.error('Error fetching API status:', error);
+       return { success: false, error: formatErrorResponse(error) };
+     }
+   };
+   ```
+
+### Phase 3: 認証機能の更新（1.5日）
+
+1. **AuthContext.jsの更新**
+   ```javascript
+   // src/context/AuthContext.js
+   
+   import { createContext, useState, useEffect, useCallback, useRef } from 'react';
+   import { getApiEndpoint } from '../utils/envUtils';
+   import { authApiClient } from '../utils/apiUtils';
+   import jwtDecode from 'jwt-decode';
+   
+   const AuthContext = createContext();
+   
+   export const AuthProvider = ({ children }) => {
+     // 状態管理
+     const [user, setUser] = useState(null);
+     const [isAuthenticated, setIsAuthenticated] = useState(false);
+     const [loading, setLoading] = useState(true);
+     const [error, setError] = useState(null);
+     const portfolioContextRef = useRef(null);
+     
+     // セッション確認
+     const checkSession = useCallback(async () => {
+       try {
+         setLoading(true);
+         const response = await authApiClient.get(
+           getApiEndpoint('auth/session')
+         );
+         
+         if (response.data.success && response.data.isAuthenticated) {
+           setUser(response.data.user);
+           setIsAuthenticated(true);
+           setError(null);
+           
+           // ポートフォリオコンテキストに認証状態変更を通知
+           if (portfolioContextRef.current?.handleAuthStateChange) {
+             portfolioContextRef.current.handleAuthStateChange(true, response.data.user);
+           }
+         } else {
+           setUser(null);
+           setIsAuthenticated(false);
+         }
+       } catch (error) {
+         console.error('セッション確認エラー:', error);
+         setUser(null);
+         setIsAuthenticated(false);
+         setError('セッション確認中にエラーが発生しました');
+       } finally {
+         setLoading(false);
+       }
+     }, []);
+     
+     // ポートフォリオコンテキスト参照の設定
+     const setPortfolioContextRef = useCallback((context) => {
+       portfolioContextRef.current = context;
+     }, []);
+     
+     // Googleログイン
+     const loginWithGoogle = async (credentialResponse) => {
+       try {
+         setLoading(true);
+         setError(null);
+         
+         const response = await authApiClient.post(
+           getApiEndpoint('auth/google/login'),
+           {
+             code: credentialResponse.code,
+             redirectUri: window.location.origin + '/auth/callback'
+           }
+         );
+         
+         if (response.data.success) {
+           setUser(response.data.user);
+           setIsAuthenticated(true);
+           
+           // ポートフォリオコンテキストに認証状態変更を通知
+           if (portfolioContextRef.current?.handleAuthStateChange) {
+             portfolioContextRef.current.handleAuthStateChange(true, response.data.user);
+           }
+           
+           return true;
+         } else {
+           setError(response.data.message || 'ログインに失敗しました');
+           return false;
+         }
+       } catch (error) {
+         console.error('Google認証エラー:', error);
+         setError(error.response?.data?.message || 'ログイン処理中にエラーが発生しました');
+         return false;
+       } finally {
+         setLoading(false);
+       }
+     };
+     
+     // ログアウト
+     const logout = async () => {
+       try {
+         setLoading(true);
+         await authApiClient.post(getApiEndpoint('auth/logout'));
+         
+         setUser(null);
+         setIsAuthenticated(false);
+         
+         // ポートフォリオコンテキストに認証状態変更を通知
+         if (portfolioContextRef.current?.handleAuthStateChange) {
+           portfolioContextRef.current.handleAuthStateChange(false, null);
+         }
+         
+         return true;
+       } catch (error) {
+         console.error('ログアウトエラー:', error);
+         setError('ログアウト処理中にエラーが発生しました');
+         return false;
+       } finally {
+         setLoading(false);
+       }
+     };
+     
+     // 初期ロード時のセッション確認
+     useEffect(() => {
+       checkSession();
+     }, [checkSession]);
+     
+     // コンテキスト値の提供
+     const value = {
+       user,
+       isAuthenticated,
+       loading,
+       error,
+       loginWithGoogle,
+       logout,
+       checkSession,
+       setPortfolioContextRef
+     };
+     
+     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+   };
+   
+   export default AuthContext;
+   export const AuthConsumer = AuthContext.Consumer;
+   ```
+
+2. **LoginButton.jsxの更新**
+   ```javascript
+   // src/components/auth/LoginButton.jsx
+   
+   import React, { useState } from 'react';
+   import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
+   import { useAuth } from '../../hooks/useAuth';
+   
+   const LoginButton = () => {
+     const { loginWithGoogle, loading, error } = useAuth();
+     const [loginError, setLoginError] = useState(null);
+     
+     const handleGoogleLoginSuccess = async (credentialResponse) => {
+       if (!credentialResponse.code) {
+         setLoginError('認証コードが取得できませんでした');
+         return;
+       }
+       
+       const success = await loginWithGoogle(credentialResponse);
+       if (!success) {
+         setLoginError('ログインに失敗しました');
+       }
+     };
+     
+     const handleGoogleLoginError = () => {
+       setLoginError('Google認証中にエラーが発生しました');
+     };
+     
+     return (
+       <div className="login-container">
+         <GoogleOAuthProvider clientId={process.env.REACT_APP_GOOGLE_CLIENT_ID}>
+           <GoogleLogin
+             flow="auth-code"
+             onSuccess={handleGoogleLoginSuccess}
+             onError={handleGoogleLoginError}
+             useOneTap
+             shape="pill"
+             text="continue_with"
+             disabled={loading}
+           />
+         </GoogleOAuthProvider>
+         
+         {(loginError || error) && (
+           <p className="error-message">{loginError || error}</p>
+         )}
+         
+         {loading && <p className="loading-text">認証処理中...</p>}
+       </div>
+     );
+   };
+   
+   export default LoginButton;
+   ```
+
+3. **useAuth.jsの更新**
+   ```javascript
+   // src/hooks/useAuth.js
+   
+   import { useContext } from 'react';
+   import AuthContext from '../context/AuthContext';
+   
+   export const useAuth = () => {
+     return useContext(AuthContext);
+   };
+   
+   export default useAuth;
+   ```
+
+### Phase 4: Google Drive連携機能の更新（1.5日）
+
+1. **useGoogleDriveフックの作成**
+   ```javascript
+   // src/hooks/useGoogleDrive.js
+   
+   import { useState, useCallback } from 'react';
+   import { getApiEndpoint } from '../utils/envUtils';
+   import { authApiClient } from '../utils/apiUtils';
+   import { useAuth } from './useAuth';
+   
+   export const useGoogleDrive = () => {
+     const { isAuthenticated } = useAuth();
+     const [loading, setLoading] = useState(false);
+     const [error, setError] = useState(null);
+     
+     // ファイル一覧取得
+     const listFiles = useCallback(async () => {
+       if (!isAuthenticated) {
+         setError('認証が必要です');
+         return null;
+       }
+       
+       try {
+         setLoading(true);
+         setError(null);
+         
+         const response = await authApiClient.get(
+           getApiEndpoint('drive/files')
+         );
+         
+         if (response.data.success) {
+           return response.data.files;
+         } else {
+           setError(response.data.message || '不明なエラー');
+           return null;
+         }
+       } catch (error) {
+         console.error('Google Driveファイル一覧取得エラー:', error);
+         setError(error.response?.data?.message || 'ファイル一覧取得エラー');
+         return null;
+       } finally {
+         setLoading(false);
+       }
+     }, [isAuthenticated]);
+     
+     // ファイル保存
+     const saveFile = useCallback(async (portfolioData) => {
+       if (!isAuthenticated) {
+         setError('認証が必要です');
+         return null;
+       }
+       
+       try {
+         setLoading(true);
+         setError(null);
+         
+         const response = await authApiClient.post(
+           getApiEndpoint('drive/save'),
+           { portfolioData }
+         );
+         
+         if (response.data.success) {
+           return response.data.file;
+         } else {
+           setError(response.data.message || '不明なエラー');
+           return null;
+         }
+       } catch (error) {
+         console.error('Google Driveファイル保存エラー:', error);
+         setError(error.response?.data?.message || 'ファイル保存エラー');
+         return null;
+       } finally {
+         setLoading(false);
+       }
+     }, [isAuthenticated]);
+     
+     // ファイル読み込み
+     const loadFile = useCallback(async (fileId) => {
+       if (!isAuthenticated) {
+         setError('認証が必要です');
+         return null;
+       }
+       
+       try {
+         setLoading(true);
+         setError(null);
+         
+         const response = await authApiClient.get(
+           getApiEndpoint('drive/load'),
+           { params: { fileId } }
+         );
+         
+         if (response.data.success) {
+           return response.data.data;
+         } else {
+           setError(response.data.message || '不明なエラー');
+           return null;
+         }
+       } catch (error) {
+         console.error('Google Driveファイル読み込みエラー:', error);
+         setError(error.response?.data?.message || 'ファイル読み込みエラー');
+         return null;
+       } finally {
+         setLoading(false);
+       }
+     }, [isAuthenticated]);
+     
+     return {
+       listFiles,
+       saveFile,
+       loadFile,
+       loading,
+       error
+     };
+   };
+   
+   export default useGoogleDrive;
+   ```
+
+2. **GoogleDriveIntegration.jsxの更新**
+   ```javascript
+   // src/components/data/GoogleDriveIntegration.jsx
+   
+   import React, { useState, useEffect } from 'react';
+   import { useGoogleDrive } from '../../hooks/useGoogleDrive';
+   import { useAuth } from '../../hooks/useAuth';
+   import { usePortfolioContext } from '../../hooks/usePortfolioContext';
+   
+   const GoogleDriveIntegration = () => {
+     const { isAuthenticated, user } = useAuth();
+     const { listFiles, saveFile, loadFile, loading, error } = useGoogleDrive();
+     const { 
+       currentAssets, 
+       targetPortfolio, 
+       baseCurrency, 
+       additionalBudget,
+       aiPromptTemplate,
+       saveToLocalStorage
+     } = usePortfolioContext();
+     
+     const [files, setFiles] = useState([]);
+     const [syncStatus, setSyncStatus] = useState('idle');
+     const [lastSync, setLastSync] = useState(null);
+     const [operationResult, setOperationResult] = useState(null);
+     
+     // ファイル一覧を取得
+     const fetchFiles = async () => {
+       if (!isAuthenticated) return;
+       
+       const filesList = await listFiles();
+       if (filesList) {
+         setFiles(filesList);
+       }
+     };
+     
+     // 初期ロード時にファイル一覧を取得
+     useEffect(() => {
+       if (isAuthenticated) {
+         fetchFiles();
+       }
+     }, [isAuthenticated]);
+     
+     // クラウドに保存
+     const handleSaveToCloud = async () => {
+       setSyncStatus('saving');
+       setOperationResult(null);
+       
+       // ポートフォリオデータの構築
+       const portfolioData = {
+         baseCurrency,
+         currentAssets,
+         targetPortfolio,
+         additionalBudget,
+         aiPromptTemplate,
+         timestamp: new Date().toISOString(),
+         version: '6.0'
+       };
+       
+       const result = await saveFile(portfolioData);
+       if (result) {
+         setSyncStatus('success');
+         setLastSync(new Date());
+         setOperationResult({
+           success: true,
+           message: 'Google Driveへの保存が完了しました',
+           details: result
+         });
+       } else {
+         setSyncStatus('error');
+         setOperationResult({
+           success: false,
+           message: '保存中にエラーが発生しました',
+           details: error
+         });
+       }
+     };
+     
+     // ファイルから読み込み
+     const handleLoadFile = async (fileId) => {
+       setSyncStatus('loading');
+       setOperationResult(null);
+       
+       const data = await loadFile(fileId);
+       if (data) {
+         // ポートフォリオコンテキストのデータを更新
+         // 注：実際の実装ではportfolioContextのloadFromCloudのような関数を呼び出すべき
+         
+         setSyncStatus('success');
+         setLastSync(new Date());
+         setOperationResult({
+           success: true,
+           message: 'Google Driveからデータを読み込みました',
+           details: {
+             filename: files.find(f => f.id === fileId)?.name || 'Unknown file',
+             timestamp: data.timestamp
+           }
+         });
+         
+         // ローカルストレージにも保存
+         saveToLocalStorage();
+       } else {
+         setSyncStatus('error');
+         setOperationResult({
+           success: false,
+           message: '読み込み中にエラーが発生しました',
+           details: error
+         });
+       }
+     };
+     
+     // 未認証時の表示
+     if (!isAuthenticated) {
+       return (
+         <div className="google-drive-integration">
+           <h2>Google Drive連携</h2>
+           <p>Google Driveと連携するにはログインしてください。</p>
+         </div>
+       );
+     }
+     
+     return (
+       <div className="google-drive-integration">
+         <h2>Google Drive連携</h2>
+         
+         {/* ユーザー情報 */}
+         <div className="user-info">
+           {user?.picture && <img src={user.picture} alt={user.name} className="user-avatar" />}
+           <span>{user?.name || 'ユーザー'}としてログイン中</span>
+         </div>
+         
+         {/* 操作ボタン */}
+         <div className="drive-actions">
+           <button 
+             onClick={handleSaveToCloud} 
+             disabled={loading || syncStatus === 'saving'}
+             className="btn btn-primary"
+           >
+             {loading && syncStatus === 'saving' ? '保存中...' : 'Google Driveに保存'}
+           </button>
+           
+           <button
+             onClick={fetchFiles}
+             disabled={loading}
+             className="btn btn-secondary"
+           >
+             ファイル一覧更新
+           </button>
+         </div>
+         
+         {/* 同期ステータス */}
+         {lastSync && (
+           <div className="sync-status">
+             <p>最終同期: {lastSync.toLocaleString()}</p>
+           </div>
+         )}
+         
+         {/* 操作結果 */}
+         {operationResult && (
+           <div className={`operation-result ${operationResult.success ? 'success' : 'error'}`}>
+             <p>{operationResult.message}</p>
+             {operationResult.details && (
+               <pre>{JSON.stringify(operationResult.details, null, 2)}</pre>
+             )}
+           </div>
+         )}
+         
+         {/* ファイル一覧 */}
+         <div className="files-list">
+           <h3>保存済みファイル</h3>
+           {loading && syncStatus === 'loading' ? (
+             <p>ファイル読み込み中...</p>
+           ) : files.length === 0 ? (
+             <p>保存されたファイルはありません</p>
+           ) : (
+             <ul>
+               {files.map(file => (
+                 <li key={file.id} className="file-item">
+                   <div className="file-info">
+                     <span className="file-name">{file.name}</span>
+                     <span className="file-date">{new Date(file.createdAt).toLocaleString()}</span>
+                   </div>
+                   <div className="file-actions">
+                     <button
+                       onClick={() => handleLoadFile(file.id)}
+                       disabled={loading}
+                       className="btn btn-sm"
+                     >
+                       読み込む
+                     </button>
+                     {file.webViewLink && (
+                       <a
+                         href={file.webViewLink}
+                         target="_blank"
+                         rel="noopener noreferrer"
+                         className="btn btn-sm btn-link"
+                       >
+                         表示
+                       </a>
+                     )}
+                   </div>
+                 </li>
+               ))}
+             </ul>
+           )}
+         </div>
+         
+         {/* エラー表示 */}
+         {error && (
+           <div className="error-message">
+             <p>エラー: {error}</p>
+           </div>
+         )}
+       </div>
+     );
+   };
+   
+   export default GoogleDriveIntegration;
+   ```
+
+### Phase 5: PortfolioContextの更新（0.5日）
 
 ```javascript
-const express = require('express');
-const cors = require('cors');
-const app = express();
-const Redis = require('ioredis'); // Redisクライアント
-const axios = require('axios');
-const cheerio = require('cheerio');
+// src/context/PortfolioContext.js の更新部分
 
-// Redisクライアント初期化
-const redis = new Redis(process.env.REDIS_URL);
-
-// CORS設定
-app.use(cors({
-  origin: ['https://portfolio-wise.com', 'http://localhost:3000']
-}));
-
-// 統合市場データAPI
-app.get('/api/market-data', async (req, res) => {
-  try {
-    const { type, symbols, refresh = 'false' } = req.query;
-    const forceRefresh = refresh === 'true';
+// Google認証状態変更ハンドラ
+const handleAuthStateChange = useCallback((isAuthenticated, user) => {
+  if (isAuthenticated && user) {
+    console.log('認証済みユーザー:', user.name);
+    setIsAuthenticated(true);
+    setUser(user);
     
-    // リクエストパラメータのバリデーション
-    if (!type || !symbols) {
-      return res.status(400).json({
-        success: false,
-        message: 'type と symbols パラメータは必須です'
-      });
-    }
-    
-    // キャッシュキーの生成
-    const cacheKey = `market-data:${type}:${symbols}`;
-    
-    // キャッシュからデータを取得（更新フラグがない場合）
-    if (!forceRefresh) {
-      const cachedData = await redis.get(cacheKey);
-      if (cachedData) {
-        console.log(`キャッシュヒット: ${cacheKey}`);
-        return res.json(JSON.parse(cachedData));
-      }
-    }
-    
-    // キャッシュがない場合やリフレッシュが要求された場合、実際のデータを取得
-    let data;
-    let cacheTime;
-    
-    switch (type) {
-      case 'us-stock':
-        data = await fetchUSStockData(symbols.split(','));
-        cacheTime = 60 * 60; // 1時間キャッシュ
-        break;
-      case 'jp-stock':
-        data = await fetchJPStockData(symbols.split(','));
-        cacheTime = 60 * 60; // 1時間キャッシュ
-        break;
-      case 'mutual-fund':
-        data = await fetchMutualFundData(symbols.split(','));
-        cacheTime = 60 * 60 * 3; // 3時間キャッシュ（更新頻度が低いため）
-        break;
-      case 'exchange-rate':
-        data = await fetchExchangeRateData();
-        cacheTime = 60 * 60 * 6; // 6時間キャッシュ
-        break;
-      default:
-        return res.status(400).json({
-          success: false,
-          message: '不明なデータタイプです'
-        });
-    }
-    
-    // レスポンスオブジェクト
-    const response = {
-      success: true,
-      data: data,
-      source: 'live',
-      lastUpdated: new Date().toISOString()
-    };
-    
-    // キャッシュに保存
-    await redis.set(cacheKey, JSON.stringify(response), 'EX', cacheTime);
-    
-    // レスポンス送信
-    return res.json(response);
-  } catch (error) {
-    console.error('API エラー:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'データ取得中にエラーが発生しました',
-      error: error.message
-    });
+    // 認証後に必要な初期化処理があれば実行
+    // 例: 認証ユーザー固有のデータ読み込みなど
+  } else {
+    console.log('未認証状態に変更');
+    setIsAuthenticated(false);
+    setUser(null);
   }
-});
+}, []);
 
-// サーバー起動
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`サーバーが起動しました: http://localhost:${PORT}`);
-});
-```
-
-### 3.2 高度なキャッシュ戦略
-
-#### 3.2.1 キャッシュ期間の最適化
-
-データタイプ別のキャッシュ期間設定：
-
-| データタイプ | キャッシュ期間 | 理由 |
-|------------|--------------|------|
-| 米国株     | 1時間         | 取引時間中は価格変動があるため |
-| 日本株     | 1時間         | 取引時間中は価格変動があるため |
-| 投資信託   | 3時間         | 基準価額の更新頻度が低いため |
-| 為替レート | 6時間         | 一日の中でも緩やかな変動のため |
-
-#### 3.2.2 Redis実装
-
-キャッシュストレージには Redis を使用し、以下の機能を実装：
-
-- キー名に型とシンボルを含め、効率的に検索可能
-- 自動有効期限切れ機能を利用（`EX`オプション）
-- バッチ処理による複数銘柄の一括キャッシュ
-- 緊急時のキャッシュフラッシュAPI
-
-#### 3.2.3 スマートリフレッシュ
-
-取引時間に基づく動的キャッシュ更新戦略：
-
-- 日本市場取引時間（9:00-15:00 JST）: 30分キャッシュ
-- 米国市場取引時間（9:30-16:00 EST）: 30分キャッシュ
-- 市場閉場時間: 3-6時間キャッシュ
-- 週末: 12時間キャッシュ
-
-### 3.3 レンタルサーバー構成
-
-#### 3.3.1 サーバー要件
-
-- **OS**: Ubuntu 20.04 LTS
-- **RAM**: 最低2GB（推奨4GB）
-- **CPU**: 2コア以上
-- **ストレージ**: 20GB SSD
-- **帯域幅**: 月間1TB以上
-- **技術スタック**: Node.js 16+, Redis, Python 3.9+
-
-#### 3.3.2 推奨サーバー候補
-
-1. **Digital Ocean**
-   - 構成: Basic Droplet ($20/月)
-   - スペック: 4GB RAM, 2CPUコア, 80GB SSD, 4TB転送量
-   - メリット: 管理が容易、スケーリングが簡単
-
-2. **Linode**
-   - 構成: Shared CPU 4GB ($20/月)
-   - スペック: 4GB RAM, 2CPUコア, 80GB SSD, 4TB転送量
-   - メリット: 高パフォーマンス、APIが充実
-
-3. **Vultr**
-   - 構成: Cloud Compute ($20/月)
-   - スペック: 4GB RAM, 2CPUコア, 80GB SSD, 4TB転送量
-   - メリット: グローバルロケーション、高速ネットワーク
-
-#### 3.3.3 サーバーセットアップ手順
-
-1. サーバーインスタンス作成
-2. SSH接続設定
-3. 基本セキュリティ設定
-   - ファイアウォール設定
-   - SSH鍵認証
-   - 不要なサービスの無効化
-4. Node.js, Redis, Python環境のインストール
-5. アプリケーションコードのデプロイ
-6. Nginx設定（リバースプロキシ）
-7. SSL証明書の設定（Let's Encrypt）
-8. 監視とログ設定（PM2, Logrotate）
-
-### 3.4 Python日本株取得実装
-
-#### 3.4.1 機能概要
-
-日本株価データを取得するPythonスクリプトを実装し、定期実行する。取得したデータはRDBMSまたはRedisに保存し、統合APIから参照できるようにする。
-
-#### 3.4.2 使用ライブラリ
-
-- **requests**: HTTPリクエスト
-- **BeautifulSoup4**: HTML解析
-- **pandas**: データ処理
-- **yfinance**: バックアップデータソース
-- **schedule**: 定期実行
-- **redis**: キャッシュ連携
-
-#### 3.4.3 スクリプト例
-
-```python
-#!/usr/bin/env python3
-# jp_stock_scraper.py
-
-import requests
-import redis
-import json
-import random
-import time
-import schedule
-import pandas as pd
-from bs4 import BeautifulSoup
-from datetime import datetime, timedelta
-import yfinance as yf
-
-# Redisに接続
-redis_client = redis.Redis(host='localhost', port=6379, db=0)
-
-# ユーザーエージェントリスト
-USER_AGENTS = [
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.4 Safari/605.1.15',
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:123.0) Gecko/20100101 Firefox/123.0',
-    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (iPhone; CPU iPhone OS 17_4 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.3 Mobile/15E148 Safari/604.1'
-]
-
-def get_random_user_agent():
-    """ランダムなユーザーエージェントを返す"""
-    return random.choice(USER_AGENTS)
-
-def scrape_yahoo_japan(code):
-    """Yahoo Finance Japanから株価データを取得"""
-    try:
-        url = f"https://finance.yahoo.co.jp/quote/{code}.T"
-        headers = {'User-Agent': get_random_user_agent()}
-        response = requests.get(url, headers=headers, timeout=10)
-        response.raise_for_status()
-        
-        soup = BeautifulSoup(response.text, 'html.parser')
-        price_element = soup.select_one('._3rXWJKZF')
-        name_element = soup.select_one('._2NQoTMHk')
-        
-        if price_element and name_element:
-            price = float(price_element.text.replace(',', ''))
-            name = name_element.text.strip()
-            
-            return {
-                'ticker': code,
-                'price': price,
-                'name': name,
-                'currency': 'JPY',
-                'source': 'Yahoo Finance Japan',
-                'isStock': True,
-                'isMutualFund': False
-            }
-        raise ValueError("価格または銘柄名の要素が見つかりません")
-    except Exception as e:
-        print(f"Yahoo Finance Japan からのスクレイピングエラー: {e}")
-        return None
-
-def fetch_from_yfinance(code):
-    """yfinanceから株価データを取得（バックアップ）"""
-    try:
-        ticker = yf.Ticker(f"{code}.T")
-        info = ticker.info
-        history = ticker.history(period="1d")
-        
-        if not history.empty:
-            return {
-                'ticker': code,
-                'price': float(history['Close'].iloc[-1]),
-                'name': info.get('shortName', f"銘柄 {code}"),
-                'currency': 'JPY',
-                'source': 'yfinance',
-                'isStock': True,
-                'isMutualFund': False
-            }
-        raise ValueError("yfinanceからデータを取得できませんでした")
-    except Exception as e:
-        print(f"yfinance エラー: {e}")
-        return None
-
-def get_stock_data(code):
-    """複数のソースから株価データを取得し、最初に成功したデータを返す"""
-    # まずYahoo Financeからスクレイピング
-    data = scrape_yahoo_japan(code)
-    if data:
-        return data
-    
-    # 失敗した場合はyfinanceを使用
-    data = fetch_from_yfinance(code)
-    if data:
-        return data
-    
-    # すべてのソースが失敗した場合、キャッシュから最後の既知の値を取得
-    cached_data = redis_client.get(f"jp-stock:{code}")
-    if cached_data:
-        data = json.loads(cached_data)
-        data['source'] = f"{data['source']} (キャッシュ)"
-        return data
-    
-    # 最終手段としてフォールバック値を返す
-    return {
-        'ticker': code,
-        'price': 0.0,
-        'name': f"銘柄 {code}",
-        'currency': 'JPY',
-        'source': 'Fallback',
-        'isStock': True,
-        'isMutualFund': False
-    }
-
-def update_stock_data(code_list):
-    """指定された証券コードリストの株価データを更新"""
-    now = datetime.now()
-    # 日本の取引時間外（平日15:00-9:00）または週末はスキップ
-    is_weekend = now.weekday() >= 5  # 5=土曜日, 6=日曜日
-    is_trading_hours = 9 <= now.hour < 15
-    is_weekday = now.weekday() < 5
-    
-    # 取引時間外で、前回の更新から3時間経過していない場合はスキップ
-    last_update_key = "jp-stocks:last-update"
-    last_update_str = redis_client.get(last_update_key)
-    
-    if last_update_str:
-        last_update = datetime.fromisoformat(last_update_str.decode('utf-8'))
-        hours_since_update = (now - last_update).total_seconds() / 3600
-        
-        if (not is_weekday or not is_trading_hours) and hours_since_update < 3:
-            print(f"前回の更新から{hours_since_update:.1f}時間しか経過していないため、更新をスキップします")
-            return
-    
-    print(f"{len(code_list)}銘柄の株価データを更新中...")
-    
-    # 各銘柄のデータを取得してRedisに保存
-    for code in code_list:
-        # 連続リクエストによるブロック防止のため、ランダムに遅延
-        time.sleep(random.uniform(1.0, 3.0))
-        data = get_stock_data(code)
-        if data:
-            # 個別銘柄データの保存（有効期限12時間）
-            redis_client.set(f"jp-stock:{code}", json.dumps(data), ex=43200)
-            print(f"銘柄 {code} を更新しました: ¥{data['price']} ({data['source']})")
-    
-    # 最終更新時刻を記録
-    redis_client.set(last_update_key, now.isoformat())
-    print(f"更新完了: {now.isoformat()}")
-
-def main():
-    # 監視対象の日本株コードリスト（例）
-    jp_stocks = ['7203', '9984', '8306', '6758', '6861', '7974', '4755', '9432', '8058', '6501', '6702', '6503', '7267', '8316', '8031']
-    
-    # 初回実行
-    update_stock_data(jp_stocks)
-    
-    # スケジュール設定：取引時間内（平日9:00-15:00）は1時間ごと、それ以外は3時間ごと
-    schedule.every(1).hour.do(update_stock_data, jp_stocks)
-    
-    print("日本株スクレイパーが起動しました。Ctrl+Cで停止します。")
-    
-    try:
-        while True:
-            schedule.run_pending()
-            time.sleep(60)
-    except KeyboardInterrupt:
-        print("スクリプトを停止します")
-
-if __name__ == "__main__":
-    main()
-```
-
-#### 3.4.4 デプロイと監視
-
-1. レンタルサーバー上にスクリプトをデプロイ
-2. システム起動時に自動実行するよう設定（systemdサービス）
-3. ログローテーションの設定
-4. 監視ツールでプロセス監視（PM2, Supervisord等）
-
-### 3.5 フロントエンド更新
-
-#### 3.5.1 API接続先変更
-
-```javascript
-// 変更前: Netlify Functions呼び出し
-const fetchStockData = async (ticker) => {
-  const response = await axios.get(`/.netlify/functions/alpaca-api-proxy?symbol=${ticker}`);
-  return response.data;
-};
-
-// 変更後: 新APIエンドポイント呼び出し
-const fetchStockData = async (ticker) => {
-  const isJapaneseStock = /^\d{4}(\.T)?$/.test(ticker);
-  const isMutualFund = /^\d{7,8}C(\.T)?$/.test(ticker);
+// クラウドからのデータ読み込み
+const loadFromCloud = useCallback((cloudData) => {
+  if (!cloudData) return false;
   
-  const type = isJapaneseStock 
-    ? 'jp-stock' 
-    : isMutualFund 
-      ? 'mutual-fund' 
-      : 'us-stock';
-  
-  const response = await axios.get(`https://api.portfolio-wise.com/api/market-data?type=${type}&symbols=${ticker}`);
-  return response.data;
-};
-```
-
-#### 3.5.2 エラーハンドリング強化
-
-```javascript
-const fetchStockData = async (ticker) => {
   try {
-    // 前略（APIリクエスト処理）
-  } catch (error) {
-    console.error(`API エラー: ${error.message}`);
+    // バージョンチェック
+    const dataVersion = cloudData.version || '1.0';
+    console.log(`クラウドデータのバージョン: ${dataVersion}`);
     
-    // ローカルキャッシュから取得を試みる
-    const cachedData = getLocalCachedData(ticker);
-    if (cachedData) {
-      return {
-        success: true,
-        data: {
-          ...cachedData,
-          source: `${cachedData.source} (ローカルキャッシュ)`
-        }
-      };
+    // 互換性チェックとデータ変換処理（必要に応じて）
+    
+    // データをステートに設定
+    setBaseCurrency(cloudData.baseCurrency || 'JPY');
+    setCurrentAssets(cloudData.currentAssets || []);
+    setTargetPortfolio(cloudData.targetPortfolio || []);
+    setAdditionalBudget(cloudData.additionalBudget || { amount: 0, currency: 'JPY' });
+    
+    if (cloudData.aiPromptTemplate) {
+      setAiPromptTemplate(cloudData.aiPromptTemplate);
     }
     
-    // 最終手段のフォールバック
-    return {
-      success: true,
-      data: {
-        ticker,
-        price: 0,
-        name: `銘柄 ${ticker}`,
-        currency: /^\d{4}(\.T)?$/.test(ticker) ? 'JPY' : 'USD',
-        source: 'Fallback',
-        isStock: true,
-        isMutualFund: false
-      }
-    };
+    // 読み込んだデータをローカルストレージにも保存
+    setTimeout(() => saveToLocalStorage(), 100);
+    
+    return true;
+  } catch (error) {
+    console.error('クラウドデータ読み込みエラー:', error);
+    addNotification('クラウドデータの読み込みに失敗しました', 'error');
+    return false;
   }
+}, [addNotification, saveToLocalStorage]);
+
+// 提供するコンテキスト値にフックを追加
+const value = {
+  // 既存の値...
+  handleAuthStateChange,
+  loadFromCloud
 };
 ```
 
-#### 3.5.3 ローカルキャッシュ機能
+### Phase 6: エラーハンドリングとテスト（2日）
 
-```javascript
-// ブラウザのローカルストレージを使用したキャッシュ機能
-const saveToLocalCache = (data) => {
-  try {
-    const key = `stock-cache:${data.ticker}`;
-    const cacheData = {
-      ...data,
-      timestamp: new Date().toISOString()
-    };
-    localStorage.setItem(key, JSON.stringify(cacheData));
-  } catch (error) {
-    console.error('ローカルキャッシュ保存エラー:', error);
-  }
-};
+1. **エラーハンドリングとリトライメカニズムの改善**
+   - タイムアウト処理
+   - 指数バックオフによるリトライ（Phase 1で実装済み）
+   - ユーザーフレンドリーなエラー表示
 
-const getLocalCachedData = (ticker) => {
-  try {
-    const key = `stock-cache:${ticker}`;
-    const cachedDataStr = localStorage.getItem(key);
-    
-    if (!cachedDataStr) return null;
-    
-    const cachedData = JSON.parse(cachedDataStr);
-    const cacheTime = new Date(cachedData.timestamp);
-    const now = new Date();
-    
-    // 24時間以内のキャッシュのみ有効
-    if ((now - cacheTime) < 24 * 60 * 60 * 1000) {
-      return cachedData;
-    }
-    
-    return null;
-  } catch (error) {
-    console.error('ローカルキャッシュ取得エラー:', error);
-    return null;
-  }
-};
-```
+2. **通知システムの統合**
+   - API呼び出し結果に基づく通知表示
+   - データソース情報の表示（Market Data API, Fallback）
 
-## 4. 移行スケジュール
+3. **単体テスト**
+   - 各機能の単体テスト（Jest + React Testing Library）
+   ```javascript
+   // src/__tests__/utils/envUtils.test.js
+   
+   import { getBaseApiUrl, isLocalDevelopment } from '../../utils/envUtils';
+   
+   describe('envUtils', () => {
+     const originalEnv = process.env;
+     
+     beforeEach(() => {
+       jest.resetModules();
+       process.env = { ...originalEnv };
+     });
+     
+     afterAll(() => {
+       process.env = originalEnv;
+     });
+     
+     test('isLocalDevelopment returns true for localhost', () => {
+       // window.location.hostnameのモック
+       Object.defineProperty(window, 'location', {
+         value: { hostname: 'localhost' },
+         writable: true
+       });
+       
+       expect(isLocalDevelopment()).toBe(true);
+     });
+     
+     test('getBaseApiUrl returns local URL for localhost', () => {
+       // 環境変数の設定
+       process.env.REACT_APP_LOCAL_API_URL = 'http://localhost:3000';
+       process.env.REACT_APP_AWS_API_URL = 'https://api.example.com';
+       
+       // window.location.hostnameのモック
+       Object.defineProperty(window, 'location', {
+         value: { hostname: 'localhost' },
+         writable: true
+       });
+       
+       expect(getBaseApiUrl()).toBe('http://localhost:3000');
+     });
+     
+     test('getBaseApiUrl returns AWS URL for non-localhost', () => {
+       // 環境変数の設定
+       process.env.REACT_APP_LOCAL_API_URL = 'http://localhost:3000';
+       process.env.REACT_APP_AWS_API_URL = 'https://api.example.com';
+       
+       // window.location.hostnameのモック
+       Object.defineProperty(window, 'location', {
+         value: { hostname: 'app.example.com' },
+         writable: true
+       });
+       
+       expect(getBaseApiUrl()).toBe('https://api.example.com');
+     });
+   });
+   ```
 
-### 4.1 事前準備フェーズ（1週間）
+4. **統合テスト**
+   - 実際のAWS環境との連携テスト
+   - エンドツーエンドテスト
 
-| 日 | タスク | 担当者 |
-|----|------|-------|
-| 1  | サーバー選定と契約 | |
-| 2  | サーバー初期設定・セキュリティ対策 | |
-| 3  | Node.js/Redis/Python環境構築 | |
-| 3  | ドメイン設定とSSL証明書取得 | |
+## 4. CORS対応と注意点
 
-### 4.2 開発フェーズ（2週間）
+1. **withCredentials設定の追加**
+   ```javascript
+   // src/utils/apiUtils.js の createApiClient 関数内
+   
+   export const createApiClient = (withAuth = false) => {
+     const client = axios.create({
+       timeout: TIMEOUT.DEFAULT,
+       withCredentials: withAuth // 認証が必要な場合はクッキーを送信
+     });
+     
+     // インターセプターの設定など
+     
+     return client;
+   };
+   ```
 
-| 日 | タスク | 担当者 |
-|----|------|-------|
-| 1-3 | 統合APIエンドポイント実装 | |
-| 4-5 | Redisキャッシュ機構実装 | |
-| 6-8 | Python日本株スクレイパー実装 | |
-| 9-12 | フロントエンド更新とテスト | |
-| 13-14 | 総合テストと調整 | |
+2. **セキュリティ考慮事項**
+   - Cookie管理（HTTP Only, SameSiteなど）
+   - アクセストークン処理
+   - API使用量制限への対応
 
-### 4.3 移行フェーズ（1週間）
+3. **setupProxy.js の確認（開発環境用）**
+   ```javascript
+   // src/setupProxy.js
+   
+   const { createProxyMiddleware } = require('http-proxy-middleware');
+   
+   module.exports = function(app) {
+     // ローカル開発環境でのAPI呼び出しをプロキシ
+     app.use(
+       '/dev/api',
+       createProxyMiddleware({
+         target: 'http://localhost:3000',
+         changeOrigin: true,
+       })
+     );
+     
+     // 認証関連のプロキシ
+     app.use(
+       '/dev/auth',
+       createProxyMiddleware({
+         target: 'http://localhost:3000',
+         changeOrigin: true,
+         cookieDomainRewrite: 'localhost',
+       })
+     );
+     
+     // Google Drive関連のプロキシ
+     app.use(
+       '/dev/drive',
+       createProxyMiddleware({
+         target: 'http://localhost:3000',
+         changeOrigin: true,
+       })
+     );
+   };
+   ```
 
-| 日 | タスク | 担当者 |
-|----|------|-------|
-| 1 | Netlify Functions無効化 | |
-| 2 | 新APIエンドポイントへの切り替え | |
-| 3-4 | モニタリングと調整 | |
-| 5 | 最終確認と本番リリース | |
-| 6-7 | 監視とバグ修正 | |
+## 5. 想定されるリスクと対策
 
-## 5. リスク管理
+1. **API構造の変更による互換性問題**
+   - 対策: 古いデータ構造をサポートするアダプターの実装
 
-### 5.1 想定されるリスクと対策
+2. **認証フローの変更による不具合**
+   - 対策: 段階的なテストとフォールバックメカニズム
 
-| リスク | 影響度 | 可能性 | 対策 |
-|-------|-------|-------|-----|
-| サーバー障害 | 高 | 低 | バックアップサーバーの準備、監視体制の構築 |
-| スクレイピング失敗 | 中 | 高 | 複数ソースからのフォールバック、キャッシュ戦略 |
-| CORS問題 | 中 | 中 | 適切なCORS設定、プロキシの活用 |
-| SSL証明書期限切れ | 高 | 低 | 自動更新の設定、監視アラート |
-| Redis障害 | 高 | 低 | メモリ内キャッシュへのフォールバック |
-| API使用料金超過 | 中 | 中 | 使用量の監視、制限の設定 |
+3. **レート制限とコスト問題**
+   - 対策: 適切なキャッシングと使用量モニタリング
 
-### 5.2 フォールバック計画
+4. **CORS関連の問題**
+   - 対策: 開発環境でのCORS設定確認とプロキシ設定
 
-移行中に問題が発生した場合のロールバック手順：
+5. **環境検出の誤判定**
+   - 対策: ユーザーがAPI環境を手動で切り替えられるオプションの提供
 
-1. 新APIエンドポイントへのリクエストが失敗した場合、フロントエンドでローカルキャッシュにフォールバック
-2. 深刻な問題が発生した場合、一時的にNetlify Functionsを再有効化
-3. メンテナンスモードの準備と告知手順の確立
+## 6. スケジュール概要
 
-## 6. 監視とパフォーマンス指標
+| フェーズ | 作業内容 | 期間 |
+|---------|---------|------|
+| 環境設定 | 環境変数設定とユーティリティ関数作成 | 1.0日 |
+| API更新 | マーケットデータサービスの更新 | 1.5日 |
+| 認証機能 | Google認証とセッション管理の更新 | 1.5日 |
+| Google Drive連携 | ファイル操作とデータ同期機能の更新 | 1.5日 |
+| PortfolioContext更新 | 認証状態変更ハンドラとクラウドデータ連携 | 0.5日 |
+| テスト・調整 | エラーハンドリング、テスト、バグ修正 | 2.0日 |
+| **合計** | | **8.0日** |
 
-### 6.1 監視項目
+## 7. 実装後の検証項目
 
-- サーバーのCPU/メモリ/ディスク使用率
-- APIレスポンス時間
-- エラー率
-- キャッシュヒット率
-- API呼び出し回数
-- スクレイピング成功率
+- ローカル開発環境でAPI呼び出しが正常に機能するか
+- 本番環境でAWS APIが正常に呼び出せるか
+- Google認証が両環境で機能するか
+- Google Drive連携が両環境で機能するか
+- 環境切り替え時にエラーが発生しないか
+- エラー発生時の処理が適切に機能するか
+- 通知システムが適切に情報を表示するか
 
-### 6.2 アラート設定
-
-- サーバーリソース使用率が80%を超えた場合
-- API平均レスポンス時間が500msを超えた場合
-- エラー率が5%を超えた場合
-- スクレイピング成功率が90%を下回った場合
-
-## 7. 移行成功の定義
-
-移行は以下の条件を満たした場合に「成功」と判断する：
-
-1. サービスの中断なく新APIに切り替えられたこと
-2. APIのレスポンス時間が従来以下であること（200ms以下）
-3. スクレイピング成功率が95%以上であること
-4. キャッシュヒット率が80%以上であること
-5. サーバーリソース使用率が平常時50%以下であること
-6. 1週間無停止で運用できること
-
-## 8. 今後の展望
-
-今回の移行完了後、以下の追加改善を検討する：
-
-1. CDNの導入による負荷分散
-2. 有料APIの導入によるスクレイピング依存からの脱却
-3. データの永続化（RDBMSの導入）
-4. バックアップと復旧体制の強化
-5. 負荷テストと自動スケーリング機能の実装
-
-## 改訂履歴
-
-| バージョン | 日付 | 内容 | 担当者 |
-|---|---|---|---|
-| 1.0 | 2025-05-08 | 初版作成 | |
+この計画に従って実装を進めることで、AWSに移行したバックエンド環境に対応したポートフォリオマネージャーアプリケーションを効率的に実装できます。またローカル開発環境と本番環境を自動的に切り替えることで、開発効率も向上します。
