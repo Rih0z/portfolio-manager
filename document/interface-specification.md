@@ -1,6 +1,7 @@
-# ポートフォリオマネージャー インターフェース仕様書（認証バックエンド連携対応版）
+# ポートフォリオマネージャー インターフェース仕様書（AWS環境移行対応版）
 
-**最終更新日時:** 2025-05-12 17:00
+**ファイルパス:** document/interface-specification.md  
+**最終更新日時:** 2025-05-20 17:30
 
 *本仕様書は、AIの別セッションでも開発を引き継げるよう設計されています。*
 
@@ -36,11 +37,12 @@
 - **ユーティリティ**: Lodash 4.x, Day.js 1.x
 - **データ処理**: PapaParse 5.x (CSV処理)
 - **UI拡張**: @headlessui/react 1.x
-- **デプロイ**: Netlify
+- **デプロイ**: AWS Amplify / Netlify
 - **データ永続化**: ローカルストレージ（URIエンコード+Base64暗号化）
 - **クラウド連携**: Google Drive API v3（バックエンド経由）
 - **市場データ取得**: 単一の市場データAPIサーバー（`REACT_APP_MARKET_DATA_API_URL`）
 - **認証セキュリティ**: HTTP-Onlyクッキーによるセッション管理
+- **環境管理**: 環境固有の設定ファイル（`.env.development`、`.env.production`）
 
 ## 2. インターフェース構造
 
@@ -157,7 +159,7 @@
   - JSON/CSV形式選択
   - ファイル/クリップボード/テキスト入力による取り込み
   - アクセシビリティ対応済み
-- **GoogleDriveIntegration**: Googleドライブ連携機能（バックエンド連携版）
+- **GoogleDriveIntegration**: Googleドライブ連携機能（バックエンド連携版、AWS環境対応）
   - ログイン状態表示
   - クラウド保存/読み込みボタン
   - データ同期ステータス表示
@@ -165,6 +167,8 @@
   - ファイル一覧表示と選択機能
   - バックエンドAPI経由でのファイル操作
   - 認証エラー処理
+  - 環境に応じたAPIエンドポイント自動選択
+  - リトライ機能付きの通信処理
 - **DataErrorRecovery**: データ修復機能
   - ローカルストレージのクリア機能
   - データリセット機能
@@ -177,6 +181,7 @@
   - flow="auth-code" 設定
   - ローディング状態表示
   - エラーメッセージ表示
+  - 環境に応じたリダイレクトURI設定
 - **UserProfile**: ユーザープロフィール表示
   - プロフィール画像表示
   - ユーザー名表示
@@ -224,17 +229,19 @@
 - **バージョン管理**: データ構造のバージョンを記録し、互換性を確保
 - **エラー復旧**: 破損データの検出と修復機能
 
-### 8.2 Google Drive連携（バックエンド連携版）
+### 8.2 Google Drive連携（バックエンド連携版、AWS環境対応）
 - **認証**: Google OAuth 2.0認可コードフローによるセキュアな認証
   - クライアントはコードを取得、バックエンドでトークン交換
   - HTTP-Onlyクッキーによるセッション管理
   - XSS攻撃からの保護強化
+  - 環境に応じた認証エンドポイント自動選択
 - **ファイル操作**: 
   - バックエンドAPIを経由したGoogleドライブ操作
   - 特定フォルダへのデータ保存
   - ファイルの自動命名（アプリ名+タイムスタンプ）
   - 最新データの取得と適用
   - ファイル一覧の取得と表示
+  - リトライ機能付きの通信処理
 - **同期フロー**: 
   1. ユーザーがGoogleアカウントでログイン（認可コードフロー）
   2. バックエンドがGoogle APIと連携してファイル一覧を取得
@@ -245,6 +252,10 @@
   - リフレッシュトークンの安全な管理
   - 認証状態のサーバーサイド検証
   - CSRF保護
+- **エラーハンドリング**:
+  - 一時的なネットワークエラーに対するリトライ処理
+  - 認証失効時の自動再認証フロー
+  - ユーザーフレンドリーなエラーメッセージ表示
 
 ### 8.3 データインポート/エクスポート
 - **エクスポート形式**: 
@@ -257,13 +268,14 @@
 - **バリデーション**: インポートデータの構造と値の検証
 - **エラー処理**: 不正なデータの検出と適切なエラーメッセージの表示
 
-## 9. 認証システム（バックエンド連携版）
+## 9. 認証システム（バックエンド連携版、AWS環境対応）
 
 ### 9.1 認証フロー
 
 #### 9.1.1 認可コードフロー
 1. **クライアント側**:
    - GoogleLogin コンポーネントに `flow="auth-code"` を設定
+   - 環境に応じたリダイレクトURIを動的に生成
    - ユーザーがGoogleログインボタンをクリック
    - Googleの認証ダイアログを表示
    - ユーザーの同意後、認可コードを取得
@@ -274,12 +286,12 @@
    - バックエンドがセッションを生成し、HTTP-Onlyクッキーに保存
 
 3. **認証状態確認**:
-   - クライアントは `/auth/session` エンドポイントで認証状態を確認
+   - クライアントは環境に応じた `/auth/session` エンドポイントで認証状態を確認
    - セッションは自動的にクッキーで送信される
    - バックエンドはユーザー情報を返却
 
 4. **ログアウト処理**:
-   - クライアントが `/auth/logout` エンドポイントにリクエスト
+   - クライアントが環境に応じた `/auth/logout` エンドポイントにリクエスト
    - バックエンドがセッションを破棄し、クッキーを無効化
 
 #### 9.1.2 認証状態管理
@@ -287,6 +299,10 @@
 - **セッション持続**: HTTP-Onlyクッキーによるセッション管理
 - **状態同期**: コンポーネントマウント時とエラー発生時に自動的にセッションチェック
 - **エラー処理**: 認証エラー（401）発生時のログイン画面への遷移
+- **環境依存処理**: 
+  - 開発環境と本番環境で異なるエンドポイントを自動的に使用
+  - ローカル開発時と本番環境のエンドポイント形式の違いを吸収
+  - プロキシ設定によるCORS問題の解決
 
 ### 9.2 認証UI
 
@@ -336,23 +352,142 @@
 - **`REACT_APP_GOOGLE_CLIENT_ID`**: Google OAuth認証用クライアントID
 - **`REACT_APP_DEFAULT_EXCHANGE_RATE`**: フォールバック用デフォルト為替レート
 
-### 11.2 環境変数設定例
+### 11.2 環境固有の設定ファイル
+AWS環境への対応として、環境固有の設定ファイルを導入しました：
+
+- **`.env.development`**: 開発環境用の環境変数設定
+  ```
+  REACT_APP_MARKET_DATA_API_URL=https://dev-api.example.com
+  REACT_APP_API_STAGE=dev
+  REACT_APP_GOOGLE_CLIENT_ID=your_dev_client_id.apps.googleusercontent.com
+  REACT_APP_DEFAULT_EXCHANGE_RATE=150.0
+  ```
+
+- **`.env.production`**: 本番環境用の環境変数設定
+  ```
+  REACT_APP_MARKET_DATA_API_URL=https://api.example.com
+  REACT_APP_API_STAGE=prod
+  REACT_APP_GOOGLE_CLIENT_ID=your_prod_client_id.apps.googleusercontent.com
+  REACT_APP_DEFAULT_EXCHANGE_RATE=150.0
+  ```
+
+### 11.3 環境判定ユーティリティ
+`envUtils.js`に環境判定と環境依存値の取得機能を実装しています：
+
+```javascript
+// 環境判定関数
+export const isDevEnvironment = () => {
+  return process.env.NODE_ENV === 'development' || process.env.REACT_APP_API_STAGE === 'dev';
+};
+
+export const isProdEnvironment = () => {
+  return process.env.NODE_ENV === 'production' && process.env.REACT_APP_API_STAGE === 'prod';
+};
+
+// 環境変数取得関数
+export const getApiBaseUrl = () => {
+  return process.env.REACT_APP_MARKET_DATA_API_URL || 'http://localhost:3000';
+};
+
+export const getApiStage = () => {
+  return process.env.REACT_APP_API_STAGE || 'dev';
+};
+
+// APIエンドポイント構築関数
+export const buildApiEndpoint = (path) => {
+  const baseUrl = getApiBaseUrl();
+  const stage = getApiStage();
+  return `${baseUrl}/${stage}/${path}`;
+};
 ```
-# 市場データAPI URL（株価・為替レート・投資信託情報取得用・認証用）
-REACT_APP_MARKET_DATA_API_URL=https://api.marketdata.example.com
 
-# API実行環境
-REACT_APP_API_STAGE=dev
+## 12. 新規追加ユーティリティ
 
-# 管理者API認証キー
-REACT_APP_ADMIN_API_KEY=your_admin_api_key_here
+### 12.1 環境ユーティリティ (`envUtils.js`)
+- **目的**: 環境依存の処理を抽象化し、コードの可読性と保守性を向上
+- **主要機能**:
+  - 実行環境の判定（開発環境、本番環境、ローカル開発環境）
+  - 環境変数の取得と統一インターフェース提供
+  - 環境に応じたAPIエンドポイントのURL生成
+- **使用例**:
+  ```javascript
+  import { getApiBaseUrl, isDevEnvironment } from '../utils/envUtils';
+  
+  // 環境に応じた処理分岐
+  const performOperation = () => {
+    if (isDevEnvironment()) {
+      console.log('開発環境固有の処理');
+    } else {
+      console.log('本番環境用の処理');
+    }
+  };
+  
+  // 環境に依存しないAPIエンドポイント構築
+  const apiUrl = `${getApiBaseUrl()}/${getApiStage()}/api/market-data`;
+  ```
 
-# GoogleログインとDrive API用
-REACT_APP_GOOGLE_CLIENT_ID=your_google_client_id.apps.googleusercontent.com
+### 12.2 API通信ユーティリティ (`apiUtils.js`)
+- **目的**: API呼び出しの共通パターンを抽象化し、エラーハンドリングとリトライロジックを標準化
+- **主要機能**:
+  - リトライ機能付きのfetch関数
+  - エラーレスポンスの標準化と整形
+  - フォールバックデータの自動生成
+  - AWS環境のAPI呼び出しに最適化
+- **使用例**:
+  ```javascript
+  import { fetchWithRetry, formatErrorResponse } from '../utils/apiUtils';
+  
+  // リトライ機能付きAPI呼び出し
+  const fetchData = async () => {
+    try {
+      const endpoint = buildApiEndpoint('api/market-data');
+      const response = await fetchWithRetry(
+        endpoint,
+        'get',
+        null,
+        { type: 'us-stock', symbols: 'AAPL' },
+        { withCredentials: true }
+      );
+      return response;
+    } catch (error) {
+      // エラーレスポンスの標準形式への変換
+      return formatErrorResponse(error, 'AAPL');
+    }
+  };
+  ```
 
-# フォールバック用デフォルト為替レート
-REACT_APP_DEFAULT_EXCHANGE_RATE=150.0
-```
+### 12.3 Google Drive連携フック (`useGoogleDrive.js`)
+- **目的**: Google Drive操作をカプセル化し、コンポーネントからの利用を簡素化
+- **主要機能**:
+  - ファイル一覧取得
+  - ファイル保存
+  - ファイル読み込み
+  - ローディング状態管理
+  - エラー状態管理
+- **使用例**:
+  ```javascript
+  import { useGoogleDrive } from '../hooks/useGoogleDrive';
+  
+  const MyComponent = () => {
+    const { listFiles, saveFile, loadFile, loading, error } = useGoogleDrive();
+    
+    const handleSave = async () => {
+      const result = await saveFile(portfolioData);
+      if (result) {
+        console.log('保存成功:', result.name);
+      }
+    };
+    
+    return (
+      <div>
+        <button onClick={handleSave} disabled={loading}>
+          {loading ? '保存中...' : 'Googleドライブに保存'}
+        </button>
+        {error && <p className="error">{error}</p>}
+      </div>
+    );
+  };
+  ```
 
 ## 改訂履歴
 
@@ -369,3 +504,4 @@ REACT_APP_DEFAULT_EXCHANGE_RATE=150.0
 | 5.0 | 2025/05/08 14:30 | AI分析機能の追加（ポートフォリオデータをAIアシスタントに分析させるプロンプト生成機能） |  |
 | 6.0 | 2025/05/12 16:00 | リファクタリング - スクレイピング機能を削除し、単一市場データAPIサーバーに集約、環境変数名を`REACT_APP_MARKET_DATA_API_URL`に変更 | Claude |
 | 6.1 | 2025/05/12 17:00 | Google認証のバックエンド連携対応を追加 - クライアントサイド完結型の認証から認可コードフローを用いたセキュアなバックエンド連携型認証システムへ移行 | Claude |
+| 6.2 | 2025/05/20 17:30 | AWS環境対応 - 環境固有設定ファイルの導入、環境判定ユーティリティ、API通信共通化、リトライ機能強化、Google Drive連携の最適化 | Claude |

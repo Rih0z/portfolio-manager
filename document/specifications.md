@@ -1,7 +1,7 @@
-# ポートフォリオマネージャー 総合仕様書（リファクタリング版）
+# ポートフォリオマネージャー 総合仕様書（AWS環境移行対応版）
 
-**バージョン:** 6.0  
-**最終更新日時:** 2025-05-12 15:30
+**ファイルパス:** document/specifications.md  
+**最終更新日時:** 2025-05-20 16:00
 
 ## 1. プロジェクト概要
 
@@ -26,19 +26,21 @@
 
 ### 1.2 技術スタック
 - **フロントエンド**: React.js 18.x
-- **認証**: Google OAuth 2.0 (@react-oauth/google 0.11.0)
+- **認証**: Google OAuth 2.0 認可コードフロー (@react-oauth/google 0.11.0)
 - **スタイリング**: Tailwind CSS 3.x
 - **ステート管理**: React Context API
 - **ルーティング**: React Router 6.x
 - **データ可視化**: Recharts 2.x
 - **API通信**: Axios 1.x, Fetch API
-- **ユーティリティ**: Lodash 4.x, Day.js 1.x, jwt-decode 3.x
+- **ユーティリティ**: Lodash 4.x, Day.js 1.x
 - **データ処理**: PapaParse 5.x (CSV処理)
 - **UI拡張**: @headlessui/react 1.x
-- **デプロイ**: Netlify
+- **デプロイ**: AWS Amplify / Netlify
 - **データ永続化**: ローカルストレージ（URIエンコード+Base64暗号化）
-- **クラウド連携**: Google Drive API v3
+- **クラウド連携**: Google Drive API v3（バックエンド経由）
 - **市場データ取得**: 単一の市場データAPIサーバー（`REACT_APP_MARKET_DATA_API_URL`）
+- **認証セキュリティ**: HTTP-Onlyクッキーによるセッション管理
+- **環境管理**: 環境固有の設定ファイル（`.env.development`、`.env.production`）
 
 ## 2. インターフェース構造
 
@@ -311,11 +313,13 @@ interface StorageData {
   - JSON/CSV形式選択
   - ファイル/クリップボード/テキスト入力による取り込み
   - アクセシビリティ対応済み
-- **GoogleDriveIntegration**: Googleドライブ連携機能
+- **GoogleDriveIntegration**: Googleドライブ連携機能（AWS環境対応版）
   - ログイン状態表示
   - クラウド保存/読み込みボタン
   - データ同期ステータス表示
   - 同期ボタン
+  - 環境に応じたエンドポイント自動選択
+  - リトライ機能付きの通信処理
 - **DataErrorRecovery**: データ修復機能
   - ローカルストレージのクリア機能
   - データリセット機能
@@ -324,8 +328,15 @@ interface StorageData {
 ### 4.5 共通コンポーネント
 - **Header**: アプリヘッダー（通貨切替、更新ボタン）
 - **TabNavigation**: iOS風タブナビゲーション
-- **LoginButton**: Googleログインボタン
+- **LoginButton**: Googleログインボタン（認可コードフロー対応）
+  - flow="auth-code" 設定
+  - ローディング状態表示
+  - エラーメッセージ表示
+  - 環境に応じたリダイレクトURI設定
 - **UserProfile**: ユーザープロフィール表示
+  - プロフィール画像表示
+  - ユーザー名表示
+  - ログアウトボタン（バックエンドセッション終了処理）
 - **ToastNotification**: 通知メッセージ表示
   - 自動消去タイマー機能（情報/成功/警告通知は5秒後に自動消去）
   - 手動消去ボタン
@@ -470,17 +481,27 @@ interface StorageData {
 - **バージョン管理**: データ構造のバージョンを記録し、互換性を確保
 - **エラー復旧**: 破損データの検出と修復機能
 
-### 8.2 Google Drive連携
-- **認証**: Google OAuth 2.0による認証
+### 8.2 Google Drive連携（AWS環境対応版）
+- **認証**: Google OAuth 2.0認可コードフローによるバックエンド連携認証
+  - クライアントはコードを取得、バックエンドでトークン交換
+  - HTTP-Onlyクッキーによるセッション管理
+  - XSS攻撃からの保護強化
+  - 環境に応じたエンドポイント自動選択
 - **ファイル操作**: 
+  - バックエンドAPIを経由したGoogleドライブ操作
   - 特定フォルダへのデータ保存
   - ファイルの自動命名（アプリ名+タイムスタンプ）
   - 最新データの取得と適用
+  - リトライ機能付きの通信処理
 - **同期フロー**: 
   1. ユーザーがGoogleアカウントでログイン
-  2. 既存のクラウドデータの確認
-  3. ローカルとクラウドの比較（タイムスタンプベース）
-  4. 新しい方を優先または選択的マージ
+  2. バックエンドがGoogle APIと連携してファイル一覧を取得
+  3. 最新ファイルの内容を取得
+  4. ローカルデータと同期・マージ
+- **新機能**: useGoogleDriveフックによる操作のカプセル化
+  - ファイル一覧取得、保存、読み込み機能の分離
+  - エラーハンドリングの強化
+  - ローディング状態管理
 
 ### 8.3 データインポート/エクスポート
 - **エクスポート形式**: 
@@ -535,47 +556,59 @@ interface StorageData {
 - **`REACT_APP_GOOGLE_CLIENT_ID`**: Google OAuth認証用クライアントID
 - **`REACT_APP_DEFAULT_EXCHANGE_RATE`**: フォールバック用デフォルト為替レート
 
-### 11.2 環境変数設定例
-```
-# 市場データAPI URL（株価・為替レート・投資信託情報取得用）
-REACT_APP_MARKET_DATA_API_URL=https://api.marketdata.example.com
+### 11.2 環境固有の設定ファイル
+AWS環境への対応として、環境固有の設定ファイルを導入しました：
 
-# API実行環境
-REACT_APP_API_STAGE=dev
+- **`.env.development`**: 開発環境用の環境変数設定
+  ```
+  REACT_APP_MARKET_DATA_API_URL=https://dev-api.example.com
+  REACT_APP_API_STAGE=dev
+  REACT_APP_ADMIN_API_KEY=dev_admin_api_key
+  REACT_APP_GOOGLE_CLIENT_ID=your_dev_client_id.apps.googleusercontent.com
+  REACT_APP_DEFAULT_EXCHANGE_RATE=150.0
+  ```
 
-# 管理者API認証キー
-REACT_APP_ADMIN_API_KEY=your_admin_api_key_here
+- **`.env.production`**: 本番環境用の環境変数設定
+  ```
+  REACT_APP_MARKET_DATA_API_URL=https://api.example.com
+  REACT_APP_API_STAGE=prod
+  REACT_APP_ADMIN_API_KEY=prod_admin_api_key
+  REACT_APP_GOOGLE_CLIENT_ID=your_prod_client_id.apps.googleusercontent.com
+  REACT_APP_DEFAULT_EXCHANGE_RATE=150.0
+  ```
 
-# GoogleログインとDrive API用
-REACT_APP_GOOGLE_CLIENT_ID=your_google_client_id.apps.googleusercontent.com
+### 11.3 環境ユーティリティの使用
+環境判定と環境依存値の取得を抽象化するために`envUtils.js`を追加しました：
 
-# フォールバック用デフォルト為替レート
-REACT_APP_DEFAULT_EXCHANGE_RATE=150.0
+```javascript
+// 環境変数からAPI基本URLを取得
+const apiBaseUrl = getApiBaseUrl();
+// 環境変数からAPIステージを取得
+const apiStage = getApiStage();
+// 環境に依存しないAPIエンドポイント生成
+const apiEndpoint = buildApiEndpoint('api/market-data');
 ```
 
 ## 12. 確認が必要なソースコード
 
 以下のソースコードの確認が推奨されます：
 
-### 12.1 市場データ関連
-- **`src/services/marketDataService.js`**: 市場データ取得サービス
-- **`src/services/api.js`**: API関連のエントリーポイント
-- **`src/services/adminService.js`**: 管理者向けAPIサービス
+### 12.1 環境・API関連
+- **`src/utils/envUtils.js`**: **新規追加** - 環境判定と環境依存値の処理
+- **`src/utils/apiUtils.js`**: **新規追加** - API呼び出し共通処理
+- **`src/services/marketDataService.js`**: 市場データ取得サービス（AWS環境対応版）
+- **`src/setupProxy.js`**: 開発環境用プロキシ設定（AWS環境対応版）
 
-### 12.2 AI分析機能関連
-- **`src/components/settings/AiPromptSettings.jsx`**: AIプロンプトテンプレート設定コンポーネント
-- **`src/components/simulation/AiAnalysisPrompt.jsx`**: AI分析プロンプト生成コンポーネント
-- **`src/context/PortfolioContext.jsx`**: AIプロンプトテンプレート状態管理
+### 12.2 認証・同期関連
+- **`src/hooks/useGoogleDrive.js`**: **新規追加** - Google Drive連携フック
+- **`src/context/AuthContext.js`**: 認証コンテキスト（AWS環境対応版）
+- **`src/components/auth/LoginButton.jsx`**: Googleログインボタン（認可コードフロー対応）
+- **`src/components/data/GoogleDriveIntegration.jsx`**: Googleドライブ連携コンポーネント（AWS環境対応版）
 
-### 12.3 マルチ通貨シミュレーション関連
-- **`src/components/simulation/BudgetInput.jsx`**: 追加予算入力コンポーネント（通貨選択機能）
-- **`src/components/simulation/SimulationResult.jsx`**: シミュレーション結果表示（購入株数表示）
-- **`src/utils/currencyUtils.js`**: 通貨変換関数
-
-### 12.4 データ永続化関連
-- **`src/services/storageService.js`**: ローカルストレージ操作
-- **`src/services/googleDriveService.js`**: Google Drive API連携
-- **`src/context/AuthContext.jsx`**: Google認証管理
+### 12.3 既存機能関連
+- **`src/context/PortfolioContext.jsx`**: PortfolioContextに認証状態変更ハンドラと連携機能を追加
+- **`src/services/api.js`**: API関連のエントリーポイント（環境ユーティリティ対応）
+- **`src/services/adminService.js`**: 管理者向けAPIサービス（環境ユーティリティ対応）
 
 ## 改訂履歴
 
@@ -587,4 +620,4 @@ REACT_APP_DEFAULT_EXCHANGE_RATE=150.0
 | 4.0 | 2025/03/30 | マルチ通貨シミュレーション対応機能（円/ドル）と購入株数表示機能を追加 | |
 | 5.0 | 2025/05/08 | AI分析機能（ポートフォリオデータをAIアシスタントに分析させるプロンプト生成機能）を追加 | Claude |
 | 6.0 | 2025/05/12 | リファクタリング - スクレイピング機能を削除し、単一市場データAPIサーバーに集約。環境変数名を`REACT_APP_MARKET_DATA_API_URL`に変更 | Claude |
-
+| 6.1 | 2025/05/20 | AWS環境対応 - 環境固有設定ファイルの導入、環境ユーティリティの追加、API通信の標準化、リトライ機能の強化、新規フックの追加 | Claude |
