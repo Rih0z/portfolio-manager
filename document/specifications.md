@@ -1,11 +1,11 @@
-# ポートフォリオマネージャー 総合仕様書（AWS環境移行対応版）
+# ポートフォリオマネージャー 総合仕様書（AWS APIサービス連携対応版）
 
 **ファイルパス:** document/specifications.md  
 **最終更新日時:** 2025-05-20 16:00
 
 ## 1. プロジェクト概要
 
-「ポートフォリオマネージャー」は、資産管理を支援するWebアプリケーションです。ユーザーが保有資産と理想のポートフォリオ配分を比較・管理し、最適な資金配分のシミュレーションを実施できる環境を提供します。ブラウザのローカルストレージを活用したデータ永続化およびGoogleログインとGoogleドライブ連携機能を備え、複数デバイス間でのデータ共有をサポートします。
+「ポートフォリオマネージャー」は、資産管理を支援するWebアプリケーションです。ユーザーが保有資産と理想のポートフォリオ配分を比較・管理し、最適な資金配分のシミュレーションを実施できる環境を提供します。ブラウザのローカルストレージを活用したデータ永続化およびGoogleログインとGoogleドライブ連携機能を備え、複数デバイス間でのデータ共有をサポートします。バックエンド機能の一部をAWSに移行し、Netlifyにホストされるフロントエンドアプリはそれらのサービスと連携しています。
 
 ### 1.1 主要機能
 - 資産管理（保有数の小数点以下4桁対応）
@@ -18,14 +18,15 @@
 - AI分析機能（ポートフォリオデータをAIアシスタントに分析させるプロンプト生成）
 - データインポート/エクスポート
 - ブラウザローカルストレージによるデータ永続化（URIエンコード+Base64による安全な暗号化）
-- Google認証・Googleドライブ連携（Google Identity Services API対応）
-- 市場データの自動取得（単一APIサーバーから取得）
+- Google認証・Googleドライブ連携（AWS上のバックエンドAPI経由）
+- 市場データの自動取得（AWS上の市場データAPIサーバーから取得）
 - iOS風タブバーによるナビゲーション
 - 自動消去機能付き通知システム
 - エラーバウンダリによるアプリケーション耐障害性の向上
 
 ### 1.2 技術スタック
 - **フロントエンド**: React.js 18.x
+- **デプロイ**: Netlify
 - **認証**: Google OAuth 2.0 認可コードフロー (@react-oauth/google 0.11.0)
 - **スタイリング**: Tailwind CSS 3.x
 - **ステート管理**: React Context API
@@ -35,10 +36,9 @@
 - **ユーティリティ**: Lodash 4.x, Day.js 1.x
 - **データ処理**: PapaParse 5.x (CSV処理)
 - **UI拡張**: @headlessui/react 1.x
-- **デプロイ**: AWS Amplify / Netlify
 - **データ永続化**: ローカルストレージ（URIエンコード+Base64暗号化）
-- **クラウド連携**: Google Drive API v3（バックエンド経由）
-- **市場データ取得**: 単一の市場データAPIサーバー（`REACT_APP_MARKET_DATA_API_URL`）
+- **クラウド連携**: AWS上のバックエンドAPIを介したGoogle Drive API連携
+- **市場データ取得**: AWS上の市場データAPIサーバー（`REACT_APP_MARKET_DATA_API_URL`）
 - **認証セキュリティ**: HTTP-Onlyクッキーによるセッション管理
 - **環境管理**: 環境固有の設定ファイル（`.env.development`、`.env.production`）
 
@@ -313,12 +313,15 @@ interface StorageData {
   - JSON/CSV形式選択
   - ファイル/クリップボード/テキスト入力による取り込み
   - アクセシビリティ対応済み
-- **GoogleDriveIntegration**: Googleドライブ連携機能（AWS環境対応版）
+- **GoogleDriveIntegration**: Googleドライブ連携機能（AWS APIサービス連携版）
   - ログイン状態表示
   - クラウド保存/読み込みボタン
   - データ同期ステータス表示
   - 同期ボタン
-  - 環境に応じたエンドポイント自動選択
+  - ファイル一覧表示と選択機能
+  - AWS上のバックエンドAPI経由でのファイル操作
+  - 認証エラー処理
+  - 環境に応じたAPIエンドポイント自動選択
   - リトライ機能付きの通信処理
 - **DataErrorRecovery**: データ修復機能
   - ローカルストレージのクリア機能
@@ -358,15 +361,16 @@ interface StorageData {
 
 ## 5. 市場データ取得システム仕様
 
-### 5.1 データソース構成
-- **市場データソース**: 単一の市場データAPIサーバー（`REACT_APP_MARKET_DATA_API_URL`）
+### 5.1 市場データソース構成
+- **市場データソース**: AWS上の市場データAPIサーバー（`REACT_APP_MARKET_DATA_API_URL`）
   - 米国株、日本株、投資信託、ETFのデータを一元的に提供
   - 株価/基準価額、銘柄情報、配当情報、手数料情報を取得
+  - 環境変数による異なる環境（開発/本番）の切り替え
 
 - **データ取得フロー**:
   1. 銘柄タイプを自動判別（個別株、ETF、投資信託など）
   2. タイプに応じたリクエストパラメータを構築
-  3. 市場データAPIを呼び出し
+  3. AWS上の市場データAPIを呼び出し
   4. 失敗した場合はフォールバック値を使用
 
 ### 5.2 データ取得機能
@@ -395,7 +399,7 @@ interface StorageData {
 ## 6. 為替レート管理機能
 
 ### 6.1 為替レート取得
-- **取得ソース**: 市場データAPI（`REACT_APP_MARKET_DATA_API_URL`）
+- **取得ソース**: AWS上の市場データAPI（`REACT_APP_MARKET_DATA_API_URL`）
 - **最終バックアップ**: デフォルト固定値（150.0）
 - **取得タイミング**:
   - アプリケーション起動時
@@ -481,21 +485,21 @@ interface StorageData {
 - **バージョン管理**: データ構造のバージョンを記録し、互換性を確保
 - **エラー復旧**: 破損データの検出と修復機能
 
-### 8.2 Google Drive連携（AWS環境対応版）
+### 8.2 Google Drive連携（AWS APIサービス連携版）
 - **認証**: Google OAuth 2.0認可コードフローによるバックエンド連携認証
-  - クライアントはコードを取得、バックエンドでトークン交換
+  - クライアントはコードを取得、AWS上のバックエンドでトークン交換
   - HTTP-Onlyクッキーによるセッション管理
   - XSS攻撃からの保護強化
   - 環境に応じたエンドポイント自動選択
 - **ファイル操作**: 
-  - バックエンドAPIを経由したGoogleドライブ操作
+  - AWS上のバックエンドAPIを経由したGoogleドライブ操作
   - 特定フォルダへのデータ保存
   - ファイルの自動命名（アプリ名+タイムスタンプ）
   - 最新データの取得と適用
   - リトライ機能付きの通信処理
 - **同期フロー**: 
   1. ユーザーがGoogleアカウントでログイン
-  2. バックエンドがGoogle APIと連携してファイル一覧を取得
+  2. AWS上のバックエンドがGoogle APIと連携してファイル一覧を取得
   3. 最新ファイルの内容を取得
   4. ローカルデータと同期・マージ
 - **新機能**: useGoogleDriveフックによる操作のカプセル化
@@ -518,8 +522,9 @@ interface StorageData {
 
 ### 9.1 データ保護
 - **ローカルストレージ暗号化**: Base64+URIエンコーディングによる基本的な保護
-- **認証情報管理**: OAuth認証トークンの安全な管理
+- **認証情報管理**: HTTP-Onlyクッキーを使用した安全なセッション管理
 - **HTTPS通信**: すべてのAPI通信でHTTPS使用
+- **CSRF保護**: バックエンドでCSRF対策の実装
 
 ### 9.2 API連携
 - **API Key管理**: 管理者APIキーの安全な管理（環境変数による設定）
@@ -550,14 +555,14 @@ interface StorageData {
 ## 11. 環境変数設定
 
 ### 11.1 環境変数一覧
-- **`REACT_APP_MARKET_DATA_API_URL`**: 市場データAPIサーバーのベースURL（株価、為替、投資信託情報取得用）
+- **`REACT_APP_MARKET_DATA_API_URL`**: AWS上の市場データAPIサーバーのベースURL
 - **`REACT_APP_API_STAGE`**: APIのステージ環境（'dev'、'prod'など）
 - **`REACT_APP_ADMIN_API_KEY`**: 管理者API用認証キー
 - **`REACT_APP_GOOGLE_CLIENT_ID`**: Google OAuth認証用クライアントID
 - **`REACT_APP_DEFAULT_EXCHANGE_RATE`**: フォールバック用デフォルト為替レート
 
 ### 11.2 環境固有の設定ファイル
-AWS環境への対応として、環境固有の設定ファイルを導入しました：
+AWS APIサービス連携のために、環境固有の設定ファイルを導入しました：
 
 - **`.env.development`**: 開発環境用の環境変数設定
   ```
@@ -596,17 +601,17 @@ const apiEndpoint = buildApiEndpoint('api/market-data');
 ### 12.1 環境・API関連
 - **`src/utils/envUtils.js`**: **新規追加** - 環境判定と環境依存値の処理
 - **`src/utils/apiUtils.js`**: **新規追加** - API呼び出し共通処理
-- **`src/services/marketDataService.js`**: 市場データ取得サービス（AWS環境対応版）
-- **`src/setupProxy.js`**: 開発環境用プロキシ設定（AWS環境対応版）
+- **`src/services/marketDataService.js`**: 市場データ取得サービス（AWS APIサービス連携用）
+- **`src/setupProxy.js`**: 開発環境用プロキシ設定（AWS APIサービス連携用）
 
 ### 12.2 認証・同期関連
 - **`src/hooks/useGoogleDrive.js`**: **新規追加** - Google Drive連携フック
-- **`src/context/AuthContext.js`**: 認証コンテキスト（AWS環境対応版）
+- **`src/context/AuthContext.js`**: 認証コンテキスト（AWS APIサービス連携用）
 - **`src/components/auth/LoginButton.jsx`**: Googleログインボタン（認可コードフロー対応）
-- **`src/components/data/GoogleDriveIntegration.jsx`**: Googleドライブ連携コンポーネント（AWS環境対応版）
+- **`src/components/data/GoogleDriveIntegration.jsx`**: Googleドライブ連携コンポーネント（AWS APIサービス連携用）
 
 ### 12.3 既存機能関連
-- **`src/context/PortfolioContext.jsx`**: PortfolioContextに認証状態変更ハンドラと連携機能を追加
+- **`src/context/PortfolioContext.js`**: PortfolioContextに認証状態変更ハンドラと連携機能を追加
 - **`src/services/api.js`**: API関連のエントリーポイント（環境ユーティリティ対応）
 - **`src/services/adminService.js`**: 管理者向けAPIサービス（環境ユーティリティ対応）
 
@@ -620,4 +625,4 @@ const apiEndpoint = buildApiEndpoint('api/market-data');
 | 4.0 | 2025/03/30 | マルチ通貨シミュレーション対応機能（円/ドル）と購入株数表示機能を追加 | |
 | 5.0 | 2025/05/08 | AI分析機能（ポートフォリオデータをAIアシスタントに分析させるプロンプト生成機能）を追加 | Claude |
 | 6.0 | 2025/05/12 | リファクタリング - スクレイピング機能を削除し、単一市場データAPIサーバーに集約。環境変数名を`REACT_APP_MARKET_DATA_API_URL`に変更 | Claude |
-| 6.1 | 2025/05/20 | AWS環境対応 - 環境固有設定ファイルの導入、環境ユーティリティの追加、API通信の標準化、リトライ機能の強化、新規フックの追加 | Claude |
+| 6.1 | 2025/05/20 | バックエンド機能のAWS移行対応 - Netlifyでホストされるフロントエンドからバックエンド機能の一部をAWSに移行。環境固有設定ファイルの導入、環境判定ユーティリティ、API通信の標準化、リトライ機能の強化、新規フックの追加 | Claude |
