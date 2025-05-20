@@ -34,7 +34,7 @@ module.exports = function(app) {
   app.use(
     '/dev/auth',
     createProxyMiddleware({
-      target: 'http://localhost:3000',
+      target: 'http://localhost:3001',
       changeOrigin: true,
       cookieDomainRewrite: 'localhost',
     })
@@ -44,7 +44,7 @@ module.exports = function(app) {
   app.use(
     '/dev/drive',
     createProxyMiddleware({
-      target: 'http://localhost:3000',
+      target: 'http://localhost:3001',
       changeOrigin: true,
     })
   );
@@ -53,7 +53,7 @@ module.exports = function(app) {
   app.use(
     '/dev/admin',
     createProxyMiddleware({
-      target: 'http://localhost:3000',
+      target: 'http://localhost:3001',
       changeOrigin: true,
     })
   );
