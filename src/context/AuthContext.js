@@ -5,12 +5,13 @@
  * 作成者: Koki Riho （https://github.com/Rih0z） 
  * 更新者: System Admin
  * 作成日: 2025-05-08 10:00:00 
- * 更新日: 2025-05-19 12:30:00
+ * 更新日: 2025-05-21 17:00:00
  * 
  * 更新履歴: 
  * - 2025-05-08 10:00:00 Koki Riho 初回作成
  * - 2025-05-12 11:30:00 System Admin バックエンド認証連携に修正
  * - 2025-05-19 12:30:00 System Admin AWS環境対応に修正
+ * - 2025-05-21 17:00:00 System Admin 認証エラー修正
  * 
  * 説明: 
  * 認証関連のReact Contextを提供するコンポーネント。
@@ -19,8 +20,8 @@
  */
 
 import React, { createContext, useState, useEffect, useCallback, useRef } from 'react';
-import { getApiEndpoint } from '../utils/envUtils';
-import { authApiClient } from '../utils/apiUtils';
+import { getApiEndpoint, getRedirectUri, getGoogleClientId } from '../utils/envUtils';
+import { authFetch } from '../utils/apiUtils';
 
 // コンテキスト作成
 export const AuthContext = createContext();
@@ -33,32 +34,57 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
   const portfolioContextRef = useRef(null);
   
+  // Google認証クライアントID
+  const googleClientId = getGoogleClientId();
+  
   // セッション確認
   const checkSession = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await authApiClient.get(
-        getApiEndpoint('auth/session')
-      );
+      console.log('セッション確認を開始します');
       
-      if (response.data.success && response.data.isAuthenticated) {
-        setUser(response.data.user);
+      // セッション確認エンドポイント
+      const sessionEndpoint = getApiEndpoint('auth/session');
+      console.log('セッション確認URL:', sessionEndpoint);
+      
+      const response = await authFetch(sessionEndpoint, 'get');
+      console.log('セッション確認レスポンス:', response);
+      
+      if (response && response.success && response.isAuthenticated) {
+        console.log('セッション認証成功:', response.user);
+        setUser(response.user);
         setIsAuthenticated(true);
         setError(null);
         
         // ポートフォリオコンテキストに認証状態変更を通知
         if (portfolioContextRef.current?.handleAuthStateChange) {
-          portfolioContextRef.current.handleAuthStateChange(true, response.data.user);
+          portfolioContextRef.current.handleAuthStateChange(true, response.user);
         }
       } else {
+        console.log('セッション未認証または無効');
         setUser(null);
         setIsAuthenticated(false);
+        
+        // メッセージがある場合はエラー設定
+        if (response && response.message) {
+          setError(response.message);
+        }
       }
     } catch (error) {
       console.error('セッション確認エラー:', error);
       setUser(null);
       setIsAuthenticated(false);
-      setError('セッション確認中にエラーが発生しました');
+      
+      // エラーメッセージを設定
+      let errorMessage = 'セッション確認中にエラーが発生しました';
+      
+      if (error.response && error.response.data) {
+        errorMessage = error.response.data.message || errorMessage;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -75,31 +101,54 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       setError(null);
       
-      const response = await authApiClient.post(
-        getApiEndpoint('auth/google/login'),
-        {
-          code: credentialResponse.code,
-          redirectUri: window.location.origin + '/auth/callback'
-        }
-      );
+      console.log('Google認証コードを取得しました');
       
-      if (response.data.success) {
-        setUser(response.data.user);
+      // リダイレクトURIを動的に生成
+      const redirectUri = getRedirectUri();
+      console.log('リダイレクトURI:', redirectUri);
+      
+      // 認証エンドポイント
+      const loginEndpoint = getApiEndpoint('auth/google/login');
+      console.log('ログインエンドポイント:', loginEndpoint);
+      
+      // 認証リクエスト
+      const response = await authFetch(loginEndpoint, 'post', {
+        code: credentialResponse.code,
+        redirectUri: redirectUri
+      });
+      
+      console.log('認証レスポンス:', response);
+      
+      if (response && response.success) {
+        console.log('Google認証成功:', response.user);
+        setUser(response.user);
         setIsAuthenticated(true);
+        setError(null);
         
         // ポートフォリオコンテキストに認証状態変更を通知
         if (portfolioContextRef.current?.handleAuthStateChange) {
-          portfolioContextRef.current.handleAuthStateChange(true, response.data.user);
+          portfolioContextRef.current.handleAuthStateChange(true, response.user);
         }
         
         return true;
       } else {
-        setError(response.data.message || 'ログインに失敗しました');
+        console.error('認証レスポンスエラー:', response);
+        setError(response?.message || 'ログインに失敗しました');
         return false;
       }
     } catch (error) {
       console.error('Google認証エラー:', error);
-      setError(error.response?.data?.message || 'ログイン処理中にエラーが発生しました');
+      
+      // エラーメッセージを設定
+      let errorMessage = 'ログイン処理中にエラーが発生しました';
+      
+      if (error.response && error.response.data) {
+        errorMessage = error.response.data.message || errorMessage;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setError(errorMessage);
       return false;
     } finally {
       setLoading(false);
@@ -110,20 +159,38 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       setLoading(true);
-      await authApiClient.post(getApiEndpoint('auth/logout'));
+      console.log('ログアウト処理を開始します');
       
+      // ログアウトエンドポイント
+      const logoutEndpoint = getApiEndpoint('auth/logout');
+      
+      await authFetch(logoutEndpoint, 'post');
+      
+      // 状態をリセット
       setUser(null);
       setIsAuthenticated(false);
+      setError(null);
       
       // ポートフォリオコンテキストに認証状態変更を通知
       if (portfolioContextRef.current?.handleAuthStateChange) {
         portfolioContextRef.current.handleAuthStateChange(false, null);
       }
       
+      console.log('ログアウト処理完了');
       return true;
     } catch (error) {
       console.error('ログアウトエラー:', error);
-      setError('ログアウト処理中にエラーが発生しました');
+      
+      // エラーメッセージを設定
+      let errorMessage = 'ログアウト処理中にエラーが発生しました';
+      
+      if (error.response && error.response.data) {
+        errorMessage = error.response.data.message || errorMessage;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setError(errorMessage);
       return false;
     } finally {
       setLoading(false);
@@ -132,6 +199,7 @@ export const AuthProvider = ({ children }) => {
   
   // 初期ロード時のセッション確認
   useEffect(() => {
+    console.log('AuthContextがマウントされました - セッション確認を実行します');
     checkSession();
   }, [checkSession]);
   
@@ -144,7 +212,8 @@ export const AuthProvider = ({ children }) => {
     loginWithGoogle,
     logout,
     checkSession,
-    setPortfolioContextRef
+    setPortfolioContextRef,
+    googleClientId
   };
   
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
