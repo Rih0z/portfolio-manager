@@ -24,3 +24,31 @@ yarn-error.log*
 
 # Local Netlify folder
 .netlify
+# テスト関連
+/coverage
+/test-results
+junit.xml
+.jest-cache
+
+# Node
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ビルド
+/build
+/dist
+
+# 環境変数
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# エディタ関連
+.idea
+.vscode
+*.swp
+*.swo
+.DS_Store
