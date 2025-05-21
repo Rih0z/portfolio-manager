@@ -27,13 +27,15 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "dev": "netlify dev",
-    "test:all": "node script/run-all-tests.js",
-    "test:unit": "node script/run-unit-tests.js",
-    "test:integration": "node script/run-integration-tests.js",
-    "test:e2e": "node script/run-e2e-tests.js",
-    "test:coverage": "node script/generate-coverage-report.js",
-    "test:view-results": "node script/view-test-results.js",
-    "test:prepare-dirs": "node script/prepare-test-dirs.js"
+    "test:all": "script/run-tests.sh all",
+    "test:unit": "script/run-tests.sh unit",
+    "test:integration": "script/run-tests.sh integration",
+    "test:e2e": "script/run-tests.sh e2e",
+    "test:coverage": "script/run-tests.sh --force-coverage all",
+    "test:view-results": "open test-results/visual-report.html || xdg-open test-results/visual-report.html",
+    "test:prepare-dirs": "node script/prepare-test-dirs.js",
+    "test:setup": "node script/setup-test-env.js",
+    "test:clean": "rimraf coverage test-results .jest-cache"
   },
   "eslintConfig": {
     "extends": [
@@ -71,6 +73,7 @@
   "devDependencies": {
     "autoprefixer": "^10.4.14",
     "cheerio": "^1.0.0",
+    "cross-env": "^7.0.3",
     "eslint-plugin-jsx-a11y": "^6.7.1",
     "jest-html-reporter": "^3.10.2",
     "jest-junit": "^16.0.0",
@@ -78,7 +81,9 @@
     "msw": "^1.3.2",
     "netlify-cli": "^15.11.0",
     "postcss": "^8.4.21",
-    "prettier": "^2.8.7"
+    "prettier": "^2.8.7",
+    "readline-sync": "^1.4.10",
+    "rimraf": "^3.0.2"
   },
   "proxy": "http://localhost:9000",
   "jest": {
@@ -99,7 +104,8 @@
           "includeFailureMsg": true,
           "includeSuiteFailure": true
         }
-      ]
+      ],
+      "./custom-reporter.js"
     ],
     "moduleNameMapper": {
       "\\.(css|less|scss|sass)$": "<rootDir>/__mocks__/styleMock.js",

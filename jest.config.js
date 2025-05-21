@@ -1,4 +1,3 @@
-// 以下のように完全な形に修正
 module.exports = {
   // テスト環境
   testEnvironment: 'jsdom',
@@ -33,8 +32,9 @@ module.exports = {
     }
   },
   
-  // テストファイルのパターン
+  // テストファイルのパターン - 両方のパターンをサポート
   testMatch: [
+    '**/__tests__/**/*.{js,jsx,ts,tsx}',
     '**/__test__/**/*.{js,jsx,ts,tsx}',
     '**/?(*.)+(spec|test).{js,jsx,ts,tsx}'
   ],
@@ -43,7 +43,7 @@ module.exports = {
   setupFiles: ['./jest.setup.js'],
   
   // テスト実行前後のグローバル設定
-  setupFilesAfterEnv: ['./__test__/setup.js'],
+  setupFilesAfterEnv: ['./__tests__/setup.js'],
   
   // テストタイムアウト設定
   testTimeout: 10000,
@@ -69,6 +69,7 @@ module.exports = {
       outputPath: './test-results/test-report.html',
       includeFailureMsg: true,
       includeSuiteFailure: true
-    }]
+    }],
+    './custom-reporter.js'
   ]
 };

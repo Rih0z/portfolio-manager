@@ -1,12 +1,11 @@
 /**
  * テスト環境セットアップスクリプト
- * DynamoDB Localの起動、テーブル作成、環境変数設定を自動化
+ * テストディレクトリの作成、環境変数設定、モックファイル準備を行います
  * 
- * @file scripts/setup-test-env.js
- * @updated 2025-05-15 - エラーハンドリング強化、設定の最適化
+ * @file script/setup-test-env.js
+ * @updated 2025-05-21 - ポートフォリオマネージャー向けに調整
  */
 
-const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
@@ -29,177 +28,6 @@ const log = {
   step: message => console.log(`${colors.cyan}[STEP]${colors.reset} ${message}`)
 };
 
-// AWS SDK の読み込み（オフライン環境に対応）
-let DynamoDBClient;
-let CreateTableCommand;
-let ListTablesCommand;
-let dynamodbAvailable = false;
-try {
-  ({ DynamoDBClient, CreateTableCommand, ListTablesCommand } = require('@aws-sdk/client-dynamodb'));
-  dynamodbAvailable = true;
-} catch (err) {
-  log.warning('@aws-sdk/client-dynamodb が見つかりません。DynamoDB 関連の処理をスキップします');
-}
-
-/**
- * DynamoDB Local が起動しているかチェック
- * @returns {boolean} 起動している場合はtrue
- */
-function isDynamoDBRunning() {
-  try {
-    // ポートが開いているか確認
-    if (process.platform === 'win32') {
-      // Windows環境
-      return execSync('netstat -ano | findstr "8000"', { stdio: 'pipe' }).toString().includes('LISTENING');
-    } else {
-      // Unix系環境
-      return execSync('lsof -i :8000 | grep LISTEN', { stdio: 'pipe' }).toString().trim() !== '';
-    }
-  } catch (error) {
-    return false;
-  }
-}
-
-/**
- * DynamoDB Local の起動
- * @returns {Promise<boolean>} 起動成功時はtrue
- */
-async function startDynamoDBLocal() {
-  log.step('DynamoDB Local の確認・起動...');
-
-  if (process.env.SKIP_DYNAMODB_CHECKS === 'true') {
-    log.warning('SKIP_DYNAMODB_CHECKS=true のため DynamoDB Local の起動をスキップします');
-    return false;
-  }
-  
-  // 既に起動しているか確認
-  if (isDynamoDBRunning()) {
-    log.success('DynamoDB Local はすでに起動しています');
-    return true;
-  }
-  
-  // DynamoDBのjarファイルが存在するか確認
-  const jarPath = './dynamodb-local/DynamoDBLocal.jar';
-  if (!fs.existsSync(jarPath)) {
-    log.warning(`DynamoDB Local の jar ファイルが見つかりません: ${jarPath}`);
-    log.info('DynamoDB Local をダウンロードしますか？ (y/n)');
-    
-    // ユーザーの入力を待つ（同期的に）
-    const readline = require('readline').createInterface({
-      input: process.stdin,
-      output: process.stdout
-    });
-    
-    const answer = await new Promise(resolve => {
-      readline.question('> ', resolve);
-    });
-    readline.close();
-    
-    if (answer.toLowerCase() === 'y') {
-      log.info('DynamoDB Local をダウンロードしています...');
-      
-      try {
-        // dynamodb-local ディレクトリを作成
-        if (!fs.existsSync('./dynamodb-local')) {
-          fs.mkdirSync('./dynamodb-local', { recursive: true });
-        }
-        
-        // ダウンロードコマンドを実行
-        execSync('curl -L https://d1ni2b6xgvw0s0.cloudfront.net/v2.2.0/dynamodb_local_latest.zip -o ./dynamodb-local/dynamodb_local_latest.zip', { stdio: 'inherit' });
-        
-        // 解凍
-        if (process.platform === 'win32') {
-          // Windows環境
-          execSync('powershell -command "Expand-Archive -Path ./dynamodb-local/dynamodb_local_latest.zip -DestinationPath ./dynamodb-local -Force"', { stdio: 'inherit' });
-        } else {
-          // Unix系環境
-          execSync('unzip -o ./dynamodb-local/dynamodb_local_latest.zip -d ./dynamodb-local', { stdio: 'inherit' });
-        }
-        
-        log.success('DynamoDB Local のダウンロードが完了しました');
-      } catch (error) {
-        log.error(`DynamoDB Local のダウンロードに失敗しました: ${error.message}`);
-        log.warning('テストはモックモードで実行する必要があります');
-        return false;
-      }
-    } else {
-      log.warning('DynamoDB Local のダウンロードをスキップします');
-      log.warning('テストはモックモードで実行する必要があります');
-      return false;
-    }
-  }
-  
-  // DynamoDB Local を起動
-  log.info('DynamoDB Local を起動します...');
-  
-  try {
-    // Java バージョンを確認
-    try {
-      const javaVersion = execSync('java -version 2>&1', { stdio: 'pipe' }).toString();
-      log.info(`Java バージョン: ${javaVersion.split('\n')[0]}`);
-    } catch (error) {
-      log.error('Java が見つかりません。DynamoDB Local の実行には Java が必要です。');
-      return false;
-    }
-    
-    // バックグラウンドで DynamoDB Local を起動
-    const child = require('child_process').spawn('java', [
-      '-Djava.library.path=./dynamodb-local/DynamoDBLocal_lib',
-      '-jar',
-      './dynamodb-local/DynamoDBLocal.jar',
-      '-inMemory',
-      '-port',
-      '8000',
-      '-sharedDb'
-    ], {
-      detached: true,
-      stdio: process.platform === 'win32' ? 'ignore' : ['ignore', 'pipe', 'pipe']
-    });
-    
-    // エラーハンドリング
-    if (child.stderr) {
-      child.stderr.on('data', (data) => {
-        log.error(`DynamoDB stderr: ${data}`);
-      });
-    }
-    
-    if (child.stdout) {
-      child.stdout.on('data', (data) => {
-        if (data.toString().includes('CorsParams')) {
-          log.success('DynamoDB Local が正常に起動しました');
-        }
-      });
-    }
-    
-    // 親プロセスから切り離す
-    child.unref();
-    
-    // 起動を待機
-    log.info('DynamoDB Local の起動を待機しています...');
-    let attempts = 0;
-    const maxAttempts = 5;
-    
-    while (attempts < maxAttempts) {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      attempts++;
-      
-      if (isDynamoDBRunning()) {
-        log.success(`DynamoDB Local の起動が完了しました (${attempts}秒)`);
-        return true;
-      }
-      
-      log.info(`起動待機中... (${attempts}/${maxAttempts})`);
-    }
-    
-    log.error('DynamoDB Local の起動タイムアウト');
-    return false;
-  } catch (error) {
-    log.error(`DynamoDB Local の起動に失敗しました: ${error.message}`);
-    log.warning('テストはモックモードで実行されます');
-    return false;
-  }
-}
-
 /**
  * テスト用ディレクトリの作成
  */
@@ -210,7 +38,9 @@ function createTestDirectories() {
     './test-results',
     './test-results/junit',
     './coverage',
-    './.jest-cache'
+    './.jest-cache',
+    './__tests__',
+    './__mocks__'
   ];
   
   directories.forEach(dir => {
@@ -224,108 +54,7 @@ function createTestDirectories() {
 }
 
 /**
- * DynamoDBクライアントの作成
- * @returns {DynamoDBClient} DynamoDBクライアント
- */
-function createDynamoDBClient() {
-  if (!dynamodbAvailable) {
-    log.warning('DynamoDB クライアントを作成できません。AWS SDK がインストールされていません');
-    return null;
-  }
-
-  return new DynamoDBClient({
-    region: 'us-east-1',
-    endpoint: process.env.DYNAMODB_ENDPOINT || 'http://localhost:8000',
-    credentials: {
-      accessKeyId: 'test',
-      secretAccessKey: 'test'
-    }
-  });
-}
-
-/**
- * テスト用テーブルの作成
- * @returns {Promise<boolean>} 成功時はtrue
- */
-async function createTestTables() {
-  log.step('テスト用テーブルを作成しています...');
-
-  try {
-    if (!dynamodbAvailable) {
-      log.warning('AWS SDK が利用できないため、テーブル作成をスキップします');
-      return true;
-    }
-
-    const client = createDynamoDBClient();
-    
-    // 既存のテーブルを取得
-    let existingTables = [];
-    try {
-      const { TableNames } = await client.send(new ListTablesCommand({}));
-      existingTables = TableNames || [];
-      log.info(`既存のテーブル: ${existingTables.join(', ') || '(なし)'}`);
-    } catch (error) {
-      log.warning(`テーブル一覧の取得に失敗しました: ${error.message}`);
-    }
-    
-    // 作成するテーブルの定義
-    const tables = [
-      {
-        name: process.env.SESSION_TABLE || 'test-sessions',
-        keySchema: [{ AttributeName: 'sessionId', KeyType: 'HASH' }],
-        attributeDefinitions: [{ AttributeName: 'sessionId', AttributeType: 'S' }]
-      },
-      {
-        name: `${process.env.DYNAMODB_TABLE_PREFIX || 'test-'}cache`,
-        keySchema: [{ AttributeName: 'key', KeyType: 'HASH' }],
-        attributeDefinitions: [{ AttributeName: 'key', AttributeType: 'S' }]
-      },
-      {
-        name: `${process.env.DYNAMODB_TABLE_PREFIX || 'test-'}scraping-blacklist`,
-        keySchema: [{ AttributeName: 'symbol', KeyType: 'HASH' }],
-        attributeDefinitions: [{ AttributeName: 'symbol', AttributeType: 'S' }]
-      }
-    ];
-    
-    // 各テーブルを作成
-    let successCount = 0;
-    for (const table of tables) {
-      if (!existingTables.includes(table.name)) {
-        try {
-          log.info(`テーブルを作成しています: ${table.name}`);
-          
-          await client.send(new CreateTableCommand({
-            TableName: table.name,
-            KeySchema: table.keySchema,
-            AttributeDefinitions: table.attributeDefinitions,
-            BillingMode: 'PAY_PER_REQUEST'
-          }));
-          
-          log.success(`テーブルを作成しました: ${table.name}`);
-          successCount++;
-        } catch (error) {
-          if (error.name === 'ResourceInUseException') {
-            log.info(`テーブルは既に存在します: ${table.name}`);
-            successCount++;
-          } else {
-            log.error(`テーブル作成エラー - ${table.name}: ${error.message}`);
-          }
-        }
-      } else {
-        log.info(`テーブルは既に存在します: ${table.name}`);
-        successCount++;
-      }
-    }
-    
-    return successCount === tables.length;
-  } catch (error) {
-    log.error(`テーブル作成処理に失敗しました: ${error.message}`);
-    return false;
-  }
-}
-
-/**
- * テスト環境変数の設定
+ * 環境変数の設定
  */
 function setupEnvironmentVariables() {
   log.step('テスト環境変数を設定しています...');
@@ -333,21 +62,14 @@ function setupEnvironmentVariables() {
   // .env.test ファイルのパス
   const envFile = path.join(process.cwd(), '.env.test');
   
-  // デフォルトの環境変数設定
+  // ポートフォリオマネージャー向けのデフォルト環境変数設定
   const defaultEnv = `# テスト環境用の環境変数
 NODE_ENV=test
-DYNAMODB_ENDPOINT=http://localhost:8000
-SESSION_TABLE=test-sessions
-DYNAMODB_TABLE_PREFIX=test-
-API_TEST_URL=http://localhost:3000/dev
-SKIP_DYNAMODB_CHECKS=true
+REACT_APP_MARKET_DATA_API_URL=https://api.example.com
+REACT_APP_API_STAGE=test
+REACT_APP_GOOGLE_CLIENT_ID=test-client-id
+REACT_APP_DEFAULT_EXCHANGE_RATE=150.0
 USE_API_MOCKS=true
-CACHE_TIME_US_STOCK=60
-CACHE_TIME_JP_STOCK=60
-CACHE_TIME_MUTUAL_FUND=60
-CACHE_TIME_EXCHANGE_RATE=60
-CORS_ALLOW_ORIGIN=*
-TEST_MODE=true
 `;
   
   // .env.test ファイルが存在するか確認
@@ -360,9 +82,10 @@ TEST_MODE=true
     // 必要な環境変数が含まれているか確認
     const requiredVars = [
       'NODE_ENV',
-      'DYNAMODB_ENDPOINT',
-      'SESSION_TABLE',
-      'DYNAMODB_TABLE_PREFIX'
+      'REACT_APP_MARKET_DATA_API_URL',
+      'REACT_APP_API_STAGE',
+      'REACT_APP_GOOGLE_CLIENT_ID',
+      'REACT_APP_DEFAULT_EXCHANGE_RATE'
     ];
     
     const missingVars = requiredVars.filter(varName => !content.includes(`${varName}=`));
@@ -372,7 +95,8 @@ TEST_MODE=true
       log.info('ファイルを更新しますか？ (y/n)');
       
       // ユーザーの入力を待つ（同期的に）
-      const answer = require('readline-sync').question('> ');
+      const readline = require('readline-sync');
+      const answer = readline.question('> ');
       
       if (answer.toLowerCase() === 'y') {
         // 既存の内容に追加
@@ -394,10 +118,10 @@ TEST_MODE=true
   
   // 現在のプロセスの環境変数を設定
   process.env.NODE_ENV = 'test';
-  process.env.DYNAMODB_ENDPOINT = 'http://localhost:8000';
-  process.env.SESSION_TABLE = 'test-sessions';
-  process.env.DYNAMODB_TABLE_PREFIX = 'test-';
-  process.env.SKIP_DYNAMODB_CHECKS = 'true';
+  process.env.REACT_APP_MARKET_DATA_API_URL = 'https://api.example.com';
+  process.env.REACT_APP_API_STAGE = 'test';
+  process.env.REACT_APP_GOOGLE_CLIENT_ID = 'test-client-id';
+  process.env.REACT_APP_DEFAULT_EXCHANGE_RATE = '150.0';
   process.env.USE_API_MOCKS = 'true';
   
   log.success('環境変数の設定が完了しました');
@@ -411,7 +135,6 @@ function checkMockSetup() {
   
   const mockDirs = [
     './__mocks__',
-    './__mocks__/aws-sdk',
     './__mocks__/axios'
   ];
   
@@ -422,6 +145,26 @@ function checkMockSetup() {
       log.success(`ディレクトリを作成しました: ${dir}`);
     }
   });
+  
+  // styleMockファイルの確認
+  const styleMockFile = './__mocks__/styleMock.js';
+  if (!fs.existsSync(styleMockFile)) {
+    const styleMockContent = `// Style mock
+module.exports = {};`;
+    
+    fs.writeFileSync(styleMockFile, styleMockContent);
+    log.success(`モックファイルを作成しました: ${styleMockFile}`);
+  }
+  
+  // fileMockファイルの確認
+  const fileMockFile = './__mocks__/fileMock.js';
+  if (!fs.existsSync(fileMockFile)) {
+    const fileMockContent = `// File mock
+module.exports = 'test-file-stub';`;
+    
+    fs.writeFileSync(fileMockFile, fileMockContent);
+    log.success(`モックファイルを作成しました: ${fileMockFile}`);
+  }
   
   // Axiosモックファイルの確認
   const axiosMockFile = './__mocks__/axios.js';
@@ -462,6 +205,19 @@ module.exports = {
     
     fs.writeFileSync(axiosMockFile, axiosMockContent);
     log.success(`モックファイルを作成しました: ${axiosMockFile}`);
+  }
+  
+  // setup.js ファイルの確認（空でも存在しているか）
+  const setupFile = './__tests__/setup.js';
+  if (!fs.existsSync(setupFile)) {
+    const setupContent = `// テスト実行前後のグローバル設定
+import '@testing-library/jest-dom';
+
+// この後にテストグローバル設定を追加
+`;
+    
+    fs.writeFileSync(setupFile, setupContent);
+    log.success(`セットアップファイルを作成しました: ${setupFile}`);
   }
   
   log.success('モックファイルの確認が完了しました');
@@ -514,36 +270,19 @@ async function main() {
     // 環境変数の設定
     setupEnvironmentVariables();
     
-    // DynamoDB Local の起動
-    const dynamoDBRunning = await startDynamoDBLocal();
-    
-    // テーブルの作成（DynamoDBが起動している場合のみ）
-    let tablesCreated = false;
-    if (dynamoDBRunning) {
-      // DynamoDB起動確認後に少し待機
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      tablesCreated = await createTestTables();
-    }
-    
     // 前処理
     prepareTestEnvironment();
     
     console.log('=====================================');
     
-    if (dynamoDBRunning && tablesCreated) {
-      log.success('テスト環境のセットアップが完了しました！');
-      log.info('テストを実行するには:');
-      log.info('  npm test');
-      log.info('  または');
-      log.info('  ./scripts/run-tests.sh [テスト種別]');
-    } else if (dynamoDBRunning) {
-      log.warning('DynamoDB は起動していますが、テーブル作成に問題がありました');
-      log.info('必要に応じてモックモードでテストを実行してください:');
-      log.info('  USE_API_MOCKS=true npm test');
-    } else {
-      log.warning('DynamoDBの起動に問題があります。モックモードでテストを実行してください:');
-      log.info('  USE_API_MOCKS=true npm test');
-    }
+    log.success('テスト環境のセットアップが完了しました！');
+    log.info('テストを実行するには:');
+    log.info('  npm test');
+    log.info('  または');
+    log.info('  npm run test:unit');
+    log.info('  npm run test:integration');
+    log.info('  npm run test:e2e');
+    log.info('  npm run test:all');
     
     return 0;
   } catch (error) {

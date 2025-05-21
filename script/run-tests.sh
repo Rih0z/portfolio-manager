@@ -1,22 +1,19 @@
 #!/bin/bash
 # 
-# ファイルパス: scripts/run-tests.sh
+# ファイルパス: script/run-tests.sh
 # 
-# Portfolio Market Data APIテスト実行スクリプト
+# Portfolio Manager テスト実行スクリプト
 # Jest設定ファイルを利用し、各種テスト実行オプションを提供
 #
-# @author Koki Riho
-# @updated 2025-05-15 - 新しいテスト種別の追加、詳細レポート生成オプションの強化
-# @updated 2025-05-16 - カバレッジチャートの自動生成機能追加、テストカバレッジ目標の段階追跡
-# @updated 2025-05-17 - カバレッジオプションが確実に有効になるように修正、強制カバレッジオプション追加
-# @updated 2025-05-19 - Jest設定ファイルを明示的に指定する機能追加、依存関係の明確化
-# @updated 2025-05-20 - カバレッジデータ生成の信頼性向上、デバッグオプション強化
-# @updated 2025-05-21 - カバレッジ率と目標カバレッジ率の表示を強化、非同期ハンドル問題の検出を追加
-#
+# @author Portfolio Manager Team
+# @updated 2025-05-21 - ポートフォリオマネージャー向けに調整
+# 
 
 # 便利なサンプルコマンド
-# JEST_COVERAGE=true ./scripts/run-tests.sh integration  # カバレッジを強制的に有効化して統合テストを実行
-# USE_API_MOCKS=true ./scripts/run-tests.sh e2e          # モックを使用してE2Eテストを実行
+# npm run test:setup       # テスト環境のセットアップを実行
+# ./script/run-tests.sh -c unit  # 環境クリーンアップ後に単体テストを実行
+# ./script/run-tests.sh --force-coverage integration  # カバレッジを強制的に有効化して統合テストを実行
+# USE_API_MOCKS=true ./script/run-tests.sh e2e      # モックを使用してE2Eテストを実行
 
 # 色の設定
 GREEN='\033[0;32m'
@@ -49,18 +46,17 @@ print_info() {
 }
 
 show_help() {
-  print_header "Portfolio Market Data API テスト実行ヘルプ"
+  print_header "Portfolio Manager テスト実行ヘルプ"
   echo "使用方法: $0 [オプション] <テスト種別>"
   echo ""
   echo "オプション:"
   echo "  -h, --help                  このヘルプメッセージを表示"
   echo "  -c, --clean                 テスト実行前にテスト環境をクリーンアップ"
   echo "  -v, --visual                テスト結果をビジュアルレポートで表示"
-  echo "  -a, --auto                  APIサーバーを自動起動（E2Eテスト用）"
   echo "  -m, --mock                  APIモックを使用（E2Eテスト用）"
   echo "  -w, --watch                 監視モードでテストを実行（コード変更時に自動再実行）"
   echo "  -n, --no-coverage           カバレッジ計測・チェックを無効化"
-  echo "  -f, --force                 サーバー状態に関わらずテストを強制実行"
+  echo "  -f, --force                 テストを強制実行"
   echo "  -d, --debug                 デバッグモードを有効化（詳細ログを表示）"
   echo "  -i, --ignore-coverage-errors テスト自体は成功してもカバレッジエラーを無視"
   echo "  -s, --specific              特定のファイルまたはパターンに一致するテストのみ実行"
@@ -96,7 +92,7 @@ show_help() {
   echo "使用例:"
   echo "  $0 unit             単体テストのみ実行（カバレッジあり）"
   echo "  $0 -c all           環境クリーンアップ後、すべてのテストを実行"
-  echo "  $0 -a -v e2e        APIサーバー自動起動でE2Eテストを実行し、結果をビジュアル表示"
+  echo "  $0 -v e2e           E2Eテストを実行し、結果をビジュアル表示"
   echo "  $0 -m -w unit       モックを使用し、監視モードで単体テストを実行"
   echo "  $0 quick            単体テストと統合テストを高速実行（モック使用）"
   echo "  $0 -n integration   カバレッジチェック無効で統合テストを実行"
@@ -117,7 +113,6 @@ show_help() {
 # 変数の初期化
 CLEAN=0
 VISUAL=0
-AUTO=0
 MOCK=0
 WATCH=0
 NO_COVERAGE=0
@@ -149,10 +144,6 @@ while [[ $# -gt 0 ]]; do
       ;;
     -v|--visual)
       VISUAL=1
-      shift
-      ;;
-    -a|--auto)
-      AUTO=1
       shift
       ;;
     -m|--mock)
@@ -409,11 +400,6 @@ case $COVERAGE_TARGET in
 esac
 
 # 環境変数の設定
-if [ $AUTO -eq 1 ]; then
-  ENV_VARS="$ENV_VARS RUN_E2E_TESTS=true"
-  print_info "APIサーバー自動起動モードが有効です"
-fi
-
 if [ $MOCK -eq 1 ]; then
   ENV_VARS="$ENV_VARS USE_API_MOCKS=true"
   print_info "APIモック使用モードが有効です"
@@ -468,53 +454,53 @@ fi
 case $TEST_TYPE in
   unit)
     print_header "単体テストを実行中..."
-    JEST_ARGS="$JEST_ARGS --selectProjects unit"
+    JEST_ARGS="$JEST_ARGS --testPathPattern=\"__tests__/unit/\""
     ;;
   unit:services)
     print_header "サービス層の単体テストを実行中..."
-    JEST_ARGS="$JEST_ARGS --selectProjects unit --testPathPattern=services"
+    JEST_ARGS="$JEST_ARGS --testPathPattern=\"__tests__/unit/services/\""
     ;;
   unit:utils)
     print_header "ユーティリティの単体テストを実行中..."
-    JEST_ARGS="$JEST_ARGS --selectProjects unit --testPathPattern=utils"
+    JEST_ARGS="$JEST_ARGS --testPathPattern=\"__tests__/unit/utils/\""
     ;;
   unit:function)
     print_header "API関数の単体テストを実行中..."
-    JEST_ARGS="$JEST_ARGS --selectProjects unit --testPathPattern=function"
+    JEST_ARGS="$JEST_ARGS --testPathPattern=\"__tests__/unit/function/\""
     ;;
   integration)
     print_header "統合テストを実行中..."
-    JEST_ARGS="$JEST_ARGS --selectProjects integration"
+    JEST_ARGS="$JEST_ARGS --testPathPattern=\"__tests__/integration/\""
     ;;
   integration:auth)
     print_header "認証関連の統合テストを実行中..."
-    JEST_ARGS="$JEST_ARGS --selectProjects integration --testPathPattern=auth"
+    JEST_ARGS="$JEST_ARGS --testPathPattern=\"__tests__/integration/auth/\""
     ;;
   integration:market)
     print_header "マーケットデータ関連の統合テストを実行中..."
-    JEST_ARGS="$JEST_ARGS --selectProjects integration --testPathPattern=marketData"
+    JEST_ARGS="$JEST_ARGS --testPathPattern=\"__tests__/integration/market/\""
     ;;
   integration:drive)
     print_header "Google Drive関連の統合テストを実行中..."
-    JEST_ARGS="$JEST_ARGS --selectProjects integration --testPathPattern=drive"
+    JEST_ARGS="$JEST_ARGS --testPathPattern=\"__tests__/integration/drive/\""
     ;;
   e2e)
     print_header "エンドツーエンドテストを実行中..."
-    JEST_ARGS="$JEST_ARGS --selectProjects e2e"
+    JEST_ARGS="$JEST_ARGS --testPathPattern=\"__tests__/e2e/\""
     ;;
   all)
     print_header "すべてのテストを実行中..."
-    JEST_ARGS="$JEST_ARGS --selectProjects unit integration e2e"
+    JEST_ARGS="$JEST_ARGS"
     ;;
   quick)
     print_header "クイックテスト（単体+統合）を実行中..."
-    JEST_ARGS="$JEST_ARGS --selectProjects unit integration"
+    JEST_ARGS="$JEST_ARGS --testPathPattern=\"__tests__/(unit|integration)/\""
     ENV_VARS="$ENV_VARS USE_API_MOCKS=true"
     ;;
   specific)
     print_header "特定のパターンに一致するテストを実行中..."
     print_info "パターン: $SPECIFIC_PATTERN"
-    JEST_ARGS="$JEST_ARGS --testPathPattern=$SPECIFIC_PATTERN"
+    JEST_ARGS="$JEST_ARGS --testPathPattern=\"$SPECIFIC_PATTERN\""
     ;;
   *)
     print_error "不明なテスト種別: $TEST_TYPE"
@@ -663,7 +649,7 @@ if [ $GENERATE_CHART -eq 1 ] && [ $NO_COVERAGE -ne 1 ] && [ -f "./test-results/d
   print_info "カバレッジチャートを生成しています..."
   
   # チャート生成スクリプトを実行
-  npx cross-env NODE_ENV=production node ./scripts/generate-coverage-chart.js
+  npx cross-env NODE_ENV=production node ./script/generate-coverage-chart.js
   
   if [ $? -eq 0 ]; then
     print_success "カバレッジチャートが生成されました"
@@ -672,7 +658,7 @@ if [ $GENERATE_CHART -eq 1 ] && [ $NO_COVERAGE -ne 1 ] && [ -f "./test-results/d
     # エラーの詳細を確認
     if [ $DEBUG_MODE -eq 1 ]; then
       print_info "チャート生成スクリプトを手動で実行してエラーを確認します..."
-      NODE_ENV=production node --trace-warnings ./scripts/generate-coverage-chart.js
+      NODE_ENV=production node --trace-warnings ./script/generate-coverage-chart.js
     fi
   fi
 fi
@@ -923,19 +909,19 @@ if [ $TEST_RESULT -ne 0 ]; then
   # 改善提案を表示
   print_info "改善提案:"
   echo "- 詳細なエラー情報を確認: cat ./test-results/test-log.md"
-  echo "- ビジュアルレポートを表示: ./scripts/run-tests.sh -v $TEST_TYPE"
-  echo "- モックモードでテストを再実行: ./scripts/run-tests.sh -m $TEST_TYPE"
-  echo "- カバレッジエラーを無視してテスト: ./scripts/run-tests.sh -i $TEST_TYPE"
-  echo "- カバレッジの問題が原因の場合は強制的に有効化: ./scripts/run-tests.sh --force-coverage $TEST_TYPE"
-  echo "- デバッグモードで詳細情報を表示: ./scripts/run-tests.sh -d $TEST_TYPE"
-  echo "- カバレッジデータ処理の詳細を確認: ./scripts/run-tests.sh --verbose-coverage $TEST_TYPE"
-  echo "- 非同期ハンドル問題を検出: ./scripts/run-tests.sh --detect-open-handles $TEST_TYPE"
+  echo "- ビジュアルレポートを表示: npm run test:view-results"
+  echo "- モックモードでテストを再実行: script/run-tests.sh -m $TEST_TYPE"
+  echo "- カバレッジエラーを無視してテスト: script/run-tests.sh -i $TEST_TYPE"
+  echo "- カバレッジの問題が原因の場合は強制的に有効化: script/run-tests.sh --force-coverage $TEST_TYPE"
+  echo "- デバッグモードで詳細情報を表示: script/run-tests.sh -d $TEST_TYPE"
+  echo "- カバレッジデータ処理の詳細を確認: script/run-tests.sh --verbose-coverage $TEST_TYPE"
+  echo "- 非同期ハンドル問題を検出: script/run-tests.sh --detect-open-handles $TEST_TYPE"
 fi
 
 # テスト後のクリーンアップ提案
 if [ $TEST_RESULT -eq 0 ] && [ $CLEAN -ne 1 ]; then
   print_info "次回のテスト実行前に環境をクリーンアップすることをお勧めします:"
-  echo "  ./scripts/run-tests.sh -c ..."
+  echo "  script/run-tests.sh -c ..."
 fi
 
 exit $TEST_RESULT

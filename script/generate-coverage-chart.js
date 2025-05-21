@@ -1,11 +1,11 @@
 /**
- * ファイルパス: scripts/generate-coverage-chart.js
+ * ファイルパス: script/generate-coverage-chart.js
  * 
  * Jest テストカバレッジデータからグラフィカルなチャートを生成するスクリプト
  * テスト結果レポートに埋め込むためのSVGチャートを作成する
  * 
  * @author Portfolio Manager Team
- * @created 2025-05-16
+ * @created 2025-05-21
  */
 
 const fs = require('fs');
@@ -70,6 +70,77 @@ function loadCoverageData() {
     // ファイルが存在しない場合
     if (!fs.existsSync(resultsPath)) {
       console.error('カバレッジデータファイルが見つかりません:', resultsPath);
+      
+      // 代替ファイルを確認
+      const coveragePath = path.resolve('./coverage/coverage-final.json');
+      if (fs.existsSync(coveragePath)) {
+        console.log('代替カバレッジファイルを使用します:', coveragePath);
+        
+        // カバレッジデータから直接値を取得する処理を実装する必要がある
+        // ここでは簡易的な実装を行う
+        try {
+          const coverageData = JSON.parse(fs.readFileSync(coveragePath, 'utf8'));
+          
+          // 簡易的なカバレッジ計算
+          let totalStatements = { covered: 0, total: 0 };
+          let totalBranches = { covered: 0, total: 0 };
+          let totalFunctions = { covered: 0, total: 0 };
+          let totalLines = { covered: 0, total: 0 };
+          
+          // 各ファイルのカバレッジを集計
+          Object.values(coverageData).forEach(fileData => {
+            // ステートメント
+            const statementCovered = Object.values(fileData.s || {}).filter(v => v > 0).length;
+            const statementTotal = Object.keys(fileData.s || {}).length;
+            totalStatements.covered += statementCovered;
+            totalStatements.total += statementTotal;
+            
+            // ブランチ
+            let branchCovered = 0;
+            let branchTotal = 0;
+            
+            Object.values(fileData.b || {}).forEach(countsArray => {
+              if (Array.isArray(countsArray)) {
+                countsArray.forEach(count => {
+                  branchTotal++;
+                  if (count > 0) branchCovered++;
+                });
+              }
+            });
+            
+            totalBranches.covered += branchCovered;
+            totalBranches.total += branchTotal;
+            
+            // 関数
+            const functionCovered = Object.values(fileData.f || {}).filter(v => v > 0).length;
+            const functionTotal = Object.keys(fileData.f || {}).length;
+            totalFunctions.covered += functionCovered;
+            totalFunctions.total += functionTotal;
+            
+            // 行カバレッジ
+            const lineCovered = Object.values(fileData.l || {}).filter(v => v > 0).length;
+            const lineTotal = Object.keys(fileData.l || {}).length;
+            totalLines.covered += lineCovered;
+            totalLines.total += lineTotal;
+          });
+          
+          // パーセンテージを計算
+          totalStatements.pct = totalStatements.total ? (totalStatements.covered / totalStatements.total) * 100 : 0;
+          totalBranches.pct = totalBranches.total ? (totalBranches.covered / totalBranches.total) * 100 : 0;
+          totalFunctions.pct = totalFunctions.total ? (totalFunctions.covered / totalFunctions.total) * 100 : 0;
+          totalLines.pct = totalLines.total ? (totalLines.covered / totalLines.total) * 100 : 0;
+          
+          return {
+            statements: totalStatements,
+            branches: totalBranches,
+            functions: totalFunctions,
+            lines: totalLines
+          };
+        } catch (err) {
+          console.error('代替カバレッジファイルの読み込みに失敗しました:', err);
+        }
+      }
+      
       return null;
     }
     
@@ -77,6 +148,11 @@ function loadCoverageData() {
     const data = JSON.parse(fs.readFileSync(resultsPath, 'utf8'));
     
     // 必要なカバレッジデータを抽出
+    if (!data.coverageMap || !data.coverageMap.total) {
+      console.error('カバレッジデータが見つかりません');
+      return null;
+    }
+    
     return {
       statements: {
         pct: data.coverageMap.total.statements.pct,
@@ -154,7 +230,7 @@ function generateBarChart(coverageData, targetLevel) {
   svg += `  <rect width="${width}" height="${height}" fill="${COLORS.background}" />\n`;
   
   // タイトル
-  svg += `  <text x="${width/2}" y="30" text-anchor="middle" font-family="Arial" font-size="20" font-weight="bold" fill="${COLORS.text}">テストカバレッジ - ${new Date().toLocaleDateString('ja-JP')}</text>\n`;
+  svg += `  <text x="${width/2}" y="30" text-anchor="middle" font-family="Arial" font-size="20" font-weight="bold" fill="${COLORS.text}">Portfolio Manager テストカバレッジ - ${new Date().toLocaleDateString('ja-JP')}</text>\n`;
   svg += `  <text x="${width/2}" y="55" text-anchor="middle" font-family="Arial" font-size="16" fill="${COLORS.text}">目標段階: ${targetLevel === 'initial' ? '初期 (20-30%)' : targetLevel === 'mid' ? '中間 (40-60%)' : '最終 (70-80%)'}</text>\n`;
   
   // Y軸と目盛り
@@ -200,7 +276,13 @@ function generateBarChart(coverageData, targetLevel) {
     svg += `  <text x="${x + barWidth/2}" y="${y-5}" text-anchor="middle" font-family="Arial" font-size="14" font-weight="bold" fill="${COLORS.text}">${roundToTwo(d.value)}%</text>\n`;
     
     // 詳細データ
-    svg += `  <text x="${x + barWidth/2}" y="${y-25}" text-anchor="middle" font-family="Arial" font-size="12" fill="${COLORS.text}">${coverageData[d.name.toLowerCase().replace('ステートメント', 'statements').replace('ブランチ', 'branches').replace('関数', 'functions').replace('行', 'lines')].covered}/${coverageData[d.name.toLowerCase().replace('ステートメント', 'statements').replace('ブランチ', 'branches').replace('関数', 'functions').replace('行', 'lines')].total}</text>\n`;
+    const metricKey = d.name.toLowerCase()
+      .replace('ステートメント', 'statements')
+      .replace('ブランチ', 'branches')
+      .replace('関数', 'functions')
+      .replace('行', 'lines');
+    
+    svg += `  <text x="${x + barWidth/2}" y="${y-25}" text-anchor="middle" font-family="Arial" font-size="12" fill="${COLORS.text}">${coverageData[metricKey].covered}/${coverageData[metricKey].total}</text>\n`;
   });
   
   // 凡例
@@ -274,7 +356,7 @@ function generateLineChart(currentData, historyData, targetLevel) {
   svg += `  <rect width="${width}" height="${height}" fill="${COLORS.background}" />\n`;
   
   // タイトル
-  svg += `  <text x="${width/2}" y="30" text-anchor="middle" font-family="Arial" font-size="20" font-weight="bold" fill="${COLORS.text}">テストカバレッジ履歴</text>\n`;
+  svg += `  <text x="${width/2}" y="30" text-anchor="middle" font-family="Arial" font-size="20" font-weight="bold" fill="${COLORS.text}">Portfolio Manager テストカバレッジ履歴</text>\n`;
   
   // Y軸と目盛り
   svg += `  <line x1="${margin.left}" y1="${margin.top}" x2="${margin.left}" y2="${height-margin.bottom}" stroke="${COLORS.text}" stroke-width="2" />\n`;
