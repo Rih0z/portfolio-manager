@@ -925,3 +925,4 @@ if [ $TEST_RESULT -eq 0 ] && [ $CLEAN -ne 1 ]; then
 fi
 
 exit $TEST_RESULT
+

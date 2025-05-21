@@ -52,24 +52,32 @@ src/
     └── fundUtils.js            # ファンドユーティリティ
 ```
 
-また、テストファイルは以下の構成になっています：
+## テスト構造
+
+テストファイルは主にソースファイルと同じディレクトリに配置され、以下の命名規則に従っています：
 
 ```
-__test__/
-├── setup.js                     # テスト実行前後の共通処理設定
-├── mocks/                      # モックデータとハンドラー
-│   ├── handlers.js              # MSWモックサーバーのAPIハンドラー定義
-│   └── data.js                  # テスト用モックデータ
-├── unit/                        # 単体テスト
-│   ├── components/              # コンポーネントテスト
-│   ├── store/                   # ストアテスト
-│   ├── utils/                   # ユーティリティテスト
-│   └── services/                # サービステスト
-├── integration/                 # 統合テスト
-│   ├── auth/                    # 認証関連テスト
-│   ├── forms/                   # フォーム関連テスト
-│   └── api/                     # API連携テスト
-└── e2e/                         # E2Eテスト
+src/
+└── components/
+    └── Button.test.js      # 単体テスト
+src/
+└── services/
+    └── api.integration.test.js  # 統合テスト
+```
+
+また、テスト実行時に生成される成果物は以下の構成になっています：
+
+```
+test-results/           # テスト結果格納ディレクトリ
+├── junit/              # JUnit形式のテスト結果
+├── visual-report.html  # ビジュアルテストレポート
+├── test-log.md         # テスト実行ログ
+├── detailed-results.json # 詳細なテスト結果
+└── coverage-history.json # カバレッジ履歴データ
+
+coverage/               # カバレッジレポート
+├── lcov-report/        # HTMLカバレッジレポート
+└── coverage-final.json # 詳細カバレッジデータ
 ```
 
 ## 主要なドキュメントファイル
@@ -126,6 +134,16 @@ npm run test:all
 
 単体テスト、統合テスト、E2Eテストがすべて実行されます。テストの詳細構成は `document/test-files.md` を参照してください。
 
+また、個別のテスト実行には以下のコマンドが使用できます：
+
+```
+./script/run-tests.sh unit           # 単体テストのみ実行
+./script/run-tests.sh integration    # 統合テストのみ実行
+./script/run-tests.sh e2e            # E2Eテストのみ実行
+./script/run-tests.sh -c all         # 環境クリーンアップ後にすべてのテストを実行
+./script/run-tests.sh -v -m quick    # ビジュアル表示とモック使用で高速テスト実行
+```
+
 ## ドキュメント管理
 
 ソースコードを修正した場合、必要に応じて関連するドキュメントも更新してください。特に以下の場合は必ずドキュメントを更新する必要があります：
@@ -144,3 +162,4 @@ npm run test:all
 - API呼び出しは必ず`apiUtils.js`の共通関数を使用してください
 - エラーハンドリングはコンポーネントレベルで適切に実装してください
 - AWSサーバーとの連携の際は適切な認証情報を設定してください
+- テスト環境セットアップは自動的に必要な環境を作成します（不要なテストディレクトリは作成されないように設定済み）
