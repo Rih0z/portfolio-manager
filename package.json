@@ -72,7 +72,7 @@
     "autoprefixer": "^10.4.14",
     "cheerio": "^1.0.0",
     "eslint-plugin-jsx-a11y": "^6.7.1",
-    "jest-html-reporter": "^3.10.1",
+    "jest-html-reporter": "^3.10.2",
     "jest-junit": "^16.0.0",
     "jsdom": "^26.1.0",
     "msw": "^1.3.2",
@@ -84,16 +84,22 @@
   "jest": {
     "reporters": [
       "default",
-      ["jest-junit", {
-        "outputDirectory": "./test-results",
-        "outputName": "junit.xml"
-      }],
-      ["jest-html-reporter", {
-        "pageTitle": "ポートフォリオマネージャーテスト結果",
-        "outputPath": "./test-results/test-report.html",
-        "includeFailureMsg": true,
-        "includeSuiteFailure": true
-      }]
+      [
+        "jest-junit",
+        {
+          "outputDirectory": "./test-results",
+          "outputName": "junit.xml"
+        }
+      ],
+      [
+        "jest-html-reporter",
+        {
+          "pageTitle": "ポートフォリオマネージャーテスト結果",
+          "outputPath": "./test-results/test-report.html",
+          "includeFailureMsg": true,
+          "includeSuiteFailure": true
+        }
+      ]
     ],
     "moduleNameMapper": {
       "\\.(css|less|scss|sass)$": "<rootDir>/__mocks__/styleMock.js",

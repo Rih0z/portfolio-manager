@@ -1,10 +1,4 @@
-/**
- * ファイルパス: jest.config.js
- * 
- * Jest テスト設定ファイル
- * テスト全体の設定・構成を管理する中心ファイル
- */
-
+// 以下のように完全な形に修正
 module.exports = {
   // テスト環境
   testEnvironment: 'jsdom',
@@ -62,5 +56,19 @@ module.exports = {
     // パスエイリアス
     '^@/(.*)$': '<rootDir>/src/$1'
   },
-
-  // ト
+  
+  // レポーター設定
+  reporters: [
+    'default',
+    ['jest-junit', {
+      outputDirectory: './test-results',
+      outputName: 'junit.xml'
+    }],
+    ['jest-html-reporter', {
+      pageTitle: 'ポートフォリオマネージャーテスト結果',
+      outputPath: './test-results/test-report.html',
+      includeFailureMsg: true,
+      includeSuiteFailure: true
+    }]
+  ]
+};
