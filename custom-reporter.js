@@ -6,8 +6,7 @@
  * 
  * @author Portfolio Manager Team
  * @created 2025-05-12
- * @updated 2025-05-17 - カバレッジデータをファイルから直接読み込む機能を追加
- * @updated 2025-05-20 - 行カバレッジの収集と表示を修正
+ * @updated 2025-05-20 - カバレッジデータをファイルから直接読み込む機能を追加
  */
 
 const fs = require('fs');
@@ -118,7 +117,7 @@ class CustomReporter {
       // カバレッジデータファイルのパス
       const coveragePath = path.resolve('./coverage/coverage-final.json');
       
-      // ファイルが存在するか確認
+      // ファイルが存在しない場合
       if (!fs.existsSync(coveragePath)) {
         console.warn('⚠ カバレッジデータファイルが見つかりません:', coveragePath);
         console.log('代替ファイルを探しています...');
@@ -1370,7 +1369,7 @@ class CustomReporter {
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Portfolio Wise - テスト結果ダッシュボード</title>
+        <title>Portfolio Manager - テスト結果ダッシュボード</title>
         <style>${styles}</style>
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
       </head>
@@ -1380,12 +1379,12 @@ class CustomReporter {
           <header class="header">
             <div class="header-content">
               <div class="header-title">
-                <h1>Portfolio Wise</h1>
-                <span>開発チーム テスト システム</span>
+                <h1>Portfolio Manager</h1>
+                <span>テストダッシュボード</span>
               </div>
               <div class="header-info">
                 <div class="header-status">
-                  システム - ステータス: アクティブ
+                  ステータス: ${this.results.numFailedTests > 0 ? 'エラーあり' : 'テスト成功'}
                 </div>
                 <div class="header-date">
                   <div>実行日: ${new Date().toLocaleString('ja-JP').split(' ')[0]}</div>
@@ -1412,11 +1411,11 @@ class CustomReporter {
                 <div class="terminal-title">システムステータス</div>
               </div>
               <div class="terminal-output">
-                <span class="terminal-label">実行開始:</span> ポートフォリオ市場データAPIテストスイート<br>
+                <span class="terminal-label">実行開始:</span> Portfolioマネージャーテストスイート<br>
                 <span class="terminal-label">実行完了:</span> ${((this.endTime - this.startTime) / 1000).toFixed(2)} 秒<br>
                 <span class="terminal-label">テスト分析:</span> ${this.results.numTotalTests}件のテストを検証<br>
                 ${this.results.numFailedTests > 0 
-                  ? `<div class="warning-text">警告: ${this.results.numFailedTests}件のテストが要件を満たしていません。即時修正が必要です。</div>`
+                  ? `<div class="warning-text">警告: ${this.results.numFailedTests}件のテストが要件を満たしていません。修正が必要です。</div>`
                   : `<div class="success-text">ステータス良好: すべてのテストが要件を満たしています。</div>`
                 }
               </div>
@@ -1474,7 +1473,7 @@ class CustomReporter {
                   <div class="card-title">コードカバレッジ分析</div>
                   <div class="coverage-warning">
                     <p>カバレッジ情報が利用できません。テスト実行時に以下のコマンドを使用してください：</p>
-                    <pre style="margin-top: 10px; background: #000; padding: 10px; border-radius: 3px;">JEST_COVERAGE=true ./scripts/run-tests.sh ${process.argv.slice(2).join(' ')}</pre>
+                    <pre style="margin-top: 10px; background: #000; padding: 10px; border-radius: 3px;">./scripts/run-tests.sh --force-coverage ${process.argv.slice(2).join(' ')}</pre>
                   </div>
                 </div>
                 `}
@@ -1532,7 +1531,7 @@ class CustomReporter {
                 目標達成率: ${coverageData.filter(item => item.value >= item.target).length} / ${coverageData.length}
               </div>
               <div class="footer-center">
-                Portfolio Wise開発チーム - Quality Assurance System
+                Portfolio Manager - Test Dashboard
               </div>
               <div class="footer-right">
                 Version 1.0.0
@@ -1707,15 +1706,6 @@ class CustomReporter {
         
         if (allTargetsMet) {
           console.log(`\n${green}✓ 現在の目標段階(${targetLevel})のすべての目標を達成しています！${reset}`);
-          
-          // 次の目標を提案
-          if (targetLevel === 'initial') {
-            console.log(`${blue}次のステップ: ${yellow}-t mid${reset} オプションで中間段階の目標に挑戦しましょう`);
-          } else if (targetLevel === 'mid') {
-            console.log(`${blue}次のステップ: ${yellow}-t final${reset} オプションで最終段階の目標に挑戦しましょう`);
-          } else if (targetLevel === 'final') {
-            console.log(`${green}おめでとうございます！最終段階の目標を達成しました！${reset}`);
-          }
         } else {
           console.log(`\n${yellow}⚠ 現在の目標段階(${targetLevel})のいくつかの目標がまだ達成されていません${reset}`);
         }
@@ -1725,7 +1715,7 @@ class CustomReporter {
     } else {
       console.log(`${yellow}⚠ カバレッジデータが結果ファイルに含まれていません。${reset}`);
       console.log(`${blue}次回のテスト実行時には以下のコマンドを使用してください：${reset}`);
-      console.log(`${yellow}JEST_COVERAGE=true ./scripts/run-tests.sh ${process.argv.slice(2).join(' ')}${reset}`);
+      console.log(`${yellow}./scripts/run-tests.sh --force-coverage ${process.argv.slice(2).join(' ')}${reset}`);
     }
     
     console.log('========================================');
@@ -1745,3 +1735,4 @@ class CustomReporter {
 }
 
 module.exports = CustomReporter;
+
