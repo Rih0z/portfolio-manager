@@ -11,6 +11,7 @@
  * - 2025-05-12 15:30:00 Koki Riho 認可コードフローに対応
  * - 2025-05-19 12:45:00 System Admin AWS環境対応に修正
  * - 2025-05-21 16:00:00 System Admin Google認証エラー修正
+ * - 2025-05-22 14:30:00 認証スコープを追加し認証フローを修正
  * 
  * 説明: 
  * Google OAuth認証を使用したログインボタンコンポーネント。
@@ -37,8 +38,8 @@ const LoginButton = () => {
   const handleGoogleLoginSuccess = async (credentialResponse) => {
     console.log('Google認証成功:', credentialResponse);
     
-    if (!credentialResponse.code) {
-      console.error('認証コードがレスポンスに含まれていません');
+    if (!credentialResponse || !credentialResponse.code) {
+      console.error('認証コードがレスポンスに含まれていません', credentialResponse);
       setLoginError('認証コードが取得できませんでした');
       return;
     }
@@ -99,6 +100,9 @@ const LoginButton = () => {
             locale="ja"
             context="signin"
             ux_mode="popup"
+            scope="https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile"
+            select_account="true"
+            redirect_uri={redirectUri}
           />
         </div>
       </GoogleOAuthProvider>

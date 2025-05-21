@@ -4,11 +4,12 @@
  * 
  * 作成者: System Admin
  * 作成日: 2025-05-19 11:45:00 
- * 更新日: 2025-05-21 16:45:00
+ * 更新日: 2025-05-23 10:00:00
  * 
  * 更新履歴: 
  * - 2025-05-19 11:45:00 System Admin 初回作成
  * - 2025-05-21 16:45:00 System Admin 認証関連の改善
+ * - 2025-05-23 10:00:00 System Admin ヘッダーサイズの最適化対応
  * 
  * 説明: 
  * API呼び出しに関する共通機能を提供するユーティリティ。
@@ -35,11 +36,29 @@ export const TIMEOUT = {
   MUTUAL_FUND: 20000     // 20秒
 };
 
+// 認証トークンの保存（メモリ内）
+let authToken = null;
+
+// トークンを設定する関数
+export const setAuthToken = (token) => {
+  authToken = token;
+};
+
+// トークンを取得する関数
+export const getAuthToken = () => {
+  return authToken;
+};
+
+// トークンをクリアする関数
+export const clearAuthToken = () => {
+  authToken = null;
+};
+
 // Axiosインスタンスの作成
 export const createApiClient = (withAuth = false) => {
   const client = axios.create({
     timeout: TIMEOUT.DEFAULT,
-    withCredentials: withAuth // 認証が必要な場合はクッキーを送信
+    withCredentials: false // クッキーではなくトークンベースの認証に変更
   });
   
   // インターセプターの設定
@@ -47,19 +66,24 @@ export const createApiClient = (withAuth = false) => {
     config => {
       console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`);
       
-      // 共通ヘッダーを設定
+      // 共通ヘッダーを設定（最小限に保つ）
       config.headers = {
         ...config.headers,
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       };
       
+      // 認証が必要な場合はAuthorizationヘッダーを追加
+      if (withAuth && authToken) {
+        config.headers['Authorization'] = `Bearer ${authToken}`;
+      }
+      
       // デバッグ情報
       if (withAuth) {
         console.log('認証情報付きリクエスト:', {
           url: config.url,
-          withCredentials: config.withCredentials,
-          method: config.method
+          method: config.method,
+          hasToken: !!authToken
         });
       }
       
@@ -76,6 +100,12 @@ export const createApiClient = (withAuth = false) => {
     response => {
       // 成功レスポンスを処理
       console.log(`API Response: ${response.config.method?.toUpperCase()} ${response.config.url} -> ${response.status}`);
+      
+      // トークンがレスポンスに含まれていれば保存
+      if (response.data && response.data.token) {
+        setAuthToken(response.data.token);
+      }
+      
       return response;
     },
     error => {
@@ -86,9 +116,11 @@ export const createApiClient = (withAuth = false) => {
           data: error.response.data,
           url: error.config.url,
           method: error.config.method,
-          withCredentials: error.config.withCredentials,
-          headers: error.config.headers
+          hasToken: !!authToken
         });
+        
+        // 認証エラーの場合はトークンをクリア
+        clearAuthToken();
       } else if (error.response) {
         // その他のエラーレスポンス
         console.error('API Error:', {
@@ -252,6 +284,9 @@ export default {
   authFetch,
   formatErrorResponse,
   generateFallbackData,
+  setAuthToken,
+  getAuthToken,
+  clearAuthToken,
   TIMEOUT,
   RETRY
 };

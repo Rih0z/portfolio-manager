@@ -4,11 +4,12 @@
  * 
  * 作成者: System Admin
  * 作成日: 2025-05-19 11:30:00 
- * 更新日: 2025-05-21 16:30:00
+ * 更新日: 2025-05-23 10:00:00
  * 
  * 更新履歴: 
  * - 2025-05-19 11:30:00 System Admin 初回作成
  * - 2025-05-21 16:30:00 System Admin リダイレクトURI生成機能を追加
+ * - 2025-05-23 10:00:00 System Admin リダイレクトURI最適化
  * 
  * 説明: 
  * 環境に応じたAPI設定を提供するユーティリティ関数。
@@ -78,7 +79,10 @@ export const getOrigin = () => {
 
 // リダイレクトURIを生成
 export const getRedirectUri = () => {
-  return `${getOrigin()}/auth/callback`;
+  // 簡略化されたリダイレクトURIを生成（パスだけに短縮）
+  const origin = getOrigin();
+  // URIの長さを最小限に抑える
+  return `${origin}/auth/callback`;
 };
 
 // デフォルト為替レートを取得

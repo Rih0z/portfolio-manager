@@ -5,23 +5,24 @@
  * 作成者: Koki Riho （https://github.com/Rih0z） 
  * 更新者: System Admin
  * 作成日: 2025-05-08 10:00:00 
- * 更新日: 2025-05-21 17:00:00
+ * 更新日: 2025-05-23 10:00:00
  * 
  * 更新履歴: 
  * - 2025-05-08 10:00:00 Koki Riho 初回作成
  * - 2025-05-12 11:30:00 System Admin バックエンド認証連携に修正
  * - 2025-05-19 12:30:00 System Admin AWS環境対応に修正
  * - 2025-05-21 17:00:00 System Admin 認証エラー修正
+ * - 2025-05-23 10:00:00 System Admin ヘッダーサイズ最適化対応
  * 
  * 説明: 
  * 認証関連のReact Contextを提供するコンポーネント。
- * バックエンドのセッション認証を利用したGoogle認証を管理し、
+ * APIトークンを利用したGoogle認証を管理し、
  * ログイン状態の維持、Google Driveとの連携機能を提供します。
  */
 
 import React, { createContext, useState, useEffect, useCallback, useRef } from 'react';
 import { getApiEndpoint, getRedirectUri, getGoogleClientId } from '../utils/envUtils';
-import { authFetch } from '../utils/apiUtils';
+import { authFetch, setAuthToken, getAuthToken, clearAuthToken } from '../utils/apiUtils';
 
 // コンテキスト作成
 export const AuthContext = createContext();
@@ -43,6 +44,16 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       console.log('セッション確認を開始します');
       
+      // トークンの確認
+      const token = getAuthToken();
+      if (!token) {
+        console.log('認証トークンがありません');
+        setUser(null);
+        setIsAuthenticated(false);
+        setLoading(false);
+        return;
+      }
+      
       // セッション確認エンドポイント
       const sessionEndpoint = getApiEndpoint('auth/session');
       console.log('セッション確認URL:', sessionEndpoint);
@@ -56,6 +67,11 @@ export const AuthProvider = ({ children }) => {
         setIsAuthenticated(true);
         setError(null);
         
+        // 新しいトークンがレスポンスに含まれている場合は更新
+        if (response.token) {
+          setAuthToken(response.token);
+        }
+        
         // ポートフォリオコンテキストに認証状態変更を通知
         if (portfolioContextRef.current?.handleAuthStateChange) {
           portfolioContextRef.current.handleAuthStateChange(true, response.user);
@@ -64,6 +80,7 @@ export const AuthProvider = ({ children }) => {
         console.log('セッション未認証または無効');
         setUser(null);
         setIsAuthenticated(false);
+        clearAuthToken();
         
         // メッセージがある場合はエラー設定
         if (response && response.message) {
@@ -74,6 +91,7 @@ export const AuthProvider = ({ children }) => {
       console.error('セッション確認エラー:', error);
       setUser(null);
       setIsAuthenticated(false);
+      clearAuthToken();
       
       // エラーメッセージを設定
       let errorMessage = 'セッション確認中にエラーが発生しました';
@@ -121,6 +139,15 @@ export const AuthProvider = ({ children }) => {
       
       if (response && response.success) {
         console.log('Google認証成功:', response.user);
+        
+        // JWTトークンの保存
+        if (response.token) {
+          console.log('認証トークンを保存します');
+          setAuthToken(response.token);
+        } else {
+          console.warn('トークンがレスポンスに含まれていません');
+        }
+        
         setUser(response.user);
         setIsAuthenticated(true);
         setError(null);
@@ -166,6 +193,9 @@ export const AuthProvider = ({ children }) => {
       
       await authFetch(logoutEndpoint, 'post');
       
+      // トークンをクリア
+      clearAuthToken();
+      
       // 状態をリセット
       setUser(null);
       setIsAuthenticated(false);
@@ -210,7 +240,8 @@ export const AuthProvider = ({ children }) => {
     loading,
     error,
     loginWithGoogle,
-    logout,
+    logout: logout,
+    handleLogout: logout, // 互換性のため両方のメソッド名を提供
     checkSession,
     setPortfolioContextRef,
     googleClientId
