@@ -33,7 +33,6 @@
     "test:e2e": "script/run-tests.sh e2e",
     "test:coverage": "script/run-tests.sh --force-coverage all",
     "test:view-results": "open test-results/visual-report.html || xdg-open test-results/visual-report.html",
-    "test:prepare-dirs": "node script/prepare-test-dirs.js",
     "test:setup": "node script/setup-test-env.js",
     "test:clean": "rimraf coverage test-results .jest-cache"
   },
