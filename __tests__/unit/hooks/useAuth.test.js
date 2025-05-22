@@ -5,8 +5,9 @@ import useAuth from '@/hooks/useAuth';
 
 // AuthProvider 内で使用されていない場合にエラーを投げることを確認
 it('throws error when used outside AuthProvider', () => {
-  const { result } = renderHook(() => useAuth());
-  expect(result.error).toEqual(new Error('useAuth must be used within an AuthProvider'));
+  expect(() => renderHook(() => useAuth())).toThrow(
+    'useAuth must be used within an AuthProvider'
+  );
 });
 
 // AuthProvider でラップした場合にコンテキスト値を取得できることを確認
