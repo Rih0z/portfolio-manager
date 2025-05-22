@@ -53,6 +53,7 @@ try {
     if (userEventModule.default && userEventModule.default.setup !== target.setup) {
       userEventModule.default.setup = target.setup;
     }
+
   }
 } catch (err) {
   debugLog('user-event setup polyfill failed', err);
