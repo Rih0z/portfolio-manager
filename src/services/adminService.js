@@ -21,7 +21,7 @@ const API_URL = process.env.REACT_APP_MARKET_DATA_API_URL || 'http://localhost:3
 const API_STAGE = process.env.REACT_APP_API_STAGE || 'dev';
 
 // 管理者APIの設定
-const ADMIN_API_KEY = process.env.REACT_APP_ADMIN_API_KEY || 'd41d8cd98f00b204e9800998ecf8427e'; // デフォルト値はサンプルです
+let ADMIN_API_KEY = process.env.REACT_APP_ADMIN_API_KEY || 'd41d8cd98f00b204e9800998ecf8427e'; // デフォルト値はサンプルです
 const ADMIN_API_TIMEOUT = 5000; // 5秒
 
 // APIエンドポイントを取得
@@ -29,13 +29,20 @@ const getBaseEndpoint = () => {
   return `${API_URL}/${API_STAGE}`;
 };
 
-// 管理者APIクライアント
-const adminClient = axios.create({
-  timeout: ADMIN_API_TIMEOUT,
-  headers: {
-    'x-api-key': ADMIN_API_KEY
-  }
-});
+// 管理者APIクライアント（遅延生成）
+let adminClient = null;
+
+export const createAdminClient = () => {
+  adminClient = axios.create({
+    timeout: ADMIN_API_TIMEOUT,
+    headers: {
+      'x-api-key': ADMIN_API_KEY
+    }
+  });
+  return adminClient;
+};
+
+const getAdminClient = () => adminClient || createAdminClient();
 
 /**
  * APIステータスを取得
@@ -44,7 +51,7 @@ const adminClient = axios.create({
 export const getStatus = async () => {
   try {
     const endpoint = `${getBaseEndpoint()}/admin/status`;
-    const response = await adminClient.get(endpoint);
+    const response = await getAdminClient().get(endpoint);
     
     return {
       success: true,
@@ -70,7 +77,7 @@ export const getStatus = async () => {
 export const resetUsage = async () => {
   try {
     const endpoint = `${getBaseEndpoint()}/admin/reset`;
-    const response = await adminClient.post(endpoint);
+    const response = await getAdminClient().post(endpoint);
     
     return {
       success: true,
@@ -95,7 +102,11 @@ export const resetUsage = async () => {
  */
 export const setAdminApiKey = (apiKey) => {
   if (apiKey) {
-    adminClient.defaults.headers['x-api-key'] = apiKey;
+    ADMIN_API_KEY = apiKey;
+    const client = getAdminClient();
+    if (client.defaults && client.defaults.headers) {
+      client.defaults.headers['x-api-key'] = apiKey;
+    }
     console.log('管理者API認証キーを設定しました');
     return true;
   }
@@ -106,5 +117,6 @@ export const setAdminApiKey = (apiKey) => {
 export default {
   getStatus,
   resetUsage,
-  setAdminApiKey
+  setAdminApiKey,
+  createAdminClient
 };

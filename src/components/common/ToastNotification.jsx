@@ -15,7 +15,7 @@
  */
 // src/components/common/ToastNotification.jsx
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 /**
  * トースト通知コンポーネント
@@ -29,15 +29,23 @@ const ToastNotification = ({
   position = 'bottom'
 }) => {
   const [visible, setVisible] = useState(true);
+  const timerRef = useRef(null);
   
   // 時間経過後に閉じる
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setVisible(false);
-      if (onClose) onClose();
-    }, duration);
-    
-    return () => clearTimeout(timer);
+    if (duration > 0) {
+      timerRef.current = setTimeout(() => {
+        setVisible(false);
+        if (onClose) onClose();
+      }, duration);
+    }
+
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    };
   }, [duration, onClose]);
   
   // 位置に応じたスタイルを決定
