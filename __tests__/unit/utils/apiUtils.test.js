@@ -14,6 +14,7 @@ import {
   marketDataClient,
   authApiClient,
   fetchWithRetry,
+  authFetch,
   formatErrorResponse,
   generateFallbackData,
   TIMEOUT,
