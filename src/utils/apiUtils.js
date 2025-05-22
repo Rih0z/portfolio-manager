@@ -62,8 +62,9 @@ export const createApiClient = (withAuth = false) => {
   });
   
   // インターセプターの設定
-  client.interceptors.request.use(
-    config => {
+  if (client.interceptors?.request?.use) {
+    client.interceptors.request.use(
+      config => {
       console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`);
       
       // 共通ヘッダーを設定（最小限に保つ）
@@ -89,15 +90,17 @@ export const createApiClient = (withAuth = false) => {
       
       return config;
     },
-    error => {
-      console.error('Request Error:', error);
-      return Promise.reject(error);
-    }
-  );
-  
+      error => {
+        console.error('Request Error:', error);
+        return Promise.reject(error);
+      }
+    );
+  }
+
   // レスポンスインターセプター
-  client.interceptors.response.use(
-    response => {
+  if (client.interceptors?.response?.use) {
+    client.interceptors.response.use(
+      response => {
       // 成功レスポンスを処理
       console.log(`API Response: ${response.config.method?.toUpperCase()} ${response.config.url} -> ${response.status}`);
       
@@ -108,40 +111,41 @@ export const createApiClient = (withAuth = false) => {
       
       return response;
     },
-    error => {
-      // 認証エラーの詳細をログ出力
-      if (error.response && error.response.status === 401) {
-        console.error('認証エラー:', {
-          status: error.response.status,
-          data: error.response.data,
-          url: error.config.url,
-          method: error.config.method,
-          hasToken: !!authToken
-        });
-        
-        // 認証エラーの場合はトークンをクリア
-        clearAuthToken();
-      } else if (error.response) {
-        // その他のエラーレスポンス
-        console.error('API Error:', {
-          status: error.response.status,
-          data: error.response.data,
-          url: error.config.url
-        });
-      } else if (error.request) {
-        // リクエストは送信されたがレスポンスが返ってこなかった場合
-        console.error('API Request Error (No Response):', {
-          url: error.config.url,
-          message: error.message
-        });
-      } else {
-        // リクエスト設定中にエラーが発生
-        console.error('API Error (Request Setup):', error.message);
+      error => {
+        // 認証エラーの詳細をログ出力
+        if (error.response && error.response.status === 401) {
+          console.error('認証エラー:', {
+            status: error.response.status,
+            data: error.response.data,
+            url: error.config.url,
+            method: error.config.method,
+            hasToken: !!authToken
+          });
+
+          // 認証エラーの場合はトークンをクリア
+          clearAuthToken();
+        } else if (error.response) {
+          // その他のエラーレスポンス
+          console.error('API Error:', {
+            status: error.response.status,
+            data: error.response.data,
+            url: error.config.url
+          });
+        } else if (error.request) {
+          // リクエストは送信されたがレスポンスが返ってこなかった場合
+          console.error('API Request Error (No Response):', {
+            url: error.config.url,
+            message: error.message
+          });
+        } else {
+          // リクエスト設定中にエラーが発生
+          console.error('API Error (Request Setup):', error.message);
+        }
+
+        return Promise.reject(error);
       }
-      
-      return Promise.reject(error);
-    }
-  );
+    );
+  }
   
   return client;
 };
