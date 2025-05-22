@@ -41,6 +41,7 @@ describe('AiPromptSettings', () => {
     expect(textarea.value).toBe('Initial Template');
 
     await userEvent.clear(textarea);
+    expect(textarea.value).toBe('');
     await userEvent.type(textarea, 'New Template');
 
     const saveButton = screen.getByText('保存');

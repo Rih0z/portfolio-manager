@@ -49,7 +49,8 @@ describe('extractFundInfo', () => {
         region: '日本',
         currency: 'JPY',
         fundType: '個別株',
-        isStock: true
+        isStock: true,
+        hasDividend: false
       })
     );
   });
@@ -60,7 +61,8 @@ describe('extractFundInfo', () => {
       expect.objectContaining({
         region: '米国',
         fundType: 'REIT（米国）',
-        hasDividend: true
+        hasDividend: true,
+        isStock: false
       })
     );
   });
