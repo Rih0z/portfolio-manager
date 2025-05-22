@@ -95,7 +95,7 @@ const AiPromptSettings = () => {
 上記の分析を踏まえて、現在のポートフォリオから理想ポートフォリオへの移行方法と今後の投資戦略について、具体的なアドバイスを提供してください。`;
   
   // aiPromptTemplateが未定義の場合はデフォルトテンプレートを使用
-  const [template, setTemplate] = useState(aiPromptTemplate || defaultTemplate);
+  const [template, setTemplate] = useState(aiPromptTemplate ?? defaultTemplate);
   const [isSaved, setIsSaved] = useState(false);
   
   // aiPromptTemplateが変更された場合に更新（未定義でなければ）
@@ -136,7 +136,7 @@ const AiPromptSettings = () => {
       
       <div className="mb-4">
         <textarea
-          value={template || defaultTemplate}
+          value={template}
           onChange={(e) => setTemplate(e.target.value)}
           className="w-full h-96 border border-gray-300 rounded-md p-3 font-mono text-sm"
           spellCheck="false"

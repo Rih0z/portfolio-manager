@@ -9,7 +9,7 @@
  */
 
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ToastNotification from '@/components/common/ToastNotification';
 
@@ -23,15 +23,16 @@ describe('ToastNotificationコンポーネント', () => {
     jest.useRealTimers();
   });
 
-  it('指定されたメッセージを表示し、時間経過後に自動で閉じる', () => {
+  it('指定されたメッセージを表示し、時間経過後に自動で閉じる', async () => {
     render(<ToastNotification message="Hello" duration={1000} />);
 
     expect(screen.getByText('Hello')).toBeInTheDocument();
 
-    // 時間を進めて非表示になることを確認
     jest.advanceTimersByTime(1000);
 
-    expect(screen.queryByText('Hello')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByText('Hello')).not.toBeInTheDocument();
+    });
   });
 
   it('閉じるボタンで手動で閉じることができる', async () => {
@@ -42,7 +43,9 @@ describe('ToastNotificationコンポーネント', () => {
 
     await userEvent.click(screen.getByRole('button'));
 
-    expect(screen.queryByText('Bye')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByText('Bye')).not.toBeInTheDocument();
+    });
     expect(handleClose).toHaveBeenCalled();
   });
 });

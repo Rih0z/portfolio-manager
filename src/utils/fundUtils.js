@@ -254,10 +254,16 @@ export function guessFundType(ticker, name = '') {
   
   // 明示的に米国ETFリストをチェック（VXUSもここでチェックされる）
   if (US_ETF_LIST.includes(ticker)) {
-    // VXUSは特に米国ETFとして判定
-    if (ticker === 'VXUS') {
-      return FUND_TYPES.ETF_US;
+    if (isREIT(name)) {
+      return FUND_TYPES.REIT_US;
     }
+    if (isBond(name, ticker)) {
+      return FUND_TYPES.BOND;
+    }
+    if (isCrypto(name, ticker)) {
+      return FUND_TYPES.CRYPTO;
+    }
+    // VXUSを含む米国ETF
     return FUND_TYPES.ETF_US;
   }
   
@@ -312,8 +318,8 @@ export function guessFundType(ticker, name = '') {
     }
   }
   
-  // 日本のETF（1から始まる4桁+.T）
-  if (isJapanese && /^[1-9]\d{3}\.T$/.test(ticker)) {
+  // 日本のETF（一般的に1または2から始まるコード）
+  if (isJapanese && /^[12]\d{3}\.T$/.test(ticker)) {
     return FUND_TYPES.ETF_JP;
   }
   
@@ -598,6 +604,10 @@ export function extractFundInfo(ticker, name = '') {
     info.region = 'グローバル';
   } else {
     info.region = '不明';
+  }
+
+  if (info.region === '不明' && US_ETF_LIST.includes(ticker)) {
+    info.region = '米国';
   }
   
   // 配当情報の推測
