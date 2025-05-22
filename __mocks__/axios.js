@@ -5,6 +5,34 @@
  * テスト時にAxiosをモック化してHTTPリクエストをシミュレート
  */
 
+// 個別インスタンスを生成するヘルパー
+const createInstance = (config = {}) => ({
+  get: jest.fn().mockResolvedValue({ data: {} }),
+  post: jest.fn().mockResolvedValue({ data: {} }),
+  put: jest.fn().mockResolvedValue({ data: {} }),
+  delete: jest.fn().mockResolvedValue({ data: {} }),
+  patch: jest.fn().mockResolvedValue({ data: {} }),
+  defaults: {
+    ...config,
+    headers: {
+      common: {},
+      ...config.headers
+    }
+  },
+  interceptors: {
+    request: {
+      use: jest.fn(),
+      eject: jest.fn(),
+      clear: jest.fn()
+    },
+    response: {
+      use: jest.fn(),
+      eject: jest.fn(),
+      clear: jest.fn()
+    }
+  }
+});
+
 const axios = {
   // 基本的なリクエストメソッド
   get: jest.fn().mockResolvedValue({ data: {} }),
@@ -12,31 +40,10 @@ const axios = {
   put: jest.fn().mockResolvedValue({ data: {} }),
   delete: jest.fn().mockResolvedValue({ data: {} }),
   patch: jest.fn().mockResolvedValue({ data: {} }),
-  
+
   // Axiosインスタンス作成メソッド
   create: jest.fn(function(config = {}) {
-    return {
-      ...axios,
-      defaults: {
-        ...config,
-        headers: {
-          common: {},
-          ...config.headers
-        }
-      },
-      interceptors: {
-        request: {
-          use: jest.fn(),
-          eject: jest.fn(),
-          clear: jest.fn()
-        },
-        response: {
-          use: jest.fn(),
-          eject: jest.fn(),
-          clear: jest.fn()
-        }
-      }
-    };
+    return createInstance(config);
   }),
   
   // デフォルト設定
@@ -48,12 +55,12 @@ const axios = {
   
   // レスポンスをリセットするヘルパーメソッド
   _reset: function() {
-    axios.get.mockClear();
-    axios.post.mockClear();
-    axios.put.mockClear();
-    axios.delete.mockClear();
-    axios.patch.mockClear();
-    axios.create.mockClear();
+    axios.get.mockReset();
+    axios.post.mockReset();
+    axios.put.mockReset();
+    axios.delete.mockReset();
+    axios.patch.mockReset();
+    axios.create.mockReset();
   }
 };
 
