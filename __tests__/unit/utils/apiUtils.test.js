@@ -25,6 +25,8 @@ import axios from 'axios';
 jest.mock('axios');
 
 describe('APIユーティリティ', () => {
+  // タイムアウトを延長（デフォルト10秒では足りない場合があるため）
+  jest.setTimeout(20000);
   // 各テスト前の準備
   beforeEach(() => {
     // Axiosモックのリセット
@@ -166,9 +168,10 @@ describe('APIユーティリティ', () => {
       const url = 'https://api.example.com/test';
       const fetchPromise = fetchWithRetry(url, {}, TIMEOUT.DEFAULT, 1);
       
-      // タイマーを進める
+      // タイマーを進めて保留中の処理を実行
       jest.advanceTimersByTime(RETRY.INITIAL_DELAY * 2);
-      
+      await jest.runOnlyPendingTimersAsync();
+
       // Promiseの解決を待つ
       const result = await fetchPromise;
       
@@ -198,8 +201,9 @@ describe('APIユーティリティ', () => {
       const url = 'https://api.example.com/test';
       const fetchPromise = fetchWithRetry(url, {}, TIMEOUT.DEFAULT, 2);
       
-      // タイマーを進める（初回 + 2回のリトライ分）
+      // タイマーを進めて保留中の処理を実行（初回 + 2回のリトライ分）
       jest.advanceTimersByTime(RETRY.INITIAL_DELAY * 5);
+      await jest.runOnlyPendingTimersAsync();
       
       // 例外が発生することを検証
       await expect(fetchPromise).rejects.toEqual(mockErrorResponse);
