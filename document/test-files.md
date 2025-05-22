@@ -31,3 +31,16 @@ npm run test:all
 ```
 
 テスト結果は `test-results/`、カバレッジレポートは `coverage/` に出力されます。
+
+## 追加テスト
+
+カバレッジ向上のため、`ToastNotification` コンポーネントに
+以下のユースケースを網羅したテストを追加しました。
+
+- 自動消去の動作確認
+- 手動閉じる操作の確認
+- 通知タイプと表示位置によるスタイルの適用確認
+- `duration=0` 指定時は自動で閉じないことの確認
+
+これらのテストは `__tests__/unit/components/ToastNotification.test.js`
+に実装されており、`script/run-tests.sh all` で他のテストと共に実行されます。
