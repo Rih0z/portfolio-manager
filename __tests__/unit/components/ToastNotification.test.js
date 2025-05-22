@@ -9,14 +9,14 @@
  */
 
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { act } from 'react-dom/test-utils';
 import ToastNotification from '@/components/common/ToastNotification';
 
 describe('ToastNotificationコンポーネント', () => {
   beforeEach(() => {
-    jest.useFakeTimers({ legacyFakeTimers: true });
+    jest.useFakeTimers();
   });
 
   afterEach(() => {
@@ -31,7 +31,6 @@ describe('ToastNotificationコンポーネント', () => {
 
     act(() => {
       jest.advanceTimersByTime(1000);
-      jest.runOnlyPendingTimers();
     });
 
     expect(screen.queryByText('Hello')).not.toBeInTheDocument();
@@ -43,15 +42,33 @@ describe('ToastNotificationコンポーネント', () => {
 
     expect(screen.getByText('Bye')).toBeInTheDocument();
 
-    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
+    const user = userEvent.setup();
     await user.click(screen.getByRole('button'));
 
     act(() => {
       jest.runAllTimers();
-      jest.runOnlyPendingTimers();
     });
 
     expect(screen.queryByText('Bye')).not.toBeInTheDocument();
     expect(handleClose).toHaveBeenCalled();
+  });
+
+  it('type と position に応じたクラスを適用する', () => {
+    const { container } = render(
+      <ToastNotification message="Info" type="success" position="top" />
+    );
+
+    const wrapper = container.firstChild.firstChild;
+    expect(wrapper.className).toContain('border-green-500');
+  });
+
+  it('duration=0 の場合は自動で閉じない', () => {
+    render(<ToastNotification message="Persist" duration={0} />);
+
+    act(() => {
+      jest.advanceTimersByTime(5000);
+    });
+
+    expect(screen.getByText('Persist')).toBeInTheDocument();
   });
 });
