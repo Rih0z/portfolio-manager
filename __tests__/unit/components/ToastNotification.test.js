@@ -16,7 +16,7 @@ import ToastNotification from '@/components/common/ToastNotification';
 
 describe('ToastNotificationコンポーネント', () => {
   beforeEach(() => {
-    jest.useFakeTimers();
+    jest.useFakeTimers({ legacyFakeTimers: true });
   });
 
   afterEach(() => {
@@ -31,6 +31,7 @@ describe('ToastNotificationコンポーネント', () => {
 
     act(() => {
       jest.advanceTimersByTime(1000);
+      jest.runOnlyPendingTimers();
     });
 
     expect(screen.queryByText('Hello')).not.toBeInTheDocument();
@@ -47,6 +48,7 @@ describe('ToastNotificationコンポーネント', () => {
 
     act(() => {
       jest.runAllTimers();
+      jest.runOnlyPendingTimers();
     });
 
     expect(screen.queryByText('Bye')).not.toBeInTheDocument();
