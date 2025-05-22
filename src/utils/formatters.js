@@ -23,18 +23,14 @@
 export const formatCurrency = (amount, currency = 'JPY') => {
   if (typeof amount !== 'number' || Number.isNaN(amount)) return 'N/A';
 
-  const formatter = new Intl.NumberFormat(currency === 'JPY' ? 'ja-JP' : 'en-US', {
+  const formatter = new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency,
     minimumFractionDigits: currency === 'JPY' ? 0 : 2,
     maximumFractionDigits: currency === 'JPY' ? 0 : 2
   });
 
-  let result = formatter.format(amount);
-  if (currency === 'JPY') {
-    result = result.replace('￥', '¥');
-  }
-  return result;
+  return formatter.format(amount);
 };
   
   /**
@@ -46,10 +42,8 @@ export const formatCurrency = (amount, currency = 'JPY') => {
 export const formatPercent = (value, fractionDigits = 2) => {
   if (typeof value !== 'number' || Number.isNaN(value)) return 'N/A';
 
-  if (Number.isInteger(value) && fractionDigits === 2) {
-    return `${value}%`;
-  }
-  return `${value.toFixed(fractionDigits)}%`;
+  const formatted = value.toFixed(fractionDigits);
+  return `${formatted.endsWith('.00') ? parseInt(formatted, 10) : formatted}%`;
 };
   
   /**
