@@ -24,21 +24,16 @@ describe('ToastNotificationコンポーネント', () => {
     jest.useRealTimers();
   });
 
-  it('指定されたメッセージを表示し、時間経過後に自動で閉じる', async () => {
+  it('指定されたメッセージを表示し、時間経過後に自動で閉じる', () => {
     render(<ToastNotification message="Hello" duration={1000} />);
 
     expect(screen.getByText('Hello')).toBeInTheDocument();
 
-    await act(async () => {
+    act(() => {
       jest.advanceTimersByTime(1000);
     });
 
-    await waitFor(
-      () => {
-        expect(screen.queryByText('Hello')).not.toBeInTheDocument();
-      },
-      { timeout: 1500 }
-    );
+    expect(screen.queryByText('Hello')).not.toBeInTheDocument();
   });
 
   it('閉じるボタンで手動で閉じることができる', async () => {
@@ -47,19 +42,14 @@ describe('ToastNotificationコンポーネント', () => {
 
     expect(screen.getByText('Bye')).toBeInTheDocument();
 
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
     await user.click(screen.getByRole('button'));
 
-    await act(async () => {
+    act(() => {
       jest.runAllTimers();
     });
 
-    await waitFor(
-      () => {
-        expect(screen.queryByText('Bye')).not.toBeInTheDocument();
-      },
-      { timeout: 1500 }
-    );
+    expect(screen.queryByText('Bye')).not.toBeInTheDocument();
     expect(handleClose).toHaveBeenCalled();
   });
 });
