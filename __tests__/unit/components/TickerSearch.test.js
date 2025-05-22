@@ -44,7 +44,8 @@ describe('TickerSearch', () => {
     await userEvent.click(screen.getByRole('button', { name: '追加' }));
 
     expect(addTicker).toHaveBeenCalledWith('AAPL');
-    expect(screen.getByText('ok')).toBeInTheDocument();
+    expect(await screen.findByText('ok')).toBeInTheDocument();
+    await screen.findByRole('button', { name: '追加' });
     expect(input.value).toBe('');
   });
 });
