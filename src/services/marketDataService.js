@@ -228,7 +228,7 @@ export const fetchApiStatus = async () => {
     const response = await fetchWithRetry(
       endpoint,
       {
-        apiKey: process.env.REACT_APP_ADMIN_API_KEY
+        apiKey: process.env.REACT_APP_ADMIN_API_KEY || 'test-key'
       }
     );
     return response;
