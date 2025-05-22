@@ -18,7 +18,7 @@
  */
 
 // 環境の判定
-export const isDevelopment = process.env.NODE_ENV === 'development';
+export const isDevelopment = () => process.env.NODE_ENV === 'development';
 
 // ローカル開発環境かどうかの判定（ローカルホストの場合true）
 export const isLocalDevelopment = () => {
@@ -31,8 +31,8 @@ export const getBaseApiUrl = () => {
   if (isLocalDevelopment()) {
     return process.env.REACT_APP_LOCAL_API_URL || 'http://localhost:3000';
   }
-  // それ以外の場合はAWS URLを返す
-  return process.env.REACT_APP_AWS_API_URL || '';
+  // それ以外の場合は環境変数から取得
+  return process.env.REACT_APP_MARKET_DATA_API_URL || '';
 };
 
 // 環境に応じたAPIステージの取得
@@ -78,11 +78,10 @@ export const getOrigin = () => {
 };
 
 // リダイレクトURIを生成
-export const getRedirectUri = () => {
-  // 簡略化されたリダイレクトURIを生成（パスだけに短縮）
+export const getRedirectUri = (path = '/auth/callback') => {
   const origin = getOrigin();
-  // URIの長さを最小限に抑える
-  return `${origin}/auth/callback`;
+  const cleanPath = path.startsWith('/') ? path.slice(1) : path;
+  return `${origin}/${cleanPath}`;
 };
 
 // デフォルト為替レートを取得

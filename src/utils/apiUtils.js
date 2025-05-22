@@ -58,7 +58,7 @@ export const clearAuthToken = () => {
 export const createApiClient = (withAuth = false) => {
   const client = axios.create({
     timeout: TIMEOUT.DEFAULT,
-    withCredentials: false // クッキーではなくトークンベースの認証に変更
+    withCredentials: withAuth
   });
   
   // インターセプターの設定
