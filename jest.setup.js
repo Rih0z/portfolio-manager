@@ -5,8 +5,6 @@
  * テスト実行に必要な環境変数のデフォルト値とモックの設定
  */
 
-// Jest DOM拡張のインポート
-import '@testing-library/jest-dom';
 
 // テスト環境変数の設定
 process.env = {
