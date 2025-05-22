@@ -6,14 +6,12 @@
 3. `__tests__/mocks/data.js` - テスト用モックデータ
 
 ## 単体テスト
-1. `__tests__/unit/components/Table.test.js` - テーブルコンポーネントのテスト
-2. `__tests__/unit/components/Chart.test.js` - チャートコンポーネントのテスト
-3. `__tests__/unit/store/userStore.test.js` - ユーザーストアのテスト
-4. `__tests__/unit/store/dataStore.test.js` - データストアのテスト
-5. `__tests__/unit/utils/formatters.test.js` - フォーマッターユーティリティのテスト
-6. `__tests__/unit/utils/apiUtils.test.js` - APIユーティリティのテスト
-7. `__tests__/unit/utils/envUtils.test.js` - 環境設定ユーティリティのテスト
-8. `__tests__/unit/services/marketDataService.test.js` - 市場データサービスのテスト
+1. `__tests__/unit/store/userStore.test.js` - ユーザーストアのテスト
+2. `__tests__/unit/store/dataStore.test.js` - データストアのテスト
+3. `__tests__/unit/utils/formatters.test.js` - フォーマッターユーティリティのテスト
+4. `__tests__/unit/utils/apiUtils.test.js` - APIユーティリティのテスト
+5. `__tests__/unit/utils/envUtils.test.js` - 環境設定ユーティリティのテスト
+6. `__tests__/unit/services/marketDataService.test.js` - 市場データサービスのテスト
 
 ## 統合テスト
 1. `__tests__/integration/auth/googleAuth.test.js` - Google認証フローのテスト
