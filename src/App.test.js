@@ -17,9 +17,23 @@
 
 import { render, screen } from '@testing-library/react';
 import App from './App';
+import * as authHook from './hooks/useAuth';
+import * as portfolioHook from './hooks/usePortfolioContext';
 
-test('renders learn react link', () => {
+jest.mock('./hooks/useAuth');
+jest.mock('./hooks/usePortfolioContext');
+
+test('renders header title', () => {
+  authHook.useAuth.mockReturnValue({ isAuthenticated: false });
+  portfolioHook.usePortfolioContext.mockReturnValue({
+    baseCurrency: 'JPY',
+    toggleCurrency: jest.fn(),
+    refreshMarketPrices: jest.fn(),
+    lastUpdated: null,
+    isLoading: false,
+    currentAssets: []
+  });
+
   render(<App />);
-  const linkElement = screen.getByText(/learn react/i);
-  expect(linkElement).toBeInTheDocument();
+  expect(screen.getByText('ポートフォリオマネージャー')).toBeInTheDocument();
 });
