@@ -11,6 +11,7 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { act } from 'react-dom/test-utils';
 import ToastNotification from '@/components/common/ToastNotification';
 
 describe('ToastNotificationコンポーネント', () => {
@@ -28,7 +29,9 @@ describe('ToastNotificationコンポーネント', () => {
 
     expect(screen.getByText('Hello')).toBeInTheDocument();
 
-    jest.advanceTimersByTime(1000);
+    act(() => {
+      jest.advanceTimersByTime(1000);
+    });
 
     await waitFor(() => {
       expect(screen.queryByText('Hello')).not.toBeInTheDocument();
@@ -41,7 +44,8 @@ describe('ToastNotificationコンポーネント', () => {
 
     expect(screen.getByText('Bye')).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button'));
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button'));
 
     await waitFor(() => {
       expect(screen.queryByText('Bye')).not.toBeInTheDocument();
