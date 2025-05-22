@@ -44,6 +44,20 @@ debugLog('テスト環境変数を設定', {
   COLLECT_COVERAGE: process.env.COLLECT_COVERAGE
 });
 
+// userEvent v13では setup が定義されていないためテスト用にポリフィル
+try {
+  const userEventModule = require('@testing-library/user-event');
+  const target = userEventModule.default || userEventModule;
+  if (target && typeof target.setup !== 'function') {
+    target.setup = () => target;
+    if (userEventModule.default && userEventModule.default.setup !== target.setup) {
+      userEventModule.default.setup = target.setup;
+    }
+  }
+} catch (err) {
+  debugLog('user-event setup polyfill failed', err);
+}
+
 // グローバルモックの設定
 global.fetch = jest.fn(() =>
   Promise.resolve({
