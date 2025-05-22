@@ -1,76 +1,76 @@
 /**
  * ファイルパス: __mocks__/axios.js
- * 
+ *
  * Axiosライブラリのモック実装
  * テスト時にAxiosをモック化してHTTPリクエストをシミュレート
  */
 
-// 個別インスタンスを生成するヘルパー
-const createInstance = (config = {}) => ({
-  get: jest.fn().mockResolvedValue({ data: {} }),
-  post: jest.fn().mockResolvedValue({ data: {} }),
-  put: jest.fn().mockResolvedValue({ data: {} }),
-  delete: jest.fn().mockResolvedValue({ data: {} }),
-  patch: jest.fn().mockResolvedValue({ data: {} }),
-  defaults: {
-    ...config,
-    headers: {
-      common: {},
-      ...config.headers
-    }
-  },
-  interceptors: {
-    request: {
-      use: jest.fn(),
-      eject: jest.fn(),
-      clear: jest.fn()
+// モックインスタンスを生成
+const createMock = () => {
+  const createInstance = (config = {}) => ({
+    get: jest.fn().mockResolvedValue({ data: {} }),
+    post: jest.fn().mockResolvedValue({ data: {} }),
+    put: jest.fn().mockResolvedValue({ data: {} }),
+    delete: jest.fn().mockResolvedValue({ data: {} }),
+    patch: jest.fn().mockResolvedValue({ data: {} }),
+    defaults: {
+      ...config,
+      headers: {
+        common: {},
+        ...config.headers,
+      },
     },
-    response: {
-      use: jest.fn(),
-      eject: jest.fn(),
-      clear: jest.fn()
-    }
-  }
-});
+    interceptors: {
+      request: {
+        use: jest.fn(),
+        eject: jest.fn(),
+        clear: jest.fn(),
+      },
+      response: {
+        use: jest.fn(),
+        eject: jest.fn(),
+        clear: jest.fn(),
+      },
+    },
+  });
 
-const axios = {
-  // 基本的なリクエストメソッド
-  get: jest.fn().mockResolvedValue({ data: {} }),
-  post: jest.fn().mockResolvedValue({ data: {} }),
-  put: jest.fn().mockResolvedValue({ data: {} }),
-  delete: jest.fn().mockResolvedValue({ data: {} }),
-  patch: jest.fn().mockResolvedValue({ data: {} }),
+  const mock = {
+    get: jest.fn().mockResolvedValue({ data: {} }),
+    post: jest.fn().mockResolvedValue({ data: {} }),
+    put: jest.fn().mockResolvedValue({ data: {} }),
+    delete: jest.fn().mockResolvedValue({ data: {} }),
+    patch: jest.fn().mockResolvedValue({ data: {} }),
+    create: jest.fn((config = {}) => createInstance(config)),
+    defaults: {
+      headers: {
+        common: {},
+      },
+    },
+    _reset: function () {
+      mock.get.mockReset();
+      mock.post.mockReset();
+      mock.put.mockReset();
+      mock.delete.mockReset();
+      mock.patch.mockReset();
+      mock.create.mockReset();
+    },
+  };
 
-  // Axiosインスタンス作成メソッド
-  create: jest.fn(function(config = {}) {
-    return createInstance(config);
-  }),
-  
-  // デフォルト設定
-  defaults: {
-    headers: {
-      common: {}
+  mock.get.mockImplementation((url) => {
+    if (typeof url === 'object') {
+      return Promise.resolve({ data: {} });
     }
-  },
-  
-  // レスポンスをリセットするヘルパーメソッド
-  _reset: function() {
-    axios.get.mockReset();
-    axios.post.mockReset();
-    axios.put.mockReset();
-    axios.delete.mockReset();
-    axios.patch.mockReset();
-    axios.create.mockReset();
-  }
+    return Promise.resolve({ data: {} });
+  });
+
+  return mock;
 };
 
-// テスト中にAxiosで直接オブジェクトを渡して呼ぶケースのためにメソッドを関数にも割り当て
-axios.get.mockImplementation((url, config) => {
-  if (typeof url === 'object') {
-    return Promise.resolve({ data: {} });
-  }
-  return Promise.resolve({ data: {} });
-});
+// グローバルに保持してモジュールリセット後も同じインスタンスを共有
+const axios = global.__AXIOS_MOCK__ || createMock();
+if (!global.__AXIOS_MOCK__) {
+  global.__AXIOS_MOCK__ = axios;
+}
 
 module.exports = axios;
 module.exports.default = axios;
