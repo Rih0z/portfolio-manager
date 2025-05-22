@@ -207,15 +207,11 @@ module.exports = {
     log.success(`モックファイルを作成しました: ${axiosMockFile}`);
   }
   
-  // setup.js ファイルの確認（空でも存在しているか）
-  const setupFile = './__tests__/setup.js';
+  // src/setupTests.js ファイルの確認
+  const setupFile = './src/setupTests.js';
   if (!fs.existsSync(setupFile)) {
-    const setupContent = `// テスト実行前後のグローバル設定
-import '@testing-library/jest-dom';
+    const setupContent = `import '@testing-library/jest-dom';\n`;
 
-// この後にテストグローバル設定を追加
-`;
-    
     fs.writeFileSync(setupFile, setupContent);
     log.success(`セットアップファイルを作成しました: ${setupFile}`);
   }

@@ -271,10 +271,10 @@ debug_jest_config() {
     echo "- jest.setup.js: 見つかりません"
   fi
   
-  if [ -f "__tests__/setup.js" ]; then
-    echo "- __tests__/setup.js: 存在します"
+  if [ -f "src/setupTests.js" ]; then
+    echo "- src/setupTests.js: 存在します"
   else
-    echo "- __tests__/setup.js: 見つかりません"
+    echo "- src/setupTests.js: 見つかりません"
   fi
   
   if [ -f "custom-reporter.js" ]; then
