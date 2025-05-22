@@ -60,11 +60,11 @@ describe('環境ユーティリティ', () => {
     it('isDevelopmentは開発環境を正しく判定する', () => {
       // 開発環境のテスト
       process.env.NODE_ENV = 'development';
-      expect(isDevelopment()).toBe(true);
-
+      expect(isDevelopment).toBe(true);
+      
       // 本番環境のテスト
       process.env.NODE_ENV = 'production';
-      expect(isDevelopment()).toBe(false);
+      expect(isDevelopment).toBe(false);
     });
     
     it('isLocalDevelopmentはローカルホスト環境を正しく判定する', () => {

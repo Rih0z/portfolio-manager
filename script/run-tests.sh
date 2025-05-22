@@ -878,16 +878,10 @@ if [ -f "./test-results/detailed-results.json" ] && grep -q "coverageMap" ./test
     if compare_values "$FUNCTIONS_COVERAGE" "$THRESHOLD_FUNCTIONS"; then
       echo -e "- Functions:  ${RED}${FUNCTIONS_COVERAGE}%${NC} → ${YELLOW}${THRESHOLD_FUNCTIONS}%${NC}"
     fi
-  if compare_values "$LINES_COVERAGE" "$THRESHOLD_LINES"; then
+    if compare_values "$LINES_COVERAGE" "$THRESHOLD_LINES"; then
       echo -e "- Lines:      ${RED}${LINES_COVERAGE}%${NC} → ${YELLOW}${THRESHOLD_LINES}%${NC}"
     fi
   fi
-fi
-
-# test-log.md が存在しない場合は詳細結果から生成する
-if [ ! -f "./test-results/test-log.md" ] && [ -f "./test-results/detailed-results.json" ]; then
-  print_warning "test-log.md が生成されていません。代替生成を行います..."
-  node ./script/generate-test-log.js && print_success "test-log.md を生成しました" || print_error "test-log.md の生成に失敗しました"
 fi
 
 # エラー処理（テスト失敗時のみ）
