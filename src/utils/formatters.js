@@ -21,6 +21,7 @@
  * @returns {string} フォーマットされた通貨文字列
  */
 export const formatCurrency = (amount, currency = 'JPY') => {
+<<<<<<< HEAD
     if (typeof amount !== 'number') return '-';
     
     const formatter = new Intl.NumberFormat(currency === 'JPY' ? 'ja-JP' : 'en-US', {
@@ -32,6 +33,19 @@ export const formatCurrency = (amount, currency = 'JPY') => {
     
     return formatter.format(amount);
   };
+=======
+  if (typeof amount !== 'number' || Number.isNaN(amount)) return 'N/A';
+
+  const formatter = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency,
+    minimumFractionDigits: currency === 'JPY' ? 0 : 2,
+    maximumFractionDigits: currency === 'JPY' ? 0 : 2
+  });
+
+  return formatter.format(amount);
+};
+>>>>>>> 3932e8ba46aa591b57699fe8161c5bfad6a50a53
   
   /**
    * 数値をパーセント形式にフォーマットする
@@ -39,11 +53,20 @@ export const formatCurrency = (amount, currency = 'JPY') => {
    * @param {number} fractionDigits - 小数点以下の桁数
    * @returns {string} フォーマットされたパーセント文字列
    */
+<<<<<<< HEAD
   export const formatPercent = (value, fractionDigits = 2) => {
     if (typeof value !== 'number') return '-';
     
     return `${value.toFixed(fractionDigits)}%`;
   };
+=======
+export const formatPercent = (value, fractionDigits = 2) => {
+  if (typeof value !== 'number' || Number.isNaN(value)) return 'N/A';
+
+  const formatted = value.toFixed(fractionDigits);
+  return `${formatted.endsWith('.00') ? parseInt(formatted, 10) : formatted}%`;
+};
+>>>>>>> 3932e8ba46aa591b57699fe8161c5bfad6a50a53
   
   /**
    * 日付をフォーマットする
