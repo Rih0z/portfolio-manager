@@ -25,3 +25,43 @@ describe('fundUtils', () => {
     });
   });
 });
+
+import { extractFundInfo } from '@/utils/fundUtils';
+
+describe('extractFundInfo', () => {
+  it('detects region, currency and dividend info for US ETF', () => {
+    const info = extractFundInfo('VOO', 'Vanguard S&P 500 ETF');
+    expect(info).toEqual(
+      expect.objectContaining({
+        region: '米国',
+        currency: 'USD',
+        hasDividend: true,
+        fundType: 'ETF（米国）',
+        isStock: false
+      })
+    );
+  });
+
+  it('detects stock with no dividend info for JP stock', () => {
+    const info = extractFundInfo('7203.T', 'トヨタ自動車');
+    expect(info).toEqual(
+      expect.objectContaining({
+        region: '日本',
+        currency: 'JPY',
+        fundType: '個別株',
+        isStock: true
+      })
+    );
+  });
+
+  it('classifies REIT ETF correctly', () => {
+    const info = extractFundInfo('VNQ', 'Vanguard Real Estate ETF');
+    expect(info).toEqual(
+      expect.objectContaining({
+        region: '米国',
+        fundType: 'REIT（米国）',
+        hasDividend: true
+      })
+    );
+  });
+});
