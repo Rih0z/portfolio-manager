@@ -470,15 +470,17 @@ if [ $NO_COVERAGE -eq 1 ] && [ $FORCE_COVERAGE -ne 1 ]; then
 else
   print_info "カバレッジ計測を有効化しています"
   
-  # カバレッジレポーターを設定
-  COVERAGE_REPORTERS="json,json-summary,text,text-summary"
+  # カバレッジレポーターを個別に設定（カンマ区切りではなく複数オプション形式）
+  JEST_ARGS="$JEST_ARGS --coverage"
+  JEST_ARGS="$JEST_ARGS --coverageReporters=json"
+  JEST_ARGS="$JEST_ARGS --coverageReporters=json-summary"
+  JEST_ARGS="$JEST_ARGS --coverageReporters=text"
+  JEST_ARGS="$JEST_ARGS --coverageReporters=text-summary"
   
   if [ $HTML_COVERAGE -eq 1 ]; then
-    COVERAGE_REPORTERS="$COVERAGE_REPORTERS,lcov"
+    JEST_ARGS="$JEST_ARGS --coverageReporters=lcov"
     print_info "HTMLカバレッジレポートを生成します"
   fi
-  
-  JEST_ARGS="$JEST_ARGS --coverage --coverageReporters=$COVERAGE_REPORTERS"
 fi
 
 # JUnitレポート設定
@@ -716,7 +718,7 @@ fi
 
 # 最終的なファイル確認
 print_info "生成されたファイル:"
-local output_files=(
+output_files=(
   "./test-results/visual-report.html"
   "./test-results/test-log.md"
   "./test-results/detailed-results.json"
