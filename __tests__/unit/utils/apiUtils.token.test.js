@@ -32,8 +32,8 @@ describe('auth token utils', () => {
 
   it('request interceptor attaches Authorization header', () => {
     const requestUse = jest.fn();
-    axios.create.mockReturnValue({ interceptors: { request: { use: requestUse }, response: { use: jest.fn() } } });
     const { createApiClient, setAuthToken } = loadModule();
+    axios.create.mockReturnValueOnce({ interceptors: { request: { use: requestUse }, response: { use: jest.fn() } } });
     setAuthToken('abcd');
     createApiClient(true);
     expect(requestUse).toHaveBeenCalled();

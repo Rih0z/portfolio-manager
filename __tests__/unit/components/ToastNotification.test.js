@@ -31,12 +31,15 @@ describe('ToastNotificationコンポーネント', () => {
 
     act(() => {
       jest.advanceTimersByTime(1000);
-      jest.runOnlyPendingTimers();
+      jest.runAllTimers();
     });
 
-    await waitFor(() => {
-      expect(screen.queryByText('Hello')).not.toBeInTheDocument();
-    });
+    await waitFor(
+      () => {
+        expect(screen.queryByText('Hello')).not.toBeInTheDocument();
+      },
+      { timeout: 1500 }
+    );
   });
 
   it('閉じるボタンで手動で閉じることができる', async () => {
@@ -45,16 +48,19 @@ describe('ToastNotificationコンポーネント', () => {
 
     expect(screen.getByText('Bye')).toBeInTheDocument();
 
-    const user = userEvent.setup();
+    const user = userEvent.setup({ advanceTimers: jest.advanceTimersByTime });
     await user.click(screen.getByRole('button'));
 
     act(() => {
-      jest.runOnlyPendingTimers();
+      jest.runAllTimers();
     });
 
-    await waitFor(() => {
-      expect(screen.queryByText('Bye')).not.toBeInTheDocument();
-    });
+    await waitFor(
+      () => {
+        expect(screen.queryByText('Bye')).not.toBeInTheDocument();
+      },
+      { timeout: 1500 }
+    );
     expect(handleClose).toHaveBeenCalled();
   });
 });
