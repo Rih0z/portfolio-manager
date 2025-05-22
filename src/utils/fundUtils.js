@@ -155,7 +155,7 @@ export const TICKER_SPECIFIC_DIVIDENDS = {
   // 米国の主要ETF
   'SPY': 1.5,   // SPDR S&P 500 ETF
   'VOO': 1.5,   // Vanguard S&P 500 ETF
-  'VTI': 1.4,   // Vanguard Total Stock Market ETF
+  'VTI': 1.5,   // Vanguard Total Stock Market ETF
   'QQQ': 0.6,   // Invesco QQQ Trust (ナスダック100)
   'IVV': 1.5,   // iShares Core S&P 500 ETF
   'VGT': 0.7,   // Vanguard Information Technology ETF
