@@ -30,7 +30,7 @@ describe('adminService', () => {
 
   it('getStatus が正常にデータを返す', async () => {
     const mockClient = { get: jest.fn().mockResolvedValue({ data: { status: 'ok' } }), post: jest.fn(), defaults: { headers: {} } };
-    axios.create.mockReturnValue(mockClient);
+    axios.create.mockReturnValueOnce(mockClient);
     const { getStatus } = loadModule();
 
     const result = await getStatus();
@@ -42,7 +42,7 @@ describe('adminService', () => {
   it('getStatus がエラー時にエラーレスポンスを返す', async () => {
     const error = { message: 'fail', response: { status: 500 } };
     const mockClient = { get: jest.fn().mockRejectedValue(error), post: jest.fn(), defaults: { headers: {} } };
-    axios.create.mockReturnValue(mockClient);
+    axios.create.mockReturnValueOnce(mockClient);
     const { getStatus } = loadModule();
 
     const result = await getStatus();
@@ -52,7 +52,7 @@ describe('adminService', () => {
 
   it('resetUsage が正常にデータを返す', async () => {
     const mockClient = { get: jest.fn(), post: jest.fn().mockResolvedValue({ data: { reset: true } }), defaults: { headers: {} } };
-    axios.create.mockReturnValue(mockClient);
+    axios.create.mockReturnValueOnce(mockClient);
     const { resetUsage } = loadModule();
 
     const result = await resetUsage();
@@ -64,7 +64,7 @@ describe('adminService', () => {
   it('resetUsage がエラー時にエラーレスポンスを返す', async () => {
     const error = { message: 'oops', response: { status: 403 } };
     const mockClient = { get: jest.fn(), post: jest.fn().mockRejectedValue(error), defaults: { headers: {} } };
-    axios.create.mockReturnValue(mockClient);
+    axios.create.mockReturnValueOnce(mockClient);
     const { resetUsage } = loadModule();
 
     const result = await resetUsage();
@@ -74,7 +74,7 @@ describe('adminService', () => {
 
   it('setAdminApiKey はヘッダーを設定して true を返す', () => {
     const mockClient = { get: jest.fn(), post: jest.fn(), defaults: { headers: {} } };
-    axios.create.mockReturnValue(mockClient);
+    axios.create.mockReturnValueOnce(mockClient);
     const { setAdminApiKey } = loadModule();
 
     const result = setAdminApiKey('new-key');
@@ -85,7 +85,7 @@ describe('adminService', () => {
 
   it('setAdminApiKey は falsy 値では何もしない', () => {
     const mockClient = { get: jest.fn(), post: jest.fn(), defaults: { headers: {} } };
-    axios.create.mockReturnValue(mockClient);
+    axios.create.mockReturnValueOnce(mockClient);
     const { setAdminApiKey } = loadModule();
 
     const result = setAdminApiKey('');
