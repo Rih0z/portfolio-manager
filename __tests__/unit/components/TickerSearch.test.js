@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import TickerSearch from '@/components/settings/TickerSearch';
 
@@ -18,9 +18,10 @@ describe('TickerSearch', () => {
     usePortfolioContext.mockReturnValue({ addTicker: jest.fn() });
     render(<TickerSearch />);
 
-    await userEvent.click(screen.getByRole('button', { name: '追加' }));
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: '追加' }));
 
-    expect(screen.getByText('ティッカーシンボルを入力してください')).toBeInTheDocument();
+    expect(await screen.findByText('ティッカーシンボルを入力してください')).toBeInTheDocument();
   });
 
   it('validates ticker format', async () => {
@@ -28,10 +29,11 @@ describe('TickerSearch', () => {
     render(<TickerSearch />);
 
     const input = screen.getByPlaceholderText('例: AAPL, 7203.T');
-    await userEvent.type(input, 'invalid ticker');
-    await userEvent.click(screen.getByRole('button', { name: '追加' }));
+    const user = userEvent.setup();
+    await user.type(input, 'invalid ticker');
+    await user.click(screen.getByRole('button', { name: '追加' }));
 
-    expect(screen.getByText('無効なティッカーシンボル形式です')).toBeInTheDocument();
+    expect(await screen.findByText('無効なティッカーシンボル形式です')).toBeInTheDocument();
   });
 
   it('calls addTicker and clears input on success', async () => {
@@ -40,8 +42,9 @@ describe('TickerSearch', () => {
     render(<TickerSearch />);
 
     const input = screen.getByPlaceholderText('例: AAPL, 7203.T');
-    await userEvent.type(input, 'aapl');
-    await userEvent.click(screen.getByRole('button', { name: '追加' }));
+    const user = userEvent.setup();
+    await user.type(input, 'aapl');
+    await user.click(screen.getByRole('button', { name: '追加' }));
 
     expect(addTicker).toHaveBeenCalledWith('AAPL');
     expect(await screen.findByText('ok')).toBeInTheDocument();
