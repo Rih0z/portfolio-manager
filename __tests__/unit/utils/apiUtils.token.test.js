@@ -14,7 +14,13 @@ const loadModule = () => require('@/utils/apiUtils');
 describe('auth token utils', () => {
   beforeEach(() => {
     jest.resetModules();
-    axios.create.mockReturnValue({ interceptors: { request: { use: jest.fn() }, response: { use: jest.fn() } } });
+    axios.create.mockReset();
+    axios.create.mockReturnValue({
+      interceptors: {
+        request: { use: jest.fn() },
+        response: { use: jest.fn() }
+      }
+    });
   });
 
   it('stores and retrieves token', () => {
@@ -32,13 +38,25 @@ describe('auth token utils', () => {
 
   it('request interceptor attaches Authorization header', () => {
     const requestUse = jest.fn();
-    axios.create.mockReturnValueOnce({ interceptors: { request: { use: requestUse }, response: { use: jest.fn() } } });
+    axios.create.mockReturnValueOnce({
+      interceptors: {
+        request: { use: requestUse },
+        response: { use: jest.fn() }
+      }
+    });
+
     const { createApiClient, setAuthToken } = loadModule();
     setAuthToken('abcd');
+
+    // create client which registers interceptor
     createApiClient(true);
-    expect(requestUse).toHaveBeenCalled();
-    const interceptor = requestUse.mock.calls[0][0];
-    const config = interceptor({ headers: {}, url: '/api', method: 'get' });
+
+    expect(requestUse).toHaveBeenCalledTimes(1);
+
+    // emulate axios executing the interceptor
+    const onSuccess = requestUse.mock.calls[0][0];
+    const config = onSuccess({ headers: {}, url: '/api', method: 'get' });
+
     expect(config.headers.Authorization).toBe('Bearer abcd');
   });
 });
