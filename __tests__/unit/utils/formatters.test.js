@@ -49,6 +49,11 @@ describe('フォーマッターユーティリティ', () => {
       const result = formatCurrency('invalid', 'JPY');
       expect(result).toBe('N/A');
     });
+
+    it('NaNやundefinedはエラーメッセージを返す', () => {
+      expect(formatCurrency(NaN, 'JPY')).toBe('N/A');
+      expect(formatCurrency(undefined, 'USD')).toBe('N/A');
+    });
   });
   
   describe('formatPercent', () => {
@@ -80,6 +85,16 @@ describe('フォーマッターユーティリティ', () => {
     it('数値でない値の場合はエラーメッセージを返す', () => {
       const result = formatPercent('invalid');
       expect(result).toBe('N/A');
+    });
+
+    it('整数値は小数点なしで表示される', () => {
+      expect(formatPercent(12.0)).toBe('12%');
+    });
+
+    it('NaNやundefinedはエラーメッセージを返す', () => {
+      expect(formatPercent(NaN)).toBe('N/A');
+      // @ts-ignore
+      expect(formatPercent(undefined)).toBe('N/A');
     });
   });
   
@@ -118,6 +133,10 @@ describe('フォーマッターユーティリティ', () => {
         const result = formatDate('2023-07-20T10:00:00Z', 'yyyy/MM/dd');
         expect(result).toBe('2023/07/20');
       }
+    });
+
+    it('NaNが渡された場合はエラーメッセージを返す', () => {
+      expect(formatDate(NaN)).toBe('無効な日付');
     });
   });
 });
