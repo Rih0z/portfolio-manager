@@ -66,3 +66,5 @@ axios.get.mockImplementation((url, config) => {
 });
 
 module.exports = axios;
+module.exports.default = axios;
+module.exports.__esModule = true;
