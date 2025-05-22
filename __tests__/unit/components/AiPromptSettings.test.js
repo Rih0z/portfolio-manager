@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import AiPromptSettings from '@/components/settings/AiPromptSettings';
 
@@ -40,15 +40,16 @@ describe('AiPromptSettings', () => {
     const textarea = screen.getByRole('textbox');
     expect(textarea.value).toBe('Initial Template');
 
-    await userEvent.clear(textarea);
+    const user = userEvent.setup();
+    await user.clear(textarea);
     expect(textarea.value).toBe('');
-    await userEvent.type(textarea, 'New Template');
+    await user.type(textarea, 'New Template');
 
     const saveButton = screen.getByText('保存');
-    await userEvent.click(saveButton);
+    await user.click(saveButton);
 
     expect(updateAiPromptTemplate).toHaveBeenCalledWith('New Template');
-    expect(screen.getByText('保存しました')).toBeInTheDocument();
+    expect(await screen.findByText('保存しました')).toBeInTheDocument();
   });
 
   it('reset button restores default template', async () => {
@@ -63,8 +64,11 @@ describe('AiPromptSettings', () => {
     expect(textarea.value).toBe('Custom Template');
 
     const resetButton = screen.getByText('デフォルトに戻す');
-    await userEvent.click(resetButton);
+    const user = userEvent.setup();
+    await user.click(resetButton);
 
-    expect(textarea.value).toContain(DEFAULT_SUBSTRING);
+    await waitFor(() => {
+      expect(textarea.value).toContain(DEFAULT_SUBSTRING);
+    });
   });
 });
