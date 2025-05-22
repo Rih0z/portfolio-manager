@@ -14,6 +14,7 @@
 6. `__tests__/unit/utils/apiUtils.test.js` - APIユーティリティのテスト
 7. `__tests__/unit/utils/envUtils.test.js` - 環境設定ユーティリティのテスト
 8. `__tests__/unit/services/marketDataService.test.js` - 市場データサービスのテスト
+9. `__tests__/unit/scripts/setupTestEnv.test.js` - テスト環境セットアップスクリプトのテスト
 
 ## 統合テスト
 1. `__tests__/integration/auth/googleAuth.test.js` - Google認証フローのテスト
