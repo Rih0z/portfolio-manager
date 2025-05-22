@@ -34,9 +34,10 @@ describe('auth token utils', () => {
     const requestUse = jest.fn();
     axios.create.mockReturnValue({ interceptors: { request: { use: requestUse }, response: { use: jest.fn() } } });
     const { createApiClient, setAuthToken } = loadModule();
-    createApiClient(true);
-    const interceptor = requestUse.mock.calls[0][0];
     setAuthToken('abcd');
+    createApiClient(true);
+    expect(requestUse).toHaveBeenCalled();
+    const interceptor = requestUse.mock.calls[0][0];
     const config = interceptor({ headers: {}, url: '/api', method: 'get' });
     expect(config.headers.Authorization).toBe('Bearer abcd');
   });

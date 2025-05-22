@@ -31,6 +31,7 @@ describe('ToastNotificationコンポーネント', () => {
 
     act(() => {
       jest.advanceTimersByTime(1000);
+      jest.runOnlyPendingTimers();
     });
 
     await waitFor(() => {
@@ -46,6 +47,10 @@ describe('ToastNotificationコンポーネント', () => {
 
     const user = userEvent.setup();
     await user.click(screen.getByRole('button'));
+
+    act(() => {
+      jest.runOnlyPendingTimers();
+    });
 
     await waitFor(() => {
       expect(screen.queryByText('Bye')).not.toBeInTheDocument();
