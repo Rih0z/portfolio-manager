@@ -23,7 +23,7 @@ import * as portfolioHook from './hooks/usePortfolioContext';
 jest.mock('./hooks/useAuth');
 jest.mock('./hooks/usePortfolioContext');
 
-test('renders header title', () => {
+test('renders header title', async () => {
   authHook.useAuth.mockReturnValue({ isAuthenticated: false });
   portfolioHook.usePortfolioContext.mockReturnValue({
     baseCurrency: 'JPY',
@@ -35,5 +35,5 @@ test('renders header title', () => {
   });
 
   render(<App />);
-  expect(screen.getByText('ポートフォリオマネージャー')).toBeInTheDocument();
+  expect(await screen.findByText('ポートフォリオマネージャー')).toBeInTheDocument();
 });

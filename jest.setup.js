@@ -160,15 +160,19 @@ window.matchMedia = jest.fn().mockImplementation(query => ({
   }),
 }));
 
-// URL モック
-global.URL = {
-  createObjectURL: jest.fn((blob) => {
+// URL モック - コンストラクタ機能を保持しつつ createObjectURL などを上書き
+const OriginalURL = global.URL;
+global.URL = class MockURL extends OriginalURL {
+  constructor(url, base) {
+    super(url, base);
+  }
+  static createObjectURL(blob) {
     debugLog('URL.createObjectURL called', { type: blob?.type, size: blob?.size });
     return 'blob:mock-url';
-  }),
-  revokeObjectURL: jest.fn((url) => {
+  }
+  static revokeObjectURL(url) {
     debugLog('URL.revokeObjectURL called', { url });
-  })
+  }
 };
 
 // File API モック
