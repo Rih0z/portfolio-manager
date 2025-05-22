@@ -43,7 +43,7 @@ module.exports = {
   setupFiles: ['./jest.setup.js'],
   
   // テスト実行前後のグローバル設定
-  setupFilesAfterEnv: ['./__tests__/setup.js'],
+  setupFilesAfterEnv: ['./src/setupTests.js'],
   
   // テストタイムアウト設定
   testTimeout: 10000,
