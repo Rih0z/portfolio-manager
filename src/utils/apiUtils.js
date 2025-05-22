@@ -58,7 +58,7 @@ export const clearAuthToken = () => {
 export const createApiClient = (withAuth = false) => {
   const client = axios.create({
     timeout: TIMEOUT.DEFAULT,
-    withCredentials: withAuth
+    withCredentials: false // クッキーではなくトークンベースの認証に変更
   });
   
   // インターセプターの設定
@@ -178,8 +178,8 @@ export const fetchWithRetry = async (endpoint, params = {}, timeout = TIMEOUT.DE
         throw error;
       }
       
-      // リトライ前に遅延を入れる（指数バックオフ）
-      const delay = RETRY.INITIAL_DELAY * Math.pow(RETRY.BACKOFF_FACTOR, retries);
+      // リトライ前に遅延を入れる（指数バックオフ+ジッター）
+      const delay = RETRY.INITIAL_DELAY * Math.pow(RETRY.BACKOFF_FACTOR, retries) * (0.9 + Math.random() * 0.2);
       console.log(`リトライ待機: ${Math.round(delay)}ms`);
       await new Promise(resolve => setTimeout(resolve, delay));
       
