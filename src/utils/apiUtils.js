@@ -153,7 +153,16 @@ export const marketDataClient = createApiClient(false);
 export const authApiClient = createApiClient(true);
 
 // リトライ付きフェッチ関数
-export const fetchWithRetry = async (endpoint, params = {}, timeout = TIMEOUT.DEFAULT, maxRetries = RETRY.MAX_ATTEMPTS) => {
+// 遅延用のヘルパー関数（テストでモック可能）
+export const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+export const fetchWithRetry = async (
+  endpoint,
+  params = {},
+  timeout = TIMEOUT.DEFAULT,
+  maxRetries = RETRY.MAX_ATTEMPTS,
+  delayFn = wait
+) => {
   let retries = 0;
   
   while (retries <= maxRetries) {
@@ -181,7 +190,7 @@ export const fetchWithRetry = async (endpoint, params = {}, timeout = TIMEOUT.DE
       // リトライ前に遅延を入れる（指数バックオフ+ジッター）
       const delay = RETRY.INITIAL_DELAY * Math.pow(RETRY.BACKOFF_FACTOR, retries) * (0.9 + Math.random() * 0.2);
       console.log(`リトライ待機: ${Math.round(delay)}ms`);
-      await new Promise(resolve => setTimeout(resolve, delay));
+      await delayFn(delay);
       
       // リトライカウントを増やす
       retries++;

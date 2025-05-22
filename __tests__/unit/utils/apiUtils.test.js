@@ -151,90 +151,66 @@ describe('APIユーティリティ', () => {
     });
     
     it('一時的なエラーの場合はリトライして成功結果を返す', async () => {
-      // モックの設定
-      const mockClient = {
-        get: mockRetrySuccess
-      };
-      
-      // モジュールをモックして独自のクライアントを注入
+      const mockClient = { get: mockRetrySuccess };
       jest.spyOn(marketDataClient, 'get').mockImplementation(mockClient.get);
-      
-      // jestのタイマーモックを使用
-      jest.useFakeTimers();
-      
-      // テスト実行（非同期関数をPromiseとして扱う）
+
+      const immediateDelay = jest.fn().mockResolvedValue();
       const url = 'https://api.example.com/test';
-      const fetchPromise = fetchWithRetry(url, {}, TIMEOUT.DEFAULT, 1);
-      
-      // タイマーを進める
-      jest.advanceTimersByTime(RETRY.INITIAL_DELAY * 2);
-      
-      // Promiseの解決を待つ
-      const result = await fetchPromise;
-      
-      // 関数が正しく呼ばれたことを検証
+      const result = await fetchWithRetry(url, {}, TIMEOUT.DEFAULT, 1, immediateDelay);
+
       expect(mockClient.get).toHaveBeenCalledTimes(2);
-      
-      // 結果を検証
+      expect(immediateDelay).toHaveBeenCalled();
       expect(result).toEqual(mockSuccessResponse.data);
-      
-      // タイマーを元に戻す
-      jest.useRealTimers();
     });
     
     it('最大リトライ回数を超えてもエラーの場合は例外をスローする', async () => {
-      // モックの設定
-      const mockClient = {
-        get: jest.fn().mockRejectedValue(mockErrorResponse)
-      };
-      
-      // モジュールをモックして独自のクライアントを注入
+      const mockClient = { get: jest.fn().mockRejectedValue(mockErrorResponse) };
       jest.spyOn(marketDataClient, 'get').mockImplementation(mockClient.get);
-      
-      // jestのタイマーモックを使用
-      jest.useFakeTimers();
-      
-      // テスト実行（例外をキャッチ）
+
+      const immediateDelay = jest.fn().mockResolvedValue();
       const url = 'https://api.example.com/test';
-      const fetchPromise = fetchWithRetry(url, {}, TIMEOUT.DEFAULT, 2);
-      
-      // タイマーを進める（初回 + 2回のリトライ分）
-      jest.advanceTimersByTime(RETRY.INITIAL_DELAY * 5);
-      
-      // 例外が発生することを検証
-      await expect(fetchPromise).rejects.toEqual(mockErrorResponse);
-      
-      // 関数が正しく呼ばれたことを検証
-      expect(mockClient.get).toHaveBeenCalledTimes(3); // 初回 + 2回のリトライ
-      
-      // タイマーを元に戻す
-      jest.useRealTimers();
+
+      await expect(
+        fetchWithRetry(url, {}, TIMEOUT.DEFAULT, 2, immediateDelay)
+      ).rejects.toEqual(mockErrorResponse);
+
+      expect(mockClient.get).toHaveBeenCalledTimes(3);
+      expect(immediateDelay).toHaveBeenCalled();
     });
     
     it('タイムアウトエラーを正しく処理する', async () => {
-      // モックの設定
-      const mockClient = {
-        get: jest.fn().mockRejectedValue(mockTimeoutError)
-      };
-      
-      // モジュールをモックして独自のクライアントを注入
+      const mockClient = { get: jest.fn().mockRejectedValue(mockTimeoutError) };
       jest.spyOn(marketDataClient, 'get').mockImplementation(mockClient.get);
-      
-      // jestのタイマーモックを使用
-      jest.useFakeTimers();
-      
-      // テスト実行（例外をキャッチ）
+
+      const immediateDelay = jest.fn().mockResolvedValue();
       const url = 'https://api.example.com/test';
-      const fetchPromise = fetchWithRetry(url, {}, TIMEOUT.DEFAULT, 0); // リトライなし
-      
-      // 例外が発生することを検証
-      await expect(fetchPromise).rejects.toEqual(mockTimeoutError);
-      
-      // タイマーを元に戻す
-      jest.useRealTimers();
+
+      await expect(
+        fetchWithRetry(url, {}, TIMEOUT.DEFAULT, 0, immediateDelay)
+      ).rejects.toEqual(mockTimeoutError);
+
+      expect(immediateDelay).not.toHaveBeenCalled();
     });
   });
-  
+
+  describe('authFetch', () => {
+    it('GETリクエストを正しく処理する', async () => {
+      const mockClient = { get: jest.fn().mockResolvedValue({ data: { ok: true } }) };
+      jest.spyOn(authApiClient, 'get').mockImplementation(mockClient.get);
+
+      const result = await authFetch('https://api.example.com/auth', 'get', { q: 'test' });
+
+      expect(mockClient.get).toHaveBeenCalledWith('https://api.example.com/auth', {
+        params: { q: 'test' }
+      });
+      expect(result).toEqual({ ok: true });
+    });
+
+    it('未対応メソッドの場合はエラーを投げる', async () => {
+      await expect(authFetch('/path', 'patch')).rejects.toThrow('未対応のHTTPメソッド');
+    });
+  });
+
   describe('formatErrorResponse', () => {
     it('APIエラーレスポンスを正しく整形する', () => {
       // APIエラー

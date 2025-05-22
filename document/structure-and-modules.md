@@ -78,7 +78,7 @@
 - `src/utils/apiUtils.js`
   - `createApiClient(withAuth)` – Axios クライアントを生成。
   - `marketDataClient` / `authApiClient` – 上記クライアントのインスタンス。
-  - `fetchWithRetry(endpoint, params, timeout, maxRetries)` – リトライ付きの GET リクエスト。レスポンスデータを返す。
+  - `fetchWithRetry(endpoint, params, timeout, maxRetries, delayFn)` – リトライ付きの GET リクエスト。`delayFn` は待機処理をカスタマイズするための任意パラメータ。
   - `authFetch(endpoint, method, data, config)` – 認証付きリクエストを実行しレスポンスデータを返す。
   - `formatErrorResponse(error, ticker)` – エラーデータを整形して返す。
   - `generateFallbackData(ticker)` – 取得失敗時のフォールバックデータを作成。
