@@ -47,6 +47,12 @@ describe('run-tests.sh helper', () => {
       `#!/bin/sh\necho "$@" > "${log}"\n`,
       { mode: 0o755 }
     );
+    // stub cross-env so the script uses npx
+    fs.writeFileSync(
+      path.join(bin, 'cross-env'),
+      '#!/bin/sh\nshift\n"$@"\n',
+      { mode: 0o755 }
+    );
 
     const env = { ...process.env, PATH: `${bin}:${process.env.PATH}` };
     const result = spawnSync('bash', [script, 'all'], { encoding: 'utf8', env });
@@ -108,6 +114,7 @@ describe('run-tests.sh helper', () => {
       fs.mkdirSync(bin);
       const log = path.join(tmp, 'cmd.log');
       fs.writeFileSync(path.join(bin, 'npx'), `#!/bin/sh\necho "$@" >> "${log}"\n`, { mode: 0o755 });
+      fs.writeFileSync(path.join(bin, 'cross-env'), '#!/bin/sh\nshift\n"$@"\n', { mode: 0o755 });
 
       const env = { ...process.env, PATH: `${bin}:${process.env.PATH}` };
       const res = spawnSync('bash', [path.join(tmp, 'script/run-tests.sh'), '--chart', 'all'], { cwd: tmp, env, encoding: 'utf8' });
