@@ -146,4 +146,56 @@ describe('run-tests.sh helper', () => {
       expect(res.stdout).toContain('HTMLカバレッジレポートを開いています');
     });
   });
+
+  test('falls back when cross-env is missing', () => {
+    withTempSetup(tmp => {
+      const bin = path.join(tmp, 'bin');
+      fs.mkdirSync(bin);
+      const log = path.join(tmp, 'cmd.log');
+      fs.writeFileSync(path.join(bin, 'jest'), `#!/bin/sh\necho \"$@\" > \"${log}\"\n`, { mode: 0o755 });
+
+      const env = { ...process.env, PATH: `${bin}:${process.env.PATH}` };
+      const res = spawnSync('bash', [path.join(tmp, 'script/run-tests.sh'), 'all'], { cwd: tmp, env, encoding: 'utf8' });
+
+      const cmd = fs.readFileSync(log, 'utf8');
+      expect(res.status).toBe(0);
+      expect(res.stdout).toContain('cross-envが見つからないため');
+      expect(cmd).toContain('--config=jest.config.js');
+    });
+  });
+
+  test('runs specific pattern tests', () => {
+    withTempSetup(tmp => {
+      const bin = path.join(tmp, 'bin');
+      fs.mkdirSync(bin);
+      const log = path.join(tmp, 'cmd.log');
+      fs.writeFileSync(path.join(bin, 'npx'), `#!/bin/sh\necho \"$@\" > \"${log}\"\n`, { mode: 0o755 });
+      fs.writeFileSync(path.join(bin, 'cross-env'), '#!/bin/sh\nshift\n"$@"\n', { mode: 0o755 });
+
+      const env = { ...process.env, PATH: `${bin}:${process.env.PATH}` };
+      const res = spawnSync('bash', [path.join(tmp, 'script/run-tests.sh'), '-s', 'foo', 'specific'], { cwd: tmp, env, encoding: 'utf8' });
+
+      const cmd = fs.readFileSync(log, 'utf8');
+      expect(res.status).toBe(0);
+      expect(res.stdout).toContain('特定のパターンに一致するテストを実行中');
+      expect(cmd).toContain('--testPathPattern="foo"');
+    });
+  });
+
+  test('ignore coverage errors sets exit code to zero', () => {
+    withTempSetup(tmp => {
+      const bin = path.join(tmp, 'bin');
+      fs.mkdirSync(bin);
+      const log = path.join(tmp, 'cmd.log');
+      fs.writeFileSync(path.join(bin, 'npx'), `#!/bin/sh\necho \"$@\" > \"${log}\"\n`, { mode: 0o755 });
+      fs.writeFileSync(path.join(bin, 'cross-env'), '#!/bin/sh\nshift\n"$@"\n', { mode: 0o755 });
+      fs.writeFileSync(path.join(bin, 'jest'), `#!/bin/sh\nmkdir -p test-results\necho '{"numFailedTests":0,"coverageMap":{}}' > test-results/detailed-results.json\nexit 1\n`, { mode: 0o755 });
+
+      const env = { ...process.env, PATH: `${bin}:${process.env.PATH}` };
+      const res = spawnSync('bash', [path.join(tmp, 'script/run-tests.sh'), '-i', 'all'], { cwd: tmp, env, encoding: 'utf8' });
+
+      expect(res.status).toBe(0);
+      expect(res.stdout).toContain('テスト自体は成功しています');
+    });
+  });
 });
