@@ -44,3 +44,14 @@ npm run test:all
 
 これらのテストは `__tests__/unit/components/ToastNotification.test.js`
 に実装されており、`script/run-tests.sh all` で他のテストと共に実行されます。
+
+さらにカバレッジ向上のため、以下のコンポーネントにも
+基本的なレンダリングテストを追加しました。
+
+- `Header` コンポーネント
+- `TabNavigation` コンポーネント
+- `LoginButton` コンポーネント
+- `UserProfile` コンポーネント
+
+これらのテストは `__tests__/unit/components` 配下にあり、
+各コンポーネントの表示内容とハンドラ呼び出しを検証します。
