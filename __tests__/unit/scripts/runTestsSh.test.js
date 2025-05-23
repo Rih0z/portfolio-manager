@@ -3,6 +3,25 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 
+function withTempSetup(fn) {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'rt-'));
+  fs.mkdirSync(path.join(tmp, 'script'));
+  const files = ['run-tests.sh', 'setup-test-env.js', 'generate-coverage-chart.js'];
+  files.forEach(f => {
+    const src = path.resolve(__dirname, '../../../script', f);
+    const dest = path.join(tmp, 'script', f);
+    fs.copyFileSync(src, dest);
+    if (f.endsWith('.sh')) fs.chmodSync(dest, 0o755);
+  });
+  fs.copyFileSync(path.resolve(__dirname, '../../../custom-reporter.js'), path.join(tmp, 'custom-reporter.js'));
+  fs.writeFileSync(path.join(tmp, 'package.json'), '{}');
+  try {
+    return fn(tmp);
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+}
+
 describe('run-tests.sh helper', () => {
   const script = path.resolve(__dirname, '../../../script/run-tests.sh');
 
@@ -40,5 +59,84 @@ describe('run-tests.sh helper', () => {
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('すべてのテストを実行中');
     expect(cmd).toContain('jest');
+  });
+
+  test('fails when no test type is given', () => {
+    withTempSetup(tmp => {
+      const result = spawnSync('bash', [path.join(tmp, 'script/run-tests.sh')], { cwd: tmp, encoding: 'utf8' });
+      expect(result.status).not.toBe(0);
+      expect(result.stdout).toContain('テスト種別を指定してください');
+    });
+  });
+
+  test('invalid coverage target exits with error', () => {
+    withTempSetup(tmp => {
+      const result = spawnSync('bash', [path.join(tmp, 'script/run-tests.sh'), '--target', 'foo', 'all'], { cwd: tmp, encoding: 'utf8' });
+      expect(result.status).not.toBe(0);
+      expect(result.stdout).toContain('不明なカバレッジ目標段階');
+    });
+  });
+
+  test('--clean removes previous reports', () => {
+    withTempSetup(tmp => {
+      const bin = path.join(tmp, 'bin');
+      fs.mkdirSync(bin);
+      const log = path.join(tmp, 'cmd.log');
+      fs.writeFileSync(path.join(bin, 'npx'), `#!/bin/sh\necho "$@" >> "${log}"\n`, { mode: 0o755 });
+
+      const oldCov = path.join(tmp, 'coverage', 'old.json');
+      const oldLog = path.join(tmp, 'test-results', 'old.log');
+      fs.mkdirSync(path.dirname(oldCov), { recursive: true });
+      fs.writeFileSync(oldCov, '{}');
+      fs.mkdirSync(path.dirname(oldLog), { recursive: true });
+      fs.writeFileSync(oldLog, 'x');
+
+      const env = { ...process.env, PATH: `${bin}:${process.env.PATH}` };
+      const res = spawnSync('bash', [path.join(tmp, 'script/run-tests.sh'), '--clean', 'all'], { cwd: tmp, env, encoding: 'utf8' });
+
+      expect(res.status).toBe(0);
+      expect(fs.existsSync(oldCov)).toBe(false);
+      expect(fs.existsSync(oldLog)).toBe(false);
+      expect(fs.existsSync(path.join(tmp, 'coverage'))).toBe(true);
+      expect(fs.existsSync(path.join(tmp, 'test-results'))).toBe(true);
+    });
+  });
+
+  test('--chart triggers coverage chart generation', () => {
+    withTempSetup(tmp => {
+      const bin = path.join(tmp, 'bin');
+      fs.mkdirSync(bin);
+      const log = path.join(tmp, 'cmd.log');
+      fs.writeFileSync(path.join(bin, 'npx'), `#!/bin/sh\necho "$@" >> "${log}"\n`, { mode: 0o755 });
+
+      const env = { ...process.env, PATH: `${bin}:${process.env.PATH}` };
+      const res = spawnSync('bash', [path.join(tmp, 'script/run-tests.sh'), '--chart', 'all'], { cwd: tmp, env, encoding: 'utf8' });
+
+      const cmd = fs.readFileSync(log, 'utf8');
+      expect(res.status).toBe(0);
+      expect(cmd).toContain('generate-coverage-chart.js');
+    });
+  });
+
+  test('--html-coverage opens report', () => {
+    withTempSetup(tmp => {
+      const bin = path.join(tmp, 'bin');
+      fs.mkdirSync(bin);
+      const log = path.join(tmp, 'open.log');
+      fs.writeFileSync(path.join(bin, 'npx'), `#!/bin/sh\necho "$@" >> "${path.join(tmp, 'npx.log')}"\n`, { mode: 0o755 });
+      fs.writeFileSync(path.join(bin, 'xdg-open'), `#!/bin/sh\necho "$@" >> "${log}"\n`, { mode: 0o755 });
+
+      const html = path.join(tmp, 'coverage/lcov-report/index.html');
+      fs.mkdirSync(path.dirname(html), { recursive: true });
+      fs.writeFileSync(html, '<html></html>');
+
+      const env = { ...process.env, PATH: `${bin}:${process.env.PATH}` };
+      const res = spawnSync('bash', [path.join(tmp, 'script/run-tests.sh'), '--html-coverage', 'all'], { cwd: tmp, env, encoding: 'utf8' });
+
+      const openCmd = fs.readFileSync(log, 'utf8').trim();
+      expect(res.status).toBe(0);
+      expect(openCmd).toContain('index.html');
+      expect(res.stdout).toContain('HTMLカバレッジレポートを開いています');
+    });
   });
 });
