@@ -523,10 +523,23 @@ fi
 # テストの実行
 print_info "テストを実行しています..."
 
-if [ -n "$ENV_VARS" ]; then
-  eval "npx cross-env $ENV_VARS $JEST_CMD"
+run_with_env() {
+  if [ -n "$ENV_VARS" ]; then
+    eval "$ENV_VARS $JEST_CMD"
+  else
+    eval "$JEST_CMD"
+  fi
+}
+
+if command -v cross-env >/dev/null 2>&1; then
+  if [ -n "$ENV_VARS" ]; then
+    eval "npx cross-env $ENV_VARS $JEST_CMD"
+  else
+    eval "npx $JEST_CMD"
+  fi
 else
-  eval "npx $JEST_CMD"
+  print_warning "cross-envが見つからないため直接環境変数を設定して実行します"
+  run_with_env
 fi
 
 # テスト結果
@@ -608,13 +621,21 @@ if [ $GENERATE_CHART -eq 1 ] && [ $NO_COVERAGE -ne 1 ]; then
   chart_env_vars="$chart_env_vars COVERAGE_TARGET=$COVERAGE_TARGET"
   
   # チャート生成スクリプトを実行
-  if eval "npx cross-env $chart_env_vars node ./script/generate-coverage-chart.js"; then
+  chart_command="node ./script/generate-coverage-chart.js"
+  if command -v cross-env >/dev/null 2>&1; then
+    full_cmd="npx cross-env $chart_env_vars $chart_command"
+  else
+    print_warning "cross-envが見つからないため直接環境変数を設定してチャートを生成します"
+    full_cmd="$chart_env_vars $chart_command"
+  fi
+
+  if eval "$full_cmd"; then
     print_success "カバレッジチャートが生成されました"
   else
     print_warning "カバレッジチャートの生成に失敗しました"
     if [ $DEBUG_MODE -eq 1 ]; then
       print_debug "チャート生成スクリプトをデバッグモードで実行します..."
-      eval "npx cross-env $chart_env_vars node --trace-warnings ./script/generate-coverage-chart.js"
+      eval "$chart_env_vars node --trace-warnings ./script/generate-coverage-chart.js"
     fi
   fi
 fi
