@@ -1,5 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { act } from 'react-dom/test-utils';
 import userEvent from '@testing-library/user-event';
 import AiPromptSettings from '@/components/settings/AiPromptSettings';
 
@@ -12,8 +13,13 @@ const { usePortfolioContext } = require('@/hooks/usePortfolioContext');
 const DEFAULT_SUBSTRING = 'あなたは投資分析に特化した AI アシスタントです';
 
 describe('AiPromptSettings', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
   afterEach(() => {
     jest.clearAllMocks();
+    jest.runOnlyPendingTimers();
+    jest.useRealTimers();
   });
 
   it('renders default template when no template is provided', () => {
@@ -50,6 +56,11 @@ describe('AiPromptSettings', () => {
 
     expect(updateAiPromptTemplate).toHaveBeenCalledWith('New Template');
     expect(await screen.findByText('保存しました')).toBeInTheDocument();
+
+    // タイマーでメッセージが非表示になる処理を即座に実行
+    act(() => {
+      jest.runAllTimers();
+    });
   });
 
   it('reset button restores default template', async () => {
