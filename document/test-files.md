@@ -95,3 +95,4 @@ APIユーティリティ層の網羅率向上のため、`src/services/api.js` �
 データが存在しない場合の表示やユーザー操作による状態遷移を検証します。
 
 - `runTestsShOptions.test.js` では `-w` オプションや `--nvm` など追加オプションの挙動を検証しています。
+- `fundUtils.extra.test.js` では `guessFundType`、`estimateAnnualFee`、`estimateDividendYield` の未カバーケースを追加し、REIT や債券、暗号資産、空文字ティッカーなどの判定を検証しています。
