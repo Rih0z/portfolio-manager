@@ -66,3 +66,13 @@ APIユーティリティ層の網羅率向上のため、`src/services/api.js` �
 さらに `script/generate-coverage-chart.js` の単体テスト
 `__tests__/unit/scripts/generateCoverageChart.test.js` を新設し、
 チャート生成関数と履歴ファイル更新処理の動作を確認します。
+
+さらにダッシュボードやシミュレーション機能のカバレッジ向上のため、
+次のコンポーネントにもテストを追加しました。
+
+- `AssetsTable` コンポーネント
+- `GoogleDriveIntegration` コンポーネント
+- `BudgetInput` コンポーネント
+
+いずれも `__tests__/unit/components` 配下にあり、
+データが存在しない場合の表示やユーザー操作による状態遷移を検証します。
