@@ -55,3 +55,10 @@ npm run test:all
 
 これらのテストは `__tests__/unit/components` 配下にあり、
 各コンポーネントの表示内容とハンドラ呼び出しを検証します。
+
+APIユーティリティ層の網羅率向上のため、`src/services/api.js` の
+補助関数群にもテストを追加しました。動作確認は
+`__tests__/unit/services/api.test.js` に実装しています。
+また、Web Vitals 計測ユーティリティ `src/reportWebVitals.js` 用の
+テスト `__tests__/unit/utils/reportWebVitals.test.js` も追加し、
+コールバックが正しく各計測関数へ渡されるかを検証しています。
