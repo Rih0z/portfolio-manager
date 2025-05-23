@@ -93,3 +93,5 @@ APIユーティリティ層の網羅率向上のため、`src/services/api.js` �
 
 いずれも `__tests__/unit/components` 配下にあり、
 データが存在しない場合の表示やユーザー操作による状態遷移を検証します。
+
+- `runTestsShOptions.test.js` では `-w` オプションや `--nvm` など追加オプションの挙動を検証しています。
