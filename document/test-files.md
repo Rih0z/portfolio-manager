@@ -67,6 +67,11 @@ APIユーティリティ層の網羅率向上のため、`src/services/api.js` �
 `__tests__/unit/scripts/generateCoverageChart.test.js` を新設し、
 チャート生成関数と履歴ファイル更新処理の動作を確認します。
 
+加えてテスト実行スクリプト `script/run-tests.sh` 自体の挙動確認用に、
+`__tests__/unit/scripts/runTestsSh.test.js` を追加しました。`--help` オプ
+ションや未知のオプションを与えた際のメッセージ出力と終了ステータス
+を検証します。
+
 さらにダッシュボードやシミュレーション機能のカバレッジ向上のため、
 次のコンポーネントにもテストを追加しました。
 
