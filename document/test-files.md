@@ -62,3 +62,7 @@ APIユーティリティ層の網羅率向上のため、`src/services/api.js` �
 また、Web Vitals 計測ユーティリティ `src/reportWebVitals.js` 用の
 テスト `__tests__/unit/utils/reportWebVitals.test.js` も追加し、
 コールバックが正しく各計測関数へ渡されるかを検証しています。
+
+さらに `script/generate-coverage-chart.js` の単体テスト
+`__tests__/unit/scripts/generateCoverageChart.test.js` を新設し、
+チャート生成関数と履歴ファイル更新処理の動作を確認します。
