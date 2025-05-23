@@ -736,12 +736,31 @@ function main() {
 }
 
 // エラーハンドリング付きでスクリプトを実行
-try {
-  main();
-} catch (error) {
-  console.error('❌ カバレッジチャート生成中にエラーが発生しました:', error.message);
-  if (process.env.DEBUG === 'true') {
-    console.error(error.stack);
+if (require.main === module) {
+  try {
+    main();
+  } catch (error) {
+    console.error('❌ カバレッジチャート生成中にエラーが発生しました:', error.message);
+    if (process.env.DEBUG === 'true') {
+      console.error(error.stack);
+    }
+    process.exit(1);
   }
-  process.exit(1);
+} else {
+  module.exports = {
+    debugLog,
+    roundToTwo,
+    validateCoverageMetric,
+    loadCoverageData,
+    extractFromDetailedResults,
+    extractFromSummary,
+    extractFromFinalCoverage,
+    getCoverageTarget,
+    generateDemoCoverageData,
+    generateBarChart,
+    generateLineChart,
+    loadCoverageHistory,
+    saveCoverageHistory,
+    embedChartsInReport,
+  };
 }
