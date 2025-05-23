@@ -100,6 +100,8 @@ export const AuthProvider = ({ children }) => {
         errorMessage = error.response.data.message || errorMessage;
       } else if (error.message) {
         errorMessage = error.message;
+      } else {
+        errorMessage = '予期しないエラーが発生しました';
       }
       
       setError(errorMessage);

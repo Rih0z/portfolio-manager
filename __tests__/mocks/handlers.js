@@ -103,6 +103,7 @@ export const handlers = [
         success: true,
         isAuthenticated: true,
         user: mockUserProfile,
+        token: 'test-jwt-token',
         session: {
           expiresAt: new Date(Date.now() + 3600000).toISOString() // 1時間後
         }

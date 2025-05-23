@@ -55,7 +55,8 @@ const LoginButton = () => {
       }
     } catch (err) {
       console.error('ログイン処理中にエラーが発生しました:', err);
-      setLoginError(`ログインエラー: ${err.message}`);
+      const message = err?.message || '不明なエラー';
+      setLoginError(`ログインエラー: ${message}`);
     }
   };
   
