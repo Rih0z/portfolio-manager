@@ -14,8 +14,9 @@ import { mockMarketData, mockExchangeRate, mockUserProfile } from './data';
 
 // 基本的なAPIパスの構築
 const getApiPath = (path) => {
-  // テスト環境ではAPI_STAGEはdevを使用
-  return `*/dev/${path}`;
+  // テスト環境のAPIステージを環境変数から取得
+  const stage = process.env.REACT_APP_API_STAGE || 'dev';
+  return `*/${stage}/${path}`;
 };
 
 // MSWハンドラー
