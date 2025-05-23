@@ -96,3 +96,4 @@ APIユーティリティ層の網羅率向上のため、`src/services/api.js` �
 
 - `runTestsShOptions.test.js` では `-w` オプションや `--nvm` など追加オプションの挙動を検証しています。
 - `fundUtils.extra.test.js` では `guessFundType`、`estimateAnnualFee`、`estimateDividendYield` の未カバーケースを追加し、REIT や債券、暗号資産、空文字ティッカーなどの判定を検証しています。
+- `customReporter.test.js` ではカスタムJestレポーターのユーティリティ関数をテストし、デモカバレッジ生成やサマリー表示処理を確認しています。
