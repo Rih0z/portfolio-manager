@@ -588,7 +588,7 @@ fi
 # カバレッジエラーを無視するモードの処理
 if [ $IGNORE_COVERAGE_ERRORS -eq 1 ] && [ -f "./test-results/detailed-results.json" ]; then
   # JSON結果ファイルを読み込んでテスト自体の成功/失敗を確認
-  local failed_tests=$(grep -o '"numFailedTests":[0-9]*' ./test-results/detailed-results.json | cut -d':' -f2 2>/dev/null || echo "0")
+  failed_tests=$(grep -o '"numFailedTests":[0-9]*' ./test-results/detailed-results.json | cut -d':' -f2 2>/dev/null || echo "0")
   
   if [ "$failed_tests" = "0" ]; then
     print_info "テスト自体は成功しています（カバレッジエラーを無視）"
@@ -601,7 +601,7 @@ if [ $GENERATE_CHART -eq 1 ] && [ $NO_COVERAGE -ne 1 ]; then
   print_info "カバレッジチャートを生成しています..."
   
   # チャート生成用の環境変数を設定
-  local chart_env_vars="NODE_ENV=production"
+  chart_env_vars="NODE_ENV=production"
   if [ $DEBUG_MODE -eq 1 ] || [ $VERBOSE_COVERAGE -eq 1 ]; then
     chart_env_vars="$chart_env_vars DEBUG=true VERBOSE_COVERAGE=true"
   fi
@@ -623,7 +623,7 @@ fi
 if [ $HTML_COVERAGE -eq 1 ] && [ $TEST_RESULT -eq 0 ]; then
   print_info "HTMLカバレッジレポートを開いています..."
   
-  local html_report="./coverage/lcov-report/index.html"
+  html_report="./coverage/lcov-report/index.html"
   if [ -f "$html_report" ]; then
     # OS別にブラウザを開く
     case "$(uname -s)" in
@@ -653,7 +653,7 @@ fi
 if [ $VISUAL -eq 1 ]; then
   print_info "テスト結果をビジュアルレポートで表示します..."
   
-  local visual_report="./test-results/visual-report.html"
+  visual_report="./test-results/visual-report.html"
   if [ -f "$visual_report" ]; then
     # OS別にブラウザを開く
     case "$(uname -s)" in
@@ -689,10 +689,10 @@ if [ $TEST_RESULT -eq 0 ]; then
     
     # カバレッジ情報の抽出（JSONから直接読み取り）
     if command -v jq > /dev/null; then
-      local statements_pct=$(jq -r '.coverageMap.total.statements.pct // 0' ./test-results/detailed-results.json 2>/dev/null)
-      local branches_pct=$(jq -r '.coverageMap.total.branches.pct // 0' ./test-results/detailed-results.json 2>/dev/null)
-      local functions_pct=$(jq -r '.coverageMap.total.functions.pct // 0' ./test-results/detailed-results.json 2>/dev/null)
-      local lines_pct=$(jq -r '.coverageMap.total.lines.pct // 0' ./test-results/detailed-results.json 2>/dev/null)
+      statements_pct=$(jq -r '.coverageMap.total.statements.pct // 0' ./test-results/detailed-results.json 2>/dev/null)
+      branches_pct=$(jq -r '.coverageMap.total.branches.pct // 0' ./test-results/detailed-results.json 2>/dev/null)
+      functions_pct=$(jq -r '.coverageMap.total.functions.pct // 0' ./test-results/detailed-results.json 2>/dev/null)
+      lines_pct=$(jq -r '.coverageMap.total.lines.pct // 0' ./test-results/detailed-results.json 2>/dev/null)
       
       echo -e "${BLUE}カバレッジ率:${NC}"
       echo -e "  ステートメント: ${statements_pct}%"
