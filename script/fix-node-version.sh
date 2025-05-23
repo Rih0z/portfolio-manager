@@ -92,5 +92,5 @@ fi
 echo -e "${BLUE}===============================================${NC}"
 echo -e "${GREEN}Node.jsバージョン修正完了${NC}"
 echo -e "テスト実行コマンド例:"
-echo -e "${YELLOW}./scripts/run-tests.sh --no-coverage integration${NC}"
+echo -e "${YELLOW}./script/run-tests.sh --no-coverage integration${NC}"
 
