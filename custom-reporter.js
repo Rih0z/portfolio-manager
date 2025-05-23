@@ -1473,7 +1473,7 @@ class CustomReporter {
                   <div class="card-title">コードカバレッジ分析</div>
                   <div class="coverage-warning">
                     <p>カバレッジ情報が利用できません。テスト実行時に以下のコマンドを使用してください：</p>
-                    <pre style="margin-top: 10px; background: #000; padding: 10px; border-radius: 3px;">./scripts/run-tests.sh --force-coverage ${process.argv.slice(2).join(' ')}</pre>
+                    <pre style="margin-top: 10px; background: #000; padding: 10px; border-radius: 3px;">./script/run-tests.sh --force-coverage ${process.argv.slice(2).join(' ')}</pre>
                   </div>
                 </div>
                 `}
@@ -1715,7 +1715,7 @@ class CustomReporter {
     } else {
       console.log(`${yellow}⚠ カバレッジデータが結果ファイルに含まれていません。${reset}`);
       console.log(`${blue}次回のテスト実行時には以下のコマンドを使用してください：${reset}`);
-      console.log(`${yellow}./scripts/run-tests.sh --force-coverage ${process.argv.slice(2).join(' ')}${reset}`);
+      console.log(`${yellow}./script/run-tests.sh --force-coverage ${process.argv.slice(2).join(' ')}${reset}`);
     }
     
     console.log('========================================');
