@@ -42,7 +42,7 @@ print_info() {
 }
 
 print_debug() {
-  if [ $DEBUG_MODE -eq 1 ]; then
+  if [ $DEBUG_MODE -eq 1 ] || [ $VERBOSE_COVERAGE -eq 1 ]; then
     echo -e "${CYAN}[DEBUG] $1${NC}"
   fi
 }
