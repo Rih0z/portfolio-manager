@@ -11,6 +11,7 @@ const {
   generateDemoCoverageData,
   generateBarChart,
   generateLineChart,
+  loadCoverageData,
   loadCoverageHistory,
   saveCoverageHistory,
   embedChartsInReport,
@@ -80,6 +81,17 @@ describe('generate-coverage-chart helpers', () => {
       const history = loadCoverageHistory();
       expect(history.length).toBe(1);
       expect(history[0].statements).toBe(50);
+    });
+  });
+
+  test('loadCoverageData reads coverage-final.json when present', () => {
+    withTempDir(() => {
+      fs.mkdirSync('coverage', { recursive: true });
+      const data = { file1: { s: { 1: 1 }, b: {}, f: {}, l: {} } };
+      fs.writeFileSync('coverage/coverage-final.json', JSON.stringify(data));
+      const res = loadCoverageData();
+      expect(res.statements.total).toBe(1);
+      expect(res.statements.covered).toBe(1);
     });
   });
 
