@@ -34,8 +34,7 @@ src/
 ├── hooks/           # カスタムReact Hooks
 │   ├── useAuth.js               # 認証フック
 │   ├── useGoogleDrive.js        # Googleドライブ連携フック
-│   ├── usePortfolioContext.js   # ポートフォリオコンテキストフック
-│   └── useLocalStorage.js       # ローカルストレージフック
+│   └── usePortfolioContext.js   # ポートフォリオコンテキストフック
 ├── pages/           # ページコンポーネント
 │   ├── Dashboard.jsx           # ダッシュボードページ
 │   ├── DataIntegration.jsx     # データ連携ページ

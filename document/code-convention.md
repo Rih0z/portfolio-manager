@@ -87,8 +87,7 @@ src/
 ├── hooks/           # カスタムReact Hooks
 │   ├── useAuth.js               # 認証フック
 │   ├── useGoogleDrive.js        # Googleドライブ連携フック（新規追加）
-│   ├── usePortfolioContext.js   # ポートフォリオコンテキストフック
-│   └── useLocalStorage.js       # ローカルストレージフック
+│   └── usePortfolioContext.js   # ポートフォリオコンテキストフック
 ├── pages/           # ページコンポーネント
 │   ├── Dashboard.jsx           # ダッシュボードページ
 │   ├── DataIntegration.jsx     # データ連携ページ
@@ -491,7 +490,6 @@ src/
   export const usePortfolioContext = () => {...}
   export const useAuth = () => {...}
   export const useFundUtils = () => {...}
-  export const useLocalStorage = () => {...} // ローカルストレージ操作フック
   export const useDividendCalculation = () => {...} // 配当計算フック
   export const useNotifications = () => {...} // 通知管理フック
   export const useDataSources = () => {...} // データソース管理フック
