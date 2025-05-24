@@ -106,3 +106,4 @@ APIユーティリティ層の網羅率向上のため、`src/services/api.js` �
 - `setupProxy.test.js` では Express アプリへのプロキシミドルウェア登録処理をテストし、環境変数の設定と `http-proxy-middleware` の呼び出し内容を検証しています。
 - `generateCoverageChartCli.test.js` では CLIとして `script/generate-coverage-chart.js` を実行し、SVGファイル生成と終了ステータスを検証しています。
 - `runTestsShEdgeCases.test.js` では `--config` オプションによる設定ファイル指定と、`jest` と `npx` が共に存在しない環境でのエラー終了を確認しています。
+- `setupTestEnvExtras.test.js` では 無効な `COVERAGE_TARGET` が `initial` に補正されることと、`script/setup-test-env.js` を CLI として実行した際に必要なディレクトリが生成されるかを確認しています。
