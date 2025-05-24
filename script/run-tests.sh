@@ -524,10 +524,15 @@ fi
 print_info "テストを実行しています..."
 
 run_with_env() {
+  local cmd="$JEST_CMD"
+  if ! command -v jest >/dev/null 2>&1 && command -v npx >/dev/null 2>&1; then
+    cmd="npx $cmd"
+  fi
+
   if [ -n "$ENV_VARS" ]; then
-    eval "$ENV_VARS $JEST_CMD"
+    eval "$ENV_VARS $cmd"
   else
-    eval "$JEST_CMD"
+    eval "$cmd"
   fi
 }
 
