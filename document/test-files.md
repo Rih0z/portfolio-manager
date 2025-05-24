@@ -113,3 +113,4 @@ APIユーティリティ層の網羅率向上のため、`src/services/api.js` �
 - `generateCoverageChartCli.test.js` では CLIとして `script/generate-coverage-chart.js` を実行し、SVGファイル生成と終了ステータスを検証しています。
 - `runTestsShEdgeCases.test.js` では `--config` オプションによる設定ファイル指定と、`jest` と `npx` が共に存在しない環境でのエラー終了を確認しています。
 - `setupTestEnvExtras.test.js` では 無効な `COVERAGE_TARGET` が `initial` に補正されることと、`script/setup-test-env.js` を CLI として実行した際に必要なディレクトリが生成されるかを確認しています。
+- `runTestsShQuick.test.js` では `quick` テスト種別を実行し、`cross-env` が無い環境で `jest` コマンドも見つからない場合に `npx jest` へフォールバックして実行されることと、`USE_API_MOCKS=true` が環境変数として渡されるかを検証しています。
