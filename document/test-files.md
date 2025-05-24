@@ -102,3 +102,4 @@ APIユーティリティ層の網羅率向上のため、`src/services/api.js` �
 - `fundUtils.extra.test.js` では `guessFundType`、`estimateAnnualFee`、`estimateDividendYield` の未カバーケースを追加し、REIT や債券、暗号資産、空文字ティッカーなどの判定を検証しています。
 - `customReporter.test.js` ではカスタムJestレポーターのユーティリティ関数をテストし、デモカバレッジ生成やサマリー表示処理を確認しています。
 - `setupProxy.test.js` では Express アプリへのプロキシミドルウェア登録処理をテストし、環境変数の設定と `http-proxy-middleware` の呼び出し内容を検証しています。
+- `generateCoverageChartCli.test.js` では CLIとして `script/generate-coverage-chart.js` を実行し、SVGファイル生成と終了ステータスを検証しています。
