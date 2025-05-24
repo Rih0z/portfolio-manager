@@ -92,9 +92,11 @@ APIユーティリティ層の網羅率向上のため、`src/services/api.js` �
 - `AssetsTable` コンポーネント
 - `GoogleDriveIntegration` コンポーネント
 - `BudgetInput` コンポーネント
+- `ExportOptions` コンポーネント
 
 いずれも `__tests__/unit/components` 配下にあり、
 データが存在しない場合の表示やユーザー操作による状態遷移を検証します。
+`ExportOptions.test.js` ではクリップボードへのコピーとダウンロード処理を確認しています。
 
 - `runTestsShOptions.test.js` では `-w` オプションや `--nvm` など追加オプションの挙動を検証しています。
 - `runTestsShExtras.test.js` では `--verbose-coverage` や `--detect-open-handles` `--validate-coverage` など追加フラグの挙動と、`-m` `-f` `-t final` の処理、さらに `specific` テスト種別でパターン未指定時のエラー表示を確認しています。
