@@ -71,7 +71,11 @@ describe('環境ユーティリティ', () => {
       // ローカルホスト環境のテスト
       window.location.hostname = 'localhost';
       expect(isLocalDevelopment()).toBe(true);
-      
+
+      // ループバックアドレスでもローカルと判定
+      window.location.hostname = '127.0.0.1';
+      expect(isLocalDevelopment()).toBe(true);
+
       // 本番環境のテスト
       window.location.hostname = 'example.com';
       expect(isLocalDevelopment()).toBe(false);
@@ -97,6 +101,12 @@ describe('環境ユーティリティ', () => {
       const localUrl = getBaseApiUrl();
       expect(localUrl).toBe('http://localhost:5000');
       delete process.env.REACT_APP_LOCAL_API_URL;
+    });
+
+    it('ローカルAPI URL未設定時はデフォルト値を返す', () => {
+      window.location.hostname = 'localhost';
+      const localUrl = getBaseApiUrl();
+      expect(localUrl).toBe('http://localhost:3000');
     });
     
     it('getApiStageは環境変数からAPIステージを正しく取得する', () => {
