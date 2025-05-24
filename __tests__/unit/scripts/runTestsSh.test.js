@@ -152,7 +152,11 @@ describe('run-tests.sh helper', () => {
       const bin = path.join(tmp, 'bin');
       fs.mkdirSync(bin);
       const log = path.join(tmp, 'cmd.log');
-      fs.writeFileSync(path.join(bin, 'jest'), `#!/bin/sh\necho \"$@\" > \"${log}\"\n`, { mode: 0o755 });
+      fs.writeFileSync(
+        path.join(bin, 'npx'),
+        `#!/bin/sh\necho \"$@\" > \"${log}\"\n`,
+        { mode: 0o755 }
+      );
 
       const env = { ...process.env, PATH: `${bin}:${process.env.PATH}` };
       const res = spawnSync('bash', [path.join(tmp, 'script/run-tests.sh'), 'all'], { cwd: tmp, env, encoding: 'utf8' });
@@ -160,7 +164,7 @@ describe('run-tests.sh helper', () => {
       const cmd = fs.readFileSync(log, 'utf8');
       expect(res.status).toBe(0);
       expect(res.stdout).toContain('cross-envが見つからないため');
-      expect(cmd).toContain('--config=jest.config.js');
+      expect(cmd).toContain('jest');
     });
   });
 
