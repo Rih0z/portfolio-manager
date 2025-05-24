@@ -207,6 +207,28 @@ describe('APIユーティリティ', () => {
       expect(result).toEqual({ ok: true });
     });
 
+    it('POST, PUT, DELETE リクエストを正しく処理する', async () => {
+      const mockClient = {
+        post: jest.fn().mockResolvedValue({ data: { ok: 'post' } }),
+        put: jest.fn().mockResolvedValue({ data: { ok: 'put' } }),
+        delete: jest.fn().mockResolvedValue({ data: { ok: 'del' } })
+      };
+      jest.spyOn(authApiClient, 'post').mockImplementation(mockClient.post);
+      jest.spyOn(authApiClient, 'put').mockImplementation(mockClient.put);
+      jest.spyOn(authApiClient, 'delete').mockImplementation(mockClient.delete);
+
+      const postRes = await authFetch('/p', 'post', { a: 1 });
+      const putRes = await authFetch('/p', 'put', { b: 2 });
+      const delRes = await authFetch('/p', 'delete', { c: 3 });
+
+      expect(mockClient.post).toHaveBeenCalledWith(expect.any(String), { a: 1 }, undefined);
+      expect(mockClient.put).toHaveBeenCalledWith(expect.any(String), { b: 2 }, undefined);
+      expect(mockClient.delete).toHaveBeenCalledWith(expect.any(String), { data: { c: 3 } });
+      expect(postRes).toEqual({ ok: 'post' });
+      expect(putRes).toEqual({ ok: 'put' });
+      expect(delRes).toEqual({ ok: 'del' });
+    });
+
     it('未対応メソッドの場合はエラーを投げる', async () => {
       await expect(authFetch('/path', 'patch')).rejects.toThrow('未対応のHTTPメソッド');
     });
