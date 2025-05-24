@@ -90,6 +90,14 @@ describe('環境ユーティリティ', () => {
       // デフォルト値が設定されていない場合は 'http://localhost:3000' などになるはず
       expect(defaultApiUrl).toBeDefined();
     });
+
+    it('ローカル環境ではローカルAPI URLを返す', () => {
+      window.location.hostname = 'localhost';
+      process.env.REACT_APP_LOCAL_API_URL = 'http://localhost:5000';
+      const localUrl = getBaseApiUrl();
+      expect(localUrl).toBe('http://localhost:5000');
+      delete process.env.REACT_APP_LOCAL_API_URL;
+    });
     
     it('getApiStageは環境変数からAPIステージを正しく取得する', () => {
       const apiStage = getApiStage();
@@ -106,13 +114,26 @@ describe('環境ユーティリティ', () => {
       const endpoint = getApiEndpoint('api/market-data');
       // 通常の環境では環境変数とパスを組み合わせたURLを返す
       expect(endpoint).toBe('https://api.example.com/dev/api/market-data');
-      
+
       // ローカル環境のテスト
       window.location.hostname = 'localhost';
       const localEndpoint = getApiEndpoint('api/market-data');
       // ローカル環境ではローカルURLを使用する場合がある
       // (実装によって異なる場合があります)
       expect(localEndpoint).toContain('/api/market-data');
+
+      // プロキシ使用時はベースURLを含まない
+      process.env.REACT_APP_USE_PROXY = 'true';
+      const proxyEndpoint = getApiEndpoint('/another');
+      expect(proxyEndpoint).toBe('/dev/another');
+      delete process.env.REACT_APP_USE_PROXY;
+
+      // ベースURLに末尾スラッシュがあっても正しく結合される
+      window.location.hostname = 'example.com';
+      process.env.REACT_APP_MARKET_DATA_API_URL = 'https://api.example.com/';
+      const slashEndpoint = getApiEndpoint('/with-slash');
+      expect(slashEndpoint).toBe('https://api.example.com/dev/with-slash');
+      process.env.REACT_APP_MARKET_DATA_API_URL = 'https://api.example.com';
     });
   });
   
@@ -141,6 +162,10 @@ describe('環境ユーティリティ', () => {
       // カスタムパスのテスト
       const customRedirectUri = getRedirectUri('/custom/callback');
       expect(customRedirectUri).toBe('https://example.com/custom/callback');
+
+      // スラッシュ無しパスのテスト
+      const noSlash = getRedirectUri('noslash');
+      expect(noSlash).toBe('https://example.com/noslash');
     });
   });
   
