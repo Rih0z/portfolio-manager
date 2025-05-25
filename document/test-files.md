@@ -103,6 +103,7 @@ APIユーティリティ層の網羅率向上のため、`src/services/api.js` �
 - `AllocationEditor` コンポーネント
 - `HoldingsEditor` コンポーネント
 - `PopularTickers` コンポーネント
+- `AuthContext` の基本動作
 
 いずれも `__tests__/unit/components` 配下にあり、
 データが存在しない場合の表示やユーザー操作による状態遷移を検証します。
