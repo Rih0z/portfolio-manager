@@ -99,6 +99,9 @@ APIユーティリティ層の網羅率向上のため、`src/services/api.js` �
 - `SimulationResult` コンポーネント
 - `AiAnalysisPrompt` コンポーネント
 - `DifferenceChart` コンポーネント
+- `AllocationEditor` コンポーネント
+- `HoldingsEditor` コンポーネント
+- `PopularTickers` コンポーネント
 
 いずれも `__tests__/unit/components` 配下にあり、
 データが存在しない場合の表示やユーザー操作による状態遷移を検証します。
