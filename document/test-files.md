@@ -114,6 +114,7 @@ APIユーティリティ層の網羅率向上のため、`src/services/api.js` �
 - `runTestsShEdgeCases.test.js` では `--config` オプションによる設定ファイル指定と、`jest` と `npx` が共に存在しない環境でのエラー終了を確認しています。
 - `setupTestEnvExtras.test.js` では 無効な `COVERAGE_TARGET` が `initial` に補正されることと、`script/setup-test-env.js` を CLI として実行した際に必要なディレクトリが生成されるかを確認しています。
 - `runTestsShQuick.test.js` では `quick` テスト種別を実行し、`cross-env` が無い環境で `jest` コマンドも見つからない場合に `npx jest` へフォールバックして実行されることと、`USE_API_MOCKS=true` が環境変数として渡されるかを検証しています。
+- `runTestsShNative.test.js` では `cross-env` が無いものの `jest` コマンドが存在する環境で、ローカルの `jest` が直接実行され、環境変数が正しく渡されるかを確認しています。
 
 - `generateCoverageChartExtras.test.js` では `generate-coverage-chart.js` のデバッグ出力やカバレッジファイルが存在しない場合の挙動、\
   HTMLレポートが欠落している場合の警告表示を検証しています。
