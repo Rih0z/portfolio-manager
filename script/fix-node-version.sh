@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# ファイルパス: scripts/fix-node-version.sh
+# ファイルパス: script/fix-node-version.sh
 #
 # Node.jsバージョンを自動修正するスクリプト
 #
