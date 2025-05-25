@@ -304,6 +304,18 @@ DEFAULT_EXCHANGE_RATE=150.0
 4. ブランチにプッシュ (`git push origin feature/amazing-feature`)
 5. プルリクエストを作成
 
+## テストの実行方法
+
+プロジェクトのテストは次のコマンドで実行できます。カバレッジレポートも生成されます。
+
+```bash
+npm run test:all
+# または
+./script/run-tests.sh all
+# 互換ラッパー: ./scripts/run-tests.sh all でも実行可能
+```
+
+
 ## 免責事項
 
 本アプリケーションの利用に関しては、以下の点にご留意ください：

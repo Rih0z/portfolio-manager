@@ -1,6 +1,6 @@
 # テストファイル構成
 
-このドキュメントでは、本プロジェクトにおけるテストコードの配置場所と役割を簡潔にまとめます。`npm run test:all` または `script/run-tests.sh all` で全てのテストが実行されます。
+このドキュメントでは、本プロジェクトにおけるテストコードの配置場所と役割を簡潔にまとめます。`npm run test:all` または `script/run-tests.sh all` または `scripts/run-tests.sh all` で全てのテストが実行されます。
 
 ## ディレクトリ構成
 
@@ -28,6 +28,7 @@ __tests__/
 npm run test:all
 # または
 ./script/run-tests.sh all
+./scripts/run-tests.sh all
 ```
 
 テスト結果は `test-results/`、カバレッジレポートは `coverage/` に出力されます。
