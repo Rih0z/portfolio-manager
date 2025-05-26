@@ -1568,3 +1568,6 @@ export const PortfolioProvider = ({ children }) => {
 
 // 明示的にデフォルトエクスポートも追加
 export default PortfolioContext;
+
+// テスト用にユーティリティ関数を明示的にエクスポート
+export { encryptData, decryptData };
