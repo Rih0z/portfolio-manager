@@ -104,6 +104,7 @@ APIユーティリティ層の網羅率向上のため、`src/services/api.js` �
 - `HoldingsEditor` コンポーネント
 - `PopularTickers` コンポーネント
 - `AuthContext` の基本動作
+- `PortfolioContextExtras.test.js` では 暗号化関数や `validateAssetTypes`、`exportData` の挙動を検証し、コンテキスト内部の補助機能をカバーしています。
 
 いずれも `__tests__/unit/components` 配下にあり、
 データが存在しない場合の表示やユーザー操作による状態遷移を検証します。
