@@ -125,3 +125,4 @@ APIユーティリティ層の網羅率向上のため、`src/services/api.js` �
 - `generateCoverageChartExtras.test.js` では `generate-coverage-chart.js` のデバッグ出力やカバレッジファイルが存在しない場合の挙動、\
   HTMLレポートが欠落している場合の警告表示を検証しています。
 - `runTestsShCoverageFailures.test.js` では カバレッジ結果が無い場合の警告メッセージと、macOSでHTMLレポートを自動表示する処理を検証しています。
+- `runTestsShWindows.test.js` では Windows 環境をエミュレートし、`--visual` オプション実行時に `start` コマンドが呼び出されることを確認しています。
