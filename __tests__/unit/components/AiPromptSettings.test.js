@@ -14,7 +14,7 @@ const DEFAULT_SUBSTRING = 'あなたは投資分析に特化した AI アシス�
 
 describe('AiPromptSettings', () => {
   beforeEach(() => {
-    jest.useFakeTimers();
+    jest.useFakeTimers('legacy');
   });
   afterEach(() => {
     jest.clearAllMocks();

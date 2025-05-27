@@ -16,13 +16,11 @@ import ToastNotification from '@/components/common/ToastNotification';
 
 describe('ToastNotificationコンポーネント', () => {
   beforeEach(() => {
-    jest.useFakeTimers();
+    jest.useFakeTimers('legacy');
   });
 
   afterEach(() => {
-    act(() => {
-      jest.runOnlyPendingTimers();
-    });
+    jest.runOnlyPendingTimers();
     jest.useRealTimers();
   });
 
@@ -39,6 +37,7 @@ describe('ToastNotificationコンポーネント', () => {
   });
 
   it('閉じるボタンで手動で閉じることができる', async () => {
+    jest.useRealTimers();
     const handleClose = jest.fn();
     render(<ToastNotification message="Bye" onClose={handleClose} />);
 
@@ -47,11 +46,9 @@ describe('ToastNotificationコンポーネント', () => {
     const user = userEvent.setup();
     await user.click(screen.getByRole('button'));
 
-    act(() => {
-      jest.runAllTimers();
+    await waitFor(() => {
+      expect(screen.queryByText('Bye')).not.toBeInTheDocument();
     });
-
-    expect(screen.queryByText('Bye')).not.toBeInTheDocument();
     expect(handleClose).toHaveBeenCalled();
   });
 

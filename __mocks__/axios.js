@@ -72,6 +72,10 @@ if (!global.__AXIOS_MOCK__) {
   global.__AXIOS_MOCK__ = axios;
 }
 
+// CommonJSとESモジュールの両方に対応
 module.exports = axios;
 module.exports.default = axios;
 module.exports.__esModule = true;
+
+// ESモジュールのnamed export対応
+module.exports.axios = axios;

@@ -54,6 +54,21 @@ export const getApiEndpoint = (path) => {
     return `/${stage}/${cleanPath}`;
   }
   
+  // 開発環境でもAWS APIを直接使用する場合（CORSが設定されている場合）
+  if (isLocalDevelopment() && process.env.REACT_APP_USE_DIRECT_API === 'true') {
+    const marketDataUrl = process.env.REACT_APP_MARKET_DATA_API_URL;
+    if (marketDataUrl) {
+      return `${marketDataUrl}/${stage}/${cleanPath}`;
+    }
+  }
+  
+  // AWS APIのURLを使用（開発・本番共通）
+  const marketDataUrl = process.env.REACT_APP_MARKET_DATA_API_URL;
+  if (marketDataUrl) {
+    return `${marketDataUrl}/${stage}/${cleanPath}`;
+  }
+  
+  // フォールバック
   // ベースURLが/で終わる場合は調整
   if (baseUrl.endsWith('/')) {
     return `${baseUrl}${stage}/${cleanPath}`;

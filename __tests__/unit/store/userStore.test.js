@@ -13,8 +13,7 @@ import { AuthProvider, AuthContext } from '@/context/AuthContext';
 import { useAuth } from '@/hooks/useAuth';
 
 // テスト用ライブラリ
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
-import { renderHook } from '@testing-library/react-hooks';
+import { render, screen, fireEvent, waitFor, act, renderHook } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React, { useContext, useEffect } from 'react';
 

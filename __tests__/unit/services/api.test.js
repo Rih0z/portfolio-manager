@@ -5,14 +5,14 @@ describe('api service helpers', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     process.env.REACT_APP_MARKET_DATA_API_URL = 'https://api.example.com';
-    process.env.REACT_APP_API_STAGE = 'v1';
+    process.env.REACT_APP_API_STAGE = 'test';
   });
 
   it('getApiEndpoint returns proper urls', () => {
-    expect(getApiEndpoint('market-data')).toBe('https://api.example.com/v1/api/market-data');
-    expect(getApiEndpoint('auth')).toBe('https://api.example.com/v1/auth');
-    expect(getApiEndpoint('drive')).toBe('https://api.example.com/v1/drive');
-    expect(getApiEndpoint('other')).toBe('https://api.example.com/v1');
+    expect(getApiEndpoint('market-data')).toBe('https://api.example.com/test/api/market-data');
+    expect(getApiEndpoint('auth')).toBe('https://api.example.com/test/auth');
+    expect(getApiEndpoint('drive')).toBe('https://api.example.com/test/drive');
+    expect(getApiEndpoint('other')).toBe('https://api.example.com/test');
   });
 
   it('fetchFundInfo delegates to fetchTickerData', async () => {

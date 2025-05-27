@@ -27,11 +27,10 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "test": "node script/setup-test-with-env.js && react-scripts test --coverage --watchAll=false",
+    "test": "react-scripts test --coverage --watchAll=false",
     "test:custom": "node script/test-custom.js",
     "eject": "react-scripts eject",
     "dev": "netlify dev",
-    "test:setup-env": "node script/setup-test-with-env.js",
     
     "test:all": "script/run-tests.sh all",
     "test:unit": "script/run-tests.sh unit",
