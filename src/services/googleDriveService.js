@@ -22,11 +22,27 @@ export const fetchDriveFiles = async () => {
       return {
         success: false,
         error: response?.message || 'ファイル一覧の取得に失敗しました',
-        files: []
+        files: [],
+        errorCode: response?.errorCode
       };
     }
   } catch (error) {
     console.error('Google Driveファイル一覧取得エラー:', error);
+    
+    // 401エラーでDrive OAuthが必要な場合
+    if (error.response && error.response.status === 401) {
+      const responseData = error.response.data;
+      if (responseData.errorCode === 'DRIVE_OAUTH_REQUIRED' && responseData.authUrl) {
+        return {
+          success: false,
+          error: responseData.message || 'Google Drive認証が必要です',
+          files: [],
+          needsDriveAuth: true,
+          authUrl: responseData.authUrl
+        };
+      }
+    }
+    
     return {
       success: false,
       error: error.message || 'Google Drive接続エラー',
@@ -52,14 +68,25 @@ export const saveToDrive = async (portfolioData) => {
     } else {
       return {
         success: false,
-        error: response?.message || '保存に失敗しました'
+        error: response?.message || '保存に失敗しました',
+        errorCode: response?.errorCode
       };
     }
   } catch (error) {
     console.error('Google Drive保存エラー:', error);
     
-    // 認証エラーの場合
+    // 401エラーでDrive OAuthが必要な場合
     if (error.response && error.response.status === 401) {
+      const responseData = error.response.data;
+      if (responseData.errorCode === 'DRIVE_OAUTH_REQUIRED' && responseData.authUrl) {
+        return {
+          success: false,
+          error: responseData.message || 'Google Drive認証が必要です',
+          needsDriveAuth: true,
+          authUrl: responseData.authUrl
+        };
+      }
+      
       return {
         success: false,
         error: '認証が必要です。ログインしてください。',
@@ -92,14 +119,25 @@ export const loadFromDrive = async (fileId) => {
     } else {
       return {
         success: false,
-        error: response?.message || '読み込みに失敗しました'
+        error: response?.message || '読み込みに失敗しました',
+        errorCode: response?.errorCode
       };
     }
   } catch (error) {
     console.error('Google Drive読み込みエラー:', error);
     
-    // 認証エラーの場合
+    // 401エラーでDrive OAuthが必要な場合
     if (error.response && error.response.status === 401) {
+      const responseData = error.response.data;
+      if (responseData.errorCode === 'DRIVE_OAUTH_REQUIRED' && responseData.authUrl) {
+        return {
+          success: false,
+          error: responseData.message || 'Google Drive認証が必要です',
+          needsDriveAuth: true,
+          authUrl: responseData.authUrl
+        };
+      }
+      
       return {
         success: false,
         error: '認証が必要です。ログインしてください。',

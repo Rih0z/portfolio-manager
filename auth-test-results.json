@@ -1,0 +1,68 @@
+{
+  "timestamp": "2025-05-27T03:52:38.399Z",
+  "apiBaseUrl": "https://api.portfolio-wise.com",
+  "apiStage": "dev",
+  "endpoints": {
+    "OPTIONS auth/session": {
+      "success": false,
+      "message": "getaddrinfo ENOTFOUND api.portfolio-wise.com",
+      "error": "Error: getaddrinfo ENOTFOUND api.portfolio-wise.com"
+    },
+    "OPTIONS auth/logout": {
+      "success": false,
+      "message": "getaddrinfo ENOTFOUND api.portfolio-wise.com",
+      "error": "Error: getaddrinfo ENOTFOUND api.portfolio-wise.com"
+    },
+    "OPTIONS auth/google/login": {
+      "success": false,
+      "message": "getaddrinfo ENOTFOUND api.portfolio-wise.com",
+      "error": "Error: getaddrinfo ENOTFOUND api.portfolio-wise.com"
+    },
+    "GET (no auth) auth/session": {
+      "success": false,
+      "message": "Session check without token failed: getaddrinfo ENOTFOUND api.portfolio-wise.com",
+      "error": "Error: getaddrinfo ENOTFOUND api.portfolio-wise.com"
+    },
+    "GET (with auth) auth/session": {
+      "success": false,
+      "message": "Session check with token failed: getaddrinfo ENOTFOUND api.portfolio-wise.com",
+      "error": "Error: getaddrinfo ENOTFOUND api.portfolio-wise.com"
+    },
+    "POST (no auth) auth/logout": {
+      "success": false,
+      "message": "Logout without token failed: getaddrinfo ENOTFOUND api.portfolio-wise.com",
+      "error": "Error: getaddrinfo ENOTFOUND api.portfolio-wise.com"
+    },
+    "POST (with auth) auth/logout": {
+      "success": false,
+      "message": "Logout with token failed: getaddrinfo ENOTFOUND api.portfolio-wise.com",
+      "error": "Error: getaddrinfo ENOTFOUND api.portfolio-wise.com"
+    },
+    "POST auth/google/login": {
+      "success": false,
+      "message": "Google login test failed: getaddrinfo ENOTFOUND api.portfolio-wise.com",
+      "error": "Error: getaddrinfo ENOTFOUND api.portfolio-wise.com"
+    },
+    "http://localhost:3000 - GET auth/session": {
+      "success": false,
+      "message": "Origin test failed for http://localhost:3000: getaddrinfo ENOTFOUND api.portfolio-wise.com"
+    },
+    "https://localhost:3000 - GET auth/session": {
+      "success": false,
+      "message": "Origin test failed for https://localhost:3000: getaddrinfo ENOTFOUND api.portfolio-wise.com"
+    },
+    "https://portfolio-wise.com - GET auth/session": {
+      "success": false,
+      "message": "Origin test failed for https://portfolio-wise.com: getaddrinfo ENOTFOUND api.portfolio-wise.com"
+    },
+    "https://www.portfolio-wise.com - GET auth/session": {
+      "success": false,
+      "message": "Origin test failed for https://www.portfolio-wise.com: getaddrinfo ENOTFOUND api.portfolio-wise.com"
+    }
+  },
+  "summary": {
+    "total": 8,
+    "passed": 0,
+    "failed": 8
+  }
+}

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Login Test</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+    <h1>Google認証テスト</h1>
+    <div id="status">準備中...</div>
+    <button id="loginBtn" disabled>Googleでログイン</button>
+    
+    <h2>ログ:</h2>
+    <pre id="log"></pre>
+
+    <script>
+        const CLIENT_ID = '243939385276-0gga06ocrn3vumf7lasubcpdqjk49j3n.apps.googleusercontent.com';
+        const REDIRECT_URI = 'http://localhost:3001/auth/callback';
+        const API_ENDPOINT = 'https://x4scpbsuv2.execute-api.us-west-2.amazonaws.com/dev/auth/google/login';
+        
+        let logArea = document.getElementById('log');
+        let statusArea = document.getElementById('status');
+        let loginBtn = document.getElementById('loginBtn');
+        
+        function log(message, data = null) {
+            const timestamp = new Date().toISOString();
+            logArea.textContent += `[${timestamp}] ${message}\n`;
+            if (data) {
+                logArea.textContent += JSON.stringify(data, null, 2) + '\n';
+            }
+            console.log(message, data);
+        }
+        
+        // Google OAuth2 URLを構築
+        function buildAuthUrl() {
+            const params = new URLSearchParams({
+                client_id: CLIENT_ID,
+                redirect_uri: REDIRECT_URI,
+                response_type: 'code',
+                scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
+                access_type: 'offline',
+                prompt: 'consent'
+            });
+            
+            return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+        }
+        
+        // ログインボタンのクリックハンドラ
+        loginBtn.addEventListener('click', () => {
+            const authUrl = buildAuthUrl();
+            log('認証URLを開きます:', authUrl);
+            window.location.href = authUrl;
+        });
+        
+        // URLパラメータをチェック（コールバック処理）
+        const urlParams = new URLSearchParams(window.location.search);
+        const authCode = urlParams.get('code');
+        
+        if (authCode) {
+            log('認証コードを受信しました:', authCode.substring(0, 20) + '...');
+            statusArea.textContent = '認証コードを処理中...';
+            
+            // サーバーに認証コードを送信
+            fetch(API_ENDPOINT, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Origin': 'http://localhost:3001'
+                },
+                body: JSON.stringify({
+                    code: authCode,
+                    redirectUri: REDIRECT_URI
+                })
+            })
+            .then(response => {
+                log('レスポンスステータス:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                log('認証レスポンス:', data);
+                if (data.success) {
+                    statusArea.textContent = 'ログイン成功！';
+                } else {
+                    statusArea.textContent = 'ログイン失敗: ' + (data.error?.message || 'Unknown error');
+                }
+            })
+            .catch(error => {
+                log('エラー:', error.message);
+                statusArea.textContent = 'エラーが発生しました';
+            });
+        } else {
+            statusArea.textContent = '準備完了';
+            loginBtn.disabled = false;
+        }
+    </script>
+</body>
+</html>

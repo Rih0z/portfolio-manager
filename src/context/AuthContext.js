@@ -33,6 +33,7 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [hasDriveAccess, setHasDriveAccess] = useState(false);
   const portfolioContextRef = useRef(null);
   
   // Google認証クライアントID
@@ -67,6 +68,11 @@ export const AuthProvider = ({ children }) => {
         setIsAuthenticated(true);
         setError(null);
         
+        // Drive API認証状態を設定
+        if (response.hasDriveAccess !== undefined) {
+          setHasDriveAccess(response.hasDriveAccess);
+        }
+        
         // 新しいトークンがレスポンスに含まれている場合は更新
         if (response.token) {
           setAuthToken(response.token);
@@ -80,6 +86,7 @@ export const AuthProvider = ({ children }) => {
         console.log('セッション未認証または無効');
         setUser(null);
         setIsAuthenticated(false);
+        setHasDriveAccess(false);
         clearAuthToken();
         
         // メッセージがある場合はエラー設定
@@ -91,6 +98,7 @@ export const AuthProvider = ({ children }) => {
       console.error('セッション確認エラー:', error);
       setUser(null);
       setIsAuthenticated(false);
+      setHasDriveAccess(false);
       clearAuthToken();
       
       // エラーメッセージを設定
@@ -288,16 +296,41 @@ export const AuthProvider = ({ children }) => {
     checkSession();
   }, [checkSession]);
   
+  // Drive API認証を開始
+  const initiateDriveAuth = useCallback(async () => {
+    try {
+      console.log('Drive API認証を開始します');
+      const driveInitEndpoint = getApiEndpoint('auth/google/drive/initiate');
+      
+      const response = await authFetch(driveInitEndpoint, 'get');
+      
+      if (response && response.authUrl) {
+        // 認証URLにリダイレクト
+        window.location.href = response.authUrl;
+        return true;
+      } else {
+        setError('Drive API認証URLの取得に失敗しました');
+        return false;
+      }
+    } catch (error) {
+      console.error('Drive API認証開始エラー:', error);
+      setError('Drive API認証の開始に失敗しました');
+      return false;
+    }
+  }, []);
+
   // コンテキスト値の提供
   const value = {
     user,
     isAuthenticated,
     loading,
     error,
+    hasDriveAccess,
     loginWithGoogle,
     logout: logout,
     handleLogout: logout, // 互換性のため両方のメソッド名を提供
     checkSession,
+    initiateDriveAuth,
     setPortfolioContextRef,
     googleClientId
   };

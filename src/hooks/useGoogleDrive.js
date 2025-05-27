@@ -40,6 +40,13 @@ export const useGoogleDrive = () => {
         return result.files;
       } else {
         setError(result.error || '不明なエラー');
+        
+        // Drive OAuth認証が必要な場合
+        if (result.needsDriveAuth && result.authUrl) {
+          console.log('Drive API認証が必要です。リダイレクトします。');
+          window.location.href = result.authUrl;
+        }
+        
         return null;
       }
     } catch (error) {
@@ -68,9 +75,15 @@ export const useGoogleDrive = () => {
         return result.file;
       } else {
         setError(result.error || '不明なエラー');
-        if (result.needsAuth) {
-          // 認証が必要な場合の処理をここに追加可能
+        
+        // Drive OAuth認証が必要な場合
+        if (result.needsDriveAuth && result.authUrl) {
+          console.log('Drive API認証が必要です。リダイレクトします。');
+          window.location.href = result.authUrl;
+        } else if (result.needsAuth) {
+          // 通常の認証が必要な場合の処理
         }
+        
         return null;
       }
     } catch (error) {
@@ -99,9 +112,15 @@ export const useGoogleDrive = () => {
         return result.data;
       } else {
         setError(result.error || '不明なエラー');
-        if (result.needsAuth) {
-          // 認証が必要な場合の処理をここに追加可能
+        
+        // Drive OAuth認証が必要な場合
+        if (result.needsDriveAuth && result.authUrl) {
+          console.log('Drive API認証が必要です。リダイレクトします。');
+          window.location.href = result.authUrl;
+        } else if (result.needsAuth) {
+          // 通常の認証が必要な場合の処理
         }
+        
         return null;
       }
     } catch (error) {

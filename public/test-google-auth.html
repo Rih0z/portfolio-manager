@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Google Auth Test</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+    <h1>Google認証テスト</h1>
+    
+    <div id="g_id_onload"
+         data-client_id="243939385276-0gga06ocrn3vumf7lasubcpdqjk49j3n.apps.googleusercontent.com"
+         data-callback="handleCredentialResponse">
+    </div>
+    <div class="g_id_signin" data-type="standard"></div>
+    
+    <div id="result" style="margin-top: 20px; padding: 20px; background: #f0f0f0;">
+        <h2>結果:</h2>
+        <pre id="output">認証待機中...</pre>
+    </div>
+    
+    <script>
+        function handleCredentialResponse(response) {
+            console.log("Encoded JWT ID token: " + response.credential);
+            
+            const output = document.getElementById('output');
+            output.textContent = JSON.stringify({
+                hasCredential: !!response.credential,
+                credentialLength: response.credential ? response.credential.length : 0,
+                responseKeys: Object.keys(response)
+            }, null, 2);
+            
+            // サーバーに送信するテスト
+            const payload = {
+                credential: response.credential
+            };
+            
+            output.textContent += '\n\n送信データ:\n' + JSON.stringify(payload, null, 2);
+            
+            fetch('https://x4scpbsuv2.execute-api.us-west-2.amazonaws.com/dev/auth/google/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                output.textContent += '\n\nサーバーレスポンス:\n' + JSON.stringify(data, null, 2);
+            })
+            .catch(err => {
+                output.textContent += '\n\nエラー:\n' + err.message;
+            });
+        }
+    </script>
+</body>
+</html>

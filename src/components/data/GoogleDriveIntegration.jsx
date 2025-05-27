@@ -22,7 +22,7 @@ import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 import { useGoogleDrive } from '../../hooks/useGoogleDrive';
 
 const GoogleDriveIntegration = () => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, hasDriveAccess, initiateDriveAuth } = useAuth();
   const { 
     listFiles, 
     saveFile, 
@@ -57,10 +57,10 @@ const GoogleDriveIntegration = () => {
   
   // 初期ロード時にファイル一覧を取得
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && hasDriveAccess) {
       fetchFiles();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, hasDriveAccess]);
   
   // クラウドに保存
   const handleSaveToCloud = async () => {
@@ -150,24 +150,39 @@ const GoogleDriveIntegration = () => {
         <span>{user?.name || 'ユーザー'}としてログイン中</span>
       </div>
       
+      {/* Drive API認証チェック */}
+      {!hasDriveAccess && (
+        <div className="drive-auth-required bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4">
+          <p className="mb-2">Google Drive APIへのアクセス許可が必要です。</p>
+          <button
+            onClick={initiateDriveAuth}
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          >
+            Google Driveへのアクセスを許可
+          </button>
+        </div>
+      )}
+      
       {/* 操作ボタン */}
-      <div className="drive-actions">
-        <button 
-          onClick={handleSaveToCloud} 
-          disabled={loading || syncStatus === 'saving'}
-          className="btn btn-primary"
-        >
-          {loading && syncStatus === 'saving' ? '保存中...' : 'Google Driveに保存'}
-        </button>
-        
-        <button
-          onClick={fetchFiles}
-          disabled={loading}
-          className="btn btn-secondary"
-        >
-          ファイル一覧更新
-        </button>
-      </div>
+      {hasDriveAccess && (
+        <div className="drive-actions">
+          <button 
+            onClick={handleSaveToCloud} 
+            disabled={loading || syncStatus === 'saving'}
+            className="btn btn-primary"
+          >
+            {loading && syncStatus === 'saving' ? '保存中...' : 'Google Driveに保存'}
+          </button>
+          
+          <button
+            onClick={fetchFiles}
+            disabled={loading}
+            className="btn btn-secondary"
+          >
+            ファイル一覧更新
+          </button>
+        </div>
+      )}
       
       {/* 同期ステータス */}
       {lastSync && (
@@ -187,8 +202,9 @@ const GoogleDriveIntegration = () => {
       )}
       
       {/* ファイル一覧 */}
-      <div className="files-list">
-        <h3>保存済みファイル</h3>
+      {hasDriveAccess && (
+        <div className="files-list">
+          <h3>保存済みファイル</h3>
         {loading && syncStatus === 'loading' ? (
           <p>ファイル読み込み中...</p>
         ) : files.length === 0 ? (
@@ -224,7 +240,8 @@ const GoogleDriveIntegration = () => {
             ))}
           </ul>
         )}
-      </div>
+        </div>
+      )}
       
       {/* エラー表示 */}
       {error && (
