@@ -191,23 +191,70 @@ export const AuthProvider = ({ children }) => {
       }
       
       if (response && response.success) {
-        console.log('Google認証成功:', response.user);
+        console.log('Google認証成功:', response);
+        console.log('レスポンス全体:', JSON.stringify(response, null, 2));
         
-        // JWTトークンの保存
-        if (response.token) {
-          console.log('認証トークンを保存します');
-          setAuthToken(response.token);
-        } else {
-          console.warn('トークンがレスポンスに含まれていません');
+        // ログイン後のCookieを確認
+        console.log('=== Cookie Debug After Login ===');
+        console.log('Cookies after login:', document.cookie);
+        console.log('Cookie details:', {
+          cookieString: document.cookie,
+          cookieLength: document.cookie.length,
+          hasCookies: document.cookie.length > 0,
+          cookieList: document.cookie.split(';').map(c => c.trim()).filter(c => c),
+          // セッションCookieの存在確認
+          hasSessionCookie: document.cookie.includes('session'),
+          hasConnectSid: document.cookie.includes('connect.sid'),
+          hasAuthCookie: document.cookie.includes('auth')
+        });
+        
+        // レスポンスヘッダーの確認（開発環境用）
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Response headers might contain Set-Cookie (check Network tab)');
         }
         
-        setUser(response.user);
+        // JWTトークンの保存（複数の可能な場所をチェック）
+        const token = response.token || 
+                     response.accessToken || 
+                     response.access_token ||
+                     response.authToken ||
+                     response.auth_token ||
+                     response.jwt ||
+                     response.jwtToken ||
+                     response.data?.token || 
+                     response.data?.accessToken ||
+                     response.data?.access_token ||
+                     response.data?.authToken ||
+                     response.data?.auth_token ||
+                     response.data?.jwt ||
+                     response.data?.jwtToken;
+                     
+        if (token) {
+          console.log('認証トークンを保存します:', token.substring(0, 20) + '...');
+          setAuthToken(token);
+        } else {
+          console.warn('トークンがレスポンスに含まれていません');
+          console.warn('利用可能なレスポンスキー:', Object.keys(response));
+          // dataオブジェクトがある場合はその中も確認
+          if (response.data) {
+            console.warn('response.dataのキー:', Object.keys(response.data));
+          }
+          // レスポンス全体を詳しく調査
+          console.warn('レスポンス構造の詳細調査:');
+          for (const key in response) {
+            if (typeof response[key] === 'string' && response[key].length > 100) {
+              console.warn(`- ${key}: 長い文字列 (${response[key].length}文字) - トークンの可能性`);
+            }
+          }
+        }
+        
+        setUser(response.user || response.data?.user);
         setIsAuthenticated(true);
         setError(null);
         
         // ポートフォリオコンテキストに認証状態変更を通知
         if (portfolioContextRef.current?.handleAuthStateChange) {
-          portfolioContextRef.current.handleAuthStateChange(true, response.user);
+          portfolioContextRef.current.handleAuthStateChange(true, response.user || response.data?.user);
         }
         
         return true;
@@ -299,10 +346,45 @@ export const AuthProvider = ({ children }) => {
   // Drive API認証を開始
   const initiateDriveAuth = useCallback(async () => {
     try {
+      console.log('=== Drive API Authentication Debug ===');
       console.log('Drive API認証を開始します');
+      console.log('現在の認証状態:', {
+        isAuthenticated,
+        hasToken: !!getAuthToken(),
+        user: user?.email,
+        cookies: document.cookie,
+        hasCookies: document.cookie.length > 0
+      });
+      
+      // Cookieの詳細デバッグ
+      const cookies = document.cookie.split(';').map(c => c.trim()).filter(c => c);
+      console.log('Cookie詳細分析:');
+      cookies.forEach(cookie => {
+        const [name, value] = cookie.split('=');
+        console.log(`- ${name}: ${value ? value.substring(0, 20) + '...' : 'empty'}`);
+      });
+      
+      console.log('Drive API認証前のCookie詳細:', {
+        cookieString: document.cookie,
+        cookieList: cookies,
+        cookieCount: cookies.length,
+        hasSessionCookie: document.cookie.includes('session'),
+        hasConnectSid: document.cookie.includes('connect.sid'),
+        hasAuthCookie: document.cookie.includes('auth')
+      });
+      
       const driveInitEndpoint = getApiEndpoint('auth/google/drive/initiate');
       
-      const response = await authFetch(driveInitEndpoint, 'get');
+      console.log('Drive API initiate endpoint:', driveInitEndpoint);
+      console.log('Making request with authFetch (withCredentials: true)...');
+      
+      // 明示的にwithCredentialsを設定
+      const response = await authFetch(driveInitEndpoint, 'get', null, {
+        withCredentials: true,
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest' // AJAXリクエストであることを示す
+        }
+      });
       
       if (response && response.authUrl) {
         // 認証URLにリダイレクト
@@ -314,10 +396,29 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Drive API認証開始エラー:', error);
-      setError('Drive API認証の開始に失敗しました');
+      if (error.response?.status === 401) {
+        console.error('Drive API認証エラー: 権限が不足しています');
+        // Google Drive APIの401は必ずしもログイン無効を意味しない
+        // Drive権限が不足している可能性がある
+        if (error.response?.data?.requiresReauth) {
+          // サーバーが明示的に再認証を要求している場合のみログアウト
+          console.error('再認証が必要です');
+          setError('再度ログインが必要です。');
+          setUser(null);
+          setIsAuthenticated(false);
+          clearAuthToken();
+        } else {
+          // Drive権限の問題の可能性
+          console.error('Google Drive権限が不足している可能性があります');
+          setError('Google Driveへのアクセス権限がありません。再度認証してください。');
+          // ログイン状態は維持
+        }
+      } else {
+        setError('Drive API認証の開始に失敗しました');
+      }
       return false;
     }
-  }, []);
+  }, [isAuthenticated, user]);
 
   // コンテキスト値の提供
   const value = {

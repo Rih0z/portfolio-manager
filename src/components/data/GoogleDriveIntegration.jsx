@@ -20,6 +20,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 import { useGoogleDrive } from '../../hooks/useGoogleDrive';
+import { logCookieStatus, testCookieSettings } from '../../utils/cookieDebugUtils';
 
 const GoogleDriveIntegration = () => {
   const { isAuthenticated, user, hasDriveAccess, initiateDriveAuth } = useAuth();
@@ -155,11 +156,25 @@ const GoogleDriveIntegration = () => {
         <div className="drive-auth-required bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4">
           <p className="mb-2">Google Drive APIへのアクセス許可が必要です。</p>
           <button
-            onClick={initiateDriveAuth}
+            onClick={() => {
+              logCookieStatus('Before Drive Auth Button Click');
+              initiateDriveAuth();
+            }}
             className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
           >
             Google Driveへのアクセスを許可
           </button>
+          {process.env.NODE_ENV === 'development' && (
+            <button
+              onClick={() => {
+                testCookieSettings();
+                logCookieStatus('Cookie Test');
+              }}
+              className="ml-2 bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded text-sm"
+            >
+              Cookieデバッグ
+            </button>
+          )}
         </div>
       )}
       

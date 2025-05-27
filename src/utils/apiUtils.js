@@ -56,9 +56,25 @@ export const clearAuthToken = () => {
 
 // Axiosインスタンスの作成
 export const createApiClient = (withAuth = false) => {
+  console.log(`Creating API client with auth: ${withAuth}, withCredentials: true`);
+  
   const client = axios.create({
     timeout: TIMEOUT.DEFAULT,
-    withCredentials: false // 一時的にfalseに設定してCORS問題を回避
+    withCredentials: true, // Cookieを送信するために必要
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    }
+  });
+  
+  // デフォルト設定の追加（念のため）
+  client.defaults.withCredentials = true;
+  
+  // クライアント設定を確認
+  console.log('API client defaults:', {
+    withCredentials: client.defaults.withCredentials,
+    timeout: client.defaults.timeout,
+    headers: client.defaults.headers
   });
   
   // インターセプターの設定
@@ -69,11 +85,8 @@ export const createApiClient = (withAuth = false) => {
       console.log('Request Data:', config.data);
       
       // 共通ヘッダーを設定（最小限に保つ）
-      config.headers = {
-        ...config.headers,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      };
+      // Content-TypeとAcceptはデフォルトで設定済みなので、上書きしない
+      // 必要に応じて追加のヘッダーのみ設定
       
       // POSTリクエストの場合、ボディの内容を確認
       if (config.method === 'post' && config.data) {
@@ -81,16 +94,40 @@ export const createApiClient = (withAuth = false) => {
       }
       
       // 認証が必要な場合はAuthorizationヘッダーを追加
-      if (withAuth && authToken) {
-        config.headers['Authorization'] = `Bearer ${authToken}`;
+      if (withAuth) {
+        if (authToken) {
+          config.headers['Authorization'] = `Bearer ${authToken}`;
+        } else {
+          // トークンがない場合でも、セッションベース認証の可能性があるため
+          // withCredentialsがtrueであることを確認
+          console.log('警告: トークンがありませんが、セッションベース認証でリクエストを試みます');
+        }
       }
       
+      // withCredentialsを確実に設定
+      config.withCredentials = true;
+      
       // デバッグ情報
-      if (withAuth) {
+      if (withAuth || config.url.includes('/drive/') || config.url.includes('/auth/')) {
         console.log('認証情報付きリクエスト:', {
           url: config.url,
           method: config.method,
-          hasToken: !!authToken
+          hasToken: !!authToken,
+          headers: config.headers,
+          withCredentials: config.withCredentials
+        });
+        
+        // 現在のCookieを確認
+        console.log('Current cookies:', document.cookie);
+        console.log('Cookie transmission debug:', {
+          cookieString: document.cookie,
+          cookieList: document.cookie.split(';').map(c => c.trim()).filter(c => c),
+          cookieCount: document.cookie.split(';').filter(c => c.trim()).length,
+          withCredentials: config.withCredentials,
+          isDriveRequest: config.url.includes('/drive/'),
+          isAuthRequest: config.url.includes('/auth/'),
+          origin: window.location.origin,
+          apiHost: config.url.includes('http') ? new URL(config.url).host : 'relative URL'
         });
       }
       
@@ -110,9 +147,31 @@ export const createApiClient = (withAuth = false) => {
       // 成功レスポンスを処理
       console.log(`API Response: ${response.config.method?.toUpperCase()} ${response.config.url} -> ${response.status}`);
       
-      // トークンがレスポンスに含まれていれば保存
-      if (response.data && response.data.token) {
-        setAuthToken(response.data.token);
+      // レスポンスヘッダーを確認（Set-Cookieなど）
+      if (response.config.url && response.config.url.includes('/auth/google/login')) {
+        console.log('ログインレスポンスヘッダー:', response.headers);
+        console.log('Set-Cookieヘッダー:', response.headers['set-cookie']);
+        
+        // ログイン後のCookie状態を確認
+        console.log('Cookies after login response:', {
+          cookieString: document.cookie,
+          cookieList: document.cookie.split(';').map(c => c.trim()).filter(c => c),
+          cookieCount: document.cookie.split(';').filter(c => c.trim()).length
+        });
+      }
+      
+      // トークンがレスポンスに含まれていれば保存（複数の可能な場所をチェック）
+      const possibleToken = response.data?.token || 
+                           response.data?.accessToken || 
+                           response.data?.access_token ||
+                           response.data?.authToken ||
+                           response.data?.auth_token ||
+                           response.data?.jwt ||
+                           response.data?.jwtToken;
+      
+      if (possibleToken) {
+        console.log('レスポンスからトークンを検出し、保存します');
+        setAuthToken(possibleToken);
       }
       
       return response;
@@ -128,8 +187,19 @@ export const createApiClient = (withAuth = false) => {
             hasToken: !!authToken
           });
 
-          // 認証エラーの場合はトークンをクリア
-          clearAuthToken();
+          // Google Drive関連のエンドポイントの場合は、トークンをクリアしない
+          // （Drive権限が不足している可能性があるため）
+          const isDriveEndpoint = error.config.url && error.config.url.includes('/drive/');
+          
+          // セッション確認エンドポイントの場合のみトークンをクリア
+          const isSessionEndpoint = error.config.url && error.config.url.includes('/auth/session');
+          
+          if (isSessionEndpoint || (!isDriveEndpoint && error.response.data?.message?.includes('Invalid token'))) {
+            console.error('トークンが無効です。クリアします。');
+            clearAuthToken();
+          } else {
+            console.log('Drive APIエンドポイントの401エラー。トークンは保持します。');
+          }
         } else if (error.response) {
           // その他のエラーレスポンス
           console.error('API Error:', {
@@ -215,23 +285,36 @@ export const authFetch = async (endpoint, method = 'get', data = null, config = 
     const url = endpoint.startsWith('http') ? endpoint : getApiEndpoint(endpoint);
     
     console.log(`認証付きリクエスト: ${method.toUpperCase()} ${url}`);
+    console.log('authFetch cookie debug:', {
+      endpoint: endpoint,
+      fullUrl: url,
+      cookies: document.cookie,
+      cookieList: document.cookie.split(';').map(c => c.trim()).filter(c => c),
+      hasToken: !!authToken,
+      isDriveEndpoint: endpoint.includes('drive'),
+      config: config
+    });
     
-    // HTTPメソッド別の処理
+    // HTTPメソッド別の処理（withCredentialsを確実に設定）
     let response;
+    const requestConfig = {
+      ...config,
+      withCredentials: true // 常にCookieを送信
+    };
     
     if (method.toLowerCase() === 'get') {
       response = await authApiClient.get(url, {
         params: data,
-        ...config
+        ...requestConfig
       });
     } else if (method.toLowerCase() === 'post') {
-      response = await authApiClient.post(url, data, config);
+      response = await authApiClient.post(url, data, requestConfig);
     } else if (method.toLowerCase() === 'put') {
-      response = await authApiClient.put(url, data, config);
+      response = await authApiClient.put(url, data, requestConfig);
     } else if (method.toLowerCase() === 'delete') {
       response = await authApiClient.delete(url, {
         data,
-        ...config
+        ...requestConfig
       });
     } else {
       throw new Error(`未対応のHTTPメソッド: ${method}`);

@@ -107,7 +107,8 @@ export const PortfolioProvider = ({ children }) => {
 
   // 通知を追加する関数（タイムアウト付き）
   const addNotification = useCallback((message, type = 'info') => {
-    const id = Date.now();
+    // より一意性の高いIDを生成（タイムスタンプ + ランダム値）
+    const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     setNotifications(prev => [...prev, { id, message, type }]);
   
     // 情報・成功・警告通知は自動消去（5秒後）
