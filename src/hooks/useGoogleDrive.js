@@ -15,8 +15,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { getApiEndpoint } from '../utils/envUtils';
-import { authApiClient } from '../utils/apiUtils';
+import { fetchDriveFiles, saveToDrive, loadFromDrive } from '../services/googleDriveService';
 import { useAuth } from './useAuth';
 
 export const useGoogleDrive = () => {
@@ -35,19 +34,17 @@ export const useGoogleDrive = () => {
       setLoading(true);
       setError(null);
       
-      const response = await authApiClient.get(
-        getApiEndpoint('drive/files')
-      );
+      const result = await fetchDriveFiles();
       
-      if (response.data.success) {
-        return response.data.files;
+      if (result.success) {
+        return result.files;
       } else {
-        setError(response.data.message || '不明なエラー');
+        setError(result.error || '不明なエラー');
         return null;
       }
     } catch (error) {
       console.error('Google Driveファイル一覧取得エラー:', error);
-      setError(error.response?.data?.message || 'ファイル一覧取得エラー');
+      setError(error.message || 'ファイル一覧取得エラー');
       return null;
     } finally {
       setLoading(false);
@@ -65,20 +62,20 @@ export const useGoogleDrive = () => {
       setLoading(true);
       setError(null);
       
-      const response = await authApiClient.post(
-        getApiEndpoint('drive/save'),
-        { portfolioData }
-      );
+      const result = await saveToDrive(portfolioData);
       
-      if (response.data.success) {
-        return response.data.file;
+      if (result.success) {
+        return result.file;
       } else {
-        setError(response.data.message || '不明なエラー');
+        setError(result.error || '不明なエラー');
+        if (result.needsAuth) {
+          // 認証が必要な場合の処理をここに追加可能
+        }
         return null;
       }
     } catch (error) {
       console.error('Google Driveファイル保存エラー:', error);
-      setError(error.response?.data?.message || 'ファイル保存エラー');
+      setError(error.message || 'ファイル保存エラー');
       return null;
     } finally {
       setLoading(false);
@@ -96,20 +93,20 @@ export const useGoogleDrive = () => {
       setLoading(true);
       setError(null);
       
-      const response = await authApiClient.get(
-        getApiEndpoint('drive/load'),
-        { params: { fileId } }
-      );
+      const result = await loadFromDrive(fileId);
       
-      if (response.data.success) {
-        return response.data.data;
+      if (result.success) {
+        return result.data;
       } else {
-        setError(response.data.message || '不明なエラー');
+        setError(result.error || '不明なエラー');
+        if (result.needsAuth) {
+          // 認証が必要な場合の処理をここに追加可能
+        }
         return null;
       }
     } catch (error) {
       console.error('Google Driveファイル読み込みエラー:', error);
-      setError(error.response?.data?.message || 'ファイル読み込みエラー');
+      setError(error.message || 'ファイル読み込みエラー');
       return null;
     } finally {
       setLoading(false);

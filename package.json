@@ -7,7 +7,7 @@
   "homepage": "./",
   "dependencies": {
     "@headlessui/react": "^1.7.15",
-    "@react-oauth/google": "^0.11.0",
+    "@react-oauth/google": "^0.12.2",
     "@testing-library/jest-dom": "5.16.5",
     "@testing-library/react": "13.4.0",
     "@testing-library/user-event": "13.5.0",
@@ -32,32 +32,25 @@
     "eject": "react-scripts eject",
     "dev": "netlify dev",
     "test:setup-env": "node script/setup-test-with-env.js",
-    
     "test:all": "script/run-tests.sh all",
     "test:unit": "script/run-tests.sh unit",
     "test:integration": "script/run-tests.sh integration",
     "test:e2e": "script/run-tests.sh e2e",
     "test:quick": "script/run-tests.sh quick",
-    
     "test:coverage": "script/run-tests.sh --force-coverage all",
     "test:coverage-chart": "script/run-tests.sh --chart --force-coverage all",
     "test:visual": "script/run-tests.sh --visual --force-coverage all",
     "test:debug": "script/run-tests.sh --debug --verbose-coverage all",
-    
     "test:initial": "script/run-tests.sh -t initial --force-coverage all",
-    "test:mid": "script/run-tests.sh -t mid --force-coverage all", 
+    "test:mid": "script/run-tests.sh -t mid --force-coverage all",
     "test:final": "script/run-tests.sh -t final --force-coverage all",
-    
     "test:view-results": "open test-results/visual-report.html || xdg-open test-results/visual-report.html || start test-results/visual-report.html",
     "test:view-coverage": "open coverage/lcov-report/index.html || xdg-open coverage/lcov-report/index.html || start coverage/lcov-report/index.html",
-    
     "test:setup": "node script/setup-test-env.js",
     "test:clean": "rimraf coverage test-results .jest-cache && npm run test:setup",
     "test:validate": "script/run-tests.sh --validate-coverage --force-coverage all",
-    
     "coverage:generate-chart": "node script/generate-coverage-chart.js",
     "coverage:view": "npm run test:view-coverage",
-    
     "ci:test": "npm run test:clean && npm run test:coverage && npm run coverage:generate-chart",
     "ci:test-with-chart": "npm run test:clean && npm run test:coverage-chart"
   },
@@ -108,7 +101,7 @@
     "jest-html-reporter": "^3.10.2",
     "jest-junit": "^16.0.0",
     "jsdom": "^26.1.0",
-    "msw": "^1.3.2", 
+    "msw": "^1.3.2",
     "netlify-cli": "^15.11.0",
     "postcss": "^8.4.21",
     "prettier": "^2.8.7",

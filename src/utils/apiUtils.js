@@ -58,7 +58,7 @@ export const clearAuthToken = () => {
 export const createApiClient = (withAuth = false) => {
   const client = axios.create({
     timeout: TIMEOUT.DEFAULT,
-    withCredentials: withAuth
+    withCredentials: false // 一時的にfalseに設定してCORS問題を回避
   });
   
   // インターセプターの設定
@@ -66,6 +66,7 @@ export const createApiClient = (withAuth = false) => {
     client.interceptors.request.use(
       config => {
       console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`);
+      console.log('Request Data:', config.data);
       
       // 共通ヘッダーを設定（最小限に保つ）
       config.headers = {
@@ -73,6 +74,11 @@ export const createApiClient = (withAuth = false) => {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       };
+      
+      // POSTリクエストの場合、ボディの内容を確認
+      if (config.method === 'post' && config.data) {
+        console.log('POST Request Body:', JSON.stringify(config.data, null, 2));
+      }
       
       // 認証が必要な場合はAuthorizationヘッダーを追加
       if (withAuth && authToken) {
@@ -231,9 +237,49 @@ export const authFetch = async (endpoint, method = 'get', data = null, config = 
       throw new Error(`未対応のHTTPメソッド: ${method}`);
     }
     
+    // レスポンスデータの詳細をログ
+    console.log('APIレスポンス詳細:', {
+      status: response.status,
+      data: response.data,
+      headers: response.headers
+    });
+    
     return response.data;
   } catch (error) {
     console.error(`Auth API error (${method} ${endpoint}):`, error.message);
+    
+    // エラーレスポンスがある場合は詳細を表示
+    if (error.response) {
+      console.error('エラーレスポンス詳細:', {
+        status: error.response.status,
+        data: error.response.data,
+        headers: error.response.headers
+      });
+      
+      // 400エラーの場合、レスポンスデータを返す（エラー情報を含む）
+      if (error.response.status === 400 && error.response.data) {
+        return error.response.data;
+      }
+    }
+    
+    // Network Errorの詳細情報を出力
+    if (error.message === 'Network Error') {
+      console.error('Network Error詳細:', {
+        url: error.config?.url,
+        method: error.config?.method,
+        headers: error.config?.headers,
+        data: error.config?.data,
+        baseURL: error.config?.baseURL,
+        withCredentials: error.config?.withCredentials
+      });
+      
+      // CORSエラーの可能性を通知
+      console.error('CORSエラーの可能性があります。以下を確認してください:');
+      console.error('1. API Gatewayで正しいCORSヘッダーが設定されているか');
+      console.error('2. プリフライトリクエスト(OPTIONS)が正しく処理されているか');
+      console.error('3. Access-Control-Allow-Origin ヘッダーが適切に設定されているか');
+    }
+    
     throw error;
   }
 };

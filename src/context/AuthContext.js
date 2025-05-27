@@ -121,23 +121,66 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       setError(null);
       
-      console.log('Google認証コードを取得しました');
+      console.log('Google認証レスポンスを取得しました:', credentialResponse);
       
-      // リダイレクトURIを動的に生成
-      const redirectUri = getRedirectUri();
+      // リダイレクトURIを動的に生成（/auth/callbackを追加）
+      const redirectUri = window.location.origin + '/auth/callback';
       console.log('リダイレクトURI:', redirectUri);
       
       // 認証エンドポイント
       const loginEndpoint = getApiEndpoint('auth/google/login');
       console.log('ログインエンドポイント:', loginEndpoint);
       
-      // 認証リクエスト
-      const response = await authFetch(loginEndpoint, 'post', {
-        code: credentialResponse.code,
-        redirectUri: redirectUri
-      });
+      // 認証リクエスト（適切なフィールドで送信）
+      const requestBody = {};
+      
+      // Google One Tapの場合（credentialが存在）
+      if (credentialResponse.credential) {
+        requestBody.credential = credentialResponse.credential;
+      }
+      // OAuth flowの場合（codeが存在）
+      else if (credentialResponse.code) {
+        requestBody.code = credentialResponse.code;
+        requestBody.redirectUri = redirectUri;
+      } else {
+        console.error('認証レスポンスにcredentialもcodeも含まれていません');
+        setError('認証情報が取得できませんでした');
+        return false;
+      }
+      
+      console.log('サーバーに送信するリクエストボディ:', JSON.stringify(requestBody, null, 2));
+      if (requestBody.credential) {
+        console.log('credential値の内容（最初の50文字）:', requestBody.credential.substring(0, 50) + '...');
+        console.log('credential値の長さ:', requestBody.credential.length);
+      }
+      if (requestBody.code) {
+        console.log('code値の内容（最初の50文字）:', requestBody.code.substring(0, 50) + '...');
+        console.log('code値の長さ:', requestBody.code.length);
+      }
+      
+      // リクエストボディが空でないことを確認
+      if (Object.keys(requestBody).length === 0) {
+        console.error('リクエストボディが空です');
+        setError('認証情報が正しく設定されていません');
+        return false;
+      }
+      
+      const response = await authFetch(loginEndpoint, 'post', requestBody);
       
       console.log('認証レスポンス:', response);
+      
+      // エラーレスポンスの詳細を確認
+      if (!response) {
+        console.error('レスポンスがnullまたはundefinedです');
+        setError('サーバーからの応答がありません');
+        return false;
+      }
+      
+      if (response.error) {
+        console.error('認証エラー:', response.error);
+        setError(response.error.message || '認証に失敗しました');
+        return false;
+      }
       
       if (response && response.success) {
         console.log('Google認証成功:', response.user);
@@ -162,17 +205,27 @@ export const AuthProvider = ({ children }) => {
         return true;
       } else {
         console.error('認証レスポンスエラー:', response);
-        setError(response?.message || 'ログインに失敗しました');
+        const errorMessage = response?.message || response?.error?.message || 'ログインに失敗しました';
+        setError(errorMessage);
         return false;
       }
     } catch (error) {
       console.error('Google認証エラー:', error);
+      console.error('エラー詳細:', {
+        message: error.message,
+        response: error.response,
+        request: error.request,
+        config: error.config
+      });
       
       // エラーメッセージを設定
       let errorMessage = 'ログイン処理中にエラーが発生しました';
       
       if (error.response && error.response.data) {
-        errorMessage = error.response.data.message || errorMessage;
+        console.error('サーバーエラー詳細:', JSON.stringify(error.response.data, null, 2));
+        console.error('エラーコード:', error.response.data.error?.code);
+        console.error('エラーメッセージ:', error.response.data.error?.message);
+        errorMessage = error.response.data.error?.message || error.response.data.message || errorMessage;
       } else if (error.message) {
         errorMessage = error.message;
       }
