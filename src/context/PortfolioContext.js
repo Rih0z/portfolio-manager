@@ -1164,7 +1164,7 @@ export const PortfolioProvider = ({ children }) => {
       if (cached) {
         const cachedData = JSON.parse(cached);
         const cacheAge = Date.now() - new Date(cachedData.timestamp).getTime();
-        if (cacheAge < 5 * 60 * 1000) { // 5分
+        if (cacheAge < 24 * 60 * 60 * 1000) { // 24時間
           console.log('為替レートキャッシュを使用');
           setExchangeRate(cachedData.data);
           return;

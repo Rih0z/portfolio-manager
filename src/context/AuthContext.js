@@ -389,7 +389,7 @@ export const AuthProvider = ({ children }) => {
       sessionIntervalRef.current = setInterval(() => {
         console.log('定期セッションチェック実行');
         checkSession();
-      }, 15 * 60 * 1000); // 15分
+      }, 30 * 60 * 1000); // 30分
       
       return () => {
         if (sessionIntervalRef.current) {
