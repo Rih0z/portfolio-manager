@@ -34,6 +34,7 @@ import {
   TICKER_SPECIFIC_FEES, 
   TICKER_SPECIFIC_DIVIDENDS 
 } from '../utils/fundUtils';
+import { requestManager, debouncedRefreshMarketData, requestDeduplicator } from '../utils/requestThrottle';
 
 // 改善された暗号化関数
 const encryptData = (data) => {
@@ -360,8 +361,8 @@ export const PortfolioProvider = ({ children }) => {
     return { updatedAssets: validatedAssets, changes };
   }, []);
 
-  // 市場データの更新（銘柄タイプ、手数料、配当情報の正確な更新を含む）
-  const refreshMarketPrices = useCallback(async () => {
+  // 市場データの更新（レート制限付き）
+  const refreshMarketPricesInternal = useCallback(async () => {
     setIsLoading(true);
     try {
       console.log('Refreshing market prices for all assets...');
@@ -384,12 +385,20 @@ export const PortfolioProvider = ({ children }) => {
       let yahooFinanceSuccessCount = 0;
       const yahooFinanceDetails = [];
       
-      // 全ての保有銘柄の最新データを取得
-      const updatedAssets = await Promise.all(
-        currentAssets.map(async (asset) => {
-          try {
-            // Alpha Vantageから直接データ取得
-            const updatedData = await fetchTickerData(asset.ticker);
+      // 銘柄をバッチに分割（Alpha Vantageのレート制限対策）
+      const batchSize = 3;
+      const updatedAssets = [];
+      
+      for (let i = 0; i < currentAssets.length; i += batchSize) {
+        const batch = currentAssets.slice(i, i + batchSize);
+        const batchResults = await Promise.all(
+          batch.map(async (asset) => {
+            try {
+            // レート制限と重複排除を適用してデータ取得
+            const updatedData = await requestDeduplicator.dedupe(
+              `ticker-${asset.ticker}`,
+              () => requestManager.request('alphaVantage', () => fetchTickerData(asset.ticker))
+            );
             console.log(`Updated data for ${asset.ticker}:`, updatedData);
             
             // Yahoo Financeの利用状況を記録
@@ -479,8 +488,11 @@ export const PortfolioProvider = ({ children }) => {
               });
             }
             
-            // 配当情報も取得
-            const dividendData = await fetchDividendData(asset.ticker);
+            // 配当情報も取得（レート制限付き）
+            const dividendData = await requestDeduplicator.dedupe(
+              `dividend-${asset.ticker}`,
+              () => requestManager.request('default', () => fetchDividendData(asset.ticker))
+            );
             
             // 配当情報の変更を確認
             const hasDividendChanged = 
@@ -524,6 +536,14 @@ export const PortfolioProvider = ({ children }) => {
           }
         })
       );
+      
+      updatedAssets.push(...batchResults);
+      
+      // バッチ間の待機（最後のバッチでは待機しない）
+      if (i + batchSize < currentAssets.length) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    }
 
       // 更新したデータをさらに検証（VXUSなど特殊ケースの対応）
       const { updatedAssets: validatedAssets, changes } = validateAssetTypes(updatedAssets);
@@ -649,6 +669,11 @@ export const PortfolioProvider = ({ children }) => {
       setIsLoading(false);
     }
   }, [currentAssets, addNotification, saveToLocalStorage, validateAssetTypes]);
+  
+  // デバウンスされたマーケットデータ更新関数
+  const refreshMarketPrices = useCallback(async () => {
+    return debouncedRefreshMarketData(refreshMarketPricesInternal);
+  }, [refreshMarketPricesInternal]);
 
   // 銘柄追加（銘柄タイプ、手数料、配当情報の設定を含む）
   const addTicker = useCallback(async (ticker) => {
@@ -665,8 +690,12 @@ export const PortfolioProvider = ({ children }) => {
 
       setIsLoading(true);
 
-      // Alpha Vantageから銘柄データ取得
-      const tickerResult = await fetchTickerData(ticker);
+      // Alpha Vantageから銘柄データ取得（レート制限付き）
+      const tickerResult = await requestManager.request(
+        'alphaVantage',
+        () => fetchTickerData(ticker),
+        { priority: 1 }
+      );
       console.log('Fetched ticker data:', tickerResult);
       
       // APIエラーの処理
@@ -697,11 +726,17 @@ export const PortfolioProvider = ({ children }) => {
       const tickerData = tickerResult.data;
 
       // ファンド情報を取得（手数料率など）
-      const fundInfoResult = await fetchFundInfo(ticker, tickerData.name);
+      const fundInfoResult = await requestManager.request(
+        'default',
+        () => fetchFundInfo(ticker, tickerData.name)
+      );
       console.log('Fetched fund info:', fundInfoResult);
       
       // 配当情報を取得
-      const dividendResult = await fetchDividendData(ticker);
+      const dividendResult = await requestManager.request(
+        'default',
+        () => fetchDividendData(ticker)
+      );
       console.log('Fetched dividend info:', dividendResult);
 
       // 銘柄タイプを確認してisStockフラグを設定
@@ -1137,7 +1172,10 @@ export const PortfolioProvider = ({ children }) => {
       }
       
       if (baseCurrency === 'JPY') {
-        const result = await fetchExchangeRate('USD', 'JPY');
+        const result = await requestManager.request(
+          'exchangeRate',
+          () => fetchExchangeRate('USD', 'JPY')
+        );
         if (result.success) {
           const rateData = {
             rate: result.rate,
@@ -1152,7 +1190,10 @@ export const PortfolioProvider = ({ children }) => {
           }));
         }
       } else {
-        const result = await fetchExchangeRate('JPY', 'USD');
+        const result = await requestManager.request(
+          'exchangeRate',
+          () => fetchExchangeRate('JPY', 'USD')
+        );
         if (result.success) {
           const rateData = {
             rate: result.rate,

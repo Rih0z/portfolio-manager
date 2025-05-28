@@ -36,6 +36,9 @@ export const AuthProvider = ({ children }) => {
   const [hasDriveAccess, setHasDriveAccess] = useState(false);
   const [googleClientId, setGoogleClientId] = useState('');
   const portfolioContextRef = useRef(null);
+  const sessionIntervalRef = useRef(null);
+  const sessionCheckFailureCount = useRef(0);
+  const MAX_SESSION_CHECK_FAILURES = 3;
   
   // Google認証クライアントIDを非同期で取得
   useEffect(() => {
@@ -85,6 +88,9 @@ export const AuthProvider = ({ children }) => {
         if (portfolioContextRef.current?.handleAuthStateChange) {
           portfolioContextRef.current.handleAuthStateChange(true, response.user);
         }
+        
+        // セッションチェック成功時は失敗カウントをリセット
+        sessionCheckFailureCount.current = 0;
       } else {
         console.log('セッション未認証または無効');
         setUser(null);
@@ -99,6 +105,20 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('セッション確認エラー:', error);
+      
+      // エラー発生時は失敗カウントを増加
+      sessionCheckFailureCount.current++;
+      console.log('セッションチェック失敗回数:', sessionCheckFailureCount.current);
+      
+      // 最大失敗回数に達した場合は定期チェックを停止
+      if (sessionCheckFailureCount.current >= MAX_SESSION_CHECK_FAILURES) {
+        console.log('セッションチェックが' + MAX_SESSION_CHECK_FAILURES + '回失敗したため、定期チェックを停止します');
+        if (sessionIntervalRef.current) {
+          clearInterval(sessionIntervalRef.current);
+          sessionIntervalRef.current = null;
+        }
+      }
+      
       setUser(null);
       setIsAuthenticated(false);
       setHasDriveAccess(false);
@@ -265,6 +285,9 @@ export const AuthProvider = ({ children }) => {
           portfolioContextRef.current.handleAuthStateChange(true, response.user || response.data?.user);
         }
         
+        // ログイン成功時は失敗カウントをリセット
+        sessionCheckFailureCount.current = 0;
+        
         return { success: true, hasDriveAccess: driveAccess };
       } else {
         console.error('認証レスポンスエラー:', response);
@@ -353,13 +376,27 @@ export const AuthProvider = ({ children }) => {
   
   // 定期的なセッションチェック（5分ごと）
   useEffect(() => {
+    // 既存のインターバルをクリア
+    if (sessionIntervalRef.current) {
+      clearInterval(sessionIntervalRef.current);
+      sessionIntervalRef.current = null;
+    }
+    
     if (isAuthenticated) {
-      const intervalId = setInterval(() => {
+      // 失敗カウントをリセット
+      sessionCheckFailureCount.current = 0;
+      
+      sessionIntervalRef.current = setInterval(() => {
         console.log('定期セッションチェック実行');
         checkSession();
       }, 5 * 60 * 1000); // 5分
       
-      return () => clearInterval(intervalId);
+      return () => {
+        if (sessionIntervalRef.current) {
+          clearInterval(sessionIntervalRef.current);
+          sessionIntervalRef.current = null;
+        }
+      };
     }
   }, [isAuthenticated, checkSession]);
   
@@ -367,8 +404,11 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (!document.hidden && isAuthenticated) {
-        console.log('ページが表示されました - セッション再確認');
-        checkSession();
+        // セッションチェックが停止していない場合のみ実行
+        if (sessionCheckFailureCount.current < MAX_SESSION_CHECK_FAILURES) {
+          console.log('ページが表示されました - セッション再確認');
+          checkSession();
+        }
       }
     };
     

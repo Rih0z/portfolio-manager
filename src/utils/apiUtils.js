@@ -24,7 +24,10 @@ import { getApiEndpoint, isLocalDevelopment } from './envUtils';
 export const RETRY = {
   MAX_ATTEMPTS: 2,
   INITIAL_DELAY: 500,
-  BACKOFF_FACTOR: 2
+  BACKOFF_FACTOR: 2,
+  MAX_DELAY: 60000, // 最大遅延時間: 60秒
+  CIRCUIT_BREAKER_THRESHOLD: 5, // サーキットブレーカー発動闾値
+  CIRCUIT_BREAKER_TIMEOUT: 300000 // サーキットブレーカータイムアウト: 5分
 };
 
 // タイムアウト設定
@@ -38,6 +41,63 @@ export const TIMEOUT = {
 
 // 認証トークンの保存（メモリ内）
 let authToken = null;
+
+// サーキットブレーカーの状態管理
+const circuitBreakers = new Map();
+
+class CircuitBreaker {
+  constructor(name, threshold = RETRY.CIRCUIT_BREAKER_THRESHOLD, timeout = RETRY.CIRCUIT_BREAKER_TIMEOUT) {
+    this.name = name;
+    this.state = 'CLOSED'; // CLOSED, OPEN, HALF_OPEN
+    this.failureCount = 0;
+    this.threshold = threshold;
+    this.timeout = timeout;
+    this.nextAttempt = Date.now();
+  }
+
+  recordSuccess() {
+    this.failureCount = 0;
+    this.state = 'CLOSED';
+  }
+
+  recordFailure() {
+    this.failureCount++;
+    if (this.failureCount >= this.threshold) {
+      this.state = 'OPEN';
+      this.nextAttempt = Date.now() + this.timeout;
+      console.log(`Circuit breaker ${this.name} is now OPEN. Will retry at ${new Date(this.nextAttempt).toISOString()}`);
+    }
+  }
+
+  canAttempt() {
+    if (this.state === 'CLOSED') {
+      return true;
+    }
+    
+    if (this.state === 'OPEN' && Date.now() >= this.nextAttempt) {
+      this.state = 'HALF_OPEN';
+      console.log(`Circuit breaker ${this.name} is now HALF_OPEN`);
+      return true;
+    }
+    
+    return this.state === 'HALF_OPEN';
+  }
+
+  getWaitTime() {
+    if (this.state === 'OPEN') {
+      return Math.max(0, this.nextAttempt - Date.now());
+    }
+    return 0;
+  }
+}
+
+// サーキットブレーカーの取得または作成
+function getCircuitBreaker(name) {
+  if (!circuitBreakers.has(name)) {
+    circuitBreakers.set(name, new CircuitBreaker(name));
+  }
+  return circuitBreakers.get(name);
+}
 
 // トークンを設定する関数
 export const setAuthToken = (token) => {
@@ -245,6 +305,13 @@ export const fetchWithRetry = async (
   delayFn = wait
 ) => {
   let retries = 0;
+  const circuitBreaker = getCircuitBreaker(endpoint);
+  
+  // サーキットブレーカーが開いている場合は待機
+  if (!circuitBreaker.canAttempt()) {
+    const waitTime = circuitBreaker.getWaitTime();
+    throw new Error(`Circuit breaker is OPEN. Service unavailable for ${Math.round(waitTime / 1000)} seconds.`);
+  }
   
   while (retries <= maxRetries) {
     try {
@@ -262,10 +329,14 @@ export const fetchWithRetry = async (
         timeout: timeout + (retries * 2000) // リトライごとにタイムアウトを延長
       });
       
-      // 成功したらレスポンスデータを返す
+      // 成功したらサーキットブレーカーをリセット
+      circuitBreaker.recordSuccess();
       return response.data;
     } catch (error) {
       console.error(`API fetch error (attempt ${retries+1}/${maxRetries+1}):`, error.message);
+      
+      // エラーを記録
+      circuitBreaker.recordFailure();
       
       // 最後の試行で失敗した場合はエラーを投げる
       if (retries === maxRetries) {
@@ -273,7 +344,9 @@ export const fetchWithRetry = async (
       }
       
       // リトライ前に遅延を入れる（指数バックオフ+ジッター）
-      const delay = RETRY.INITIAL_DELAY * Math.pow(RETRY.BACKOFF_FACTOR, retries) * (0.9 + Math.random() * 0.2);
+      const baseDelay = RETRY.INITIAL_DELAY * Math.pow(RETRY.BACKOFF_FACTOR, retries);
+      const jitteredDelay = baseDelay * (0.9 + Math.random() * 0.2);
+      const delay = Math.min(jitteredDelay, RETRY.MAX_DELAY); // 最大遅延を制限
       console.log(`リトライ待機: ${Math.round(delay)}ms`);
       await delayFn(delay);
       
@@ -285,6 +358,14 @@ export const fetchWithRetry = async (
 
 // 認証が必要なリクエスト用のヘルパー関数
 export const authFetch = async (endpoint, method = 'get', data = null, config = {}) => {
+  const circuitBreaker = getCircuitBreaker(`auth-${endpoint}`);
+  
+  // サーキットブレーカーが開いている場合は待機
+  if (!circuitBreaker.canAttempt()) {
+    const waitTime = circuitBreaker.getWaitTime();
+    throw new Error(`Circuit breaker is OPEN. Service unavailable for ${Math.round(waitTime / 1000)} seconds.`);
+  }
+  
   try {
     // APIエンドポイントのURL生成
     const url = endpoint.startsWith('http') ? endpoint : await getApiEndpoint(endpoint);
@@ -336,8 +417,12 @@ export const authFetch = async (endpoint, method = 'get', data = null, config = 
       headers: response.headers
     });
     
+    // 成功したらサーキットブレーカーをリセット
+    circuitBreaker.recordSuccess();
     return response.data;
   } catch (error) {
+    // エラーを記録
+    circuitBreaker.recordFailure();
     console.error(`Auth API error (${method} ${endpoint}):`, error.message);
     
     // エラーレスポンスがある場合は詳細を表示
