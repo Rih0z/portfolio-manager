@@ -1,46 +1,19 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-/node_modules
-/.pnp
+node_modules/
+.pnp
 .pnp.js
 
 # testing
-/coverage
+coverage/
 
 # production
-/build
+build/
+dist/
 
 # misc
 .DS_Store
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Local Netlify folder
-.netlify
-# テスト関連
-/coverage
-/test-results
-junit.xml
-.jest-cache
-
-# Node
-node_modules
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# ビルド
-/build
-/dist
-
-# 環境変数
 .env
 .env.local
 .env.development
@@ -50,12 +23,50 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
-# エディタ関連
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Local Netlify folder
+.netlify
+
+# Test results
+test-results/
+junit.xml
+.jest-cache
+
+# Logs
+*.log
+
+# Editor
 .idea
 .vscode
 *.swp
 *.swo
+
+# OS
 .DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.backup
+
+# Frontend specific
+frontend/webapp/build/
+frontend/webapp/coverage/
+frontend/webapp/.env*
+frontend/webapp/test-results/
+frontend/webapp/*.log
+
+# Backend specific
+backend/node_modules/
+backend/dist/
+backend/.env*
+backend/*.log
 
 # 内部ドキュメント（機密情報を含む可能性があるため）
 /document/message/
+/frontend/webapp/document/message/

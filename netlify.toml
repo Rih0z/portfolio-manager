@@ -1,9 +1,11 @@
 [build]
+  base = "frontend/webapp"
   command = "CI= npm run build"
   publish = "build"
-  functions = "functions"
+  functions = "netlify/functions"
 
 [dev]
+  base = "frontend/webapp"
   command = "npm start"
   port = 8888
   targetPort = 3001
@@ -82,6 +84,6 @@
   
 # Functions 設定
 [functions]
-  directory = "functions"
+  directory = "netlify/functions"
   node_bundler = "esbuild"
-  included_files = ["functions/**"]
+  included_files = ["netlify/functions/**"]
