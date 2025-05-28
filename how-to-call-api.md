@@ -49,25 +49,27 @@ https://[prod-api-id].execute-api.ap-northeast-1.amazonaws.com/prod/api/market-d
 ### 2.2 API認証とセキュリティ
 
 **認証方式：**
-このAPIは3つのアクセスレベルを提供しています：
+このAPIは複数の認証方式をサポートしています：
 
-1. **パブリックアクセス** - 制限付きで認証なし
-2. **ユーザーアクセス** - APIキー必須
+1. **セッションベース認証** - Google OAuth経由でログイン後、Cookieでセッション管理（主要な認証方式）
+2. **APIキー認証** - 特定のサービス（市場データなど）用
 3. **管理者アクセス** - 管理者APIキー + IP制限
 
-**APIキーの設定方法：**
+**セッションベース認証（推奨）：**
 ```javascript
-// リクエストヘッダーにAPIキーを含める
-headers: {
-  'X-API-Key': 'your-api-key-here',
-  'Content-Type': 'application/json'
-}
+// Axiosの設定でCookie送信を有効化
+axios.defaults.withCredentials = true;
 
-// または Authorization ヘッダーを使用
-headers: {
-  'Authorization': 'Bearer your-api-key-here',
-  'Content-Type': 'application/json'
-}
+// または個別のリクエストで設定
+const response = await axios.get(url, {
+  withCredentials: true
+});
+```
+
+**APIキー認証（市場データ用）：**
+```javascript
+// APIキーはサーバー側で管理され、クライアントからは直接使用しません
+// バックエンドが適切なAPIキーを付与してプロキシします
 ```
 
 **レート制限：**
@@ -152,21 +154,48 @@ APIはHTTP GETリクエストで呼び出します。URLパラメータで取得
 
 ### 3.2 リクエスト例
 
-#### 米国株データの取得（パブリックアクセス）
+#### バッチリクエスト（推奨 - 複数銘柄を一括取得）
 ```javascript
-// Axiosを使用した例（認証なし - 制限あり）
-const fetchUSStocks = async (symbols) => {
+// fetchMultipleStocksを使用した効率的なバッチ取得
+import { fetchMultipleStocks } from './services/marketDataService';
+
+const fetchAllPortfolioData = async () => {
+  const tickers = ['VOO', 'GLD', 'VXUS', 'EIDO', 'IBIT', 'INDA', 'LQD', 'QQQ', 'VWO', 'IEF', 'VNQ'];
+  
+  try {
+    // 一括でデータを取得（内部でタイプ別に分類して並列処理）
+    const batchData = await fetchMultipleStocks(tickers);
+    console.log('Batch data:', batchData);
+    
+    // 各銘柄のデータを処理
+    Object.entries(batchData.data).forEach(([ticker, data]) => {
+      console.log(`${ticker}: $${data.price}`);
+    });
+    
+    return batchData;
+  } catch (error) {
+    console.error('バッチリクエストエラー:', error);
+    return null;
+  }
+};
+```
+
+#### 個別銘柄データの取得（レート制限に注意）
+```javascript
+// 個別のAPI呼び出し（バッチリクエストが使えない場合のみ）
+const fetchSingleStock = async (ticker) => {
   try {
     const response = await axios.get('[BASE_URL]/api/market-data', {
       params: {
         type: 'us-stock',
-        symbols: symbols.join(',') // 例: 'AAPL,MSFT,GOOGL'
-      }
+        symbols: ticker
+      },
+      withCredentials: true // セッション認証を使用
     });
     return response.data;
   } catch (error) {
     if (error.response?.status === 429) {
-      console.error('レート制限に達しました。APIキーの使用を検討してください。');
+      console.error('レート制限に達しました。バッチリクエストの使用を推奨します。');
     } else {
       console.error('API呼び出しエラー:', error);
     }
@@ -672,27 +701,47 @@ const listGoogleDriveFiles = async (apiKey) => {
 }
 ```
 
-## 6. エラーハンドリング
+## 6. エラーハンドリングとレート制限対策
 
-### 6.1 基本的なエラーハンドリング
+### 6.1 高度なレート制限対策
+
+アプリケーションには以下のレート制限対策が実装されています：
 
 ```javascript
-const fetchMarketData = async (type, symbols) => {
+// utils/requestThrottle.js の機能
+import { requestManager } from './utils/requestThrottle';
+
+// サーキットブレーカー付きリクエスト
+const fetchWithCircuitBreaker = async () => {
   try {
-    const response = await axios.get('https://[api-id].execute-api.ap-northeast-1.amazonaws.com/prod/api/market-data', {
-      params: { type, symbols }
+    // Alpha Vantageは12秒間隔の制限
+    return await requestManager.request('alphaVantage', async () => {
+      return await fetchTickerData('AAPL');
     });
-    
-    if (response.data.success) {
-      return response.data.data;
-    } else {
-      console.error('APIエラー:', response.data.error);
-      return null;
-    }
   } catch (error) {
-    // ネットワークエラーや5xx系エラー
-    if (error.response) {
-      // サーバーからレスポンスがあった場合
+    if (error.message.includes('Circuit breaker is OPEN')) {
+      console.log('サービスが一時的に利用不可。5分後に再試行されます。');
+    }
+    throw error;
+  }
+};
+
+// 指数バックオフとリトライ
+const fetchWithRetry = async (endpoint, params) => {
+  // fetchWithRetryは自動的に以下を実行:
+  // 1. 最大3回のリトライ
+  // 2. 指数バックオフ (500ms -> 1s -> 2s)
+  // 3. サーキットブレーカーによる保護
+  return await fetchWithRetry(endpoint, params);
+};
+```
+
+### 6.2 基本的なエラーハンドリング
+
+```javascript
+const handleApiError = (error) => {
+  if (error.response) {
+    // サーバーからレスポンスがあった場合
       console.error('APIエラーレスポンス:', error.response.status, error.response.data);
       
       // エラーコードに応じた処理

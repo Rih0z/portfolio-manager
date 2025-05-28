@@ -91,16 +91,19 @@ https://portfolio-wise.com
 - **プライバシー重視**: アプリは一切ユーザーの資産データを保存・管理せず、AIによる分析もユーザー環境で実行されるため、センシティブな資産情報を安全に分析できます
 
 ### 4. マルチソースデータ取得
+- **バッチAPI**: 複数銘柄を一括取得し、API呼び出しを最小化
 - 米国株: Alpaca API（プライマリソース）
 - 日本株: 複数のデータソースから情報取得
 - 投資信託: 専用APIを使用した自動データ取得
 - バックアップ: Yahoo Finance API（すべての銘柄タイプに対応）
+- **高度なレート制限対策**: サーキットブレーカー、指数バックオフ、リクエスト重複排除
 
 ### 5. クラウド連携
-- Googleログインとデータ同期
+- Googleログインとデータ同期（セッションベース認証）
 - すべてのAPI設定はAWSから自動的に取得（セキュリティ強化）
 - Googleドライブを使用したクラウドバックアップ
 - 複数デバイス間でのポートフォリオデータ共有
+- **Cookie ベース認証**: `withCredentials: true` で安全なセッション管理
 
 ## バックエンド開発情報
 
@@ -244,22 +247,22 @@ npm run build
 `.env`ファイルを作成し、以下の環境変数を設定します。
 
 ```
-# Google OAuth認証用
-REACT_APP_GOOGLE_CLIENT_ID=あなたのGoogleクライアントID
-REACT_APP_GOOGLE_API_KEY=あなたのGoogle APIキー
-
-# Alpaca API（米国株データ取得用）
-ALPACA_API_KEY=あなたのAlpaca APIキー
-ALPACA_API_SECRET=あなたのAlpaca APIシークレット
+# AWS APIのベースURL（必須）
+REACT_APP_API_BASE_URL=https://your-api-gateway-url.amazonaws.com
 
 # デフォルト為替レート（API障害時のフォールバック用）
-DEFAULT_EXCHANGE_RATE=150.0
+REACT_APP_DEFAULT_EXCHANGE_RATE=150.0
 ```
+
+**注意**: 
+- Google OAuth クライアントIDやAPIキーは、セキュリティ向上のため**AWSから動的に取得**されます
+- 市場データAPIのキーも同様にサーバー側で管理され、クライアントには公開されません
+- これにより、APIキーの漏洩リスクを最小化しています
 
 ## 既知の制限事項
 
 1. **データ取得の制約**
-   - 公開APIには使用制限があり、多数の銘柄を一度に更新する際にエラーが発生する可能性あり
+   - 公開APIには使用制限があるが、バッチリクエストとレート制限対策により大幅に改善
    - 日本株・投資信託のデータは、利用可能なAPIが限られているため精度に限界あり
 
 2. **リアルタイム性**

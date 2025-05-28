@@ -79,8 +79,11 @@ This is a React-based portfolio management application with AI-powered investmen
 ### API Integration
 - All API endpoints dynamically configured from AWS
 - Production API hosted on AWS (separate repository)
+- **Batch API**: Use `fetchMultipleStocks` to fetch multiple tickers in one request
 - Supports multiple market data sources with automatic fallback
 - API keys and authentication handled server-side
+- **Rate Limiting**: Circuit breakers, exponential backoff, request deduplication
+- **Session-based auth**: Uses cookies with `withCredentials: true`
 
 ### Multi-Currency Support
 - Handles JPY and USD
@@ -119,7 +122,7 @@ API configurations are fetched dynamically from AWS. The following environment v
 
 1. Required environment variables:
    ```bash
-   REACT_APP_API_BASE_URL=https://x4scpbsuv2.execute-api.us-west-2.amazonaws.com
+   REACT_APP_API_BASE_URL=https://YOUR_AWS_API_URL_HERE.execute-api.YOUR_REGION.amazonaws.com
    REACT_APP_DEFAULT_EXCHANGE_RATE=150.0
    ```
 
@@ -141,6 +144,8 @@ API configurations are fetched dynamically from AWS. The following environment v
 - API keys and sensitive data never exposed to client
 - CORS restrictions enforced on the backend
 - Rate limiting based on authentication status
+- **Authentication**: Session-based using cookies (no JWT tokens currently)
+- **Important**: Backend needs to implement JWT token response for full functionality
 
 ### Test Environment Setup
 
