@@ -4,14 +4,15 @@
 
 // 最後の為替レート更新時刻を記録
 let lastExchangeRateUpdate = 0;
-const MIN_UPDATE_INTERVAL = 60000; // 1分間は再更新しない
+const MIN_UPDATE_INTERVAL = 3600000; // 1時間は再更新しない
 
 export function shouldUpdateExchangeRate() {
   const now = Date.now();
   const timeSinceLastUpdate = now - lastExchangeRateUpdate;
   
   if (timeSinceLastUpdate < MIN_UPDATE_INTERVAL) {
-    console.log(`為替レート更新をスキップ: 前回から${Math.round(timeSinceLastUpdate / 1000)}秒しか経過していません`);
+    const minutes = Math.round(timeSinceLastUpdate / 1000 / 60);
+    console.log(`為替レート更新をスキップ: 前回から${minutes}分しか経過していません（1時間待機）`);
     return false;
   }
   
