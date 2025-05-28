@@ -20,7 +20,7 @@ let configFetchPromise = null;
 // AWS設定エンドポイント
 const CONFIG_ENDPOINT = process.env.REACT_APP_API_BASE_URL 
   ? `${process.env.REACT_APP_API_BASE_URL}/dev/config/client`
-  : 'https://YOUR_AWS_API_URL_HERE/dev/config/client';
+  : null; // 環境変数が設定されていない場合はnull
 
 /**
  * AWS から API 設定を取得
@@ -37,6 +37,21 @@ export const fetchApiConfig = async () => {
     return configFetchPromise;
   }
 
+  // CONFIG_ENDPOINTが設定されていない場合はエラー
+  if (!CONFIG_ENDPOINT) {
+    console.error('REACT_APP_API_BASE_URL が設定されていません。.env ファイルを確認してください。');
+    return {
+      marketDataApiUrl: '',
+      apiStage: 'dev',
+      googleClientId: '',
+      features: {
+        useProxy: false,
+        useMockApi: false,
+        useDirectApi: true
+      }
+    };
+  }
+
   // 新しく取得を開始
   configFetchPromise = axios.get(CONFIG_ENDPOINT)
     .then(response => {
@@ -50,9 +65,9 @@ export const fetchApiConfig = async () => {
       console.error('API設定の取得エラー:', error);
       // フォールバック設定を返す
       configCache = {
-        marketDataApiUrl: process.env.REACT_APP_API_BASE_URL || 'https://YOUR_AWS_API_URL_HERE',
+        marketDataApiUrl: process.env.REACT_APP_API_BASE_URL || '',
         apiStage: 'dev',
-        googleClientId: 'YOUR_GOOGLE_CLIENT_ID',
+        googleClientId: '', // Google Client IDは環境変数または設定APIから取得すべき
         features: {
           useProxy: false,
           useMockApi: false,

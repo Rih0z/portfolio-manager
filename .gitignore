@@ -56,3 +56,6 @@ yarn-error.log*
 *.swp
 *.swo
 .DS_Store
+
+# 内部ドキュメント（機密情報を含む可能性があるため）
+/document/message/
