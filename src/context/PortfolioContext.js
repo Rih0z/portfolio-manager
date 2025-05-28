@@ -395,13 +395,6 @@ export const PortfolioProvider = ({ children }) => {
       const batchData = await fetchMultipleStocks(tickers);
       console.log('Batch data response:', batchData);
       
-      // エラーの統計
-      let errorCount = 0;
-      let rateLimit = false;
-      const errorDetails = [];
-      let fallbackCount = 0;
-      const fallbackDetails = [];
-      
       const updatedAssets = await Promise.all(
         currentAssets.map(async (asset) => {
           try {
