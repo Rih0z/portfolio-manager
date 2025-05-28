@@ -35,6 +35,7 @@ import {
   TICKER_SPECIFIC_DIVIDENDS 
 } from '../utils/fundUtils';
 import { requestManager, debouncedRefreshMarketData, requestDeduplicator } from '../utils/requestThrottle';
+import { shouldUpdateExchangeRate } from '../utils/exchangeRateDebounce';
 
 // 改善された暗号化関数
 const encryptData = (data) => {
@@ -1157,21 +1158,29 @@ export const PortfolioProvider = ({ children }) => {
 
   // 為替レートの更新（キャッシュ機能付き）
   const updateExchangeRate = useCallback(async () => {
+    // デバウンスチェック
+    if (!shouldUpdateExchangeRate()) {
+      return;
+    }
+    
     try {
-      // キャッシュ確認（5分以内のデータがあれば再利用）
-      const cacheKey = `exchangeRate_${baseCurrency}`;
+      // 現在の基準通貨をコピー（クロージャー内で使用）
+      const currentBaseCurrency = baseCurrency;
+      
+      // キャッシュ確認（24時間以内のデータがあれば再利用）
+      const cacheKey = `exchangeRate_${currentBaseCurrency}`;
       const cached = localStorage.getItem(cacheKey);
       if (cached) {
         const cachedData = JSON.parse(cached);
         const cacheAge = Date.now() - new Date(cachedData.timestamp).getTime();
         if (cacheAge < 24 * 60 * 60 * 1000) { // 24時間
-          console.log('為替レートキャッシュを使用');
+          console.log(`為替レートキャッシュを使用 (キャッシュ年齢: ${Math.round(cacheAge / 1000 / 60)}分)`);
           setExchangeRate(cachedData.data);
           return;
         }
       }
       
-      if (baseCurrency === 'JPY') {
+      if (currentBaseCurrency === 'JPY') {
         const result = await requestManager.request(
           'exchangeRate',
           () => fetchExchangeRate('USD', 'JPY')
@@ -1209,13 +1218,13 @@ export const PortfolioProvider = ({ children }) => {
         }
       }
       
-      // 為替レート更新後に自動保存
-      setTimeout(() => saveToLocalStorage(), 100);
+      // 為替レート更新後に自動保存（保存後に再度updateExchangeRateが呼ばれるのを防ぐ）
+      // setTimeout(() => saveToLocalStorage(), 100);
     } catch (error) {
       console.error('為替レートの更新に失敗しました', error);
       // 更新失敗時は既存のレートを維持
     }
-  }, [baseCurrency, saveToLocalStorage]);
+  }, []); // 依存配列を空にして再作成を防ぐ
 
   // Google認証状態の変更を処理
   const handleAuthStateChange = useCallback((isAuthenticated, user) => {
@@ -1486,10 +1495,10 @@ export const PortfolioProvider = ({ children }) => {
 
   // 通貨切替時に為替レートを更新（初期化後のみ実行）
   useEffect(() => {
-    if (initialized) {
+    if (initialized && baseCurrency) {
       updateExchangeRate();
     }
-  }, [baseCurrency, updateExchangeRate, initialized]);
+  }, [baseCurrency, initialized]); // updateExchangeRateを依存配列から削除
 
   // 総資産額の計算
   const totalAssets = currentAssets.reduce((sum, asset) => {
