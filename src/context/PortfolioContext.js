@@ -25,6 +25,7 @@ import {
   saveToGoogleDrive as apiSaveToGoogleDrive,
   initGoogleDriveAPI
 } from '../services/api';
+import { fetchMultipleStocks } from '../services/marketDataService';
 import { 
   FUND_TYPES, 
   guessFundType, 
@@ -386,73 +387,61 @@ export const PortfolioProvider = ({ children }) => {
       let yahooFinanceSuccessCount = 0;
       const yahooFinanceDetails = [];
       
-      // 銘柄をバッチに分割（Alpha Vantageのレート制限対策）
-      const batchSize = 3;
-      const updatedAssets = [];
+      // 全銘柄のティッカーを取得
+      const tickers = currentAssets.map(asset => asset.ticker);
+      console.log(`Fetching batch data for ${tickers.length} tickers:`, tickers);
       
-      for (let i = 0; i < currentAssets.length; i += batchSize) {
-        const batch = currentAssets.slice(i, i + batchSize);
-        const batchResults = await Promise.all(
-          batch.map(async (asset) => {
-            try {
-            // レート制限と重複排除を適用してデータ取得
-            const updatedData = await requestDeduplicator.dedupe(
-              `ticker-${asset.ticker}`,
-              () => requestManager.request('alphaVantage', () => fetchTickerData(asset.ticker))
-            );
-            console.log(`Updated data for ${asset.ticker}:`, updatedData);
+      // 一括でデータを取得
+      const batchData = await fetchMultipleStocks(tickers);
+      console.log('Batch data response:', batchData);
+      
+      // エラーの統計
+      let errorCount = 0;
+      let rateLimit = false;
+      const errorDetails = [];
+      let fallbackCount = 0;
+      const fallbackDetails = [];
+      
+      const updatedAssets = await Promise.all(
+        currentAssets.map(async (asset) => {
+          try {
+            // バッチデータから該当する銘柄のデータを取得
+            const stockData = batchData.data?.[asset.ticker];
             
-            // Yahoo Financeの利用状況を記録
-            if (updatedData.yahooFinanceTried) {
-              yahooFinanceTriedCount++;
-              if (updatedData.yahooFinanceSuccess || updatedData.data.source === 'Yahoo Finance') {
-                yahooFinanceSuccessCount++;
-                yahooFinanceDetails.push({
-                  ticker: asset.ticker,
-                  name: asset.name || asset.ticker,
-                  success: true
-                });
-              } else {
-                yahooFinanceDetails.push({
-                  ticker: asset.ticker,
-                  name: asset.name || asset.ticker,
-                  success: false
-                });
-              }
-            }
-            
-            // エラーの処理
-            if (!updatedData.success) {
+            if (!stockData) {
+              console.error(`No data found for ${asset.ticker} in batch response`);
               errorCount++;
-              if (updatedData.errorType === 'RATE_LIMIT') {
-                rateLimit = true;
-              }
               errorDetails.push({
                 ticker: asset.ticker,
                 name: asset.name,
-                message: updatedData.message,
-                errorType: updatedData.errorType
+                message: 'バッチレスポンスにデータが含まれていません',
+                errorType: 'NO_DATA'
               });
-              
-              // フォールバックデータがある場合は記録
-              if (updatedData.data && updatedData.data.source === 'Fallback') {
-                fallbackCount++;
-                fallbackDetails.push({
-                  ticker: asset.ticker,
-                  name: asset.name || asset.ticker,
-                  price: updatedData.data.price
-                });
-              }
-              
-              // エラー時でもフォールバックデータがあるため利用可能
-              console.log(`Using fallback data for ${asset.ticker} due to error`);
-            } else if (updatedData.data && updatedData.data.source === 'Fallback') {
-              // 成功したがフォールバックデータを使用している場合
+              return asset; // 既存のデータを維持
+            }
+            
+            // 成功したデータの処理
+            const updatedData = {
+              success: true,
+              data: stockData
+            };
+            
+            console.log(`Updated data for ${asset.ticker}:`, updatedData);
+            
+            // ソースごとの統計を記録
+            if (stockData.source === 'Yahoo Finance') {
+              yahooFinanceSuccessCount++;
+              yahooFinanceDetails.push({
+                ticker: asset.ticker,
+                name: asset.name || asset.ticker,
+                success: true
+              });
+            } else if (stockData.source === 'Fallback') {
               fallbackCount++;
               fallbackDetails.push({
                 ticker: asset.ticker,
                 name: asset.name || asset.ticker,
-                price: updatedData.data.price
+                price: stockData.price
               });
             }
             
@@ -489,11 +478,15 @@ export const PortfolioProvider = ({ children }) => {
               });
             }
             
-            // 配当情報も取得（レート制限付き）
-            const dividendData = await requestDeduplicator.dedupe(
-              `dividend-${asset.ticker}`,
-              () => requestManager.request('default', () => fetchDividendData(asset.ticker))
-            );
+            // 配当情報はバッチデータから取得（利用可能な場合）
+            const dividendData = {
+              data: {
+                dividendYield: stockData.dividendYield || asset.dividendYield || 0,
+                hasDividend: stockData.hasDividend !== undefined ? stockData.hasDividend : asset.hasDividend,
+                dividendFrequency: stockData.dividendFrequency || asset.dividendFrequency || 'Annual',
+                dividendIsEstimated: stockData.dividendIsEstimated || false
+              }
+            };
             
             // 配当情報の変更を確認
             const hasDividendChanged = 
@@ -537,14 +530,6 @@ export const PortfolioProvider = ({ children }) => {
           }
         })
       );
-      
-      updatedAssets.push(...batchResults);
-      
-      // バッチ間の待機（最後のバッチでは待機しない）
-      if (i + batchSize < currentAssets.length) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
-      }
-    }
 
       // 更新したデータをさらに検証（VXUSなど特殊ケースの対応）
       const { updatedAssets: validatedAssets, changes } = validateAssetTypes(updatedAssets);
