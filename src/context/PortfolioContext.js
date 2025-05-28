@@ -624,8 +624,10 @@ export const PortfolioProvider = ({ children }) => {
         
         // 詳細な変更内容も表示（最大3件まで）
         feeChangeDetails.slice(0, 3).forEach(detail => {
+          const oldFeeStr = detail.oldFee != null ? detail.oldFee.toFixed(2) : '不明';
+          const newFeeStr = detail.newFee != null ? detail.newFee.toFixed(2) : '不明';
           addNotification(
-            `「${detail.name || detail.ticker}」の手数料が${detail.oldFee.toFixed(2)}%から${detail.newFee.toFixed(2)}%に変更されました`,
+            `「${detail.name || detail.ticker}」の手数料が${oldFeeStr}%から${newFeeStr}%に変更されました`,
             'info'
           );
         });
