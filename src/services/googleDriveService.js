@@ -9,7 +9,7 @@ import { getApiEndpoint } from '../utils/envUtils';
 // Google Driveファイル一覧取得
 export const fetchDriveFiles = async () => {
   try {
-    const endpoint = getApiEndpoint('drive/files');
+    const endpoint = await getApiEndpoint('drive/files');
     const response = await authFetch(endpoint, 'get', null);
     
     if (response && response.success) {
@@ -54,7 +54,7 @@ export const fetchDriveFiles = async () => {
 // ポートフォリオデータをGoogle Driveに保存
 export const saveToDrive = async (portfolioData) => {
   try {
-    const endpoint = getApiEndpoint('drive/save');
+    const endpoint = await getApiEndpoint('drive/save');
     const response = await authFetch(endpoint, 'post', {
       portfolioData: portfolioData
     });
@@ -104,7 +104,7 @@ export const saveToDrive = async (portfolioData) => {
 // Google Driveからポートフォリオデータを読み込み
 export const loadFromDrive = async (fileId) => {
   try {
-    const endpoint = getApiEndpoint('drive/load');
+    const endpoint = await getApiEndpoint('drive/load');
     const response = await authFetch(endpoint, 'get', {
       fileId: fileId
     });
