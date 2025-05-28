@@ -76,6 +76,9 @@ const OAuthLoginButton = () => {
       }
       
       if (code && !codeProcessed) {
+        // URLパラメータを即座にクリア（重複処理を防ぐ）
+        window.history.replaceState({}, document.title, window.location.pathname);
+        
         // 認証コードの処理を開始（二重実行を防ぐ）
         setCodeProcessed(true);
         setIsProcessing(true);

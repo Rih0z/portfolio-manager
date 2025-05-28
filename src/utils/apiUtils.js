@@ -99,6 +99,18 @@ function getCircuitBreaker(name) {
   return circuitBreakers.get(name);
 }
 
+// サーキットブレーカーをリセット
+export function resetCircuitBreaker(name) {
+  if (circuitBreakers.has(name)) {
+    circuitBreakers.delete(name);
+  }
+}
+
+// すべてのサーキットブレーカーをリセット
+export function resetAllCircuitBreakers() {
+  circuitBreakers.clear();
+}
+
 // トークンを設定する関数
 export const setAuthToken = (token) => {
   authToken = token;
