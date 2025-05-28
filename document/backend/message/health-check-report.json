@@ -1,0 +1,28 @@
+{
+  "timestamp": "2025-05-28T08:51:11.970Z",
+  "apiBaseUrl": "https://x4scpbsuv2.execute-api.us-west-2.amazonaws.com",
+  "checks": [
+    {
+      "endpoint": "/dev/config/client",
+      "status": "ERROR",
+      "error": "Request failed with status code 403"
+    },
+    {
+      "endpoint": "/dev/auth/google/login",
+      "status": "OK",
+      "cors": {
+        "access-control-allow-origin": "http://localhost:3000",
+        "access-control-allow-credentials": "true",
+        "access-control-allow-methods": "GET,POST,PUT,DELETE,OPTIONS"
+      }
+    },
+    {
+      "endpoint": "/dev/api/market-data",
+      "status": "OK"
+    }
+  ],
+  "issues": [
+    "設定エンドポイントにアクセスできません"
+  ],
+  "recommendations": []
+}

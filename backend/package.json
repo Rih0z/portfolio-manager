@@ -1,12 +1,76 @@
 {
-  "name": "portfolio-manager-backend",
+  "name": "pfwise-api",
   "version": "1.0.0",
-  "private": true,
-  "description": "Portfolio Manager Backend",
+  "description": "ポートフォリオマネージャーWebアプリケーション用の市場データ取得APIサービス",
+  "main": "index.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "serverless offline start",
+    "deploy": "serverless deploy --stage dev",
+    "deploy:prod": "serverless deploy --stage prod",
+    "logs": "serverless logs -f marketData -t",
+    "test": "jest --forceExit",
+    "test:unit": "jest --selectProjects unit --forceExit",
+    "test:coverage": "jest --coverage --forceExit",
+    "test:clean": "rm -rf ./test-results && mkdir -p ./test-results",
+    "dynamodb:start": "java -Djava.library.path=./dynamodb-local/DynamoDBLocal_lib -jar ./dynamodb-local/DynamoDBLocal.jar -inMemory -port 8000",
+    "test:setup": "node scripts/setup-test-env.js",
+    "test:all": "jest --runInBand --all --forceExit"
   },
-  "dependencies": {},
-  "devDependencies": {}
+  "keywords": [
+    "portfolio",
+    "market-data",
+    "api",
+    "lambda",
+    "serverless"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@aws-sdk/client-budgets": "^3.808.0",
+    "@aws-sdk/client-cloudwatch": "^3.808.0",
+    "@aws-sdk/client-dynamodb": "^3.808.0",
+    "@aws-sdk/client-lambda": "^3.808.0",
+    "@aws-sdk/client-secrets-manager": "^3.817.0",
+    "@aws-sdk/client-sns": "^3.808.0",
+    "@aws-sdk/client-ssm": "^3.808.0",
+    "@aws-sdk/client-sts": "^3.808.0",
+    "@aws-sdk/lib-dynamodb": "^3.808.0",
+    "@aws-sdk/util-dynamodb": "^3.808.0",
+    "@octokit/rest": "^20.0.2",
+    "axios": "^1.6.2",
+    "bottleneck": "^2.19.5",
+    "cheerio": "^1.0.0-rc.12",
+    "csv-parse": "^5.5.3",
+    "dayjs": "^1.11.10",
+    "fast-xml-parser": "^4.3.2",
+    "google-auth-library": "^9.15.1",
+    "googleapis": "^148.0.0",
+    "iconv-lite": "^0.6.3",
+    "joi": "^17.11.0",
+    "jsonwebtoken": "^9.0.2",
+    "lodash": "^4.17.21",
+    "node-cache": "^5.1.2",
+    "p-retry": "^6.1.0",
+    "user-agents": "^1.1.124",
+    "uuid": "^9.0.1",
+    "winston": "^3.11.0",
+    "yahoo-finance2": "^2.13.3"
+  },
+  "devDependencies": {
+    "aws-sdk-mock": "^5.8.0",
+    "cross-env": "^7.0.3",
+    "jest": "^29.7.0",
+    "jest-html-reporter": "^3.10.2",
+    "jest-junit": "^16.0.0",
+    "mock-fs": "^5.2.0",
+    "nock": "^13.5.1",
+    "serverless": "^3.32.2",
+    "serverless-dotenv-plugin": "^4.0.2",
+    "serverless-offline": "^12.0.4",
+    "sinon": "^17.0.1",
+    "supertest": "^6.3.4"
+  },
+  "engines": {
+    "node": ">=18.x"
+  }
 }

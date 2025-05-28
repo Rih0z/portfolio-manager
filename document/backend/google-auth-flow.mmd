@@ -1,0 +1,99 @@
+sequenceDiagram
+    actor User
+    participant Frontend
+    participant APIGateway
+    participant AuthHandler as Auth Lambda
+    participant GoogleAuthService as Auth Service
+    participant GoogleAPI
+    participant DynamoDBService as DynamoDB Service
+    
+    %% ログインフロー
+    User->>Frontend: Googleログインボタンをクリック
+    
+    alt Google One Tap 認証
+        Frontend->>GoogleAPI: One Tap認証 (自動ポップアップ)
+        GoogleAPI-->>User: One Tap UIを表示
+        User->>GoogleAPI: アカウント選択
+        GoogleAPI-->>Frontend: IDトークン(credential)返却
+        Frontend->>APIGateway: POST /auth/googleLogin (credential含む)
+    else OAuth Authorization Code Flow
+        Frontend->>GoogleAPI: 認証リクエスト (OAuth2)
+        GoogleAPI-->>User: 認証画面を表示
+        User->>GoogleAPI: アカウントでログイン・権限付与
+        GoogleAPI-->>Frontend: 認証コード返却
+        Frontend->>APIGateway: POST /auth/googleLogin (code + redirectUri含む)
+    end
+    
+    APIGateway->>AuthHandler: googleLogin.handler 呼び出し
+    
+    alt credentialが存在する場合 (One Tap)
+        AuthHandler->>GoogleAuthService: verifyIdToken(credential)
+        GoogleAuthService->>GoogleAPI: OAuth2Client.verifyIdToken()
+        GoogleAPI-->>GoogleAuthService: トークン検証と ユーザー情報
+    else codeが存在する場合 (OAuth flow)
+        AuthHandler->>GoogleAuthService: exchangeCodeForTokens(code, redirectUri)
+        GoogleAuthService->>GoogleAPI: OAuth2Client.getToken()
+        GoogleAPI-->>GoogleAuthService: アクセストークン, リフレッシュトークン, ID トークン
+        
+        AuthHandler->>GoogleAuthService: verifyIdToken(idToken)
+        GoogleAuthService->>GoogleAPI: OAuth2Client.verifyIdToken()
+        GoogleAPI-->>GoogleAuthService: トークン検証と ユーザー情報
+    end
+    
+    AuthHandler->>GoogleAuthService: createUserSession(userData)
+    GoogleAuthService->>DynamoDBService: セッション情報保存
+    Note over GoogleAuthService,DynamoDBService: UUID生成, TTL設定
+    DynamoDBService-->>GoogleAuthService: セッションID
+    GoogleAuthService-->>AuthHandler: セッション情報
+    
+    AuthHandler->>AuthHandler: createSessionCookie(sessionId)
+    AuthHandler->>AuthHandler: formatResponse(ユーザー情報)
+    AuthHandler-->>APIGateway: 認証成功レスポンス + Set-Cookie
+    APIGateway-->>Frontend: 認証成功・セッションCookie設定
+    Frontend->>Frontend: ログイン状態更新
+    Frontend-->>User: ログイン完了・UI更新
+    
+    %% セッション検証フロー
+    User->>Frontend: 保護されたページにアクセス
+    Frontend->>APIGateway: GET /auth/getSession (Cookie付き)
+    APIGateway->>AuthHandler: getSession.handler 呼び出し
+    
+    AuthHandler->>AuthHandler: parseCookies(cookieHeader)
+    AuthHandler->>GoogleAuthService: getSession(sessionId)
+    GoogleAuthService->>DynamoDBService: セッション取得
+    DynamoDBService-->>GoogleAuthService: セッション情報
+    
+    alt セッションが無効または存在しない
+        GoogleAuthService-->>AuthHandler: null
+        AuthHandler->>AuthHandler: formatErrorResponse(401)
+        AuthHandler-->>APIGateway: 認証エラーレスポンス
+        APIGateway-->>Frontend: 401 Unauthorized
+        Frontend-->>User: ログイン画面へリダイレクト
+    else セッションが有効
+        GoogleAuthService-->>AuthHandler: セッション情報
+        AuthHandler->>AuthHandler: formatResponse(ユーザー情報)
+        AuthHandler-->>APIGateway: 認証状態返却
+        APIGateway-->>Frontend: ユーザー情報とセッション有効期限
+        Frontend-->>User: 保護されたコンテンツ表示
+    end
+    
+    %% ログアウトフロー
+    User->>Frontend: ログアウトボタンをクリック
+    Frontend->>APIGateway: POST /auth/logout (Cookie付き)
+    APIGateway->>AuthHandler: logout.handler 呼び出し
+    
+    AuthHandler->>AuthHandler: parseCookies(cookieHeader)
+    
+    alt セッションが存在する場合
+        AuthHandler->>GoogleAuthService: invalidateSession(sessionId)
+        GoogleAuthService->>DynamoDBService: セッション削除
+        DynamoDBService-->>GoogleAuthService: 削除完了
+        GoogleAuthService-->>AuthHandler: 成功
+    end
+    
+    AuthHandler->>AuthHandler: createClearSessionCookie()
+    AuthHandler->>AuthHandler: formatResponse(ログアウト成功)
+    AuthHandler-->>APIGateway: ログアウト成功 + セッションCookie削除
+    APIGateway-->>Frontend: セッションCookie削除
+    Frontend->>Frontend: ログアウト状態に更新
+    Frontend-->>User: ログイン画面へリダイレクト

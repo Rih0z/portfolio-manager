@@ -1,0 +1,3 @@
+#!/bin/bash
+echo "mock nvm $@"
+exit 0

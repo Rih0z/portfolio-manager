@@ -1,0 +1,40 @@
+sequenceDiagram
+    actor User
+    participant Frontend
+    participant APIGateway
+    participant Auth as Auth Lambda
+    participant GoogleAPI
+    participant DynamoDB
+    
+    User->>Frontend: Googleログインボタンをクリック
+    Frontend->>GoogleAPI: 認証リクエスト
+    GoogleAPI-->>User: 認証画面を表示
+    User->>GoogleAPI: アカウントでログイン・権限付与
+    GoogleAPI-->>Frontend: 認証コード返却
+    
+    Frontend->>APIGateway: POST /auth/google/login
+    APIGateway->>Auth: 認証コード渡し
+    Auth->>GoogleAPI: コードをトークンと交換
+    GoogleAPI-->>Auth: アクセストークン/リフレッシュトークン返却
+    
+    Auth->>GoogleAPI: ユーザー情報取得
+    GoogleAPI-->>Auth: プロフィール情報返却
+    
+    Auth->>DynamoDB: セッション情報保存
+    DynamoDB-->>Auth: 保存成功
+    
+    Auth-->>APIGateway: セッションID (Cookieで送信)
+    APIGateway-->>Frontend: 認証成功・セッションCookie設定
+    Frontend->>Frontend: ログイン状態更新
+    Frontend-->>User: ログイン完了・UI更新
+    
+    Note over Frontend,DynamoDB: セッション検証フロー
+    
+    User->>Frontend: 保護されたページにアクセス
+    Frontend->>APIGateway: GET /auth/session (Cookie付き)
+    APIGateway->>Auth: セッションCookie渡し
+    Auth->>DynamoDB: セッション検証
+    DynamoDB-->>Auth: セッション情報返却
+    Auth-->>APIGateway: ユーザー情報と認証状態
+    APIGateway-->>Frontend: 認証状態返却
+    Frontend-->>User: コンテンツ表示

@@ -1,0 +1,103 @@
+sequenceDiagram
+    actor User
+    participant Frontend
+    participant APIGateway
+    participant DriveHandler as Drive Lambda
+    participant GoogleAuthService as Auth Service
+    participant DynamoDBService as DynamoDB Service
+    participant GoogleDrive
+
+    %% ファイル保存フロー
+    User->>Frontend: ポートフォリオデータ保存操作
+    Frontend->>APIGateway: POST /drive/saveFile (Cookie付き)
+    APIGateway->>DriveHandler: saveFile.handler 呼び出し
+
+    DriveHandler->>GoogleAuthService: getSession(sessionId)
+    GoogleAuthService->>DynamoDBService: セッション情報を取得
+    DynamoDBService-->>GoogleAuthService: セッション情報返却
+    GoogleAuthService-->>DriveHandler: セッション情報
+
+    alt セッションが無効または存在しない
+        DriveHandler-->>APIGateway: formatErrorResponse(401, 'NO_SESSION')
+        APIGateway-->>Frontend: 認証エラーレスポンス
+        Frontend-->>User: ログインが必要と表示
+    else セッションが有効
+        %% トークン期限チェック
+        Note over DriveHandler: アクセストークン期限チェック
+        alt トークンが期限切れ
+            DriveHandler->>GoogleAuthService: refreshAccessToken(refreshToken)
+            GoogleAuthService->>GoogleDrive: OAuth2Client.refreshAccessToken()
+            GoogleDrive-->>GoogleAuthService: 新アクセストークン
+            GoogleAuthService-->>DriveHandler: 新トークン情報
+        end
+
+        DriveHandler->>GoogleAuthService: savePortfolioToDrive(token, data)
+        GoogleAuthService->>GoogleAuthService: getOrCreateDriveFolder(token)
+        GoogleAuthService->>GoogleDrive: フォルダ検索・作成リクエスト
+        GoogleDrive-->>GoogleAuthService: フォルダID
+
+        GoogleAuthService->>GoogleDrive: ファイル作成リクエスト
+        GoogleDrive-->>GoogleAuthService: ファイル情報
+        GoogleAuthService-->>DriveHandler: 保存結果
+
+        DriveHandler->>DriveHandler: formatResponse(結果データ)
+        DriveHandler-->>APIGateway: 成功レスポンス(200)
+        APIGateway-->>Frontend: 保存成功レスポンス
+        Frontend-->>User: 保存完了通知
+    end
+
+    %% ファイル一覧取得フロー
+    User->>Frontend: ファイル一覧表示リクエスト
+    Frontend->>APIGateway: GET /drive/listFiles (Cookie付き)
+    APIGateway->>DriveHandler: listFiles.handler 呼び出し
+
+    DriveHandler->>GoogleAuthService: getSession(sessionId)
+    GoogleAuthService->>DynamoDBService: セッション情報を取得
+    DynamoDBService-->>GoogleAuthService: セッション情報返却
+    GoogleAuthService-->>DriveHandler: セッション情報
+
+    alt トークンが期限切れ
+        DriveHandler->>GoogleAuthService: refreshAccessToken(refreshToken)
+        GoogleAuthService->>GoogleDrive: OAuth2Client.refreshAccessToken()
+        GoogleDrive-->>GoogleAuthService: 新アクセストークン
+        GoogleAuthService-->>DriveHandler: 新トークン情報
+    end
+
+    DriveHandler->>GoogleAuthService: listPortfolioFiles(token)
+    GoogleAuthService->>GoogleAuthService: getOrCreateDriveFolder(token)
+    GoogleAuthService->>GoogleDrive: フォルダ内ファイル一覧リクエスト
+    GoogleDrive-->>GoogleAuthService: ファイル一覧
+    GoogleAuthService-->>DriveHandler: 一覧情報
+
+    DriveHandler->>DriveHandler: formatResponse(結果データ)
+    DriveHandler-->>APIGateway: ファイル一覧レスポンス
+    APIGateway-->>Frontend: ファイル一覧データ
+    Frontend-->>User: ファイル一覧表示
+
+    %% ファイル読み込みフロー
+    User->>Frontend: 特定ファイル選択
+    Frontend->>APIGateway: GET /drive/loadFile?fileId=xxx (Cookie付き)
+    APIGateway->>DriveHandler: loadFile.handler 呼び出し
+
+    DriveHandler->>GoogleAuthService: getSession(sessionId)
+    GoogleAuthService->>DynamoDBService: セッション情報を取得
+    DynamoDBService-->>GoogleAuthService: セッション情報返却
+    GoogleAuthService-->>DriveHandler: セッション情報
+
+    alt トークンが期限切れ
+        DriveHandler->>GoogleAuthService: refreshAccessToken(refreshToken)
+        GoogleAuthService->>GoogleDrive: OAuth2Client.refreshAccessToken()
+        GoogleDrive-->>GoogleAuthService: 新アクセストークン
+        GoogleAuthService-->>DriveHandler: 新トークン情報
+    end
+
+    DriveHandler->>GoogleAuthService: loadPortfolioFromDrive(token, fileId)
+    GoogleAuthService->>GoogleDrive: ファイル内容取得リクエスト
+    GoogleDrive-->>GoogleAuthService: ファイル内容とメタデータ
+    GoogleAuthService-->>DriveHandler: ファイルデータ
+
+    DriveHandler->>DriveHandler: formatResponse(結果データ)
+    DriveHandler-->>APIGateway: ファイルデータ返却
+    APIGateway-->>Frontend: ポートフォリオデータ
+    Frontend->>Frontend: データをアプリに適用
+    Frontend-->>User: ポートフォリオ表示更新

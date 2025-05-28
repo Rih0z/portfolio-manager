@@ -1,0 +1,144 @@
+flowchart TB
+    subgraph Client["クライアント"]
+        Frontend["フロントエンドアプリケーション"]
+    end
+    
+    subgraph AWS["AWS クラウド"]
+        APIGateway["API Gateway"]
+        
+        subgraph Lambda["Lambda 関数"]
+            MarketData["marketData.js"]
+            Auth["認証関数群: googleLogin.js, getSession.js, logout.js"]
+            Drive["Google Drive連携: saveFile.js, loadFile.js, listFiles.js"]
+            Admin["管理者機能: getStatus.js, resetUsage.js, getBudgetStatus.js, manageFallbacks.js"]
+            Prewarm["preWarmCache.js: 定期実行によるキャッシュ予熱"]
+        end
+        
+        subgraph DynamoDB["DynamoDB Tables"]
+            CacheTable["キャッシュテーブル"]
+            SessionTable["セッションテーブル"]
+            UsageTable["API使用量テーブル"]
+            BlacklistTable["スクレイピングブラックリストテーブル"]
+            FallbackTable["フォールバックデータテーブル"]
+        end
+        
+        SNS["SNS (アラート通知)"]
+        
+        subgraph Middleware["ミドルウェア層"]
+            APIKeyAuth["apiKeyAuth.js: APIキー認証"]
+            IPRestriction["ipRestriction.js: IP制限"]
+            RateLimitService["rateLimitService.js: レート制限"]
+        end
+        
+        subgraph Services["サービス層"]
+            CacheService["cache.js: キャッシングサービス"]
+            UsageService["usage.js: 使用量管理"]
+            EnhancedMarketDataService["enhancedMarketDataService.js: 強化版データサービス"]
+            MetricsService["metrics.js: データソース性能計測"]
+            FallbackService["fallbackDataStore.js: フォールバックデータ管理"]
+            AlertService["alerts.js: アラート通知"]
+            GoogleAuthService["googleAuthService.js: Google認証・Drive連携"]
+        end
+        
+        SecretsManager["AWS Secrets Manager"]
+    end
+    
+    subgraph DataProviders["データソース"]
+        subgraph YahooFinance["Yahoo Finance"]
+            YahooAPI["Yahoo Finance API"]
+            YahooScraping["Yahoo Finance ウェブスクレイピング"]
+        end
+        
+        subgraph JPStockProviders["日本株データソース"]
+            YahooJP["Yahoo Finance Japan"]
+            Minkabu["みんかぶ"]
+            Kabutan["株探"]
+        end
+        
+        subgraph FundProviders["投資信託データソース"]
+            MorningstarCSV["モーニングスターCSV"]
+        end
+        
+        subgraph ExchangeRateProviders["為替レートプロバイダ"]
+            ExchangerateHost["exchangerate.host API"]
+            DynamicCalculation["動的計算バックアップ"]
+        end
+        
+        subgraph Google["Google Cloud"]
+            GoogleAuth["Google OAuth2"]
+            GoogleDrive["Google Drive API"]
+        end
+    end
+    
+    %% クライアント-API接続
+    Frontend <--> APIGateway
+    
+    %% API-Lambda接続（ミドルウェア経由）
+    APIGateway --> APIKeyAuth
+    APIKeyAuth --> IPRestriction
+    IPRestriction --> MarketData
+    IPRestriction --> Drive
+    IPRestriction --> Admin
+    
+    APIGateway <--> Auth
+    
+    %% ミドルウェア連携
+    APIKeyAuth <--> RateLimitService
+    APIKeyAuth <--> SecretsManager
+    
+    %% Lambda-サービス連携
+    MarketData <--> EnhancedMarketDataService
+    MarketData <--> CacheService
+    MarketData <--> UsageService
+    MarketData <--> FallbackService
+    
+    Auth <--> GoogleAuthService
+    Drive <--> GoogleAuthService
+    
+    Admin <--> UsageService
+    Admin <--> CacheService
+    Admin <--> FallbackService
+    
+    Prewarm <--> CacheService
+    Prewarm <--> EnhancedMarketDataService
+    Prewarm <--> AlertService
+    
+    %% サービス間連携
+    EnhancedMarketDataService <--> CacheService
+    EnhancedMarketDataService <--> FallbackService
+    EnhancedMarketDataService <--> MetricsService
+    
+    %% サービス-データソース連携
+    EnhancedMarketDataService --> YahooFinance
+    EnhancedMarketDataService --> JPStockProviders
+    EnhancedMarketDataService --> FundProviders
+    EnhancedMarketDataService --> ExchangeRateProviders
+    
+    GoogleAuthService <--> Google
+    
+    %% サービス-DynamoDB連携
+    CacheService <--> CacheTable
+    UsageService <--> UsageTable
+    FallbackService <--> FallbackTable
+    GoogleAuthService <--> SessionTable
+    
+    %% アラート連携
+    AlertService --> SNS
+    
+    %% ユーティリティ層は直接表示していないが、各サービスから呼び出される
+    
+    classDef aws fill:#FF9900,stroke:#232F3E,color:white;
+    classDef lambda fill:#009ACD,stroke:#232F3E,color:white;
+    classDef dynamodb fill:#3B48CC,stroke:#232F3E,color:white;
+    classDef service fill:#107E3E,stroke:#232F3E,color:white;
+    classDef google fill:#4285F4,stroke:#232F3E,color:white;
+    classDef provider fill:#7A306C,stroke:#232F3E,color:white;
+    classDef middleware fill:#DC143C,stroke:#232F3E,color:white;
+    
+    class APIGateway,SNS,SecretsManager aws;
+    class MarketData,Auth,Drive,Admin,Prewarm lambda;
+    class CacheTable,SessionTable,UsageTable,BlacklistTable,FallbackTable dynamodb;
+    class CacheService,UsageService,EnhancedMarketDataService,MetricsService,FallbackService,AlertService,GoogleAuthService,RateLimitService service;
+    class GoogleAuth,GoogleDrive google;
+    class YahooFinance,JPStockProviders,FundProviders,ExchangeRateProviders provider;
+    class APIKeyAuth,IPRestriction middleware;

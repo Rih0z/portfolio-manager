@@ -1,6 +1,6 @@
 # テストファイル構成
 
-このドキュメントでは、本プロジェクトにおけるテストコードの配置場所と役割を簡潔にまとめます。`npm run test:all` または `scripts/run-tests.sh all` で全てのテストが実行されます。
+このドキュメントでは、本プロジェクトにおけるテストコードの配置場所と役割を簡潔にまとめます。`npm run test:all` または `script/run-tests.sh all` で全てのテストが実行されます。
 
 ## ディレクトリ構成
 
@@ -27,7 +27,7 @@ __tests__/
 ```bash
 npm run test:all
 # または
-./scripts/run-tests.sh all
+./script/run-tests.sh all
 ```
 
 テスト結果は `test-results/`、カバレッジレポートは `coverage/` に出力されます。
@@ -43,7 +43,7 @@ npm run test:all
 - `duration=0` 指定時は自動で閉じないことの確認
 
 これらのテストは `__tests__/unit/components/ToastNotification.test.js`
-に実装されており、`scripts/run-tests.sh all` で他のテストと共に実行されます。
+に実装されており、`script/run-tests.sh all` で他のテストと共に実行されます。
 
 さらにカバレッジ向上のため、以下のコンポーネントにも
 基本的なレンダリングテストを追加しました。
@@ -63,28 +63,9 @@ APIユーティリティ層の網羅率向上のため、`src/services/api.js` �
 テスト `__tests__/unit/utils/reportWebVitals.test.js` も追加し、
 コールバックが正しく各計測関数へ渡されるかを検証しています。
 
-さらに `scripts/generate-coverage-chart.js` の単体テスト
+さらに `script/generate-coverage-chart.js` の単体テスト
 `__tests__/unit/scripts/generateCoverageChart.test.js` を新設し、
 チャート生成関数と履歴ファイル更新処理の動作を確認します。
-その後、`loadCoverageData` 関数が複数のカバレッジファイルから正しく
-データを読み取れるかを検証するテストを追加しました。
-
-加えてテスト実行スクリプト `scripts/run-tests.sh` 自体の挙動確認用に、
-`__tests__/unit/scripts/runTestsSh.test.js` を追加しました。`--help` オプ
-ションや未知のオプションを与えた際のメッセージ出力と終了ステータス
-を検証します。さらに `--clean`、`--chart`、`--html-coverage` オプションの
-動作やテスト種別未指定・無効なターゲット指定時のエラー処理に加え、
-`cross-env` が存在しない場合のフォールバック処理や `-s` オプションで
-特定テストのみ実行する機能、`-i` オプションによるカバレッジエラー
-無視時の終了ステータス変化もカバーしました。また `cross-env` が無い
-環境で `jest` コマンドも見つからない場合は `npx jest` を自動的に利用
-する挙動を追加し、これをテストで検証しています。このようにスクリプ
-ト単体のカバレッジを大幅に向上させています。
-
-さらに Node.js バージョン修正スクリプト `scripts/fix-node-version.sh`
-の検証用に `__tests__/unit/scripts/fixNodeVersion.test.js` を追加しました。
-既に Node.js 18 を使用している場合の早期終了と、nvm が存在しない
-場合の処理を確認します。
 
 さらにダッシュボードやシミュレーション機能のカバレッジ向上のため、
 次のコンポーネントにもテストを追加しました。
@@ -92,36 +73,6 @@ APIユーティリティ層の網羅率向上のため、`src/services/api.js` �
 - `AssetsTable` コンポーネント
 - `GoogleDriveIntegration` コンポーネント
 - `BudgetInput` コンポーネント
-- `ExportOptions` コンポーネント
-- `PortfolioSummary` コンポーネント
-- `PortfolioCharts` コンポーネント
-- `ImportOptions` コンポーネント
-- `SimulationResult` コンポーネント
-- `AiAnalysisPrompt` コンポーネント
-- `DifferenceChart` コンポーネント
-- `AllocationEditor` コンポーネント
-- `HoldingsEditor` コンポーネント
-- `PopularTickers` コンポーネント
-- `AuthContext` の基本動作
-- `PortfolioContextExtras.test.js` では 暗号化関数や `validateAssetTypes`、`exportData` の挙動を検証し、コンテキスト内部の補助機能をカバーしています。
 
 いずれも `__tests__/unit/components` 配下にあり、
 データが存在しない場合の表示やユーザー操作による状態遷移を検証します。
-`ExportOptions.test.js` ではクリップボードへのコピーとダウンロード処理を確認しています。
-
-- `runTestsShOptions.test.js` では `-w` オプションや `--nvm` など追加オプションの挙動を検証しています。
-- `runTestsShExtras.test.js` では `--verbose-coverage` や `--detect-open-handles` `--validate-coverage` など追加フラグの挙動と、`-m` `-f` `-t final` の処理、さらに `specific` テスト種別でパターン未指定時のエラー表示を確認しています。
-- `runTestsShReports.test.js` では `--visual` と `--junit` オプションの動作および `--validate-coverage` が正常に完了するケースを検証しています。
-- `fundUtils.extra.test.js` では `guessFundType`、`estimateAnnualFee`、`estimateDividendYield` の未カバーケースを追加し、REIT や債券、暗号資産、空文字ティッカーなどの判定を検証しています。
-- `customReporter.test.js` ではカスタムJestレポーターのユーティリティ関数をテストし、デモカバレッジ生成やサマリー表示処理を確認しています。
-- `setupProxy.test.js` では Express アプリへのプロキシミドルウェア登録処理をテストし、環境変数の設定と `http-proxy-middleware` の呼び出し内容を検証しています。
-- `generateCoverageChartCli.test.js` では CLIとして `scripts/generate-coverage-chart.js` を実行し、SVGファイル生成と終了ステータスを検証しています。
-- `runTestsShEdgeCases.test.js` では `--config` オプションによる設定ファイル指定と、`jest` と `npx` が共に存在しない環境でのエラー終了を確認しています。
-- `setupTestEnvExtras.test.js` では 無効な `COVERAGE_TARGET` が `initial` に補正されることと、`scripts/setup-test-env.js` を CLI として実行した際に必要なディレクトリが生成されるかを確認しています。
-- `runTestsShQuick.test.js` では `quick` テスト種別を実行し、`cross-env` が無い環境で `jest` コマンドも見つからない場合に `npx jest` へフォールバックして実行されることと、`USE_API_MOCKS=true` が環境変数として渡されるかを検証しています。
-- `runTestsShNative.test.js` では `cross-env` が無いものの `jest` コマンドが存在する環境で、ローカルの `jest` が直接実行され、環境変数が正しく渡されるかを確認しています。
-
-- `generateCoverageChartExtras.test.js` では `generate-coverage-chart.js` のデバッグ出力やカバレッジファイルが存在しない場合の挙動、\
-  HTMLレポートが欠落している場合の警告表示を検証しています。
-- `runTestsShCoverageFailures.test.js` では カバレッジ結果が無い場合の警告メッセージと、macOSでHTMLレポートを自動表示する処理を検証しています。
-- `runTestsShWindows.test.js` では Windows 環境をエミュレートし、`--visual` オプション実行時に `start` コマンドが呼び出されることを確認しています。
