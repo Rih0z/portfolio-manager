@@ -151,30 +151,44 @@ const GoogleDriveIntegration = () => {
         <span>{user?.name || 'ユーザー'}としてログイン中</span>
       </div>
       
-      {/* Drive API認証チェック */}
+      {/* Drive API認証チェック - 通常は表示されないはず（ログイン時にDrive権限が必須のため） */}
       {!hasDriveAccess && (
         <div className="drive-auth-required bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4">
-          <p className="mb-2">Google Drive APIへのアクセス許可が必要です。</p>
+          <p className="mb-2">Google Driveへのアクセス権限がありません。</p>
+          <p className="mb-2 text-sm">アプリケーションを正常に使用するには、再度ログインしてGoogle Driveへのアクセスを許可してください。</p>
           <button
             onClick={() => {
-              logCookieStatus('Before Drive Auth Button Click');
-              initiateDriveAuth();
+              // 新しいOAuth認証フローで再ログインを促す
+              const getRedirectUri = () => {
+                const baseUrl = window.location.origin;
+                return `${baseUrl}/auth/google/callback`;
+              };
+              
+              const redirectUri = getRedirectUri();
+              const scopes = [
+                'openid',
+                'email', 
+                'profile',
+                'https://www.googleapis.com/auth/drive.file',
+                'https://www.googleapis.com/auth/drive.appdata'
+              ].join(' ');
+              
+              const params = new URLSearchParams({
+                client_id: process.env.REACT_APP_GOOGLE_CLIENT_ID,
+                redirect_uri: redirectUri,
+                response_type: 'code',
+                scope: scopes,
+                access_type: 'offline',
+                prompt: 'consent'
+              });
+              
+              console.log('Redirect URI for re-login:', redirectUri); // デバッグ用
+              window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
             }}
             className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
           >
-            Google Driveへのアクセスを許可
+            再度ログインする（Drive権限付き）
           </button>
-          {process.env.NODE_ENV === 'development' && (
-            <button
-              onClick={() => {
-                testCookieSettings();
-                logCookieStatus('Cookie Test');
-              }}
-              className="ml-2 bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded text-sm"
-            >
-              Cookieデバッグ
-            </button>
-          )}
         </div>
       )}
       

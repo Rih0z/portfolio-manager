@@ -70,7 +70,7 @@ const SimulationResult = () => {
   // 株数編集開始（小数点以下4桁まで対応）
   const startEditing = (id, units) => {
     setEditingId(id);
-    setEditUnits(parseFloat(units.toFixed(4)));
+    setEditUnits(parseFloat((units || 0).toFixed(4)));
   };
 
   // 株数による金額計算
@@ -86,9 +86,9 @@ const SimulationResult = () => {
 
   // 個別銘柄の購入処理（小数点以下4桁まで対応）
   const handlePurchase = (result) => {
-    if (window.confirm(`${result.name}を${result.purchaseShares.toFixed(4)}${result.isMutualFund ? '口' : '株'}購入しますか？`)) {
+    if (window.confirm(`${result.name}を${(result.purchaseShares || 0).toFixed(4)}${result.isMutualFund ? '口' : '株'}購入しますか？`)) {
       executePurchase(result.id, result.purchaseShares);
-      showMessage(`${result.name}を${result.purchaseShares.toFixed(4)}${result.isMutualFund ? '口' : '株'}購入しました`, 'success');
+      showMessage(`${result.name}を${(result.purchaseShares || 0).toFixed(4)}${result.isMutualFund ? '口' : '株'}購入しました`, 'success');
     }
   };
 
@@ -99,10 +99,10 @@ const SimulationResult = () => {
       return;
     }
     
-    if (window.confirm(`${result.name}を${editUnits.toFixed(4)}${result.isMutualFund ? '口' : '株'}購入しますか？`)) {
+    if (window.confirm(`${result.name}を${(editUnits || 0).toFixed(4)}${result.isMutualFund ? '口' : '株'}購入しますか？`)) {
       executePurchase(result.id, editUnits);
       setEditingId(null);
-      showMessage(`${result.name}を${editUnits.toFixed(4)}${result.isMutualFund ? '口' : '株'}購入しました`, 'success');
+      showMessage(`${result.name}を${(editUnits || 0).toFixed(4)}${result.isMutualFund ? '口' : '株'}購入しました`, 'success');
     }
   };
 
@@ -134,7 +134,7 @@ const SimulationResult = () => {
         <div className="mb-4 p-3 bg-blue-50 rounded-md">
           <h3 className="text-sm font-medium text-blue-800 mb-1">為替レート情報</h3>
           <div className="text-sm text-gray-700">
-            1 USD = {exchangeRate.rate.toFixed(2)} JPY
+            1 USD = {(exchangeRate?.rate || 0).toFixed(2)} JPY
             <span className="text-xs ml-2 text-gray-500">
               (データソース: {exchangeRate.source}, 更新: {formatDate(exchangeRate.lastUpdated)})
             </span>
@@ -244,7 +244,7 @@ const SimulationResult = () => {
                   ) : (
                     <div className="text-sm text-gray-900">
                       {result.purchaseShares > 0 
-                        ? result.purchaseShares.toFixed(result.isMutualFund ? 3 : 2)
+                        ? (result.purchaseShares || 0).toFixed(result.isMutualFund ? 3 : 2)
                         : '-'}
                       <span className="text-xs text-gray-500 ml-1">
                         {result.purchaseShares > 0 ? (result.isMutualFund ? '口' : '株') : ''}

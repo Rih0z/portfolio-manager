@@ -4,10 +4,12 @@
  * 
  * 作成者: Koki Riho （https://github.com/Rih0z） 
  * 作成日: 2025-05-11 16:30:00 
+ * 更新日: 2025-05-27
  * 
  * 更新履歴: 
  * - 2025-05-11 16:30:00 Koki Riho 初回作成
  * - 2025-05-12 11:00:00 外部APIサーバー利用に修正
+ * - 2025-05-27 System Admin AWS動的設定に対応
  * 
  * 説明: 
  * 管理者向けAPI呼び出しをまとめたサービスファイル。
@@ -15,19 +17,10 @@
  */
 
 import axios from 'axios';
-
-// 環境変数からAPI設定を取得
-const API_URL = process.env.REACT_APP_MARKET_DATA_API_URL || 'http://localhost:3000';
-const API_STAGE = process.env.REACT_APP_API_STAGE || 'dev';
+import { getApiEndpoint } from '../utils/envUtils';
 
 // 管理者APIの設定
-let ADMIN_API_KEY = process.env.REACT_APP_ADMIN_API_KEY || 'd41d8cd98f00b204e9800998ecf8427e'; // デフォルト値はサンプルです
 const ADMIN_API_TIMEOUT = 5000; // 5秒
-
-// APIエンドポイントを取得
-const getBaseEndpoint = () => {
-  return `${API_URL}/${API_STAGE}`;
-};
 
 // 管理者APIクライアント（遅延生成）
 let adminClient = null;
@@ -36,7 +29,7 @@ export const createAdminClient = () => {
   adminClient = axios.create({
     timeout: ADMIN_API_TIMEOUT,
     headers: {
-      'x-api-key': ADMIN_API_KEY
+      // APIキーはAWSから動的に取得されるため、ここでは設定しない
     }
   });
   return adminClient;
@@ -50,7 +43,7 @@ const getAdminClient = () => adminClient || createAdminClient();
  */
 export const getStatus = async () => {
   try {
-    const endpoint = `${getBaseEndpoint()}/admin/status`;
+    const endpoint = await getApiEndpoint('admin/status');
     const response = await getAdminClient().get(endpoint);
     
     return {
@@ -76,7 +69,7 @@ export const getStatus = async () => {
  */
 export const resetUsage = async () => {
   try {
-    const endpoint = `${getBaseEndpoint()}/admin/reset`;
+    const endpoint = await getApiEndpoint('admin/reset');
     const response = await getAdminClient().post(endpoint);
     
     return {
@@ -96,27 +89,9 @@ export const resetUsage = async () => {
   }
 };
 
-/**
- * API認証キーの設定
- * @param {string} apiKey - 管理者API認証キー
- */
-export const setAdminApiKey = (apiKey) => {
-  if (apiKey) {
-    ADMIN_API_KEY = apiKey;
-    const client = getAdminClient();
-    if (client.defaults && client.defaults.headers) {
-      client.defaults.headers['x-api-key'] = apiKey;
-    }
-    console.log('管理者API認証キーを設定しました');
-    return true;
-  }
-  return false;
-};
-
 // デフォルトエクスポート
 export default {
   getStatus,
   resetUsage,
-  setAdminApiKey,
   createAdminClient
 };

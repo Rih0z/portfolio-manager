@@ -22,9 +22,11 @@
 import React, { useState } from 'react';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../../hooks/useAuth';
+import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 
 const LoginButtonContent = () => {
-  const { loginWithGoogle, loading, error } = useAuth();
+  const { loginWithGoogle, loading, error, initiateDriveAuth } = useAuth();
+  const { addNotification } = usePortfolioContext();
   const [loginError, setLoginError] = useState(null);
   
   const handleGoogleLogin = async (credentialResponse) => {
@@ -42,15 +44,59 @@ const LoginButtonContent = () => {
     
     try {
       console.log('loginWithGoogleを呼び出します...');
-      const success = await loginWithGoogle(credentialResponse);
-      console.log('loginWithGoogleの結果:', success);
+      const result = await loginWithGoogle(credentialResponse);
+      console.log('loginWithGoogleの結果:', result);
       
-      if (!success) {
+      if (!result || !result.success) {
         console.error('バックエンドでの認証処理に失敗しました');
         setLoginError('ログイン処理に失敗しました');
       } else {
         console.log('ログイン成功');
         setLoginError(null);
+        
+        // hasDriveAccessフラグをチェック
+        if (result.hasDriveAccess) {
+          console.log('既にDriveアクセス権限を持っています');
+          if (addNotification) {
+            addNotification('ログインが完了しました。Google Driveも利用可能です。', 'success');
+          }
+        } else {
+          console.log('Driveアクセス権限がありません。追加認証が必要です。');
+          
+          // Google One Tapの制限により、Drive連携は別途必要
+          console.log('Google Drive連携を自動的に開始します...');
+          
+          // ユーザーに通知
+          if (addNotification) {
+            addNotification('Google Driveの連携を開始します...', 'info');
+          }
+          
+          setTimeout(async () => {
+            try {
+              if (initiateDriveAuth) {
+                console.log('Drive連携を開始します...');
+                const driveSuccess = await initiateDriveAuth();
+                if (driveSuccess) {
+                  console.log('Drive連携処理が開始されました');
+                  // Drive連携が成功した場合の通知は、リダイレクト先で行われるため不要
+                } else {
+                  console.warn('Drive連携の開始に失敗しました');
+                  if (addNotification) {
+                    addNotification('Google Drive連携に失敗しました。設定画面から再度お試しください。', 'warning');
+                  }
+                }
+              } else {
+                console.warn('Drive連携機能が利用できません');
+              }
+            } catch (driveError) {
+              console.error('Drive連携の開始に失敗しました:', driveError);
+              // Drive連携のエラーは通知のみで、ログイン自体は成功とする
+              if (addNotification) {
+                addNotification('Google Drive連携でエラーが発生しました。後で再度お試しください。', 'warning');
+              }
+            }
+          }, 1500); // 1.5秒待ってからDrive連携を開始（ログイン処理の完了を確実にするため）
+        }
       }
     } catch (err) {
       console.error('ログイン処理中にエラーが発生しました:', err);
@@ -64,7 +110,7 @@ const LoginButtonContent = () => {
       <div className="text-center mb-4">
         <h3 className="text-lg font-medium mb-2">ログインしてください</h3>
         <p className="text-sm text-gray-600 mb-4">
-          Google認証を利用してポートフォリオマネージャーにログインします
+          Google認証でログインすると、Google Driveでのデータバックアップも自動的に有効になります
         </p>
       </div>
       
@@ -108,13 +154,12 @@ const LoginButtonContent = () => {
 const LoginButton = () => {
   const { googleClientId } = useAuth();
   
-  // GoogleOAuthProviderにクライアントIDがない場合はエラーメッセージを表示
-  if (!googleClientId || googleClientId === 'your_google_client_id') {
+  // GoogleOAuthProviderにクライアントIDがない場合は読み込み中を表示
+  if (!googleClientId || googleClientId === 'your_google_client_id' || googleClientId === 'dummy-client-id') {
     return (
       <div className="login-container">
-        <div className="error-message">
-          <p>Google Client IDが設定されていません。</p>
-          <p>環境変数 REACT_APP_GOOGLE_CLIENT_ID を確認してください。</p>
+        <div className="text-gray-500 px-4 py-3 rounded">
+          <p>認証設定を読み込み中...</p>
         </div>
       </div>
     );

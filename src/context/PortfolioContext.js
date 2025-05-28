@@ -1120,23 +1120,52 @@ export const PortfolioProvider = ({ children }) => {
     };
   }, [baseCurrency, exchangeRate, lastUpdated, currentAssets, targetPortfolio, additionalBudget, aiPromptTemplate]);
 
-  // 為替レートの更新
+  // 為替レートの更新（キャッシュ機能付き）
   const updateExchangeRate = useCallback(async () => {
     try {
+      // キャッシュ確認（5分以内のデータがあれば再利用）
+      const cacheKey = `exchangeRate_${baseCurrency}`;
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        const cachedData = JSON.parse(cached);
+        const cacheAge = Date.now() - new Date(cachedData.timestamp).getTime();
+        if (cacheAge < 5 * 60 * 1000) { // 5分
+          console.log('為替レートキャッシュを使用');
+          setExchangeRate(cachedData.data);
+          return;
+        }
+      }
+      
       if (baseCurrency === 'JPY') {
         const result = await fetchExchangeRate('USD', 'JPY');
-        setExchangeRate({
-          rate: result.rate,
-          source: result.source,
-          lastUpdated: result.lastUpdated
-        });
+        if (result.success) {
+          const rateData = {
+            rate: result.rate,
+            source: result.source,
+            lastUpdated: result.lastUpdated
+          };
+          setExchangeRate(rateData);
+          // キャッシュに保存
+          localStorage.setItem(cacheKey, JSON.stringify({
+            data: rateData,
+            timestamp: new Date().toISOString()
+          }));
+        }
       } else {
         const result = await fetchExchangeRate('JPY', 'USD');
-        setExchangeRate({
-          rate: result.rate,
-          source: result.source,
-          lastUpdated: result.lastUpdated
-        });
+        if (result.success) {
+          const rateData = {
+            rate: result.rate,
+            source: result.source,
+            lastUpdated: result.lastUpdated
+          };
+          setExchangeRate(rateData);
+          // キャッシュに保存
+          localStorage.setItem(cacheKey, JSON.stringify({
+            data: rateData,
+            timestamp: new Date().toISOString()
+          }));
+        }
       }
       
       // 為替レート更新後に自動保存

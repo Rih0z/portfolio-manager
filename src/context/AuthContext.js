@@ -34,10 +34,13 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [hasDriveAccess, setHasDriveAccess] = useState(false);
+  const [googleClientId, setGoogleClientId] = useState('');
   const portfolioContextRef = useRef(null);
   
-  // Google認証クライアントID
-  const googleClientId = getGoogleClientId();
+  // Google認証クライアントIDを非同期で取得
+  useEffect(() => {
+    getGoogleClientId().then(id => setGoogleClientId(id));
+  }, []);
   
   // セッション確認
   const checkSession = useCallback(async () => {
@@ -56,7 +59,7 @@ export const AuthProvider = ({ children }) => {
       }
       
       // セッション確認エンドポイント
-      const sessionEndpoint = getApiEndpoint('auth/session');
+      const sessionEndpoint = await getApiEndpoint('auth/session');
       console.log('セッション確認URL:', sessionEndpoint);
       
       const response = await authFetch(sessionEndpoint, 'get');
@@ -136,7 +139,7 @@ export const AuthProvider = ({ children }) => {
       console.log('リダイレクトURI:', redirectUri);
       
       // 認証エンドポイント
-      const loginEndpoint = getApiEndpoint('auth/google/login');
+      const loginEndpoint = await getApiEndpoint('auth/google/login');
       console.log('ログインエンドポイント:', loginEndpoint);
       
       // 認証リクエスト（適切なフィールドで送信）
@@ -252,17 +255,22 @@ export const AuthProvider = ({ children }) => {
         setIsAuthenticated(true);
         setError(null);
         
+        // hasDriveAccessフラグをチェック
+        const driveAccess = response.hasDriveAccess || response.data?.hasDriveAccess || false;
+        setHasDriveAccess(driveAccess);
+        console.log('Drive access status from login:', driveAccess);
+        
         // ポートフォリオコンテキストに認証状態変更を通知
         if (portfolioContextRef.current?.handleAuthStateChange) {
           portfolioContextRef.current.handleAuthStateChange(true, response.user || response.data?.user);
         }
         
-        return true;
+        return { success: true, hasDriveAccess: driveAccess };
       } else {
         console.error('認証レスポンスエラー:', response);
         const errorMessage = response?.message || response?.error?.message || 'ログインに失敗しました';
         setError(errorMessage);
-        return false;
+        return { success: false, hasDriveAccess: false };
       }
     } catch (error) {
       console.error('Google認証エラー:', error);
@@ -286,7 +294,7 @@ export const AuthProvider = ({ children }) => {
       }
       
       setError(errorMessage);
-      return false;
+      return { success: false, hasDriveAccess: false };
     } finally {
       setLoading(false);
     }
@@ -299,7 +307,7 @@ export const AuthProvider = ({ children }) => {
       console.log('ログアウト処理を開始します');
       
       // ログアウトエンドポイント
-      const logoutEndpoint = getApiEndpoint('auth/logout');
+      const logoutEndpoint = await getApiEndpoint('auth/logout');
       
       await authFetch(logoutEndpoint, 'post');
       
@@ -343,6 +351,31 @@ export const AuthProvider = ({ children }) => {
     checkSession();
   }, [checkSession]);
   
+  // 定期的なセッションチェック（5分ごと）
+  useEffect(() => {
+    if (isAuthenticated) {
+      const intervalId = setInterval(() => {
+        console.log('定期セッションチェック実行');
+        checkSession();
+      }, 5 * 60 * 1000); // 5分
+      
+      return () => clearInterval(intervalId);
+    }
+  }, [isAuthenticated, checkSession]);
+  
+  // ページ表示時のセッション再確認
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && isAuthenticated) {
+        console.log('ページが表示されました - セッション再確認');
+        checkSession();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isAuthenticated, checkSession]);
+  
   // Drive API認証を開始
   const initiateDriveAuth = useCallback(async () => {
     try {
@@ -373,7 +406,7 @@ export const AuthProvider = ({ children }) => {
         hasAuthCookie: document.cookie.includes('auth')
       });
       
-      const driveInitEndpoint = getApiEndpoint('auth/google/drive/initiate');
+      const driveInitEndpoint = await getApiEndpoint('auth/google/drive/initiate');
       
       console.log('Drive API initiate endpoint:', driveInitEndpoint);
       console.log('Making request with authFetch (withCredentials: true)...');

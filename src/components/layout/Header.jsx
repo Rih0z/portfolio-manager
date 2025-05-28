@@ -18,7 +18,7 @@ import React from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 import UserProfile from '../auth/UserProfile';
-import LoginButton from '../auth/LoginButton';
+import OAuthLoginButton from '../auth/OAuthLoginButton';
 
 const Header = () => {
   const { isAuthenticated, loading: authLoading } = useAuth();
@@ -67,7 +67,7 @@ const Header = () => {
           
           <div>
             {!authLoading && (
-              isAuthenticated ? <UserProfile /> : <LoginButton />
+              isAuthenticated ? <UserProfile /> : <OAuthLoginButton />
             )}
           </div>
         </div>

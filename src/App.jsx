@@ -18,7 +18,7 @@
  * ヘッダーとタブナビゲーションを備えたアプリケーションのレイアウトを提供する。
  */
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from './context/AuthContext';
@@ -31,9 +31,42 @@ import Simulation from './pages/Simulation';
 import DataIntegration from './pages/DataIntegration';
 import { useAuth } from './hooks/useAuth';
 import { usePortfolioContext } from './hooks/usePortfolioContext';
+import { initializeApiConfig, getGoogleClientId } from './utils/envUtils';
 
-// Google認証クライアントID
-const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID || '243939385276-0gga06ocrn3vumf7lasubcpdqjk49j3n.apps.googleusercontent.com';
+// API設定の初期化
+const AppInitializer = ({ children }) => {
+  const [initialized, setInitialized] = useState(false);
+  const [googleClientId, setGoogleClientId] = useState('');
+  
+  useEffect(() => {
+    const init = async () => {
+      try {
+        // API設定をAWSから取得
+        await initializeApiConfig();
+        const clientId = await getGoogleClientId();
+        setGoogleClientId(clientId);
+        setInitialized(true);
+      } catch (error) {
+        console.error('API設定の初期化に失敗しました:', error);
+        setInitialized(true); // エラーでもアプリを続行
+      }
+    };
+    init();
+  }, []);
+  
+  if (!initialized) {
+    return <div className="flex items-center justify-center h-screen">設定を読み込み中...</div>;
+  }
+  
+  return (
+    <GoogleOAuthProvider 
+      clientId={googleClientId || 'dummy-client-id'}
+      onScriptLoadError={(err) => console.error('Google OAuth script load error:', err)}
+    >
+      {children}
+    </GoogleOAuthProvider>
+  );
+};
 
 // コンテキスト接続コンポーネント（安全版）
 const ContextConnector = () => {
@@ -95,10 +128,7 @@ class ErrorBoundary extends React.Component {
 function App() {
   return (
     <ErrorBoundary>
-      <GoogleOAuthProvider 
-        clientId={GOOGLE_CLIENT_ID}
-        onScriptLoadError={(err) => console.error('Google OAuth script load error:', err)}
-      >
+      <AppInitializer>
         <AuthProvider>
           <PortfolioProvider>
             {/* コンテキスト間の接続を処理するコンポーネント */}
@@ -114,6 +144,7 @@ function App() {
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/simulation" element={<Simulation />} />
                     <Route path="/data" element={<DataIntegration />} />
+                    <Route path="/auth/google/callback" element={<Dashboard />} />
                   </Routes>
                 </main>
                 {/* iOS風のタブバー */}
@@ -122,7 +153,7 @@ function App() {
             </Router>
           </PortfolioProvider>
         </AuthProvider>
-      </GoogleOAuthProvider>
+      </AppInitializer>
     </ErrorBoundary>
   );
 }

@@ -57,10 +57,10 @@ This is a React-based portfolio management application with AI-powered investmen
 
 2. **Context Bridge Pattern**: `ContextConnector` component bridges AuthContext and PortfolioContext
 
-3. **Environment Configuration**: API endpoints configured via environment variables
-   - Development: `.env.development`
-   - Test: `.env.test`
-   - Production: `.env.production`
+3. **Environment Configuration**: All API settings are dynamically fetched from AWS
+   - No API URLs or keys stored in client
+   - Configuration fetched from AWS at runtime
+   - Enhanced security and easier maintenance
 
 4. **Component Organization**:
    ```
@@ -77,9 +77,10 @@ This is a React-based portfolio management application with AI-powered investmen
 ## Important Implementation Details
 
 ### API Integration
-- Uses proxy in development (`setupProxy.js`)
+- All API endpoints dynamically configured from AWS
 - Production API hosted on AWS (separate repository)
 - Supports multiple market data sources with automatic fallback
+- API keys and authentication handled server-side
 
 ### Multi-Currency Support
 - Handles JPY and USD
@@ -114,25 +115,32 @@ This is a React-based portfolio management application with AI-powered investmen
 ## Security Configuration
 
 ### Environment Variables
-NEVER commit actual API URLs or secrets to the repository. Follow these steps:
+API configurations are fetched dynamically from AWS. The following environment variables are supported:
 
-1. Copy `.env.example` to create your local environment files:
+1. Required environment variables:
+   ```bash
+   REACT_APP_API_BASE_URL=https://x4scpbsuv2.execute-api.us-west-2.amazonaws.com
+   REACT_APP_DEFAULT_EXCHANGE_RATE=150.0
+   ```
+
+2. Setup instructions:
    ```bash
    cp .env.example .env.development
    cp .env.example .env.production
+   # Edit files to replace YOUR_AWS_API_URL_HERE with actual URL
    ```
 
-2. Replace `YOUR_AWS_API_URL_HERE` with the actual backend URL in your local files
+3. API endpoints, keys, and Google Client ID are fetched from AWS at runtime using the base URL
 
-3. The `.gitignore` file is configured to exclude all `.env*` files except `.env.example`
+4. The `.gitignore` file is configured to exclude all `.env*` files except `.env.example`
 
-4. For production deployments, set environment variables directly in your hosting platform (Netlify, Vercel, etc.)
+5. For production deployments, set `REACT_APP_API_BASE_URL` in your hosting platform's environment variables
 
 ### API Security
-- The backend API URL should be kept confidential
-- Use environment-specific API keys and credentials
-- Enable CORS restrictions on the backend
-- Implement rate limiting and authentication
+- All API configurations are managed server-side on AWS
+- API keys and sensitive data never exposed to client
+- CORS restrictions enforced on the backend
+- Rate limiting based on authentication status
 
 ### Test Environment Setup
 

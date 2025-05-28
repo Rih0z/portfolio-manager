@@ -25,7 +25,7 @@
     "web-vitals": "2.1.4"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "PORT=3000 react-scripts start",
     "build": "react-scripts build",
     "test": "node script/setup-test-with-env.js && react-scripts test --coverage --watchAll=false",
     "test:custom": "node script/test-custom.js",
@@ -108,7 +108,6 @@
     "readline-sync": "^1.4.10",
     "rimraf": "^3.0.2"
   },
-  "proxy": "http://localhost:9000",
   "jest": {
     "collectCoverageFrom": [
       "src/**/*.{js,jsx,ts,tsx}",

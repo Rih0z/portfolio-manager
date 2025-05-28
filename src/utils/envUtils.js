@@ -4,18 +4,20 @@
  * 
  * 作成者: System Admin
  * 作成日: 2025-05-19 11:30:00 
- * 更新日: 2025-05-23 10:00:00
+ * 更新日: 2025-05-27
  * 
  * 更新履歴: 
  * - 2025-05-19 11:30:00 System Admin 初回作成
  * - 2025-05-21 16:30:00 System Admin リダイレクトURI生成機能を追加
  * - 2025-05-23 10:00:00 System Admin リダイレクトURI最適化
+ * - 2025-05-27 System Admin AWS設定取得に変更
  * 
  * 説明: 
  * 環境に応じたAPI設定を提供するユーティリティ関数。
- * 開発環境または本番環境の判定および環境に応じたAPIエンドポイントURLの
- * 生成機能を提供します。
+ * すべてのAPI設定はAWSから動的に取得されます。
  */
+
+import { fetchApiConfig } from '../services/configService';
 
 // 環境の判定
 export const isDevelopment = () => process.env.NODE_ENV === 'development';
@@ -25,65 +27,58 @@ export const isLocalDevelopment = () => {
   return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 };
 
-// 環境に応じたベースURLの取得
-export const getBaseApiUrl = () => {
-  // ローカル開発環境の場合はローカルURLを返す
-  if (isLocalDevelopment()) {
-    return process.env.REACT_APP_LOCAL_API_URL || 'http://localhost:3000';
+// API設定のキャッシュ
+let apiConfigCache = null;
+
+// AWS から API 設定を取得（内部使用）
+const getApiConfig = async () => {
+  if (!apiConfigCache) {
+    apiConfigCache = await fetchApiConfig();
   }
-  // それ以外の場合は環境変数から取得
-  return process.env.REACT_APP_MARKET_DATA_API_URL || '';
+  return apiConfigCache;
 };
 
-// 環境に応じたAPIステージの取得
-export const getApiStage = () => {
-  return process.env.REACT_APP_API_STAGE || 'dev';
+// 環境に応じたベースURLの取得（非同期）
+export const getBaseApiUrl = async () => {
+  const config = await getApiConfig();
+  return config.marketDataApiUrl || '';
 };
 
-// 完全なエンドポイントURLの生成
-export const getApiEndpoint = (path) => {
-  const baseUrl = getBaseApiUrl();
-  const stage = getApiStage();
+// 環境に応じたAPIステージの取得（非同期）
+export const getApiStage = async () => {
+  const config = await getApiConfig();
+  return config.apiStage || 'dev';
+};
+
+// 完全なエンドポイントURLの生成（非同期）
+export const getApiEndpoint = async (path) => {
+  const config = await getApiConfig();
+  const baseUrl = config.marketDataApiUrl || '';
+  const stage = config.apiStage || 'dev';
   
   // パスが既にスラッシュで始まる場合は削除
   const cleanPath = path.startsWith('/') ? path.slice(1) : path;
   
   // ローカル開発環境でプロキシを使用する場合
-  if (isLocalDevelopment() && process.env.REACT_APP_USE_PROXY === 'true') {
+  if (isLocalDevelopment() && config.features?.useProxy) {
     // プロキシではシンプルなパスを使用
     return `/${stage}/${cleanPath}`;
   }
   
-  // 開発環境でもAWS APIを直接使用する場合（CORSが設定されている場合）
-  if (isLocalDevelopment() && process.env.REACT_APP_USE_DIRECT_API === 'true') {
-    const marketDataUrl = process.env.REACT_APP_MARKET_DATA_API_URL;
-    if (marketDataUrl) {
-      return `${marketDataUrl}/${stage}/${cleanPath}`;
-    }
-  }
-  
-  // AWS APIのURLを使用（開発・本番共通）
-  const marketDataUrl = process.env.REACT_APP_MARKET_DATA_API_URL;
-  if (marketDataUrl) {
-    return `${marketDataUrl}/${stage}/${cleanPath}`;
+  // AWS APIのURLを使用
+  if (baseUrl) {
+    return `${baseUrl}/${stage}/${cleanPath}`;
   }
   
   // フォールバック
-  // ベースURLが/で終わる場合は調整
-  if (baseUrl.endsWith('/')) {
-    return `${baseUrl}${stage}/${cleanPath}`;
-  }
-  
-  // 通常のURL構築
-  return `${baseUrl}/${stage}/${cleanPath}`;
+  return `/${stage}/${cleanPath}`;
 };
 
-// Google認証用のクライアントIDを取得
-export const getGoogleClientId = () => {
-  const clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
-  if (!clientId) {
-    console.warn('REACT_APP_GOOGLE_CLIENT_ID が設定されていません。Google認証が機能しない可能性があります。');
-  }
+// Google認証用のクライアントIDを取得（非同期）
+export const getGoogleClientId = async () => {
+  const config = await getApiConfig();
+  const clientId = config.googleClientId;
+  // エラーメッセージは表示しない（configService.jsのフォールバックで処理）
   return clientId || '';
 };
 
@@ -105,6 +100,11 @@ export const getDefaultExchangeRate = () => {
   return isNaN(defaultRate) ? 150.0 : defaultRate;
 };
 
+// 同期的に使用するための初期化関数
+export const initializeApiConfig = async () => {
+  await getApiConfig();
+};
+
 export default {
   isDevelopment,
   isLocalDevelopment,
@@ -114,5 +114,6 @@ export default {
   getGoogleClientId,
   getOrigin,
   getRedirectUri,
-  getDefaultExchangeRate
+  getDefaultExchangeRate,
+  initializeApiConfig
 };

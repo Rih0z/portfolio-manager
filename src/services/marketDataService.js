@@ -22,7 +22,7 @@ import { fetchWithRetry, formatErrorResponse, generateFallbackData, TIMEOUT } fr
 // 通貨換算レート取得
 export const fetchExchangeRate = async (fromCurrency = 'USD', toCurrency = 'JPY', refresh = false) => {
   try {
-    const endpoint = getApiEndpoint('api/market-data');
+    const endpoint = await getApiEndpoint('api/market-data');
     const response = await fetchWithRetry(
       endpoint,
       {
@@ -72,7 +72,7 @@ export const fetchStockData = async (ticker, refresh = false) => {
   
   try {
     console.log(`Attempting to fetch data for ${ticker} from Market Data API`);
-    const endpoint = getApiEndpoint('api/market-data');
+    const endpoint = await getApiEndpoint('api/market-data');
     const response = await fetchWithRetry(
       endpoint,
       {
@@ -205,7 +205,7 @@ export const fetchMultipleStocks = async (tickers, refresh = false) => {
 // バッチでのデータ取得（内部関数）
 const fetchStockBatch = async (type, symbols, refresh, timeout) => {
   try {
-    const endpoint = getApiEndpoint('api/market-data');
+    const endpoint = await getApiEndpoint('api/market-data');
     return await fetchWithRetry(
       endpoint,
       {
@@ -224,11 +224,11 @@ const fetchStockBatch = async (type, symbols, refresh, timeout) => {
 // ステータス取得（管理者用）
 export const fetchApiStatus = async () => {
   try {
-    const endpoint = getApiEndpoint('admin/status');
+    const endpoint = await getApiEndpoint('admin/status');
     const response = await fetchWithRetry(
       endpoint,
       {
-        apiKey: process.env.REACT_APP_ADMIN_API_KEY || 'test-key'
+        // APIキーはAWSから動的に管理されるため、ここでは指定しない
       }
     );
     return response;

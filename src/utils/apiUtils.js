@@ -63,7 +63,8 @@ export const createApiClient = (withAuth = false) => {
     withCredentials: true, // Cookieを送信するために必要
     headers: {
       'Content-Type': 'application/json',
-      'Accept': 'application/json'
+      'Accept': 'application/json',
+      // CORSプリフライトを避けるため、カスタムヘッダーは最小限に
     }
   });
   
@@ -248,12 +249,16 @@ export const fetchWithRetry = async (
   while (retries <= maxRetries) {
     try {
       // APIエンドポイントのURL生成
-      const url = endpoint.startsWith('http') ? endpoint : getApiEndpoint(endpoint);
+      const url = endpoint.startsWith('http') ? endpoint : await getApiEndpoint(endpoint);
       
       console.log(`[Attempt ${retries + 1}] 市場データ取得: ${url}`, params);
       
+      // APIキーは AWS から動的に取得されるため、ここでは設定しない
+      const headers = {};
+      
       const response = await marketDataClient.get(url, {
         params,
+        headers,
         timeout: timeout + (retries * 2000) // リトライごとにタイムアウトを延長
       });
       
@@ -282,7 +287,7 @@ export const fetchWithRetry = async (
 export const authFetch = async (endpoint, method = 'get', data = null, config = {}) => {
   try {
     // APIエンドポイントのURL生成
-    const url = endpoint.startsWith('http') ? endpoint : getApiEndpoint(endpoint);
+    const url = endpoint.startsWith('http') ? endpoint : await getApiEndpoint(endpoint);
     
     console.log(`認証付きリクエスト: ${method.toUpperCase()} ${url}`);
     console.log('authFetch cookie debug:', {
@@ -295,10 +300,14 @@ export const authFetch = async (endpoint, method = 'get', data = null, config = 
       config: config
     });
     
+    // APIキーは AWS から動的に取得されるため、ここでは設定しない
+    const headers = { ...config.headers };
+    
     // HTTPメソッド別の処理（withCredentialsを確実に設定）
     let response;
     const requestConfig = {
       ...config,
+      headers,
       withCredentials: true // 常にCookieを送信
     };
     
