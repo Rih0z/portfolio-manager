@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Circuit Breaker Reset</title>
+</head>
+<body>
+    <h1>Circuit Breaker Reset Tool</h1>
+    <button onclick="clearAllData()">Reset All Circuit Breakers and Clear Data</button>
+    <p id="status"></p>
+    
+    <script>
+        function clearAllData() {
+            // LocalStorageをクリア
+            localStorage.clear();
+            
+            // SessionStorageをクリア
+            sessionStorage.clear();
+            
+            // Cookieをクリア（可能な範囲で）
+            document.cookie.split(";").forEach(function(c) { 
+                document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+            });
+            
+            document.getElementById('status').innerHTML = 'All data cleared! Please go back to the app and try logging in again.';
+            
+            // 3秒後にアプリに戻る
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

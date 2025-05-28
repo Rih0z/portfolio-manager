@@ -154,8 +154,8 @@ export const AuthProvider = ({ children }) => {
       
       console.log('Google認証レスポンスを取得しました:', credentialResponse);
       
-      // リダイレクトURIを動的に生成（/auth/callbackを追加）
-      const redirectUri = window.location.origin + '/auth/callback';
+      // リダイレクトURIを動的に生成（/auth/google/callbackを追加）
+      const redirectUri = window.location.origin + '/auth/google/callback';
       console.log('リダイレクトURI:', redirectUri);
       
       // 認証エンドポイント
