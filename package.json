@@ -52,7 +52,9 @@
     "coverage:generate-chart": "node script/generate-coverage-chart.js",
     "coverage:view": "npm run test:view-coverage",
     "ci:test": "npm run test:clean && npm run test:coverage && npm run coverage:generate-chart",
-    "ci:test-with-chart": "npm run test:clean && npm run test:coverage-chart"
+    "ci:test-with-chart": "npm run test:clean && npm run test:coverage-chart",
+    "health-check": "node scripts/health-check.js",
+    "check-backend": "npm run health-check"
   },
   "eslintConfig": {
     "extends": [
