@@ -14,20 +14,33 @@
  * Google Drive連携機能をコンポーネントで簡単に利用できるように提供します。
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { fetchDriveFiles, saveToDrive, loadFromDrive } from '../services/googleDriveService';
 import { useAuth } from './useAuth';
+import { debounce } from '../utils/requestThrottle';
 
 export const useGoogleDrive = () => {
   const { isAuthenticated } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   
-  // ファイル一覧取得
-  const listFiles = useCallback(async () => {
+  // ファイルリストのキャッシュ（5分間有効）
+  const filesCacheRef = useRef({ files: null, timestamp: 0 });
+  const FILES_CACHE_DURATION = 5 * 60 * 1000; // 5分
+  
+  // ファイル一覧取得（キャッシュ付き）
+  const listFiles = useCallback(async (forceRefresh = false) => {
     if (!isAuthenticated) {
       setError('認証が必要です');
       return null;
+    }
+    
+    // キャッシュをチェック
+    const now = Date.now();
+    if (!forceRefresh && filesCacheRef.current.files && 
+        (now - filesCacheRef.current.timestamp) < FILES_CACHE_DURATION) {
+      console.log('Google Driveファイルリストをキャッシュから取得');
+      return filesCacheRef.current.files;
     }
     
     try {
@@ -37,6 +50,11 @@ export const useGoogleDrive = () => {
       const result = await fetchDriveFiles();
       
       if (result.success) {
+        // キャッシュを更新
+        filesCacheRef.current = {
+          files: result.files,
+          timestamp: now
+        };
         return result.files;
       } else {
         setError(result.error || '不明なエラー');
@@ -58,8 +76,8 @@ export const useGoogleDrive = () => {
     }
   }, [isAuthenticated]);
   
-  // ファイル保存
-  const saveFile = useCallback(async (portfolioData) => {
+  // ファイル保存（内部関数）
+  const saveFileInternal = useCallback(async (portfolioData) => {
     if (!isAuthenticated) {
       setError('認証が必要です');
       return null;
@@ -72,6 +90,8 @@ export const useGoogleDrive = () => {
       const result = await saveToDrive(portfolioData);
       
       if (result.success) {
+        // キャッシュをクリア（新しいファイルが追加されたため）
+        filesCacheRef.current = { files: null, timestamp: 0 };
         return result.file;
       } else {
         setError(result.error || '不明なエラー');
@@ -94,6 +114,12 @@ export const useGoogleDrive = () => {
       setLoading(false);
     }
   }, [isAuthenticated]);
+  
+  // デバウンスされた保存関数（連続保存を防ぐ）
+  const saveFile = useCallback(
+    debounce(saveFileInternal, 2000),
+    [saveFileInternal]
+  );
   
   // ファイル読み込み
   const loadFile = useCallback(async (fileId) => {

@@ -389,7 +389,7 @@ export const AuthProvider = ({ children }) => {
       sessionIntervalRef.current = setInterval(() => {
         console.log('定期セッションチェック実行');
         checkSession();
-      }, 5 * 60 * 1000); // 5分
+      }, 15 * 60 * 1000); // 15分
       
       return () => {
         if (sessionIntervalRef.current) {
@@ -400,20 +400,45 @@ export const AuthProvider = ({ children }) => {
     }
   }, [isAuthenticated, checkSession]);
   
-  // ページ表示時のセッション再確認
+  // ページ表示時のセッション再確認（デバウンス付き）
   useEffect(() => {
+    let visibilityCheckTimeout = null;
+    let lastCheckTime = Date.now();
+    const MIN_CHECK_INTERVAL = 60000; // 1分間は再チェックしない
+    
     const handleVisibilityChange = () => {
       if (!document.hidden && isAuthenticated) {
         // セッションチェックが停止していない場合のみ実行
         if (sessionCheckFailureCount.current < MAX_SESSION_CHECK_FAILURES) {
-          console.log('ページが表示されました - セッション再確認');
-          checkSession();
+          // 前回のチェックから十分時間が経過しているか確認
+          const timeSinceLastCheck = Date.now() - lastCheckTime;
+          
+          if (timeSinceLastCheck >= MIN_CHECK_INTERVAL) {
+            // 既存のタイムアウトをキャンセル
+            if (visibilityCheckTimeout) {
+              clearTimeout(visibilityCheckTimeout);
+            }
+            
+            // 1秒後にセッションチェック（デバウンス）
+            visibilityCheckTimeout = setTimeout(() => {
+              console.log('ページが表示されました - セッション再確認');
+              checkSession();
+              lastCheckTime = Date.now();
+            }, 1000);
+          } else {
+            console.log(`セッションチェックをスキップ: 前回から${Math.round(timeSinceLastCheck / 1000)}秒しか経過していません`);
+          }
         }
       }
     };
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (visibilityCheckTimeout) {
+        clearTimeout(visibilityCheckTimeout);
+      }
+    };
   }, [isAuthenticated, checkSession]);
   
   // Drive API認証を開始
