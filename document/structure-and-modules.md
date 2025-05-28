@@ -1,16 +1,64 @@
-# Portfolio Market Data API - プロジェクト構造とファイル説明
+# PortfolioWise - モノレポプロジェクト構造とファイル説明
 
 ## プロジェクト概要
 
-Portfolio Market Data API（portfolio-market-data-api）は、投資ポートフォリオ管理のための金融データAPIサービスです。米国株、日本株、投資信託、為替レート情報を様々なデータソースから取得し、統一的なインターフェースで提供します。また、Google認証、Google Driveとの連携、キャッシュ機能、フォールバックデータ管理などの機能を備えています。
+PortfolioWiseは、フロントエンドとバックエンドを同一リポジトリで管理するモノレポ構造を採用した投資ポートフォリオ管理システムです。
 
-このAPIはAWS Lambda上で動作するように設計されており、DynamoDB、SNSなどのAWSサービスを活用しています。
+- **フロントエンド**: React ベースのWebアプリケーション。ポートフォリオの視覚化、リバランス計算、AIプロンプト生成などの機能を提供
+- **バックエンド**: AWS Lambda ベースのAPIサービス。金融データの取得、認証、データ管理などを担当
 
-## ディレクトリ構造
+## プロジェクトルート構造
 
 ```
-src/
-├── config/            # 設定ファイル
+portfolio-manager/           # プロジェクトルート
+├── frontend/               # フロントエンドアプリケーション
+│   └── webapp/            # React Webアプリケーション
+├── backend/               # バックエンドAPIサービス
+├── document/              # プロジェクトドキュメント
+│   ├── frontend/          # フロントエンド関連ドキュメント
+│   └── backend/           # バックエンド関連ドキュメント
+├── README.md              # プロジェクト全体のREADME
+├── .gitignore            # Git無視ファイル設定
+└── netlify.toml          # Netlifyデプロイ設定
+```
+
+## フロントエンド構造（frontend/webapp/）
+
+```
+frontend/webapp/
+├── src/                     # ソースコード
+│   ├── components/          # Reactコンポーネント
+│   │   ├── auth/           # 認証関連（LoginButton, UserProfile）
+│   │   ├── common/         # 共通コンポーネント（ErrorBoundary, ToastNotification等）
+│   │   ├── dashboard/      # ダッシュボード（PortfolioCharts, AssetsTable等）
+│   │   ├── data/           # データ管理（ImportOptions, ExportOptions, GoogleDriveIntegration）
+│   │   ├── layout/         # レイアウト（Header, TabNavigation, DataStatusBar）
+│   │   ├── settings/       # 設定（AllocationEditor, HoldingsEditor, TickerSearch等）
+│   │   └── simulation/     # シミュレーション（SimulationResult, AiAnalysisPrompt等）
+│   ├── context/            # React Context
+│   │   ├── AuthContext.js  # 認証状態管理
+│   │   └── PortfolioContext.js # ポートフォリオデータ管理
+│   ├── hooks/              # カスタムフック
+│   ├── pages/              # ページコンポーネント
+│   ├── services/           # APIクライアント
+│   ├── utils/              # ユーティリティ関数
+│   ├── App.jsx             # メインアプリケーション
+│   └── index.js            # エントリーポイント
+├── public/                  # 静的ファイル
+├── __tests__/              # テストファイル
+│   ├── unit/              # ユニットテスト
+│   ├── integration/       # 統合テスト
+│   └── e2e/               # E2Eテスト
+├── scripts/                # ビルド・テストスクリプト
+├── package.json            # 依存関係管理
+└── README.md               # フロントエンドREADME
+```
+
+## バックエンド構造（backend/）
+
+```
+backend/
+├── src/                    # ソースコード
 │   ├── constants.js   # 定数定義
 │   └── envConfig.js   # 環境変数設定
 ├── function/          # Lambda関数ハンドラー

@@ -5,7 +5,7 @@ module.exports = function(app) {
   app.use(
     '/api',
     createProxyMiddleware({
-      target: process.env.REACT_APP_API_BASE_URL || 'https://x4scpbsuv2.execute-api.us-west-2.amazonaws.com',
+      target: process.env.REACT_APP_API_BASE_URL || 'http://localhost:4000', // デフォルトはローカル開発用
       changeOrigin: true,
       pathRewrite: {
         '^/api/market-data': '/dev/api/market-data',
