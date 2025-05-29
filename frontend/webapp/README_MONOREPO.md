@@ -8,9 +8,7 @@ This is a monorepo containing both frontend and backend code for the Portfolio M
 portfolio-manager/
 ├── frontend/
 │   └── webapp/        # React web application
-├── backend/           # Backend API (AWS Lambda functions)
-├── netlify/          # Netlify serverless functions
-└── netlify.toml      # Netlify configuration
+└── backend/           # Backend API (AWS Lambda functions)
 ```
 
 ## Development
@@ -45,5 +43,5 @@ npm run dev
 
 ## Deployment
 
-The frontend is automatically deployed to Netlify when pushing to the main branch.
+The frontend is automatically deployed to Cloudflare Pages when pushing to the main branch via GitHub Actions.
 

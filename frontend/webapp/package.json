@@ -30,7 +30,6 @@
     "test": "node scripts/setup-test-with-env.js && react-scripts test --coverage --watchAll=false",
     "test:custom": "node __tests__/manual/test-custom.js",
     "eject": "react-scripts eject",
-    "dev": "netlify dev",
     "test:setup-env": "node scripts/setup-test-with-env.js",
     "test:all": "scripts/run-tests.sh all",
     "test:unit": "scripts/run-tests.sh unit",

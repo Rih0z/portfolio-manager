@@ -7,7 +7,7 @@ This guide explains how to deploy the Portfolio Manager application to productio
 - AWS CLI configured with appropriate credentials
 - Node.js 18.x or higher
 - npm 8.x or higher
-- Netlify CLI (for frontend deployment)
+- Wrangler CLI (for Cloudflare Pages deployment)
 - Serverless Framework v3.32.2
 
 ## Backend Deployment (AWS) / バックエンドデプロイ
@@ -38,16 +38,19 @@ npm run deploy:prod
 ./scripts/setup-all-secrets.sh
 ```
 
-## Frontend Deployment (Netlify) / フロントエンドデプロイ
+## Frontend Deployment (Cloudflare Pages) / フロントエンドデプロイ
 
-### Current Configuration / 現在の設定
-`netlify.toml` is properly configured:
-```toml
-[build]
-  base = "frontend/webapp"
-  command = "CI= npm run build"
-  publish = "build"
+### Manual Deployment / 手動デプロイ
+```bash
+cd frontend/webapp
+npm install
+npm run build
+wrangler pages deploy build --project-name=portfolio-manager
 ```
+
+### Automatic Deployment / 自動デプロイ
+GitHub Actionsが設定されており、mainブランチへのプッシュで自動的にデプロイされます。
+`.github/workflows/deploy-cloudflare.yml`参照
 
 ### Environment Variables / 環境変数
 
