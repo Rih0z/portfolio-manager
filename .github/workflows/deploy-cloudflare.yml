@@ -24,9 +24,12 @@ jobs:
       - name: Build
         run: |
           cd frontend/webapp
+          echo "Building with environment variables:"
+          echo "REACT_APP_API_BASE_URL=$REACT_APP_API_BASE_URL"
+          echo "REACT_APP_DEFAULT_EXCHANGE_RATE=$REACT_APP_DEFAULT_EXCHANGE_RATE"
           NODE_OPTIONS='--openssl-legacy-provider' npm run build
         env:
-          REACT_APP_API_BASE_URL: ${{ secrets.REACT_APP_API_BASE_URL }}
+          REACT_APP_API_BASE_URL: 'https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod'
           REACT_APP_DEFAULT_EXCHANGE_RATE: '150.0'
           
       - name: Deploy to Cloudflare Pages

@@ -1,0 +1,6 @@
+name = "portfolio-manager"
+compatibility_date = "2025-05-29"
+
+[vars]
+REACT_APP_API_BASE_URL = "https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod"
+REACT_APP_DEFAULT_EXCHANGE_RATE = "150.0"
