@@ -139,6 +139,7 @@ functions:
               - https://portfolio-wise.com
               - https://www.portfolio-wise.com
               - https://app.portfolio-wise.com
+              - https://portfolio-manager-7bx.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -168,6 +169,7 @@ functions:
               - https://portfolio-wise.com
               - https://www.portfolio-wise.com
               - https://app.portfolio-wise.com
+              - https://portfolio-manager-7bx.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -192,6 +194,7 @@ functions:
               - https://portfolio-wise.com
               - https://www.portfolio-wise.com
               - https://app.portfolio-wise.com
+              - https://portfolio-manager-7bx.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -216,6 +219,7 @@ functions:
               - https://portfolio-wise.com
               - https://www.portfolio-wise.com
               - https://app.portfolio-wise.com
+              - https://portfolio-manager-7bx.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -241,6 +245,7 @@ functions:
               - https://portfolio-wise.com
               - https://www.portfolio-wise.com
               - https://app.portfolio-wise.com
+              - https://portfolio-manager-7bx.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -260,6 +265,7 @@ functions:
               - https://portfolio-wise.com
               - https://www.portfolio-wise.com
               - https://app.portfolio-wise.com
+              - https://portfolio-manager-7bx.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -283,6 +289,7 @@ functions:
               - https://portfolio-wise.com
               - https://www.portfolio-wise.com
               - https://app.portfolio-wise.com
+              - https://portfolio-manager-7bx.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -306,6 +313,7 @@ functions:
               - https://portfolio-wise.com
               - https://www.portfolio-wise.com
               - https://app.portfolio-wise.com
+              - https://portfolio-manager-7bx.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -330,6 +338,7 @@ functions:
               - https://portfolio-wise.com
               - https://www.portfolio-wise.com
               - https://app.portfolio-wise.com
+              - https://portfolio-manager-7bx.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -355,6 +364,7 @@ functions:
               - https://portfolio-wise.com
               - https://www.portfolio-wise.com
               - https://app.portfolio-wise.com
+              - https://portfolio-manager-7bx.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -374,6 +384,7 @@ functions:
               - https://portfolio-wise.com
               - https://www.portfolio-wise.com
               - https://app.portfolio-wise.com
+              - https://portfolio-manager-7bx.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -397,6 +408,7 @@ functions:
               - https://portfolio-wise.com
               - https://www.portfolio-wise.com
               - https://app.portfolio-wise.com
+              - https://portfolio-manager-7bx.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -421,6 +433,7 @@ functions:
               - https://portfolio-wise.com
               - https://www.portfolio-wise.com
               - https://app.portfolio-wise.com
+              - https://portfolio-manager-7bx.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -444,6 +457,7 @@ functions:
               - https://portfolio-wise.com
               - https://www.portfolio-wise.com
               - https://app.portfolio-wise.com
+              - https://portfolio-manager-7bx.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -467,6 +481,7 @@ functions:
               - https://portfolio-wise.com
               - https://www.portfolio-wise.com
               - https://app.portfolio-wise.com
+              - https://portfolio-manager-7bx.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -491,6 +506,7 @@ functions:
               - https://portfolio-wise.com
               - https://www.portfolio-wise.com
               - https://app.portfolio-wise.com
+              - https://portfolio-manager-7bx.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -596,8 +612,8 @@ custom:
     dev: ${env:DRIVE_AUTH_SUCCESS_URL, 'http://localhost:3001/drive-success'}
     prod: https://${env:DOMAIN_NAME, 'portfolio-wise.com'}/drive-success
   corsAllowedOrigins:
-    dev: ${env:CORS_ALLOWED_ORIGINS, 'http://localhost:3000,http://localhost:3001,https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com'}
-    prod: ${env:CORS_ALLOWED_ORIGINS, 'https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com'}
+    dev: ${env:CORS_ALLOWED_ORIGINS, 'http://localhost:3000,http://localhost:3001,https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com,https://portfolio-manager-7bx.pages.dev,https://*.portfolio-manager-7bx.pages.dev'}
+    prod: ${env:CORS_ALLOWED_ORIGINS, 'https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com,https://portfolio-manager-7bx.pages.dev,https://*.portfolio-manager-7bx.pages.dev'}
   # Production specific settings
   logRetentionInDays:
     dev: 7
