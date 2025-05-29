@@ -65,7 +65,10 @@ frontend/webapp/*.log
 backend/node_modules/
 backend/dist/
 backend/.env*
+!backend/.env.example
 backend/*.log
+backend/.serverless/
+backend/deploy.log
 
 # 内部ドキュメント（機密情報を含む可能性があるため）
 /document/message/

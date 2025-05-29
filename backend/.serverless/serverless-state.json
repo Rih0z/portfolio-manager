@@ -8,12 +8,12 @@
       "name": "aws",
       "runtime": "nodejs18.x",
       "region": "us-west-2",
-      "stage": "dev",
+      "stage": "prod",
       "profile": "",
       "memorySize": 256,
       "timeout": 30,
       "environment": {
-        "NODE_ENV": "dev",
+        "NODE_ENV": "prod",
         "ADMIN_EMAIL": "",
         "DAILY_REQUEST_LIMIT": "5000",
         "MONTHLY_REQUEST_LIMIT": "100000",
@@ -21,13 +21,13 @@
         "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
         "IP_BLACKLIST": "",
         "BLOCKED_COUNTRIES": "",
-        "RATE_LIMIT_TABLE": "pfwise-api-dev-rate-limits",
+        "RATE_LIMIT_TABLE": "pfwise-api-prod-rate-limits",
         "CACHE_TIME_US_STOCK": "3600",
         "CACHE_TIME_JP_STOCK": "3600",
         "CACHE_TIME_MUTUAL_FUND": "10800",
         "CACHE_TIME_EXCHANGE_RATE": "3600",
-        "SESSION_TABLE": "pfwise-api-dev-sessions",
-        "CACHE_TABLE": "pfwise-api-dev-cache",
+        "SESSION_TABLE": "pfwise-api-prod-sessions",
+        "CACHE_TABLE": "pfwise-api-prod-cache",
         "CORS_ALLOW_ORIGIN": "*.portfoliomanager.com",
         "DRIVE_FOLDER_NAME": "PortfolioManagerData",
         "LOG_LEVEL": "info",
@@ -46,8 +46,8 @@
         "ENABLE_AUDIT_LOGGING": "true",
         "ENABLE_RATE_LIMITING": "true",
         "MAX_REQUESTS_PER_MINUTE": "100",
-        "DRIVE_AUTH_SUCCESS_URL": "http://localhost:3001/drive-success",
-        "CORS_ALLOWED_ORIGINS": "http://localhost:3000,http://localhost:3001,https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+        "DRIVE_AUTH_SUCCESS_URL": "https://portfoliomanager.com/drive-success",
+        "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
       },
       "iamRoleStatements": [
         {
@@ -191,91 +191,91 @@
           "MarketDataLogGroup": {
             "Type": "AWS::Logs::LogGroup",
             "Properties": {
-              "LogGroupName": "/aws/lambda/pfwise-api-dev-marketData"
+              "LogGroupName": "/aws/lambda/pfwise-api-prod-marketData"
             }
           },
           "PreWarmCacheLogGroup": {
             "Type": "AWS::Logs::LogGroup",
             "Properties": {
-              "LogGroupName": "/aws/lambda/pfwise-api-dev-preWarmCache"
+              "LogGroupName": "/aws/lambda/pfwise-api-prod-preWarmCache"
             }
           },
           "GetStatusLogGroup": {
             "Type": "AWS::Logs::LogGroup",
             "Properties": {
-              "LogGroupName": "/aws/lambda/pfwise-api-dev-getStatus"
+              "LogGroupName": "/aws/lambda/pfwise-api-prod-getStatus"
             }
           },
           "ResetUsageLogGroup": {
             "Type": "AWS::Logs::LogGroup",
             "Properties": {
-              "LogGroupName": "/aws/lambda/pfwise-api-dev-resetUsage"
+              "LogGroupName": "/aws/lambda/pfwise-api-prod-resetUsage"
             }
           },
           "GetBudgetStatusLogGroup": {
             "Type": "AWS::Logs::LogGroup",
             "Properties": {
-              "LogGroupName": "/aws/lambda/pfwise-api-dev-getBudgetStatus"
+              "LogGroupName": "/aws/lambda/pfwise-api-prod-getBudgetStatus"
             }
           },
           "GoogleLoginLogGroup": {
             "Type": "AWS::Logs::LogGroup",
             "Properties": {
-              "LogGroupName": "/aws/lambda/pfwise-api-dev-googleLogin"
+              "LogGroupName": "/aws/lambda/pfwise-api-prod-googleLogin"
             }
           },
           "GetSessionLogGroup": {
             "Type": "AWS::Logs::LogGroup",
             "Properties": {
-              "LogGroupName": "/aws/lambda/pfwise-api-dev-getSession"
+              "LogGroupName": "/aws/lambda/pfwise-api-prod-getSession"
             }
           },
           "LogoutLogGroup": {
             "Type": "AWS::Logs::LogGroup",
             "Properties": {
-              "LogGroupName": "/aws/lambda/pfwise-api-dev-logout"
+              "LogGroupName": "/aws/lambda/pfwise-api-prod-logout"
             }
           },
           "GoogleDriveAuthInitiateLogGroup": {
             "Type": "AWS::Logs::LogGroup",
             "Properties": {
-              "LogGroupName": "/aws/lambda/pfwise-api-dev-googleDriveAuthInitiate"
+              "LogGroupName": "/aws/lambda/pfwise-api-prod-googleDriveAuthInitiate"
             }
           },
           "GoogleDriveAuthCallbackLogGroup": {
             "Type": "AWS::Logs::LogGroup",
             "Properties": {
-              "LogGroupName": "/aws/lambda/pfwise-api-dev-googleDriveAuthCallback"
+              "LogGroupName": "/aws/lambda/pfwise-api-prod-googleDriveAuthCallback"
             }
           },
           "SaveFileLogGroup": {
             "Type": "AWS::Logs::LogGroup",
             "Properties": {
-              "LogGroupName": "/aws/lambda/pfwise-api-dev-saveFile"
+              "LogGroupName": "/aws/lambda/pfwise-api-prod-saveFile"
             }
           },
           "LoadFileLogGroup": {
             "Type": "AWS::Logs::LogGroup",
             "Properties": {
-              "LogGroupName": "/aws/lambda/pfwise-api-dev-loadFile"
+              "LogGroupName": "/aws/lambda/pfwise-api-prod-loadFile"
             }
           },
           "ListFilesLogGroup": {
             "Type": "AWS::Logs::LogGroup",
             "Properties": {
-              "LogGroupName": "/aws/lambda/pfwise-api-dev-listFiles"
+              "LogGroupName": "/aws/lambda/pfwise-api-prod-listFiles"
             }
           },
           "GetClientConfigLogGroup": {
             "Type": "AWS::Logs::LogGroup",
             "Properties": {
-              "LogGroupName": "/aws/lambda/pfwise-api-dev-getClientConfig"
+              "LogGroupName": "/aws/lambda/pfwise-api-prod-getClientConfig"
             }
           },
           "DebugGoogleConfigLogGroup": {
             "Type": "AWS::Logs::LogGroup",
             "Properties": {
-              "LogGroupName": "/aws/lambda/pfwise-api-dev-debugGoogleConfig"
+              "LogGroupName": "/aws/lambda/pfwise-api-prod-debugGoogleConfig"
             }
           },
           "IamRoleLambdaExecution": {
@@ -304,7 +304,7 @@
                       "-",
                       [
                         "pfwise-api",
-                        "dev",
+                        "prod",
                         "lambda"
                       ]
                     ]
@@ -321,7 +321,7 @@
                         ],
                         "Resource": [
                           {
-                            "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/pfwise-api-dev*:*"
+                            "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/pfwise-api-prod*:*"
                           }
                         ]
                       },
@@ -332,7 +332,7 @@
                         ],
                         "Resource": [
                           {
-                            "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/pfwise-api-dev*:*:*"
+                            "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/pfwise-api-prod*:*:*"
                           }
                         ]
                       },
@@ -355,7 +355,7 @@
                   "-",
                   [
                     "pfwise-api",
-                    "dev",
+                    "prod",
                     {
                       "Ref": "AWS::Region"
                     },
@@ -372,16 +372,16 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pfwise-api/dev/1748483377091-2025-05-29T01:49:37.091Z/pfwise-api.zip"
+                "S3Key": "serverless/pfwise-api/prod/1748483871846-2025-05-29T01:57:51.846Z/pfwise-api.zip"
               },
               "Handler": "src/function/marketData.handler",
               "Runtime": "nodejs18.x",
-              "FunctionName": "pfwise-api-dev-marketData",
+              "FunctionName": "pfwise-api-prod-marketData",
               "MemorySize": 256,
               "Timeout": 30,
               "Environment": {
                 "Variables": {
-                  "NODE_ENV": "dev",
+                  "NODE_ENV": "prod",
                   "ADMIN_EMAIL": "",
                   "DAILY_REQUEST_LIMIT": "5000",
                   "MONTHLY_REQUEST_LIMIT": "100000",
@@ -389,13 +389,13 @@
                   "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
                   "IP_BLACKLIST": "",
                   "BLOCKED_COUNTRIES": "",
-                  "RATE_LIMIT_TABLE": "pfwise-api-dev-rate-limits",
+                  "RATE_LIMIT_TABLE": "pfwise-api-prod-rate-limits",
                   "CACHE_TIME_US_STOCK": "3600",
                   "CACHE_TIME_JP_STOCK": "3600",
                   "CACHE_TIME_MUTUAL_FUND": "10800",
                   "CACHE_TIME_EXCHANGE_RATE": "3600",
-                  "SESSION_TABLE": "pfwise-api-dev-sessions",
-                  "CACHE_TABLE": "pfwise-api-dev-cache",
+                  "SESSION_TABLE": "pfwise-api-prod-sessions",
+                  "CACHE_TABLE": "pfwise-api-prod-cache",
                   "CORS_ALLOW_ORIGIN": "*.portfoliomanager.com",
                   "DRIVE_FOLDER_NAME": "PortfolioManagerData",
                   "LOG_LEVEL": "info",
@@ -414,8 +414,8 @@
                   "ENABLE_AUDIT_LOGGING": "true",
                   "ENABLE_RATE_LIMITING": "true",
                   "MAX_REQUESTS_PER_MINUTE": "100",
-                  "DRIVE_AUTH_SUCCESS_URL": "http://localhost:3001/drive-success",
-                  "CORS_ALLOWED_ORIGINS": "http://localhost:3000,http://localhost:3001,https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                  "DRIVE_AUTH_SUCCESS_URL": "https://portfoliomanager.com/drive-success",
+                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
                 }
               },
               "Role": {
@@ -436,16 +436,16 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pfwise-api/dev/1748483377091-2025-05-29T01:49:37.091Z/pfwise-api.zip"
+                "S3Key": "serverless/pfwise-api/prod/1748483871846-2025-05-29T01:57:51.846Z/pfwise-api.zip"
               },
               "Handler": "src/function/preWarmCache.handler",
               "Runtime": "nodejs18.x",
-              "FunctionName": "pfwise-api-dev-preWarmCache",
+              "FunctionName": "pfwise-api-prod-preWarmCache",
               "MemorySize": 256,
               "Timeout": 30,
               "Environment": {
                 "Variables": {
-                  "NODE_ENV": "dev",
+                  "NODE_ENV": "prod",
                   "ADMIN_EMAIL": "",
                   "DAILY_REQUEST_LIMIT": "5000",
                   "MONTHLY_REQUEST_LIMIT": "100000",
@@ -453,13 +453,13 @@
                   "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
                   "IP_BLACKLIST": "",
                   "BLOCKED_COUNTRIES": "",
-                  "RATE_LIMIT_TABLE": "pfwise-api-dev-rate-limits",
+                  "RATE_LIMIT_TABLE": "pfwise-api-prod-rate-limits",
                   "CACHE_TIME_US_STOCK": "3600",
                   "CACHE_TIME_JP_STOCK": "3600",
                   "CACHE_TIME_MUTUAL_FUND": "10800",
                   "CACHE_TIME_EXCHANGE_RATE": "3600",
-                  "SESSION_TABLE": "pfwise-api-dev-sessions",
-                  "CACHE_TABLE": "pfwise-api-dev-cache",
+                  "SESSION_TABLE": "pfwise-api-prod-sessions",
+                  "CACHE_TABLE": "pfwise-api-prod-cache",
                   "CORS_ALLOW_ORIGIN": "*.portfoliomanager.com",
                   "DRIVE_FOLDER_NAME": "PortfolioManagerData",
                   "LOG_LEVEL": "info",
@@ -478,8 +478,8 @@
                   "ENABLE_AUDIT_LOGGING": "true",
                   "ENABLE_RATE_LIMITING": "true",
                   "MAX_REQUESTS_PER_MINUTE": "100",
-                  "DRIVE_AUTH_SUCCESS_URL": "http://localhost:3001/drive-success",
-                  "CORS_ALLOWED_ORIGINS": "http://localhost:3000,http://localhost:3001,https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                  "DRIVE_AUTH_SUCCESS_URL": "https://portfoliomanager.com/drive-success",
+                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
                 }
               },
               "Role": {
@@ -500,16 +500,16 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pfwise-api/dev/1748483377091-2025-05-29T01:49:37.091Z/pfwise-api.zip"
+                "S3Key": "serverless/pfwise-api/prod/1748483871846-2025-05-29T01:57:51.846Z/pfwise-api.zip"
               },
               "Handler": "src/function/admin/getStatus.handler",
               "Runtime": "nodejs18.x",
-              "FunctionName": "pfwise-api-dev-getStatus",
+              "FunctionName": "pfwise-api-prod-getStatus",
               "MemorySize": 256,
               "Timeout": 30,
               "Environment": {
                 "Variables": {
-                  "NODE_ENV": "dev",
+                  "NODE_ENV": "prod",
                   "ADMIN_EMAIL": "",
                   "DAILY_REQUEST_LIMIT": "5000",
                   "MONTHLY_REQUEST_LIMIT": "100000",
@@ -517,13 +517,13 @@
                   "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
                   "IP_BLACKLIST": "",
                   "BLOCKED_COUNTRIES": "",
-                  "RATE_LIMIT_TABLE": "pfwise-api-dev-rate-limits",
+                  "RATE_LIMIT_TABLE": "pfwise-api-prod-rate-limits",
                   "CACHE_TIME_US_STOCK": "3600",
                   "CACHE_TIME_JP_STOCK": "3600",
                   "CACHE_TIME_MUTUAL_FUND": "10800",
                   "CACHE_TIME_EXCHANGE_RATE": "3600",
-                  "SESSION_TABLE": "pfwise-api-dev-sessions",
-                  "CACHE_TABLE": "pfwise-api-dev-cache",
+                  "SESSION_TABLE": "pfwise-api-prod-sessions",
+                  "CACHE_TABLE": "pfwise-api-prod-cache",
                   "CORS_ALLOW_ORIGIN": "*.portfoliomanager.com",
                   "DRIVE_FOLDER_NAME": "PortfolioManagerData",
                   "LOG_LEVEL": "info",
@@ -542,8 +542,8 @@
                   "ENABLE_AUDIT_LOGGING": "true",
                   "ENABLE_RATE_LIMITING": "true",
                   "MAX_REQUESTS_PER_MINUTE": "100",
-                  "DRIVE_AUTH_SUCCESS_URL": "http://localhost:3001/drive-success",
-                  "CORS_ALLOWED_ORIGINS": "http://localhost:3000,http://localhost:3001,https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                  "DRIVE_AUTH_SUCCESS_URL": "https://portfoliomanager.com/drive-success",
+                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
                 }
               },
               "Role": {
@@ -564,16 +564,16 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pfwise-api/dev/1748483377091-2025-05-29T01:49:37.091Z/pfwise-api.zip"
+                "S3Key": "serverless/pfwise-api/prod/1748483871846-2025-05-29T01:57:51.846Z/pfwise-api.zip"
               },
               "Handler": "src/function/admin/resetUsage.handler",
               "Runtime": "nodejs18.x",
-              "FunctionName": "pfwise-api-dev-resetUsage",
+              "FunctionName": "pfwise-api-prod-resetUsage",
               "MemorySize": 256,
               "Timeout": 30,
               "Environment": {
                 "Variables": {
-                  "NODE_ENV": "dev",
+                  "NODE_ENV": "prod",
                   "ADMIN_EMAIL": "",
                   "DAILY_REQUEST_LIMIT": "5000",
                   "MONTHLY_REQUEST_LIMIT": "100000",
@@ -581,13 +581,13 @@
                   "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
                   "IP_BLACKLIST": "",
                   "BLOCKED_COUNTRIES": "",
-                  "RATE_LIMIT_TABLE": "pfwise-api-dev-rate-limits",
+                  "RATE_LIMIT_TABLE": "pfwise-api-prod-rate-limits",
                   "CACHE_TIME_US_STOCK": "3600",
                   "CACHE_TIME_JP_STOCK": "3600",
                   "CACHE_TIME_MUTUAL_FUND": "10800",
                   "CACHE_TIME_EXCHANGE_RATE": "3600",
-                  "SESSION_TABLE": "pfwise-api-dev-sessions",
-                  "CACHE_TABLE": "pfwise-api-dev-cache",
+                  "SESSION_TABLE": "pfwise-api-prod-sessions",
+                  "CACHE_TABLE": "pfwise-api-prod-cache",
                   "CORS_ALLOW_ORIGIN": "*.portfoliomanager.com",
                   "DRIVE_FOLDER_NAME": "PortfolioManagerData",
                   "LOG_LEVEL": "info",
@@ -606,8 +606,8 @@
                   "ENABLE_AUDIT_LOGGING": "true",
                   "ENABLE_RATE_LIMITING": "true",
                   "MAX_REQUESTS_PER_MINUTE": "100",
-                  "DRIVE_AUTH_SUCCESS_URL": "http://localhost:3001/drive-success",
-                  "CORS_ALLOWED_ORIGINS": "http://localhost:3000,http://localhost:3001,https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                  "DRIVE_AUTH_SUCCESS_URL": "https://portfoliomanager.com/drive-success",
+                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
                 }
               },
               "Role": {
@@ -628,16 +628,16 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pfwise-api/dev/1748483377091-2025-05-29T01:49:37.091Z/pfwise-api.zip"
+                "S3Key": "serverless/pfwise-api/prod/1748483871846-2025-05-29T01:57:51.846Z/pfwise-api.zip"
               },
               "Handler": "src/function/admin/getBudgetStatus.handler",
               "Runtime": "nodejs18.x",
-              "FunctionName": "pfwise-api-dev-getBudgetStatus",
+              "FunctionName": "pfwise-api-prod-getBudgetStatus",
               "MemorySize": 256,
               "Timeout": 30,
               "Environment": {
                 "Variables": {
-                  "NODE_ENV": "dev",
+                  "NODE_ENV": "prod",
                   "ADMIN_EMAIL": "",
                   "DAILY_REQUEST_LIMIT": "5000",
                   "MONTHLY_REQUEST_LIMIT": "100000",
@@ -645,13 +645,13 @@
                   "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
                   "IP_BLACKLIST": "",
                   "BLOCKED_COUNTRIES": "",
-                  "RATE_LIMIT_TABLE": "pfwise-api-dev-rate-limits",
+                  "RATE_LIMIT_TABLE": "pfwise-api-prod-rate-limits",
                   "CACHE_TIME_US_STOCK": "3600",
                   "CACHE_TIME_JP_STOCK": "3600",
                   "CACHE_TIME_MUTUAL_FUND": "10800",
                   "CACHE_TIME_EXCHANGE_RATE": "3600",
-                  "SESSION_TABLE": "pfwise-api-dev-sessions",
-                  "CACHE_TABLE": "pfwise-api-dev-cache",
+                  "SESSION_TABLE": "pfwise-api-prod-sessions",
+                  "CACHE_TABLE": "pfwise-api-prod-cache",
                   "CORS_ALLOW_ORIGIN": "*.portfoliomanager.com",
                   "DRIVE_FOLDER_NAME": "PortfolioManagerData",
                   "LOG_LEVEL": "info",
@@ -670,8 +670,8 @@
                   "ENABLE_AUDIT_LOGGING": "true",
                   "ENABLE_RATE_LIMITING": "true",
                   "MAX_REQUESTS_PER_MINUTE": "100",
-                  "DRIVE_AUTH_SUCCESS_URL": "http://localhost:3001/drive-success",
-                  "CORS_ALLOWED_ORIGINS": "http://localhost:3000,http://localhost:3001,https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                  "DRIVE_AUTH_SUCCESS_URL": "https://portfoliomanager.com/drive-success",
+                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
                 }
               },
               "Role": {
@@ -692,16 +692,16 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pfwise-api/dev/1748483377091-2025-05-29T01:49:37.091Z/pfwise-api.zip"
+                "S3Key": "serverless/pfwise-api/prod/1748483871846-2025-05-29T01:57:51.846Z/pfwise-api.zip"
               },
               "Handler": "src/function/auth/googleLogin.handler",
               "Runtime": "nodejs18.x",
-              "FunctionName": "pfwise-api-dev-googleLogin",
+              "FunctionName": "pfwise-api-prod-googleLogin",
               "MemorySize": 256,
               "Timeout": 30,
               "Environment": {
                 "Variables": {
-                  "NODE_ENV": "dev",
+                  "NODE_ENV": "prod",
                   "ADMIN_EMAIL": "",
                   "DAILY_REQUEST_LIMIT": "5000",
                   "MONTHLY_REQUEST_LIMIT": "100000",
@@ -709,13 +709,13 @@
                   "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
                   "IP_BLACKLIST": "",
                   "BLOCKED_COUNTRIES": "",
-                  "RATE_LIMIT_TABLE": "pfwise-api-dev-rate-limits",
+                  "RATE_LIMIT_TABLE": "pfwise-api-prod-rate-limits",
                   "CACHE_TIME_US_STOCK": "3600",
                   "CACHE_TIME_JP_STOCK": "3600",
                   "CACHE_TIME_MUTUAL_FUND": "10800",
                   "CACHE_TIME_EXCHANGE_RATE": "3600",
-                  "SESSION_TABLE": "pfwise-api-dev-sessions",
-                  "CACHE_TABLE": "pfwise-api-dev-cache",
+                  "SESSION_TABLE": "pfwise-api-prod-sessions",
+                  "CACHE_TABLE": "pfwise-api-prod-cache",
                   "CORS_ALLOW_ORIGIN": "*.portfoliomanager.com",
                   "DRIVE_FOLDER_NAME": "PortfolioManagerData",
                   "LOG_LEVEL": "info",
@@ -734,8 +734,8 @@
                   "ENABLE_AUDIT_LOGGING": "true",
                   "ENABLE_RATE_LIMITING": "true",
                   "MAX_REQUESTS_PER_MINUTE": "100",
-                  "DRIVE_AUTH_SUCCESS_URL": "http://localhost:3001/drive-success",
-                  "CORS_ALLOWED_ORIGINS": "http://localhost:3000,http://localhost:3001,https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                  "DRIVE_AUTH_SUCCESS_URL": "https://portfoliomanager.com/drive-success",
+                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
                 }
               },
               "Role": {
@@ -756,16 +756,16 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pfwise-api/dev/1748483377091-2025-05-29T01:49:37.091Z/pfwise-api.zip"
+                "S3Key": "serverless/pfwise-api/prod/1748483871846-2025-05-29T01:57:51.846Z/pfwise-api.zip"
               },
               "Handler": "src/function/auth/getSession.handler",
               "Runtime": "nodejs18.x",
-              "FunctionName": "pfwise-api-dev-getSession",
+              "FunctionName": "pfwise-api-prod-getSession",
               "MemorySize": 256,
               "Timeout": 30,
               "Environment": {
                 "Variables": {
-                  "NODE_ENV": "dev",
+                  "NODE_ENV": "prod",
                   "ADMIN_EMAIL": "",
                   "DAILY_REQUEST_LIMIT": "5000",
                   "MONTHLY_REQUEST_LIMIT": "100000",
@@ -773,13 +773,13 @@
                   "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
                   "IP_BLACKLIST": "",
                   "BLOCKED_COUNTRIES": "",
-                  "RATE_LIMIT_TABLE": "pfwise-api-dev-rate-limits",
+                  "RATE_LIMIT_TABLE": "pfwise-api-prod-rate-limits",
                   "CACHE_TIME_US_STOCK": "3600",
                   "CACHE_TIME_JP_STOCK": "3600",
                   "CACHE_TIME_MUTUAL_FUND": "10800",
                   "CACHE_TIME_EXCHANGE_RATE": "3600",
-                  "SESSION_TABLE": "pfwise-api-dev-sessions",
-                  "CACHE_TABLE": "pfwise-api-dev-cache",
+                  "SESSION_TABLE": "pfwise-api-prod-sessions",
+                  "CACHE_TABLE": "pfwise-api-prod-cache",
                   "CORS_ALLOW_ORIGIN": "*.portfoliomanager.com",
                   "DRIVE_FOLDER_NAME": "PortfolioManagerData",
                   "LOG_LEVEL": "info",
@@ -798,8 +798,8 @@
                   "ENABLE_AUDIT_LOGGING": "true",
                   "ENABLE_RATE_LIMITING": "true",
                   "MAX_REQUESTS_PER_MINUTE": "100",
-                  "DRIVE_AUTH_SUCCESS_URL": "http://localhost:3001/drive-success",
-                  "CORS_ALLOWED_ORIGINS": "http://localhost:3000,http://localhost:3001,https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                  "DRIVE_AUTH_SUCCESS_URL": "https://portfoliomanager.com/drive-success",
+                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
                 }
               },
               "Role": {
@@ -820,16 +820,16 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pfwise-api/dev/1748483377091-2025-05-29T01:49:37.091Z/pfwise-api.zip"
+                "S3Key": "serverless/pfwise-api/prod/1748483871846-2025-05-29T01:57:51.846Z/pfwise-api.zip"
               },
               "Handler": "src/function/auth/logout.handler",
               "Runtime": "nodejs18.x",
-              "FunctionName": "pfwise-api-dev-logout",
+              "FunctionName": "pfwise-api-prod-logout",
               "MemorySize": 256,
               "Timeout": 30,
               "Environment": {
                 "Variables": {
-                  "NODE_ENV": "dev",
+                  "NODE_ENV": "prod",
                   "ADMIN_EMAIL": "",
                   "DAILY_REQUEST_LIMIT": "5000",
                   "MONTHLY_REQUEST_LIMIT": "100000",
@@ -837,13 +837,13 @@
                   "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
                   "IP_BLACKLIST": "",
                   "BLOCKED_COUNTRIES": "",
-                  "RATE_LIMIT_TABLE": "pfwise-api-dev-rate-limits",
+                  "RATE_LIMIT_TABLE": "pfwise-api-prod-rate-limits",
                   "CACHE_TIME_US_STOCK": "3600",
                   "CACHE_TIME_JP_STOCK": "3600",
                   "CACHE_TIME_MUTUAL_FUND": "10800",
                   "CACHE_TIME_EXCHANGE_RATE": "3600",
-                  "SESSION_TABLE": "pfwise-api-dev-sessions",
-                  "CACHE_TABLE": "pfwise-api-dev-cache",
+                  "SESSION_TABLE": "pfwise-api-prod-sessions",
+                  "CACHE_TABLE": "pfwise-api-prod-cache",
                   "CORS_ALLOW_ORIGIN": "*.portfoliomanager.com",
                   "DRIVE_FOLDER_NAME": "PortfolioManagerData",
                   "LOG_LEVEL": "info",
@@ -862,8 +862,8 @@
                   "ENABLE_AUDIT_LOGGING": "true",
                   "ENABLE_RATE_LIMITING": "true",
                   "MAX_REQUESTS_PER_MINUTE": "100",
-                  "DRIVE_AUTH_SUCCESS_URL": "http://localhost:3001/drive-success",
-                  "CORS_ALLOWED_ORIGINS": "http://localhost:3000,http://localhost:3001,https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                  "DRIVE_AUTH_SUCCESS_URL": "https://portfoliomanager.com/drive-success",
+                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
                 }
               },
               "Role": {
@@ -884,16 +884,16 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pfwise-api/dev/1748483377091-2025-05-29T01:49:37.091Z/pfwise-api.zip"
+                "S3Key": "serverless/pfwise-api/prod/1748483871846-2025-05-29T01:57:51.846Z/pfwise-api.zip"
               },
               "Handler": "src/function/auth/googleDriveAuth.initiateAuth",
               "Runtime": "nodejs18.x",
-              "FunctionName": "pfwise-api-dev-googleDriveAuthInitiate",
+              "FunctionName": "pfwise-api-prod-googleDriveAuthInitiate",
               "MemorySize": 256,
               "Timeout": 30,
               "Environment": {
                 "Variables": {
-                  "NODE_ENV": "dev",
+                  "NODE_ENV": "prod",
                   "ADMIN_EMAIL": "",
                   "DAILY_REQUEST_LIMIT": "5000",
                   "MONTHLY_REQUEST_LIMIT": "100000",
@@ -901,13 +901,13 @@
                   "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
                   "IP_BLACKLIST": "",
                   "BLOCKED_COUNTRIES": "",
-                  "RATE_LIMIT_TABLE": "pfwise-api-dev-rate-limits",
+                  "RATE_LIMIT_TABLE": "pfwise-api-prod-rate-limits",
                   "CACHE_TIME_US_STOCK": "3600",
                   "CACHE_TIME_JP_STOCK": "3600",
                   "CACHE_TIME_MUTUAL_FUND": "10800",
                   "CACHE_TIME_EXCHANGE_RATE": "3600",
-                  "SESSION_TABLE": "pfwise-api-dev-sessions",
-                  "CACHE_TABLE": "pfwise-api-dev-cache",
+                  "SESSION_TABLE": "pfwise-api-prod-sessions",
+                  "CACHE_TABLE": "pfwise-api-prod-cache",
                   "CORS_ALLOW_ORIGIN": "*.portfoliomanager.com",
                   "DRIVE_FOLDER_NAME": "PortfolioManagerData",
                   "LOG_LEVEL": "info",
@@ -926,8 +926,8 @@
                   "ENABLE_AUDIT_LOGGING": "true",
                   "ENABLE_RATE_LIMITING": "true",
                   "MAX_REQUESTS_PER_MINUTE": "100",
-                  "DRIVE_AUTH_SUCCESS_URL": "http://localhost:3001/drive-success",
-                  "CORS_ALLOWED_ORIGINS": "http://localhost:3000,http://localhost:3001,https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                  "DRIVE_AUTH_SUCCESS_URL": "https://portfoliomanager.com/drive-success",
+                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
                 }
               },
               "Role": {
@@ -948,16 +948,16 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pfwise-api/dev/1748483377091-2025-05-29T01:49:37.091Z/pfwise-api.zip"
+                "S3Key": "serverless/pfwise-api/prod/1748483871846-2025-05-29T01:57:51.846Z/pfwise-api.zip"
               },
               "Handler": "src/function/auth/googleDriveAuth.callback",
               "Runtime": "nodejs18.x",
-              "FunctionName": "pfwise-api-dev-googleDriveAuthCallback",
+              "FunctionName": "pfwise-api-prod-googleDriveAuthCallback",
               "MemorySize": 256,
               "Timeout": 30,
               "Environment": {
                 "Variables": {
-                  "NODE_ENV": "dev",
+                  "NODE_ENV": "prod",
                   "ADMIN_EMAIL": "",
                   "DAILY_REQUEST_LIMIT": "5000",
                   "MONTHLY_REQUEST_LIMIT": "100000",
@@ -965,13 +965,13 @@
                   "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
                   "IP_BLACKLIST": "",
                   "BLOCKED_COUNTRIES": "",
-                  "RATE_LIMIT_TABLE": "pfwise-api-dev-rate-limits",
+                  "RATE_LIMIT_TABLE": "pfwise-api-prod-rate-limits",
                   "CACHE_TIME_US_STOCK": "3600",
                   "CACHE_TIME_JP_STOCK": "3600",
                   "CACHE_TIME_MUTUAL_FUND": "10800",
                   "CACHE_TIME_EXCHANGE_RATE": "3600",
-                  "SESSION_TABLE": "pfwise-api-dev-sessions",
-                  "CACHE_TABLE": "pfwise-api-dev-cache",
+                  "SESSION_TABLE": "pfwise-api-prod-sessions",
+                  "CACHE_TABLE": "pfwise-api-prod-cache",
                   "CORS_ALLOW_ORIGIN": "*.portfoliomanager.com",
                   "DRIVE_FOLDER_NAME": "PortfolioManagerData",
                   "LOG_LEVEL": "info",
@@ -990,8 +990,8 @@
                   "ENABLE_AUDIT_LOGGING": "true",
                   "ENABLE_RATE_LIMITING": "true",
                   "MAX_REQUESTS_PER_MINUTE": "100",
-                  "DRIVE_AUTH_SUCCESS_URL": "http://localhost:3001/drive-success",
-                  "CORS_ALLOWED_ORIGINS": "http://localhost:3000,http://localhost:3001,https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                  "DRIVE_AUTH_SUCCESS_URL": "https://portfoliomanager.com/drive-success",
+                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
                 }
               },
               "Role": {
@@ -1012,16 +1012,16 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pfwise-api/dev/1748483377091-2025-05-29T01:49:37.091Z/pfwise-api.zip"
+                "S3Key": "serverless/pfwise-api/prod/1748483871846-2025-05-29T01:57:51.846Z/pfwise-api.zip"
               },
               "Handler": "src/function/drive/saveFile.handler",
               "Runtime": "nodejs18.x",
-              "FunctionName": "pfwise-api-dev-saveFile",
+              "FunctionName": "pfwise-api-prod-saveFile",
               "MemorySize": 256,
               "Timeout": 30,
               "Environment": {
                 "Variables": {
-                  "NODE_ENV": "dev",
+                  "NODE_ENV": "prod",
                   "ADMIN_EMAIL": "",
                   "DAILY_REQUEST_LIMIT": "5000",
                   "MONTHLY_REQUEST_LIMIT": "100000",
@@ -1029,13 +1029,13 @@
                   "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
                   "IP_BLACKLIST": "",
                   "BLOCKED_COUNTRIES": "",
-                  "RATE_LIMIT_TABLE": "pfwise-api-dev-rate-limits",
+                  "RATE_LIMIT_TABLE": "pfwise-api-prod-rate-limits",
                   "CACHE_TIME_US_STOCK": "3600",
                   "CACHE_TIME_JP_STOCK": "3600",
                   "CACHE_TIME_MUTUAL_FUND": "10800",
                   "CACHE_TIME_EXCHANGE_RATE": "3600",
-                  "SESSION_TABLE": "pfwise-api-dev-sessions",
-                  "CACHE_TABLE": "pfwise-api-dev-cache",
+                  "SESSION_TABLE": "pfwise-api-prod-sessions",
+                  "CACHE_TABLE": "pfwise-api-prod-cache",
                   "CORS_ALLOW_ORIGIN": "*.portfoliomanager.com",
                   "DRIVE_FOLDER_NAME": "PortfolioManagerData",
                   "LOG_LEVEL": "info",
@@ -1054,8 +1054,8 @@
                   "ENABLE_AUDIT_LOGGING": "true",
                   "ENABLE_RATE_LIMITING": "true",
                   "MAX_REQUESTS_PER_MINUTE": "100",
-                  "DRIVE_AUTH_SUCCESS_URL": "http://localhost:3001/drive-success",
-                  "CORS_ALLOWED_ORIGINS": "http://localhost:3000,http://localhost:3001,https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                  "DRIVE_AUTH_SUCCESS_URL": "https://portfoliomanager.com/drive-success",
+                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
                 }
               },
               "Role": {
@@ -1076,16 +1076,16 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pfwise-api/dev/1748483377091-2025-05-29T01:49:37.091Z/pfwise-api.zip"
+                "S3Key": "serverless/pfwise-api/prod/1748483871846-2025-05-29T01:57:51.846Z/pfwise-api.zip"
               },
               "Handler": "src/function/drive/loadFile.handler",
               "Runtime": "nodejs18.x",
-              "FunctionName": "pfwise-api-dev-loadFile",
+              "FunctionName": "pfwise-api-prod-loadFile",
               "MemorySize": 256,
               "Timeout": 30,
               "Environment": {
                 "Variables": {
-                  "NODE_ENV": "dev",
+                  "NODE_ENV": "prod",
                   "ADMIN_EMAIL": "",
                   "DAILY_REQUEST_LIMIT": "5000",
                   "MONTHLY_REQUEST_LIMIT": "100000",
@@ -1093,13 +1093,13 @@
                   "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
                   "IP_BLACKLIST": "",
                   "BLOCKED_COUNTRIES": "",
-                  "RATE_LIMIT_TABLE": "pfwise-api-dev-rate-limits",
+                  "RATE_LIMIT_TABLE": "pfwise-api-prod-rate-limits",
                   "CACHE_TIME_US_STOCK": "3600",
                   "CACHE_TIME_JP_STOCK": "3600",
                   "CACHE_TIME_MUTUAL_FUND": "10800",
                   "CACHE_TIME_EXCHANGE_RATE": "3600",
-                  "SESSION_TABLE": "pfwise-api-dev-sessions",
-                  "CACHE_TABLE": "pfwise-api-dev-cache",
+                  "SESSION_TABLE": "pfwise-api-prod-sessions",
+                  "CACHE_TABLE": "pfwise-api-prod-cache",
                   "CORS_ALLOW_ORIGIN": "*.portfoliomanager.com",
                   "DRIVE_FOLDER_NAME": "PortfolioManagerData",
                   "LOG_LEVEL": "info",
@@ -1118,8 +1118,8 @@
                   "ENABLE_AUDIT_LOGGING": "true",
                   "ENABLE_RATE_LIMITING": "true",
                   "MAX_REQUESTS_PER_MINUTE": "100",
-                  "DRIVE_AUTH_SUCCESS_URL": "http://localhost:3001/drive-success",
-                  "CORS_ALLOWED_ORIGINS": "http://localhost:3000,http://localhost:3001,https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                  "DRIVE_AUTH_SUCCESS_URL": "https://portfoliomanager.com/drive-success",
+                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
                 }
               },
               "Role": {
@@ -1140,16 +1140,16 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pfwise-api/dev/1748483377091-2025-05-29T01:49:37.091Z/pfwise-api.zip"
+                "S3Key": "serverless/pfwise-api/prod/1748483871846-2025-05-29T01:57:51.846Z/pfwise-api.zip"
               },
               "Handler": "src/function/drive/listFiles.handler",
               "Runtime": "nodejs18.x",
-              "FunctionName": "pfwise-api-dev-listFiles",
+              "FunctionName": "pfwise-api-prod-listFiles",
               "MemorySize": 256,
               "Timeout": 30,
               "Environment": {
                 "Variables": {
-                  "NODE_ENV": "dev",
+                  "NODE_ENV": "prod",
                   "ADMIN_EMAIL": "",
                   "DAILY_REQUEST_LIMIT": "5000",
                   "MONTHLY_REQUEST_LIMIT": "100000",
@@ -1157,13 +1157,13 @@
                   "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
                   "IP_BLACKLIST": "",
                   "BLOCKED_COUNTRIES": "",
-                  "RATE_LIMIT_TABLE": "pfwise-api-dev-rate-limits",
+                  "RATE_LIMIT_TABLE": "pfwise-api-prod-rate-limits",
                   "CACHE_TIME_US_STOCK": "3600",
                   "CACHE_TIME_JP_STOCK": "3600",
                   "CACHE_TIME_MUTUAL_FUND": "10800",
                   "CACHE_TIME_EXCHANGE_RATE": "3600",
-                  "SESSION_TABLE": "pfwise-api-dev-sessions",
-                  "CACHE_TABLE": "pfwise-api-dev-cache",
+                  "SESSION_TABLE": "pfwise-api-prod-sessions",
+                  "CACHE_TABLE": "pfwise-api-prod-cache",
                   "CORS_ALLOW_ORIGIN": "*.portfoliomanager.com",
                   "DRIVE_FOLDER_NAME": "PortfolioManagerData",
                   "LOG_LEVEL": "info",
@@ -1182,8 +1182,8 @@
                   "ENABLE_AUDIT_LOGGING": "true",
                   "ENABLE_RATE_LIMITING": "true",
                   "MAX_REQUESTS_PER_MINUTE": "100",
-                  "DRIVE_AUTH_SUCCESS_URL": "http://localhost:3001/drive-success",
-                  "CORS_ALLOWED_ORIGINS": "http://localhost:3000,http://localhost:3001,https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                  "DRIVE_AUTH_SUCCESS_URL": "https://portfoliomanager.com/drive-success",
+                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
                 }
               },
               "Role": {
@@ -1204,16 +1204,16 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pfwise-api/dev/1748483377091-2025-05-29T01:49:37.091Z/pfwise-api.zip"
+                "S3Key": "serverless/pfwise-api/prod/1748483871846-2025-05-29T01:57:51.846Z/pfwise-api.zip"
               },
               "Handler": "src/function/config/getClientConfig.handler",
               "Runtime": "nodejs18.x",
-              "FunctionName": "pfwise-api-dev-getClientConfig",
+              "FunctionName": "pfwise-api-prod-getClientConfig",
               "MemorySize": 256,
               "Timeout": 30,
               "Environment": {
                 "Variables": {
-                  "NODE_ENV": "dev",
+                  "NODE_ENV": "prod",
                   "ADMIN_EMAIL": "",
                   "DAILY_REQUEST_LIMIT": "5000",
                   "MONTHLY_REQUEST_LIMIT": "100000",
@@ -1221,13 +1221,13 @@
                   "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
                   "IP_BLACKLIST": "",
                   "BLOCKED_COUNTRIES": "",
-                  "RATE_LIMIT_TABLE": "pfwise-api-dev-rate-limits",
+                  "RATE_LIMIT_TABLE": "pfwise-api-prod-rate-limits",
                   "CACHE_TIME_US_STOCK": "3600",
                   "CACHE_TIME_JP_STOCK": "3600",
                   "CACHE_TIME_MUTUAL_FUND": "10800",
                   "CACHE_TIME_EXCHANGE_RATE": "3600",
-                  "SESSION_TABLE": "pfwise-api-dev-sessions",
-                  "CACHE_TABLE": "pfwise-api-dev-cache",
+                  "SESSION_TABLE": "pfwise-api-prod-sessions",
+                  "CACHE_TABLE": "pfwise-api-prod-cache",
                   "CORS_ALLOW_ORIGIN": "*.portfoliomanager.com",
                   "DRIVE_FOLDER_NAME": "PortfolioManagerData",
                   "LOG_LEVEL": "info",
@@ -1246,8 +1246,8 @@
                   "ENABLE_AUDIT_LOGGING": "true",
                   "ENABLE_RATE_LIMITING": "true",
                   "MAX_REQUESTS_PER_MINUTE": "100",
-                  "DRIVE_AUTH_SUCCESS_URL": "http://localhost:3001/drive-success",
-                  "CORS_ALLOWED_ORIGINS": "http://localhost:3000,http://localhost:3001,https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                  "DRIVE_AUTH_SUCCESS_URL": "https://portfoliomanager.com/drive-success",
+                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
                 }
               },
               "Role": {
@@ -1268,16 +1268,16 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pfwise-api/dev/1748483377091-2025-05-29T01:49:37.091Z/pfwise-api.zip"
+                "S3Key": "serverless/pfwise-api/prod/1748483871846-2025-05-29T01:57:51.846Z/pfwise-api.zip"
               },
               "Handler": "src/function/debug/googleConfig.handler",
               "Runtime": "nodejs18.x",
-              "FunctionName": "pfwise-api-dev-debugGoogleConfig",
+              "FunctionName": "pfwise-api-prod-debugGoogleConfig",
               "MemorySize": 256,
               "Timeout": 30,
               "Environment": {
                 "Variables": {
-                  "NODE_ENV": "dev",
+                  "NODE_ENV": "prod",
                   "ADMIN_EMAIL": "",
                   "DAILY_REQUEST_LIMIT": "5000",
                   "MONTHLY_REQUEST_LIMIT": "100000",
@@ -1285,13 +1285,13 @@
                   "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
                   "IP_BLACKLIST": "",
                   "BLOCKED_COUNTRIES": "",
-                  "RATE_LIMIT_TABLE": "pfwise-api-dev-rate-limits",
+                  "RATE_LIMIT_TABLE": "pfwise-api-prod-rate-limits",
                   "CACHE_TIME_US_STOCK": "3600",
                   "CACHE_TIME_JP_STOCK": "3600",
                   "CACHE_TIME_MUTUAL_FUND": "10800",
                   "CACHE_TIME_EXCHANGE_RATE": "3600",
-                  "SESSION_TABLE": "pfwise-api-dev-sessions",
-                  "CACHE_TABLE": "pfwise-api-dev-cache",
+                  "SESSION_TABLE": "pfwise-api-prod-sessions",
+                  "CACHE_TABLE": "pfwise-api-prod-cache",
                   "CORS_ALLOW_ORIGIN": "*.portfoliomanager.com",
                   "DRIVE_FOLDER_NAME": "PortfolioManagerData",
                   "LOG_LEVEL": "info",
@@ -1310,8 +1310,8 @@
                   "ENABLE_AUDIT_LOGGING": "true",
                   "ENABLE_RATE_LIMITING": "true",
                   "MAX_REQUESTS_PER_MINUTE": "100",
-                  "DRIVE_AUTH_SUCCESS_URL": "http://localhost:3001/drive-success",
-                  "CORS_ALLOWED_ORIGINS": "http://localhost:3000,http://localhost:3001,https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                  "DRIVE_AUTH_SUCCESS_URL": "https://portfoliomanager.com/drive-success",
+                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
                 }
               },
               "Role": {
@@ -1325,154 +1325,154 @@
               "DebugGoogleConfigLogGroup"
             ]
           },
-          "MarketDataLambdaVersion9srDeky0Yv2M6KinZck4qWQNb9LnJmkN6qJcrw3mY": {
+          "MarketDataLambdaVersionTcQh0owofiWkVPzSgM3gd1xm9MU2kJUW52bQy8Jo00": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "MarketDataLambdaFunction"
               },
-              "CodeSha256": "LX6cmiA9p/VYP7kdfyU0VE1qRkOfKDoaGpM6xAFQ27I="
+              "CodeSha256": "bczo/+vpS1nXaEBpy+Lq9DjMGN6Bvv3rZ0i0FsbjEC0="
             }
           },
-          "PreWarmCacheLambdaVersionDMwsbaTdMkX69lPGQVyhkwDWT10sj8ivCQmvfJBZpA": {
+          "PreWarmCacheLambdaVersionXNP0KC0bbEJKzRxq0qrVRIAYp07iarXYvDvSQUpTo": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "PreWarmCacheLambdaFunction"
               },
-              "CodeSha256": "LX6cmiA9p/VYP7kdfyU0VE1qRkOfKDoaGpM6xAFQ27I="
+              "CodeSha256": "bczo/+vpS1nXaEBpy+Lq9DjMGN6Bvv3rZ0i0FsbjEC0="
             }
           },
-          "GetStatusLambdaVersionS4Yg9yQQYXpjzjO2WgXyyjgqoeQJ5b2CoqjAnKbY": {
+          "GetStatusLambdaVersion6m3mYed3BlDKipybGI4L3NtlrTTi1xW6PmTa4D6TOew": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "GetStatusLambdaFunction"
               },
-              "CodeSha256": "LX6cmiA9p/VYP7kdfyU0VE1qRkOfKDoaGpM6xAFQ27I="
+              "CodeSha256": "bczo/+vpS1nXaEBpy+Lq9DjMGN6Bvv3rZ0i0FsbjEC0="
             }
           },
-          "ResetUsageLambdaVersionqsC0oPsoEjhQ59fs05M7ovYCRAiSvoC5QH5vUi9NM": {
+          "ResetUsageLambdaVersionTj7vjWvaeEocnboLs8WKyjFkCfuc0pN80QRSoDh8s": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "ResetUsageLambdaFunction"
               },
-              "CodeSha256": "LX6cmiA9p/VYP7kdfyU0VE1qRkOfKDoaGpM6xAFQ27I="
+              "CodeSha256": "bczo/+vpS1nXaEBpy+Lq9DjMGN6Bvv3rZ0i0FsbjEC0="
             }
           },
-          "GetBudgetStatusLambdaVersiona9iw1xg1lfcKEwC3fUa9Fu2WVGpBXArKSZAfr744A": {
+          "GetBudgetStatusLambdaVersionEotsAwnmDwBWKtap326S5IL26oIdRzwde15P5UZYWQ": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "GetBudgetStatusLambdaFunction"
               },
-              "CodeSha256": "LX6cmiA9p/VYP7kdfyU0VE1qRkOfKDoaGpM6xAFQ27I="
+              "CodeSha256": "bczo/+vpS1nXaEBpy+Lq9DjMGN6Bvv3rZ0i0FsbjEC0="
             }
           },
-          "GoogleLoginLambdaVersionbxuAzbiX0CiNumCdr6IP7tIfne5VPL8Y0lRwfAESOWE": {
+          "GoogleLoginLambdaVersiony5Ms3NPWc5b6c1YizT9ak6H8CKmqqJzJnOAfvtLYrM": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "GoogleLoginLambdaFunction"
               },
-              "CodeSha256": "LX6cmiA9p/VYP7kdfyU0VE1qRkOfKDoaGpM6xAFQ27I="
+              "CodeSha256": "bczo/+vpS1nXaEBpy+Lq9DjMGN6Bvv3rZ0i0FsbjEC0="
             }
           },
-          "GetSessionLambdaVersionPqf4dx46hb9fugyvtlqneYhg3KQxIK3sKwmt2ttPKuo": {
+          "GetSessionLambdaVersionQYPwr2vqcYW0SctHMNIEUAHay3JGu0N0uDYgStwDIQ": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "GetSessionLambdaFunction"
               },
-              "CodeSha256": "LX6cmiA9p/VYP7kdfyU0VE1qRkOfKDoaGpM6xAFQ27I="
+              "CodeSha256": "bczo/+vpS1nXaEBpy+Lq9DjMGN6Bvv3rZ0i0FsbjEC0="
             }
           },
-          "LogoutLambdaVersionFvWGFfs2bQ99PkVGy8Fkar8wwbAbMgNnc5IN336EznI": {
+          "LogoutLambdaVersionrFHAzLLVJoVyLFtDWVelgwKTYju9TOAfAhAPxcGsAzs": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "LogoutLambdaFunction"
               },
-              "CodeSha256": "LX6cmiA9p/VYP7kdfyU0VE1qRkOfKDoaGpM6xAFQ27I="
+              "CodeSha256": "bczo/+vpS1nXaEBpy+Lq9DjMGN6Bvv3rZ0i0FsbjEC0="
             }
           },
-          "GoogleDriveAuthInitiateLambdaVersionjnavn7ZTnuqMnOxPLjmpccaplxIOqAyFbYdxiw7Gqo": {
+          "GoogleDriveAuthInitiateLambdaVersionxU40qa4aF92JIA3K1RvOCV0wPereiFOvFBcdc3nFc": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "GoogleDriveAuthInitiateLambdaFunction"
               },
-              "CodeSha256": "LX6cmiA9p/VYP7kdfyU0VE1qRkOfKDoaGpM6xAFQ27I="
+              "CodeSha256": "bczo/+vpS1nXaEBpy+Lq9DjMGN6Bvv3rZ0i0FsbjEC0="
             }
           },
-          "GoogleDriveAuthCallbackLambdaVersionJ67ijimBx3CCB9w6aFWkuE3JqNzoL4HTDxDcSaVHbg": {
+          "GoogleDriveAuthCallbackLambdaVersionyRwU8EnfVPjL54ysIwwmYrP5rL2IxteMm1EyiLqeY": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "GoogleDriveAuthCallbackLambdaFunction"
               },
-              "CodeSha256": "LX6cmiA9p/VYP7kdfyU0VE1qRkOfKDoaGpM6xAFQ27I="
+              "CodeSha256": "bczo/+vpS1nXaEBpy+Lq9DjMGN6Bvv3rZ0i0FsbjEC0="
             }
           },
-          "SaveFileLambdaVersionbtuimPd7ud00C3smc1nHXYriHMZpE3nMfJv96myI": {
+          "SaveFileLambdaVersionOm09I8lHa3NTS9DsO76pZpyL5Qunm3jKB7Y2xbDiY": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "SaveFileLambdaFunction"
               },
-              "CodeSha256": "LX6cmiA9p/VYP7kdfyU0VE1qRkOfKDoaGpM6xAFQ27I="
+              "CodeSha256": "bczo/+vpS1nXaEBpy+Lq9DjMGN6Bvv3rZ0i0FsbjEC0="
             }
           },
-          "LoadFileLambdaVersionXtLqZmjbPuy7HtEIGBnmC1wJLJ9qhRFAWhcrdKkTXDY": {
+          "LoadFileLambdaVersionlEZQHRq5ccaOXNi9G3kbm2xklhsQKGt74pNsK59oU": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "LoadFileLambdaFunction"
               },
-              "CodeSha256": "LX6cmiA9p/VYP7kdfyU0VE1qRkOfKDoaGpM6xAFQ27I="
+              "CodeSha256": "bczo/+vpS1nXaEBpy+Lq9DjMGN6Bvv3rZ0i0FsbjEC0="
             }
           },
-          "ListFilesLambdaVersion0RrP3fFUChNoUDRfXqgEsSeX3aATkkG2J4EOsq1bVo": {
+          "ListFilesLambdaVersionaWx4SWBT1VdZP0Y2ogCC5UqlAErVgpDsctQBVl0qzU4": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "ListFilesLambdaFunction"
               },
-              "CodeSha256": "LX6cmiA9p/VYP7kdfyU0VE1qRkOfKDoaGpM6xAFQ27I="
+              "CodeSha256": "bczo/+vpS1nXaEBpy+Lq9DjMGN6Bvv3rZ0i0FsbjEC0="
             }
           },
-          "GetClientConfigLambdaVersionqWfY3skci0mM3EhpXIcUUuTwb2ljxwUIwgkApXG9Oo": {
+          "GetClientConfigLambdaVersionQPheFKXVLympj7MUe3pkQ3Hxy8jb7PyOvYu6Swqy6E": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "GetClientConfigLambdaFunction"
               },
-              "CodeSha256": "LX6cmiA9p/VYP7kdfyU0VE1qRkOfKDoaGpM6xAFQ27I="
+              "CodeSha256": "bczo/+vpS1nXaEBpy+Lq9DjMGN6Bvv3rZ0i0FsbjEC0="
             }
           },
-          "DebugGoogleConfigLambdaVersionFPcjrBjLpddMoyiOUEDI2KWPmakP6LphlS015ynzGc": {
+          "DebugGoogleConfigLambdaVersionBEAtMWYaGevbdrPTkyA1RmtTdTfOTdcTYjNSJawKs": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "DebugGoogleConfigLambdaFunction"
               },
-              "CodeSha256": "LX6cmiA9p/VYP7kdfyU0VE1qRkOfKDoaGpM6xAFQ27I="
+              "CodeSha256": "bczo/+vpS1nXaEBpy+Lq9DjMGN6Bvv3rZ0i0FsbjEC0="
             }
           },
           "PreWarmCacheEventsRuleSchedule1": {
@@ -1515,7 +1515,7 @@
           "ApiGatewayRestApi": {
             "Type": "AWS::ApiGateway::RestApi",
             "Properties": {
-              "Name": "dev-pfwise-api",
+              "Name": "prod-pfwise-api",
               "EndpointConfiguration": {
                 "Types": [
                   "EDGE"
@@ -3162,13 +3162,13 @@
               "DebugGoogleConfigLambdaPermissionApiGateway"
             ]
           },
-          "ApiGatewayDeployment1748483374996": {
+          "ApiGatewayDeployment1748483870283": {
             "Type": "AWS::ApiGateway::Deployment",
             "Properties": {
               "RestApiId": {
                 "Ref": "ApiGatewayRestApi"
               },
-              "StageName": "dev"
+              "StageName": "prod"
             },
             "DependsOn": [
               "ApiGatewayMethodApiMarketDashdataOptions",
@@ -3724,7 +3724,7 @@
           "MarketDataCacheTable": {
             "Type": "AWS::DynamoDB::Table",
             "Properties": {
-              "TableName": "pfwise-api-dev-cache",
+              "TableName": "pfwise-api-prod-cache",
               "BillingMode": "PAY_PER_REQUEST",
               "AttributeDefinitions": [
                 {
@@ -3747,7 +3747,7 @@
           "SessionsTable": {
             "Type": "AWS::DynamoDB::Table",
             "Properties": {
-              "TableName": "pfwise-api-dev-sessions",
+              "TableName": "pfwise-api-prod-sessions",
               "BillingMode": "PAY_PER_REQUEST",
               "AttributeDefinitions": [
                 {
@@ -3770,7 +3770,7 @@
           "ScrapingBlacklistTable": {
             "Type": "AWS::DynamoDB::Table",
             "Properties": {
-              "TableName": "pfwise-api-dev-scraping-blacklist",
+              "TableName": "pfwise-api-prod-scraping-blacklist",
               "BillingMode": "PAY_PER_REQUEST",
               "AttributeDefinitions": [
                 {
@@ -3793,7 +3793,7 @@
           "RateLimitTable": {
             "Type": "AWS::DynamoDB::Table",
             "Properties": {
-              "TableName": "pfwise-api-dev-rate-limits",
+              "TableName": "pfwise-api-prod-rate-limits",
               "BillingMode": "PAY_PER_REQUEST",
               "AttributeDefinitions": [
                 {
@@ -3820,142 +3820,142 @@
               "Ref": "ServerlessDeploymentBucket"
             },
             "Export": {
-              "Name": "sls-pfwise-api-dev-ServerlessDeploymentBucketName"
+              "Name": "sls-pfwise-api-prod-ServerlessDeploymentBucketName"
             }
           },
           "MarketDataLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "MarketDataLambdaVersion9srDeky0Yv2M6KinZck4qWQNb9LnJmkN6qJcrw3mY"
+              "Ref": "MarketDataLambdaVersionTcQh0owofiWkVPzSgM3gd1xm9MU2kJUW52bQy8Jo00"
             },
             "Export": {
-              "Name": "sls-pfwise-api-dev-MarketDataLambdaFunctionQualifiedArn"
+              "Name": "sls-pfwise-api-prod-MarketDataLambdaFunctionQualifiedArn"
             }
           },
           "PreWarmCacheLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "PreWarmCacheLambdaVersionDMwsbaTdMkX69lPGQVyhkwDWT10sj8ivCQmvfJBZpA"
+              "Ref": "PreWarmCacheLambdaVersionXNP0KC0bbEJKzRxq0qrVRIAYp07iarXYvDvSQUpTo"
             },
             "Export": {
-              "Name": "sls-pfwise-api-dev-PreWarmCacheLambdaFunctionQualifiedArn"
+              "Name": "sls-pfwise-api-prod-PreWarmCacheLambdaFunctionQualifiedArn"
             }
           },
           "GetStatusLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "GetStatusLambdaVersionS4Yg9yQQYXpjzjO2WgXyyjgqoeQJ5b2CoqjAnKbY"
+              "Ref": "GetStatusLambdaVersion6m3mYed3BlDKipybGI4L3NtlrTTi1xW6PmTa4D6TOew"
             },
             "Export": {
-              "Name": "sls-pfwise-api-dev-GetStatusLambdaFunctionQualifiedArn"
+              "Name": "sls-pfwise-api-prod-GetStatusLambdaFunctionQualifiedArn"
             }
           },
           "ResetUsageLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "ResetUsageLambdaVersionqsC0oPsoEjhQ59fs05M7ovYCRAiSvoC5QH5vUi9NM"
+              "Ref": "ResetUsageLambdaVersionTj7vjWvaeEocnboLs8WKyjFkCfuc0pN80QRSoDh8s"
             },
             "Export": {
-              "Name": "sls-pfwise-api-dev-ResetUsageLambdaFunctionQualifiedArn"
+              "Name": "sls-pfwise-api-prod-ResetUsageLambdaFunctionQualifiedArn"
             }
           },
           "GetBudgetStatusLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "GetBudgetStatusLambdaVersiona9iw1xg1lfcKEwC3fUa9Fu2WVGpBXArKSZAfr744A"
+              "Ref": "GetBudgetStatusLambdaVersionEotsAwnmDwBWKtap326S5IL26oIdRzwde15P5UZYWQ"
             },
             "Export": {
-              "Name": "sls-pfwise-api-dev-GetBudgetStatusLambdaFunctionQualifiedArn"
+              "Name": "sls-pfwise-api-prod-GetBudgetStatusLambdaFunctionQualifiedArn"
             }
           },
           "GoogleLoginLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "GoogleLoginLambdaVersionbxuAzbiX0CiNumCdr6IP7tIfne5VPL8Y0lRwfAESOWE"
+              "Ref": "GoogleLoginLambdaVersiony5Ms3NPWc5b6c1YizT9ak6H8CKmqqJzJnOAfvtLYrM"
             },
             "Export": {
-              "Name": "sls-pfwise-api-dev-GoogleLoginLambdaFunctionQualifiedArn"
+              "Name": "sls-pfwise-api-prod-GoogleLoginLambdaFunctionQualifiedArn"
             }
           },
           "GetSessionLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "GetSessionLambdaVersionPqf4dx46hb9fugyvtlqneYhg3KQxIK3sKwmt2ttPKuo"
+              "Ref": "GetSessionLambdaVersionQYPwr2vqcYW0SctHMNIEUAHay3JGu0N0uDYgStwDIQ"
             },
             "Export": {
-              "Name": "sls-pfwise-api-dev-GetSessionLambdaFunctionQualifiedArn"
+              "Name": "sls-pfwise-api-prod-GetSessionLambdaFunctionQualifiedArn"
             }
           },
           "LogoutLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "LogoutLambdaVersionFvWGFfs2bQ99PkVGy8Fkar8wwbAbMgNnc5IN336EznI"
+              "Ref": "LogoutLambdaVersionrFHAzLLVJoVyLFtDWVelgwKTYju9TOAfAhAPxcGsAzs"
             },
             "Export": {
-              "Name": "sls-pfwise-api-dev-LogoutLambdaFunctionQualifiedArn"
+              "Name": "sls-pfwise-api-prod-LogoutLambdaFunctionQualifiedArn"
             }
           },
           "GoogleDriveAuthInitiateLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "GoogleDriveAuthInitiateLambdaVersionjnavn7ZTnuqMnOxPLjmpccaplxIOqAyFbYdxiw7Gqo"
+              "Ref": "GoogleDriveAuthInitiateLambdaVersionxU40qa4aF92JIA3K1RvOCV0wPereiFOvFBcdc3nFc"
             },
             "Export": {
-              "Name": "sls-pfwise-api-dev-GoogleDriveAuthInitiateLambdaFunctionQualifiedArn"
+              "Name": "sls-pfwise-api-prod-GoogleDriveAuthInitiateLambdaFunctionQualifiedArn"
             }
           },
           "GoogleDriveAuthCallbackLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "GoogleDriveAuthCallbackLambdaVersionJ67ijimBx3CCB9w6aFWkuE3JqNzoL4HTDxDcSaVHbg"
+              "Ref": "GoogleDriveAuthCallbackLambdaVersionyRwU8EnfVPjL54ysIwwmYrP5rL2IxteMm1EyiLqeY"
             },
             "Export": {
-              "Name": "sls-pfwise-api-dev-GoogleDriveAuthCallbackLambdaFunctionQualifiedArn"
+              "Name": "sls-pfwise-api-prod-GoogleDriveAuthCallbackLambdaFunctionQualifiedArn"
             }
           },
           "SaveFileLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "SaveFileLambdaVersionbtuimPd7ud00C3smc1nHXYriHMZpE3nMfJv96myI"
+              "Ref": "SaveFileLambdaVersionOm09I8lHa3NTS9DsO76pZpyL5Qunm3jKB7Y2xbDiY"
             },
             "Export": {
-              "Name": "sls-pfwise-api-dev-SaveFileLambdaFunctionQualifiedArn"
+              "Name": "sls-pfwise-api-prod-SaveFileLambdaFunctionQualifiedArn"
             }
           },
           "LoadFileLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "LoadFileLambdaVersionXtLqZmjbPuy7HtEIGBnmC1wJLJ9qhRFAWhcrdKkTXDY"
+              "Ref": "LoadFileLambdaVersionlEZQHRq5ccaOXNi9G3kbm2xklhsQKGt74pNsK59oU"
             },
             "Export": {
-              "Name": "sls-pfwise-api-dev-LoadFileLambdaFunctionQualifiedArn"
+              "Name": "sls-pfwise-api-prod-LoadFileLambdaFunctionQualifiedArn"
             }
           },
           "ListFilesLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "ListFilesLambdaVersion0RrP3fFUChNoUDRfXqgEsSeX3aATkkG2J4EOsq1bVo"
+              "Ref": "ListFilesLambdaVersionaWx4SWBT1VdZP0Y2ogCC5UqlAErVgpDsctQBVl0qzU4"
             },
             "Export": {
-              "Name": "sls-pfwise-api-dev-ListFilesLambdaFunctionQualifiedArn"
+              "Name": "sls-pfwise-api-prod-ListFilesLambdaFunctionQualifiedArn"
             }
           },
           "GetClientConfigLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "GetClientConfigLambdaVersionqWfY3skci0mM3EhpXIcUUuTwb2ljxwUIwgkApXG9Oo"
+              "Ref": "GetClientConfigLambdaVersionQPheFKXVLympj7MUe3pkQ3Hxy8jb7PyOvYu6Swqy6E"
             },
             "Export": {
-              "Name": "sls-pfwise-api-dev-GetClientConfigLambdaFunctionQualifiedArn"
+              "Name": "sls-pfwise-api-prod-GetClientConfigLambdaFunctionQualifiedArn"
             }
           },
           "DebugGoogleConfigLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "DebugGoogleConfigLambdaVersionFPcjrBjLpddMoyiOUEDI2KWPmakP6LphlS015ynzGc"
+              "Ref": "DebugGoogleConfigLambdaVersionBEAtMWYaGevbdrPTkyA1RmtTdTfOTdcTYjNSJawKs"
             },
             "Export": {
-              "Name": "sls-pfwise-api-dev-DebugGoogleConfigLambdaFunctionQualifiedArn"
+              "Name": "sls-pfwise-api-prod-DebugGoogleConfigLambdaFunctionQualifiedArn"
             }
           },
           "ServiceEndpoint": {
@@ -3976,12 +3976,12 @@
                   {
                     "Ref": "AWS::URLSuffix"
                   },
-                  "/dev"
+                  "/prod"
                 ]
               ]
             },
             "Export": {
-              "Name": "sls-pfwise-api-dev-ServiceEndpoint"
+              "Name": "sls-pfwise-api-prod-ServiceEndpoint"
             }
           }
         }
@@ -4123,13 +4123,13 @@
             }
           }
         ],
-        "name": "pfwise-api-dev-marketData",
+        "name": "pfwise-api-prod-marketData",
         "package": {},
         "memory": 256,
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "MarketDataLambdaVersion9srDeky0Yv2M6KinZck4qWQNb9LnJmkN6qJcrw3mY"
+        "versionLogicalId": "MarketDataLambdaVersionTcQh0owofiWkVPzSgM3gd1xm9MU2kJUW52bQy8Jo00"
       },
       "preWarmCache": {
         "handler": "src/function/preWarmCache.handler",
@@ -4138,13 +4138,13 @@
             "schedule": "rate(6 hours)"
           }
         ],
-        "name": "pfwise-api-dev-preWarmCache",
+        "name": "pfwise-api-prod-preWarmCache",
         "package": {},
         "memory": 256,
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "PreWarmCacheLambdaVersionDMwsbaTdMkX69lPGQVyhkwDWT10sj8ivCQmvfJBZpA"
+        "versionLogicalId": "PreWarmCacheLambdaVersionXNP0KC0bbEJKzRxq0qrVRIAYp07iarXYvDvSQUpTo"
       },
       "getStatus": {
         "handler": "src/function/admin/getStatus.handler",
@@ -4181,13 +4181,13 @@
             }
           }
         ],
-        "name": "pfwise-api-dev-getStatus",
+        "name": "pfwise-api-prod-getStatus",
         "package": {},
         "memory": 256,
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "GetStatusLambdaVersionS4Yg9yQQYXpjzjO2WgXyyjgqoeQJ5b2CoqjAnKbY"
+        "versionLogicalId": "GetStatusLambdaVersion6m3mYed3BlDKipybGI4L3NtlrTTi1xW6PmTa4D6TOew"
       },
       "resetUsage": {
         "handler": "src/function/admin/resetUsage.handler",
@@ -4224,13 +4224,13 @@
             }
           }
         ],
-        "name": "pfwise-api-dev-resetUsage",
+        "name": "pfwise-api-prod-resetUsage",
         "package": {},
         "memory": 256,
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "ResetUsageLambdaVersionqsC0oPsoEjhQ59fs05M7ovYCRAiSvoC5QH5vUi9NM"
+        "versionLogicalId": "ResetUsageLambdaVersionTj7vjWvaeEocnboLs8WKyjFkCfuc0pN80QRSoDh8s"
       },
       "getBudgetStatus": {
         "handler": "src/function/admin/getBudgetStatus.handler",
@@ -4267,13 +4267,13 @@
             }
           }
         ],
-        "name": "pfwise-api-dev-getBudgetStatus",
+        "name": "pfwise-api-prod-getBudgetStatus",
         "package": {},
         "memory": 256,
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "GetBudgetStatusLambdaVersiona9iw1xg1lfcKEwC3fUa9Fu2WVGpBXArKSZAfr744A"
+        "versionLogicalId": "GetBudgetStatusLambdaVersionEotsAwnmDwBWKtap326S5IL26oIdRzwde15P5UZYWQ"
       },
       "googleLogin": {
         "handler": "src/function/auth/googleLogin.handler",
@@ -4338,13 +4338,13 @@
             }
           }
         ],
-        "name": "pfwise-api-dev-googleLogin",
+        "name": "pfwise-api-prod-googleLogin",
         "package": {},
         "memory": 256,
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "GoogleLoginLambdaVersionbxuAzbiX0CiNumCdr6IP7tIfne5VPL8Y0lRwfAESOWE"
+        "versionLogicalId": "GoogleLoginLambdaVersiony5Ms3NPWc5b6c1YizT9ak6H8CKmqqJzJnOAfvtLYrM"
       },
       "getSession": {
         "handler": "src/function/auth/getSession.handler",
@@ -4380,13 +4380,13 @@
             }
           }
         ],
-        "name": "pfwise-api-dev-getSession",
+        "name": "pfwise-api-prod-getSession",
         "package": {},
         "memory": 256,
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "GetSessionLambdaVersionPqf4dx46hb9fugyvtlqneYhg3KQxIK3sKwmt2ttPKuo"
+        "versionLogicalId": "GetSessionLambdaVersionQYPwr2vqcYW0SctHMNIEUAHay3JGu0N0uDYgStwDIQ"
       },
       "logout": {
         "handler": "src/function/auth/logout.handler",
@@ -4422,13 +4422,13 @@
             }
           }
         ],
-        "name": "pfwise-api-dev-logout",
+        "name": "pfwise-api-prod-logout",
         "package": {},
         "memory": 256,
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "LogoutLambdaVersionFvWGFfs2bQ99PkVGy8Fkar8wwbAbMgNnc5IN336EznI"
+        "versionLogicalId": "LogoutLambdaVersionrFHAzLLVJoVyLFtDWVelgwKTYju9TOAfAhAPxcGsAzs"
       },
       "googleDriveAuthInitiate": {
         "handler": "src/function/auth/googleDriveAuth.initiateAuth",
@@ -4493,13 +4493,13 @@
             }
           }
         ],
-        "name": "pfwise-api-dev-googleDriveAuthInitiate",
+        "name": "pfwise-api-prod-googleDriveAuthInitiate",
         "package": {},
         "memory": 256,
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "GoogleDriveAuthInitiateLambdaVersionjnavn7ZTnuqMnOxPLjmpccaplxIOqAyFbYdxiw7Gqo"
+        "versionLogicalId": "GoogleDriveAuthInitiateLambdaVersionxU40qa4aF92JIA3K1RvOCV0wPereiFOvFBcdc3nFc"
       },
       "googleDriveAuthCallback": {
         "handler": "src/function/auth/googleDriveAuth.callback",
@@ -4535,13 +4535,13 @@
             }
           }
         ],
-        "name": "pfwise-api-dev-googleDriveAuthCallback",
+        "name": "pfwise-api-prod-googleDriveAuthCallback",
         "package": {},
         "memory": 256,
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "GoogleDriveAuthCallbackLambdaVersionJ67ijimBx3CCB9w6aFWkuE3JqNzoL4HTDxDcSaVHbg"
+        "versionLogicalId": "GoogleDriveAuthCallbackLambdaVersionyRwU8EnfVPjL54ysIwwmYrP5rL2IxteMm1EyiLqeY"
       },
       "saveFile": {
         "handler": "src/function/drive/saveFile.handler",
@@ -4577,13 +4577,13 @@
             }
           }
         ],
-        "name": "pfwise-api-dev-saveFile",
+        "name": "pfwise-api-prod-saveFile",
         "package": {},
         "memory": 256,
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "SaveFileLambdaVersionbtuimPd7ud00C3smc1nHXYriHMZpE3nMfJv96myI"
+        "versionLogicalId": "SaveFileLambdaVersionOm09I8lHa3NTS9DsO76pZpyL5Qunm3jKB7Y2xbDiY"
       },
       "loadFile": {
         "handler": "src/function/drive/loadFile.handler",
@@ -4619,13 +4619,13 @@
             }
           }
         ],
-        "name": "pfwise-api-dev-loadFile",
+        "name": "pfwise-api-prod-loadFile",
         "package": {},
         "memory": 256,
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "LoadFileLambdaVersionXtLqZmjbPuy7HtEIGBnmC1wJLJ9qhRFAWhcrdKkTXDY"
+        "versionLogicalId": "LoadFileLambdaVersionlEZQHRq5ccaOXNi9G3kbm2xklhsQKGt74pNsK59oU"
       },
       "listFiles": {
         "handler": "src/function/drive/listFiles.handler",
@@ -4661,13 +4661,13 @@
             }
           }
         ],
-        "name": "pfwise-api-dev-listFiles",
+        "name": "pfwise-api-prod-listFiles",
         "package": {},
         "memory": 256,
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "ListFilesLambdaVersion0RrP3fFUChNoUDRfXqgEsSeX3aATkkG2J4EOsq1bVo"
+        "versionLogicalId": "ListFilesLambdaVersionaWx4SWBT1VdZP0Y2ogCC5UqlAErVgpDsctQBVl0qzU4"
       },
       "getClientConfig": {
         "handler": "src/function/config/getClientConfig.handler",
@@ -4703,13 +4703,13 @@
             }
           }
         ],
-        "name": "pfwise-api-dev-getClientConfig",
+        "name": "pfwise-api-prod-getClientConfig",
         "package": {},
         "memory": 256,
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "GetClientConfigLambdaVersionqWfY3skci0mM3EhpXIcUUuTwb2ljxwUIwgkApXG9Oo"
+        "versionLogicalId": "GetClientConfigLambdaVersionQPheFKXVLympj7MUe3pkQ3Hxy8jb7PyOvYu6Swqy6E"
       },
       "debugGoogleConfig": {
         "handler": "src/function/debug/googleConfig.handler",
@@ -4739,13 +4739,13 @@
             }
           }
         ],
-        "name": "pfwise-api-dev-debugGoogleConfig",
+        "name": "pfwise-api-prod-debugGoogleConfig",
         "package": {},
         "memory": 256,
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "DebugGoogleConfigLambdaVersionFPcjrBjLpddMoyiOUEDI2KWPmakP6LphlS015ynzGc"
+        "versionLogicalId": "DebugGoogleConfigLambdaVersionBEAtMWYaGevbdrPTkyA1RmtTdTfOTdcTYjNSJawKs"
       }
     },
     "resources": {
@@ -4753,7 +4753,7 @@
         "MarketDataCacheTable": {
           "Type": "AWS::DynamoDB::Table",
           "Properties": {
-            "TableName": "pfwise-api-dev-cache",
+            "TableName": "pfwise-api-prod-cache",
             "BillingMode": "PAY_PER_REQUEST",
             "AttributeDefinitions": [
               {
@@ -4776,7 +4776,7 @@
         "SessionsTable": {
           "Type": "AWS::DynamoDB::Table",
           "Properties": {
-            "TableName": "pfwise-api-dev-sessions",
+            "TableName": "pfwise-api-prod-sessions",
             "BillingMode": "PAY_PER_REQUEST",
             "AttributeDefinitions": [
               {
@@ -4799,7 +4799,7 @@
         "ScrapingBlacklistTable": {
           "Type": "AWS::DynamoDB::Table",
           "Properties": {
-            "TableName": "pfwise-api-dev-scraping-blacklist",
+            "TableName": "pfwise-api-prod-scraping-blacklist",
             "BillingMode": "PAY_PER_REQUEST",
             "AttributeDefinitions": [
               {
@@ -4822,7 +4822,7 @@
         "RateLimitTable": {
           "Type": "AWS::DynamoDB::Table",
           "Properties": {
-            "TableName": "pfwise-api-dev-rate-limits",
+            "TableName": "pfwise-api-prod-rate-limits",
             "BillingMode": "PAY_PER_REQUEST",
             "AttributeDefinitions": [
               {
@@ -4871,9 +4871,9 @@
           "node_modules/nock/**",
           "node_modules/supertest/**"
         ],
-        "artifactsS3KeyDirname": "serverless/pfwise-api/dev/code-artifacts",
+        "artifactsS3KeyDirname": "serverless/pfwise-api/prod/code-artifacts",
         "artifact": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/backend/.serverless/pfwise-api.zip",
-        "artifactDirectoryName": "serverless/pfwise-api/dev/1748483377091-2025-05-29T01:49:37.091Z"
+        "artifactDirectoryName": "serverless/pfwise-api/prod/1748483871846-2025-05-29T01:57:51.846Z"
       },
       "provider": {
         "$ref": "$[\"service\"][\"provider\"]"
@@ -4896,7 +4896,7 @@
     "artifact": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/backend/.serverless/pfwise-api.zip"
   },
   "package": {
-    "artifactDirectoryName": "serverless/pfwise-api/dev/1748483377091-2025-05-29T01:49:37.091Z",
+    "artifactDirectoryName": "serverless/pfwise-api/prod/1748483871846-2025-05-29T01:57:51.846Z",
     "artifact": "pfwise-api.zip"
   }
 }

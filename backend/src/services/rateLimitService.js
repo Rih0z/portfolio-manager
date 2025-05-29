@@ -16,21 +16,45 @@ const dynamoDBClient = new DynamoDBClient({
 
 const RATE_LIMIT_TABLE = process.env.RATE_LIMIT_TABLE || 'pfwise-api-dev-rate-limits';
 
-// レート制限設定
-const RATE_LIMITS = {
-  public: {
-    hourly: 20,
-    daily: 100
-  },
-  user: {
-    hourly: 100,
-    daily: 1000
-  },
-  admin: {
-    hourly: 1000,
-    daily: 10000
+// 環境別レート制限設定
+const getRateLimits = () => {
+  const isProd = process.env.NODE_ENV === 'production';
+  
+  if (isProd) {
+    return {
+      public: {
+        hourly: 20,
+        daily: 100
+      },
+      user: {
+        hourly: 60,    // 本番環境では厳しく制限
+        daily: 500
+      },
+      admin: {
+        hourly: 300,
+        daily: 3000
+      }
+    };
   }
+  
+  // 開発環境では緩い制限
+  return {
+    public: {
+      hourly: 100,
+      daily: 1000
+    },
+    user: {
+      hourly: 500,
+      daily: 5000
+    },
+    admin: {
+      hourly: 1000,
+      daily: 10000
+    }
+  };
 };
+
+const RATE_LIMITS = getRateLimits();
 
 /**
  * レート制限をチェックする
