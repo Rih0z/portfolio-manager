@@ -1,0 +1,33 @@
+# 開発関連ファイル
+.git/**
+.gitignore
+.env*
+.nvmrc
+README.md
+*.md
+
+# テスト関連
+__tests__/**
+test/**
+*.test.js
+jest.config.js
+coverage/**
+
+# 開発用ツール
+.vscode/**
+*.log
+.serverless/**
+
+# 大きな開発用依存関係
+node_modules/serverless/**
+node_modules/jest/**
+node_modules/@babel/**
+node_modules/webpack/**
+
+# OS関連
+.DS_Store
+Thumbs.db
+
+# 一時ファイル
+tmp/**
+temp/**

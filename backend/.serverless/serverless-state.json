@@ -1,0 +1,4902 @@
+{
+  "service": {
+    "service": "pfwise-api",
+    "serviceObject": {
+      "name": "pfwise-api"
+    },
+    "provider": {
+      "name": "aws",
+      "runtime": "nodejs18.x",
+      "region": "us-west-2",
+      "stage": "dev",
+      "profile": "",
+      "memorySize": 256,
+      "timeout": 30,
+      "environment": {
+        "NODE_ENV": "dev",
+        "ADMIN_EMAIL": "",
+        "DAILY_REQUEST_LIMIT": "5000",
+        "MONTHLY_REQUEST_LIMIT": "100000",
+        "DISABLE_ON_LIMIT": "true",
+        "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
+        "IP_BLACKLIST": "",
+        "BLOCKED_COUNTRIES": "",
+        "RATE_LIMIT_TABLE": "pfwise-api-dev-rate-limits",
+        "CACHE_TIME_US_STOCK": "3600",
+        "CACHE_TIME_JP_STOCK": "3600",
+        "CACHE_TIME_MUTUAL_FUND": "10800",
+        "CACHE_TIME_EXCHANGE_RATE": "3600",
+        "SESSION_TABLE": "pfwise-api-dev-sessions",
+        "CACHE_TABLE": "pfwise-api-dev-cache",
+        "CORS_ALLOW_ORIGIN": "*.portfoliomanager.com",
+        "DRIVE_FOLDER_NAME": "PortfolioManagerData",
+        "LOG_LEVEL": "info",
+        "BUDGET_CHECK_ENABLED": "false",
+        "FREE_TIER_LIMIT": "25",
+        "DEFAULT_EXCHANGE_RATE": "150.0",
+        "SECRETS_MANAGER_SECRET_NAME": "pfwise-api/credentials",
+        "USE_SECRETS_MANAGER": "true",
+        "YAHOO_FINANCE_API_HOST": "yh-finance.p.rapidapi.com",
+        "JP_STOCK_SCRAPING_TIMEOUT": "30000",
+        "US_STOCK_SCRAPING_TIMEOUT": "20000",
+        "MUTUAL_FUND_TIMEOUT": "30000",
+        "SCRAPING_RATE_LIMIT_DELAY": "500",
+        "SCRAPING_MAX_FAILURES": "3",
+        "SCRAPING_COOLDOWN_DAYS": "7",
+        "ENABLE_AUDIT_LOGGING": "true",
+        "ENABLE_RATE_LIMITING": "true",
+        "MAX_REQUESTS_PER_MINUTE": "100",
+        "DRIVE_AUTH_SUCCESS_URL": "http://localhost:3001/drive-success",
+        "CORS_ALLOWED_ORIGINS": "http://localhost:3000,http://localhost:3001,https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+      },
+      "iamRoleStatements": [
+        {
+          "Effect": "Allow",
+          "Action": [
+            "dynamodb:Query",
+            "dynamodb:Scan",
+            "dynamodb:GetItem",
+            "dynamodb:PutItem",
+            "dynamodb:UpdateItem",
+            "dynamodb:DeleteItem",
+            "dynamodb:DescribeTable"
+          ],
+          "Resource": [
+            {
+              "Fn::GetAtt": [
+                "MarketDataCacheTable",
+                "Arn"
+              ]
+            },
+            {
+              "Fn::GetAtt": [
+                "SessionsTable",
+                "Arn"
+              ]
+            },
+            {
+              "Fn::GetAtt": [
+                "ScrapingBlacklistTable",
+                "Arn"
+              ]
+            },
+            {
+              "Fn::GetAtt": [
+                "RateLimitTable",
+                "Arn"
+              ]
+            }
+          ]
+        },
+        {
+          "Effect": "Allow",
+          "Action": [
+            "secretsmanager:GetSecretValue"
+          ],
+          "Resource": [
+            {
+              "Fn::Sub": "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pfwise-api/credentials-*"
+            },
+            {
+              "Fn::Sub": "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pfwise-api/google-oauth-*"
+            },
+            {
+              "Fn::Sub": "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pfwise-api/github-token-*"
+            }
+          ]
+        },
+        {
+          "Effect": "Allow",
+          "Action": [
+            "budgets:DescribeBudgetPerformanceHistory",
+            "budgets:DescribeBudgets"
+          ],
+          "Resource": "*"
+        }
+      ],
+      "versionFunctions": true,
+      "compiledCloudFormationTemplate": {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "The AWS CloudFormation template for this Serverless application",
+        "Resources": {
+          "ServerlessDeploymentBucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+              "BucketEncryption": {
+                "ServerSideEncryptionConfiguration": [
+                  {
+                    "ServerSideEncryptionByDefault": {
+                      "SSEAlgorithm": "AES256"
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "ServerlessDeploymentBucketPolicy": {
+            "Type": "AWS::S3::BucketPolicy",
+            "Properties": {
+              "Bucket": {
+                "Ref": "ServerlessDeploymentBucket"
+              },
+              "PolicyDocument": {
+                "Statement": [
+                  {
+                    "Action": "s3:*",
+                    "Effect": "Deny",
+                    "Principal": "*",
+                    "Resource": [
+                      {
+                        "Fn::Join": [
+                          "",
+                          [
+                            "arn:",
+                            {
+                              "Ref": "AWS::Partition"
+                            },
+                            ":s3:::",
+                            {
+                              "Ref": "ServerlessDeploymentBucket"
+                            },
+                            "/*"
+                          ]
+                        ]
+                      },
+                      {
+                        "Fn::Join": [
+                          "",
+                          [
+                            "arn:",
+                            {
+                              "Ref": "AWS::Partition"
+                            },
+                            ":s3:::",
+                            {
+                              "Ref": "ServerlessDeploymentBucket"
+                            }
+                          ]
+                        ]
+                      }
+                    ],
+                    "Condition": {
+                      "Bool": {
+                        "aws:SecureTransport": false
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "MarketDataLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/pfwise-api-dev-marketData"
+            }
+          },
+          "PreWarmCacheLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/pfwise-api-dev-preWarmCache"
+            }
+          },
+          "GetStatusLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/pfwise-api-dev-getStatus"
+            }
+          },
+          "ResetUsageLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/pfwise-api-dev-resetUsage"
+            }
+          },
+          "GetBudgetStatusLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/pfwise-api-dev-getBudgetStatus"
+            }
+          },
+          "GoogleLoginLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/pfwise-api-dev-googleLogin"
+            }
+          },
+          "GetSessionLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/pfwise-api-dev-getSession"
+            }
+          },
+          "LogoutLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/pfwise-api-dev-logout"
+            }
+          },
+          "GoogleDriveAuthInitiateLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/pfwise-api-dev-googleDriveAuthInitiate"
+            }
+          },
+          "GoogleDriveAuthCallbackLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/pfwise-api-dev-googleDriveAuthCallback"
+            }
+          },
+          "SaveFileLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/pfwise-api-dev-saveFile"
+            }
+          },
+          "LoadFileLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/pfwise-api-dev-loadFile"
+            }
+          },
+          "ListFilesLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/pfwise-api-dev-listFiles"
+            }
+          },
+          "GetClientConfigLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/pfwise-api-dev-getClientConfig"
+            }
+          },
+          "DebugGoogleConfigLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/pfwise-api-dev-debugGoogleConfig"
+            }
+          },
+          "IamRoleLambdaExecution": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+              "AssumeRolePolicyDocument": {
+                "Version": "2012-10-17",
+                "Statement": [
+                  {
+                    "Effect": "Allow",
+                    "Principal": {
+                      "Service": [
+                        "lambda.amazonaws.com"
+                      ]
+                    },
+                    "Action": [
+                      "sts:AssumeRole"
+                    ]
+                  }
+                ]
+              },
+              "Policies": [
+                {
+                  "PolicyName": {
+                    "Fn::Join": [
+                      "-",
+                      [
+                        "pfwise-api",
+                        "dev",
+                        "lambda"
+                      ]
+                    ]
+                  },
+                  "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "logs:CreateLogStream",
+                          "logs:CreateLogGroup",
+                          "logs:TagResource"
+                        ],
+                        "Resource": [
+                          {
+                            "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/pfwise-api-dev*:*"
+                          }
+                        ]
+                      },
+                      {
+                        "Effect": "Allow",
+                        "Action": [
+                          "logs:PutLogEvents"
+                        ],
+                        "Resource": [
+                          {
+                            "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/pfwise-api-dev*:*:*"
+                          }
+                        ]
+                      },
+                      {
+                        "$ref": "$[\"service\"][\"provider\"][\"iamRoleStatements\"][0]"
+                      },
+                      {
+                        "$ref": "$[\"service\"][\"provider\"][\"iamRoleStatements\"][1]"
+                      },
+                      {
+                        "$ref": "$[\"service\"][\"provider\"][\"iamRoleStatements\"][2]"
+                      }
+                    ]
+                  }
+                }
+              ],
+              "Path": "/",
+              "RoleName": {
+                "Fn::Join": [
+                  "-",
+                  [
+                    "pfwise-api",
+                    "dev",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    "lambdaRole"
+                  ]
+                ]
+              }
+            }
+          },
+          "MarketDataLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": {
+                  "Ref": "ServerlessDeploymentBucket"
+                },
+                "S3Key": "serverless/pfwise-api/dev/1748483377091-2025-05-29T01:49:37.091Z/pfwise-api.zip"
+              },
+              "Handler": "src/function/marketData.handler",
+              "Runtime": "nodejs18.x",
+              "FunctionName": "pfwise-api-dev-marketData",
+              "MemorySize": 256,
+              "Timeout": 30,
+              "Environment": {
+                "Variables": {
+                  "NODE_ENV": "dev",
+                  "ADMIN_EMAIL": "",
+                  "DAILY_REQUEST_LIMIT": "5000",
+                  "MONTHLY_REQUEST_LIMIT": "100000",
+                  "DISABLE_ON_LIMIT": "true",
+                  "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
+                  "IP_BLACKLIST": "",
+                  "BLOCKED_COUNTRIES": "",
+                  "RATE_LIMIT_TABLE": "pfwise-api-dev-rate-limits",
+                  "CACHE_TIME_US_STOCK": "3600",
+                  "CACHE_TIME_JP_STOCK": "3600",
+                  "CACHE_TIME_MUTUAL_FUND": "10800",
+                  "CACHE_TIME_EXCHANGE_RATE": "3600",
+                  "SESSION_TABLE": "pfwise-api-dev-sessions",
+                  "CACHE_TABLE": "pfwise-api-dev-cache",
+                  "CORS_ALLOW_ORIGIN": "*.portfoliomanager.com",
+                  "DRIVE_FOLDER_NAME": "PortfolioManagerData",
+                  "LOG_LEVEL": "info",
+                  "BUDGET_CHECK_ENABLED": "false",
+                  "FREE_TIER_LIMIT": "25",
+                  "DEFAULT_EXCHANGE_RATE": "150.0",
+                  "SECRETS_MANAGER_SECRET_NAME": "pfwise-api/credentials",
+                  "USE_SECRETS_MANAGER": "true",
+                  "YAHOO_FINANCE_API_HOST": "yh-finance.p.rapidapi.com",
+                  "JP_STOCK_SCRAPING_TIMEOUT": "30000",
+                  "US_STOCK_SCRAPING_TIMEOUT": "20000",
+                  "MUTUAL_FUND_TIMEOUT": "30000",
+                  "SCRAPING_RATE_LIMIT_DELAY": "500",
+                  "SCRAPING_MAX_FAILURES": "3",
+                  "SCRAPING_COOLDOWN_DAYS": "7",
+                  "ENABLE_AUDIT_LOGGING": "true",
+                  "ENABLE_RATE_LIMITING": "true",
+                  "MAX_REQUESTS_PER_MINUTE": "100",
+                  "DRIVE_AUTH_SUCCESS_URL": "http://localhost:3001/drive-success",
+                  "CORS_ALLOWED_ORIGINS": "http://localhost:3000,http://localhost:3001,https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "MarketDataLogGroup"
+            ]
+          },
+          "PreWarmCacheLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": {
+                  "Ref": "ServerlessDeploymentBucket"
+                },
+                "S3Key": "serverless/pfwise-api/dev/1748483377091-2025-05-29T01:49:37.091Z/pfwise-api.zip"
+              },
+              "Handler": "src/function/preWarmCache.handler",
+              "Runtime": "nodejs18.x",
+              "FunctionName": "pfwise-api-dev-preWarmCache",
+              "MemorySize": 256,
+              "Timeout": 30,
+              "Environment": {
+                "Variables": {
+                  "NODE_ENV": "dev",
+                  "ADMIN_EMAIL": "",
+                  "DAILY_REQUEST_LIMIT": "5000",
+                  "MONTHLY_REQUEST_LIMIT": "100000",
+                  "DISABLE_ON_LIMIT": "true",
+                  "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
+                  "IP_BLACKLIST": "",
+                  "BLOCKED_COUNTRIES": "",
+                  "RATE_LIMIT_TABLE": "pfwise-api-dev-rate-limits",
+                  "CACHE_TIME_US_STOCK": "3600",
+                  "CACHE_TIME_JP_STOCK": "3600",
+                  "CACHE_TIME_MUTUAL_FUND": "10800",
+                  "CACHE_TIME_EXCHANGE_RATE": "3600",
+                  "SESSION_TABLE": "pfwise-api-dev-sessions",
+                  "CACHE_TABLE": "pfwise-api-dev-cache",
+                  "CORS_ALLOW_ORIGIN": "*.portfoliomanager.com",
+                  "DRIVE_FOLDER_NAME": "PortfolioManagerData",
+                  "LOG_LEVEL": "info",
+                  "BUDGET_CHECK_ENABLED": "false",
+                  "FREE_TIER_LIMIT": "25",
+                  "DEFAULT_EXCHANGE_RATE": "150.0",
+                  "SECRETS_MANAGER_SECRET_NAME": "pfwise-api/credentials",
+                  "USE_SECRETS_MANAGER": "true",
+                  "YAHOO_FINANCE_API_HOST": "yh-finance.p.rapidapi.com",
+                  "JP_STOCK_SCRAPING_TIMEOUT": "30000",
+                  "US_STOCK_SCRAPING_TIMEOUT": "20000",
+                  "MUTUAL_FUND_TIMEOUT": "30000",
+                  "SCRAPING_RATE_LIMIT_DELAY": "500",
+                  "SCRAPING_MAX_FAILURES": "3",
+                  "SCRAPING_COOLDOWN_DAYS": "7",
+                  "ENABLE_AUDIT_LOGGING": "true",
+                  "ENABLE_RATE_LIMITING": "true",
+                  "MAX_REQUESTS_PER_MINUTE": "100",
+                  "DRIVE_AUTH_SUCCESS_URL": "http://localhost:3001/drive-success",
+                  "CORS_ALLOWED_ORIGINS": "http://localhost:3000,http://localhost:3001,https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "PreWarmCacheLogGroup"
+            ]
+          },
+          "GetStatusLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": {
+                  "Ref": "ServerlessDeploymentBucket"
+                },
+                "S3Key": "serverless/pfwise-api/dev/1748483377091-2025-05-29T01:49:37.091Z/pfwise-api.zip"
+              },
+              "Handler": "src/function/admin/getStatus.handler",
+              "Runtime": "nodejs18.x",
+              "FunctionName": "pfwise-api-dev-getStatus",
+              "MemorySize": 256,
+              "Timeout": 30,
+              "Environment": {
+                "Variables": {
+                  "NODE_ENV": "dev",
+                  "ADMIN_EMAIL": "",
+                  "DAILY_REQUEST_LIMIT": "5000",
+                  "MONTHLY_REQUEST_LIMIT": "100000",
+                  "DISABLE_ON_LIMIT": "true",
+                  "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
+                  "IP_BLACKLIST": "",
+                  "BLOCKED_COUNTRIES": "",
+                  "RATE_LIMIT_TABLE": "pfwise-api-dev-rate-limits",
+                  "CACHE_TIME_US_STOCK": "3600",
+                  "CACHE_TIME_JP_STOCK": "3600",
+                  "CACHE_TIME_MUTUAL_FUND": "10800",
+                  "CACHE_TIME_EXCHANGE_RATE": "3600",
+                  "SESSION_TABLE": "pfwise-api-dev-sessions",
+                  "CACHE_TABLE": "pfwise-api-dev-cache",
+                  "CORS_ALLOW_ORIGIN": "*.portfoliomanager.com",
+                  "DRIVE_FOLDER_NAME": "PortfolioManagerData",
+                  "LOG_LEVEL": "info",
+                  "BUDGET_CHECK_ENABLED": "false",
+                  "FREE_TIER_LIMIT": "25",
+                  "DEFAULT_EXCHANGE_RATE": "150.0",
+                  "SECRETS_MANAGER_SECRET_NAME": "pfwise-api/credentials",
+                  "USE_SECRETS_MANAGER": "true",
+                  "YAHOO_FINANCE_API_HOST": "yh-finance.p.rapidapi.com",
+                  "JP_STOCK_SCRAPING_TIMEOUT": "30000",
+                  "US_STOCK_SCRAPING_TIMEOUT": "20000",
+                  "MUTUAL_FUND_TIMEOUT": "30000",
+                  "SCRAPING_RATE_LIMIT_DELAY": "500",
+                  "SCRAPING_MAX_FAILURES": "3",
+                  "SCRAPING_COOLDOWN_DAYS": "7",
+                  "ENABLE_AUDIT_LOGGING": "true",
+                  "ENABLE_RATE_LIMITING": "true",
+                  "MAX_REQUESTS_PER_MINUTE": "100",
+                  "DRIVE_AUTH_SUCCESS_URL": "http://localhost:3001/drive-success",
+                  "CORS_ALLOWED_ORIGINS": "http://localhost:3000,http://localhost:3001,https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "GetStatusLogGroup"
+            ]
+          },
+          "ResetUsageLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": {
+                  "Ref": "ServerlessDeploymentBucket"
+                },
+                "S3Key": "serverless/pfwise-api/dev/1748483377091-2025-05-29T01:49:37.091Z/pfwise-api.zip"
+              },
+              "Handler": "src/function/admin/resetUsage.handler",
+              "Runtime": "nodejs18.x",
+              "FunctionName": "pfwise-api-dev-resetUsage",
+              "MemorySize": 256,
+              "Timeout": 30,
+              "Environment": {
+                "Variables": {
+                  "NODE_ENV": "dev",
+                  "ADMIN_EMAIL": "",
+                  "DAILY_REQUEST_LIMIT": "5000",
+                  "MONTHLY_REQUEST_LIMIT": "100000",
+                  "DISABLE_ON_LIMIT": "true",
+                  "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
+                  "IP_BLACKLIST": "",
+                  "BLOCKED_COUNTRIES": "",
+                  "RATE_LIMIT_TABLE": "pfwise-api-dev-rate-limits",
+                  "CACHE_TIME_US_STOCK": "3600",
+                  "CACHE_TIME_JP_STOCK": "3600",
+                  "CACHE_TIME_MUTUAL_FUND": "10800",
+                  "CACHE_TIME_EXCHANGE_RATE": "3600",
+                  "SESSION_TABLE": "pfwise-api-dev-sessions",
+                  "CACHE_TABLE": "pfwise-api-dev-cache",
+                  "CORS_ALLOW_ORIGIN": "*.portfoliomanager.com",
+                  "DRIVE_FOLDER_NAME": "PortfolioManagerData",
+                  "LOG_LEVEL": "info",
+                  "BUDGET_CHECK_ENABLED": "false",
+                  "FREE_TIER_LIMIT": "25",
+                  "DEFAULT_EXCHANGE_RATE": "150.0",
+                  "SECRETS_MANAGER_SECRET_NAME": "pfwise-api/credentials",
+                  "USE_SECRETS_MANAGER": "true",
+                  "YAHOO_FINANCE_API_HOST": "yh-finance.p.rapidapi.com",
+                  "JP_STOCK_SCRAPING_TIMEOUT": "30000",
+                  "US_STOCK_SCRAPING_TIMEOUT": "20000",
+                  "MUTUAL_FUND_TIMEOUT": "30000",
+                  "SCRAPING_RATE_LIMIT_DELAY": "500",
+                  "SCRAPING_MAX_FAILURES": "3",
+                  "SCRAPING_COOLDOWN_DAYS": "7",
+                  "ENABLE_AUDIT_LOGGING": "true",
+                  "ENABLE_RATE_LIMITING": "true",
+                  "MAX_REQUESTS_PER_MINUTE": "100",
+                  "DRIVE_AUTH_SUCCESS_URL": "http://localhost:3001/drive-success",
+                  "CORS_ALLOWED_ORIGINS": "http://localhost:3000,http://localhost:3001,https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "ResetUsageLogGroup"
+            ]
+          },
+          "GetBudgetStatusLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": {
+                  "Ref": "ServerlessDeploymentBucket"
+                },
+                "S3Key": "serverless/pfwise-api/dev/1748483377091-2025-05-29T01:49:37.091Z/pfwise-api.zip"
+              },
+              "Handler": "src/function/admin/getBudgetStatus.handler",
+              "Runtime": "nodejs18.x",
+              "FunctionName": "pfwise-api-dev-getBudgetStatus",
+              "MemorySize": 256,
+              "Timeout": 30,
+              "Environment": {
+                "Variables": {
+                  "NODE_ENV": "dev",
+                  "ADMIN_EMAIL": "",
+                  "DAILY_REQUEST_LIMIT": "5000",
+                  "MONTHLY_REQUEST_LIMIT": "100000",
+                  "DISABLE_ON_LIMIT": "true",
+                  "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
+                  "IP_BLACKLIST": "",
+                  "BLOCKED_COUNTRIES": "",
+                  "RATE_LIMIT_TABLE": "pfwise-api-dev-rate-limits",
+                  "CACHE_TIME_US_STOCK": "3600",
+                  "CACHE_TIME_JP_STOCK": "3600",
+                  "CACHE_TIME_MUTUAL_FUND": "10800",
+                  "CACHE_TIME_EXCHANGE_RATE": "3600",
+                  "SESSION_TABLE": "pfwise-api-dev-sessions",
+                  "CACHE_TABLE": "pfwise-api-dev-cache",
+                  "CORS_ALLOW_ORIGIN": "*.portfoliomanager.com",
+                  "DRIVE_FOLDER_NAME": "PortfolioManagerData",
+                  "LOG_LEVEL": "info",
+                  "BUDGET_CHECK_ENABLED": "false",
+                  "FREE_TIER_LIMIT": "25",
+                  "DEFAULT_EXCHANGE_RATE": "150.0",
+                  "SECRETS_MANAGER_SECRET_NAME": "pfwise-api/credentials",
+                  "USE_SECRETS_MANAGER": "true",
+                  "YAHOO_FINANCE_API_HOST": "yh-finance.p.rapidapi.com",
+                  "JP_STOCK_SCRAPING_TIMEOUT": "30000",
+                  "US_STOCK_SCRAPING_TIMEOUT": "20000",
+                  "MUTUAL_FUND_TIMEOUT": "30000",
+                  "SCRAPING_RATE_LIMIT_DELAY": "500",
+                  "SCRAPING_MAX_FAILURES": "3",
+                  "SCRAPING_COOLDOWN_DAYS": "7",
+                  "ENABLE_AUDIT_LOGGING": "true",
+                  "ENABLE_RATE_LIMITING": "true",
+                  "MAX_REQUESTS_PER_MINUTE": "100",
+                  "DRIVE_AUTH_SUCCESS_URL": "http://localhost:3001/drive-success",
+                  "CORS_ALLOWED_ORIGINS": "http://localhost:3000,http://localhost:3001,https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "GetBudgetStatusLogGroup"
+            ]
+          },
+          "GoogleLoginLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": {
+                  "Ref": "ServerlessDeploymentBucket"
+                },
+                "S3Key": "serverless/pfwise-api/dev/1748483377091-2025-05-29T01:49:37.091Z/pfwise-api.zip"
+              },
+              "Handler": "src/function/auth/googleLogin.handler",
+              "Runtime": "nodejs18.x",
+              "FunctionName": "pfwise-api-dev-googleLogin",
+              "MemorySize": 256,
+              "Timeout": 30,
+              "Environment": {
+                "Variables": {
+                  "NODE_ENV": "dev",
+                  "ADMIN_EMAIL": "",
+                  "DAILY_REQUEST_LIMIT": "5000",
+                  "MONTHLY_REQUEST_LIMIT": "100000",
+                  "DISABLE_ON_LIMIT": "true",
+                  "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
+                  "IP_BLACKLIST": "",
+                  "BLOCKED_COUNTRIES": "",
+                  "RATE_LIMIT_TABLE": "pfwise-api-dev-rate-limits",
+                  "CACHE_TIME_US_STOCK": "3600",
+                  "CACHE_TIME_JP_STOCK": "3600",
+                  "CACHE_TIME_MUTUAL_FUND": "10800",
+                  "CACHE_TIME_EXCHANGE_RATE": "3600",
+                  "SESSION_TABLE": "pfwise-api-dev-sessions",
+                  "CACHE_TABLE": "pfwise-api-dev-cache",
+                  "CORS_ALLOW_ORIGIN": "*.portfoliomanager.com",
+                  "DRIVE_FOLDER_NAME": "PortfolioManagerData",
+                  "LOG_LEVEL": "info",
+                  "BUDGET_CHECK_ENABLED": "false",
+                  "FREE_TIER_LIMIT": "25",
+                  "DEFAULT_EXCHANGE_RATE": "150.0",
+                  "SECRETS_MANAGER_SECRET_NAME": "pfwise-api/credentials",
+                  "USE_SECRETS_MANAGER": "true",
+                  "YAHOO_FINANCE_API_HOST": "yh-finance.p.rapidapi.com",
+                  "JP_STOCK_SCRAPING_TIMEOUT": "30000",
+                  "US_STOCK_SCRAPING_TIMEOUT": "20000",
+                  "MUTUAL_FUND_TIMEOUT": "30000",
+                  "SCRAPING_RATE_LIMIT_DELAY": "500",
+                  "SCRAPING_MAX_FAILURES": "3",
+                  "SCRAPING_COOLDOWN_DAYS": "7",
+                  "ENABLE_AUDIT_LOGGING": "true",
+                  "ENABLE_RATE_LIMITING": "true",
+                  "MAX_REQUESTS_PER_MINUTE": "100",
+                  "DRIVE_AUTH_SUCCESS_URL": "http://localhost:3001/drive-success",
+                  "CORS_ALLOWED_ORIGINS": "http://localhost:3000,http://localhost:3001,https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "GoogleLoginLogGroup"
+            ]
+          },
+          "GetSessionLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": {
+                  "Ref": "ServerlessDeploymentBucket"
+                },
+                "S3Key": "serverless/pfwise-api/dev/1748483377091-2025-05-29T01:49:37.091Z/pfwise-api.zip"
+              },
+              "Handler": "src/function/auth/getSession.handler",
+              "Runtime": "nodejs18.x",
+              "FunctionName": "pfwise-api-dev-getSession",
+              "MemorySize": 256,
+              "Timeout": 30,
+              "Environment": {
+                "Variables": {
+                  "NODE_ENV": "dev",
+                  "ADMIN_EMAIL": "",
+                  "DAILY_REQUEST_LIMIT": "5000",
+                  "MONTHLY_REQUEST_LIMIT": "100000",
+                  "DISABLE_ON_LIMIT": "true",
+                  "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
+                  "IP_BLACKLIST": "",
+                  "BLOCKED_COUNTRIES": "",
+                  "RATE_LIMIT_TABLE": "pfwise-api-dev-rate-limits",
+                  "CACHE_TIME_US_STOCK": "3600",
+                  "CACHE_TIME_JP_STOCK": "3600",
+                  "CACHE_TIME_MUTUAL_FUND": "10800",
+                  "CACHE_TIME_EXCHANGE_RATE": "3600",
+                  "SESSION_TABLE": "pfwise-api-dev-sessions",
+                  "CACHE_TABLE": "pfwise-api-dev-cache",
+                  "CORS_ALLOW_ORIGIN": "*.portfoliomanager.com",
+                  "DRIVE_FOLDER_NAME": "PortfolioManagerData",
+                  "LOG_LEVEL": "info",
+                  "BUDGET_CHECK_ENABLED": "false",
+                  "FREE_TIER_LIMIT": "25",
+                  "DEFAULT_EXCHANGE_RATE": "150.0",
+                  "SECRETS_MANAGER_SECRET_NAME": "pfwise-api/credentials",
+                  "USE_SECRETS_MANAGER": "true",
+                  "YAHOO_FINANCE_API_HOST": "yh-finance.p.rapidapi.com",
+                  "JP_STOCK_SCRAPING_TIMEOUT": "30000",
+                  "US_STOCK_SCRAPING_TIMEOUT": "20000",
+                  "MUTUAL_FUND_TIMEOUT": "30000",
+                  "SCRAPING_RATE_LIMIT_DELAY": "500",
+                  "SCRAPING_MAX_FAILURES": "3",
+                  "SCRAPING_COOLDOWN_DAYS": "7",
+                  "ENABLE_AUDIT_LOGGING": "true",
+                  "ENABLE_RATE_LIMITING": "true",
+                  "MAX_REQUESTS_PER_MINUTE": "100",
+                  "DRIVE_AUTH_SUCCESS_URL": "http://localhost:3001/drive-success",
+                  "CORS_ALLOWED_ORIGINS": "http://localhost:3000,http://localhost:3001,https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "GetSessionLogGroup"
+            ]
+          },
+          "LogoutLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": {
+                  "Ref": "ServerlessDeploymentBucket"
+                },
+                "S3Key": "serverless/pfwise-api/dev/1748483377091-2025-05-29T01:49:37.091Z/pfwise-api.zip"
+              },
+              "Handler": "src/function/auth/logout.handler",
+              "Runtime": "nodejs18.x",
+              "FunctionName": "pfwise-api-dev-logout",
+              "MemorySize": 256,
+              "Timeout": 30,
+              "Environment": {
+                "Variables": {
+                  "NODE_ENV": "dev",
+                  "ADMIN_EMAIL": "",
+                  "DAILY_REQUEST_LIMIT": "5000",
+                  "MONTHLY_REQUEST_LIMIT": "100000",
+                  "DISABLE_ON_LIMIT": "true",
+                  "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
+                  "IP_BLACKLIST": "",
+                  "BLOCKED_COUNTRIES": "",
+                  "RATE_LIMIT_TABLE": "pfwise-api-dev-rate-limits",
+                  "CACHE_TIME_US_STOCK": "3600",
+                  "CACHE_TIME_JP_STOCK": "3600",
+                  "CACHE_TIME_MUTUAL_FUND": "10800",
+                  "CACHE_TIME_EXCHANGE_RATE": "3600",
+                  "SESSION_TABLE": "pfwise-api-dev-sessions",
+                  "CACHE_TABLE": "pfwise-api-dev-cache",
+                  "CORS_ALLOW_ORIGIN": "*.portfoliomanager.com",
+                  "DRIVE_FOLDER_NAME": "PortfolioManagerData",
+                  "LOG_LEVEL": "info",
+                  "BUDGET_CHECK_ENABLED": "false",
+                  "FREE_TIER_LIMIT": "25",
+                  "DEFAULT_EXCHANGE_RATE": "150.0",
+                  "SECRETS_MANAGER_SECRET_NAME": "pfwise-api/credentials",
+                  "USE_SECRETS_MANAGER": "true",
+                  "YAHOO_FINANCE_API_HOST": "yh-finance.p.rapidapi.com",
+                  "JP_STOCK_SCRAPING_TIMEOUT": "30000",
+                  "US_STOCK_SCRAPING_TIMEOUT": "20000",
+                  "MUTUAL_FUND_TIMEOUT": "30000",
+                  "SCRAPING_RATE_LIMIT_DELAY": "500",
+                  "SCRAPING_MAX_FAILURES": "3",
+                  "SCRAPING_COOLDOWN_DAYS": "7",
+                  "ENABLE_AUDIT_LOGGING": "true",
+                  "ENABLE_RATE_LIMITING": "true",
+                  "MAX_REQUESTS_PER_MINUTE": "100",
+                  "DRIVE_AUTH_SUCCESS_URL": "http://localhost:3001/drive-success",
+                  "CORS_ALLOWED_ORIGINS": "http://localhost:3000,http://localhost:3001,https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "LogoutLogGroup"
+            ]
+          },
+          "GoogleDriveAuthInitiateLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": {
+                  "Ref": "ServerlessDeploymentBucket"
+                },
+                "S3Key": "serverless/pfwise-api/dev/1748483377091-2025-05-29T01:49:37.091Z/pfwise-api.zip"
+              },
+              "Handler": "src/function/auth/googleDriveAuth.initiateAuth",
+              "Runtime": "nodejs18.x",
+              "FunctionName": "pfwise-api-dev-googleDriveAuthInitiate",
+              "MemorySize": 256,
+              "Timeout": 30,
+              "Environment": {
+                "Variables": {
+                  "NODE_ENV": "dev",
+                  "ADMIN_EMAIL": "",
+                  "DAILY_REQUEST_LIMIT": "5000",
+                  "MONTHLY_REQUEST_LIMIT": "100000",
+                  "DISABLE_ON_LIMIT": "true",
+                  "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
+                  "IP_BLACKLIST": "",
+                  "BLOCKED_COUNTRIES": "",
+                  "RATE_LIMIT_TABLE": "pfwise-api-dev-rate-limits",
+                  "CACHE_TIME_US_STOCK": "3600",
+                  "CACHE_TIME_JP_STOCK": "3600",
+                  "CACHE_TIME_MUTUAL_FUND": "10800",
+                  "CACHE_TIME_EXCHANGE_RATE": "3600",
+                  "SESSION_TABLE": "pfwise-api-dev-sessions",
+                  "CACHE_TABLE": "pfwise-api-dev-cache",
+                  "CORS_ALLOW_ORIGIN": "*.portfoliomanager.com",
+                  "DRIVE_FOLDER_NAME": "PortfolioManagerData",
+                  "LOG_LEVEL": "info",
+                  "BUDGET_CHECK_ENABLED": "false",
+                  "FREE_TIER_LIMIT": "25",
+                  "DEFAULT_EXCHANGE_RATE": "150.0",
+                  "SECRETS_MANAGER_SECRET_NAME": "pfwise-api/credentials",
+                  "USE_SECRETS_MANAGER": "true",
+                  "YAHOO_FINANCE_API_HOST": "yh-finance.p.rapidapi.com",
+                  "JP_STOCK_SCRAPING_TIMEOUT": "30000",
+                  "US_STOCK_SCRAPING_TIMEOUT": "20000",
+                  "MUTUAL_FUND_TIMEOUT": "30000",
+                  "SCRAPING_RATE_LIMIT_DELAY": "500",
+                  "SCRAPING_MAX_FAILURES": "3",
+                  "SCRAPING_COOLDOWN_DAYS": "7",
+                  "ENABLE_AUDIT_LOGGING": "true",
+                  "ENABLE_RATE_LIMITING": "true",
+                  "MAX_REQUESTS_PER_MINUTE": "100",
+                  "DRIVE_AUTH_SUCCESS_URL": "http://localhost:3001/drive-success",
+                  "CORS_ALLOWED_ORIGINS": "http://localhost:3000,http://localhost:3001,https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "GoogleDriveAuthInitiateLogGroup"
+            ]
+          },
+          "GoogleDriveAuthCallbackLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": {
+                  "Ref": "ServerlessDeploymentBucket"
+                },
+                "S3Key": "serverless/pfwise-api/dev/1748483377091-2025-05-29T01:49:37.091Z/pfwise-api.zip"
+              },
+              "Handler": "src/function/auth/googleDriveAuth.callback",
+              "Runtime": "nodejs18.x",
+              "FunctionName": "pfwise-api-dev-googleDriveAuthCallback",
+              "MemorySize": 256,
+              "Timeout": 30,
+              "Environment": {
+                "Variables": {
+                  "NODE_ENV": "dev",
+                  "ADMIN_EMAIL": "",
+                  "DAILY_REQUEST_LIMIT": "5000",
+                  "MONTHLY_REQUEST_LIMIT": "100000",
+                  "DISABLE_ON_LIMIT": "true",
+                  "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
+                  "IP_BLACKLIST": "",
+                  "BLOCKED_COUNTRIES": "",
+                  "RATE_LIMIT_TABLE": "pfwise-api-dev-rate-limits",
+                  "CACHE_TIME_US_STOCK": "3600",
+                  "CACHE_TIME_JP_STOCK": "3600",
+                  "CACHE_TIME_MUTUAL_FUND": "10800",
+                  "CACHE_TIME_EXCHANGE_RATE": "3600",
+                  "SESSION_TABLE": "pfwise-api-dev-sessions",
+                  "CACHE_TABLE": "pfwise-api-dev-cache",
+                  "CORS_ALLOW_ORIGIN": "*.portfoliomanager.com",
+                  "DRIVE_FOLDER_NAME": "PortfolioManagerData",
+                  "LOG_LEVEL": "info",
+                  "BUDGET_CHECK_ENABLED": "false",
+                  "FREE_TIER_LIMIT": "25",
+                  "DEFAULT_EXCHANGE_RATE": "150.0",
+                  "SECRETS_MANAGER_SECRET_NAME": "pfwise-api/credentials",
+                  "USE_SECRETS_MANAGER": "true",
+                  "YAHOO_FINANCE_API_HOST": "yh-finance.p.rapidapi.com",
+                  "JP_STOCK_SCRAPING_TIMEOUT": "30000",
+                  "US_STOCK_SCRAPING_TIMEOUT": "20000",
+                  "MUTUAL_FUND_TIMEOUT": "30000",
+                  "SCRAPING_RATE_LIMIT_DELAY": "500",
+                  "SCRAPING_MAX_FAILURES": "3",
+                  "SCRAPING_COOLDOWN_DAYS": "7",
+                  "ENABLE_AUDIT_LOGGING": "true",
+                  "ENABLE_RATE_LIMITING": "true",
+                  "MAX_REQUESTS_PER_MINUTE": "100",
+                  "DRIVE_AUTH_SUCCESS_URL": "http://localhost:3001/drive-success",
+                  "CORS_ALLOWED_ORIGINS": "http://localhost:3000,http://localhost:3001,https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "GoogleDriveAuthCallbackLogGroup"
+            ]
+          },
+          "SaveFileLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": {
+                  "Ref": "ServerlessDeploymentBucket"
+                },
+                "S3Key": "serverless/pfwise-api/dev/1748483377091-2025-05-29T01:49:37.091Z/pfwise-api.zip"
+              },
+              "Handler": "src/function/drive/saveFile.handler",
+              "Runtime": "nodejs18.x",
+              "FunctionName": "pfwise-api-dev-saveFile",
+              "MemorySize": 256,
+              "Timeout": 30,
+              "Environment": {
+                "Variables": {
+                  "NODE_ENV": "dev",
+                  "ADMIN_EMAIL": "",
+                  "DAILY_REQUEST_LIMIT": "5000",
+                  "MONTHLY_REQUEST_LIMIT": "100000",
+                  "DISABLE_ON_LIMIT": "true",
+                  "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
+                  "IP_BLACKLIST": "",
+                  "BLOCKED_COUNTRIES": "",
+                  "RATE_LIMIT_TABLE": "pfwise-api-dev-rate-limits",
+                  "CACHE_TIME_US_STOCK": "3600",
+                  "CACHE_TIME_JP_STOCK": "3600",
+                  "CACHE_TIME_MUTUAL_FUND": "10800",
+                  "CACHE_TIME_EXCHANGE_RATE": "3600",
+                  "SESSION_TABLE": "pfwise-api-dev-sessions",
+                  "CACHE_TABLE": "pfwise-api-dev-cache",
+                  "CORS_ALLOW_ORIGIN": "*.portfoliomanager.com",
+                  "DRIVE_FOLDER_NAME": "PortfolioManagerData",
+                  "LOG_LEVEL": "info",
+                  "BUDGET_CHECK_ENABLED": "false",
+                  "FREE_TIER_LIMIT": "25",
+                  "DEFAULT_EXCHANGE_RATE": "150.0",
+                  "SECRETS_MANAGER_SECRET_NAME": "pfwise-api/credentials",
+                  "USE_SECRETS_MANAGER": "true",
+                  "YAHOO_FINANCE_API_HOST": "yh-finance.p.rapidapi.com",
+                  "JP_STOCK_SCRAPING_TIMEOUT": "30000",
+                  "US_STOCK_SCRAPING_TIMEOUT": "20000",
+                  "MUTUAL_FUND_TIMEOUT": "30000",
+                  "SCRAPING_RATE_LIMIT_DELAY": "500",
+                  "SCRAPING_MAX_FAILURES": "3",
+                  "SCRAPING_COOLDOWN_DAYS": "7",
+                  "ENABLE_AUDIT_LOGGING": "true",
+                  "ENABLE_RATE_LIMITING": "true",
+                  "MAX_REQUESTS_PER_MINUTE": "100",
+                  "DRIVE_AUTH_SUCCESS_URL": "http://localhost:3001/drive-success",
+                  "CORS_ALLOWED_ORIGINS": "http://localhost:3000,http://localhost:3001,https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "SaveFileLogGroup"
+            ]
+          },
+          "LoadFileLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": {
+                  "Ref": "ServerlessDeploymentBucket"
+                },
+                "S3Key": "serverless/pfwise-api/dev/1748483377091-2025-05-29T01:49:37.091Z/pfwise-api.zip"
+              },
+              "Handler": "src/function/drive/loadFile.handler",
+              "Runtime": "nodejs18.x",
+              "FunctionName": "pfwise-api-dev-loadFile",
+              "MemorySize": 256,
+              "Timeout": 30,
+              "Environment": {
+                "Variables": {
+                  "NODE_ENV": "dev",
+                  "ADMIN_EMAIL": "",
+                  "DAILY_REQUEST_LIMIT": "5000",
+                  "MONTHLY_REQUEST_LIMIT": "100000",
+                  "DISABLE_ON_LIMIT": "true",
+                  "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
+                  "IP_BLACKLIST": "",
+                  "BLOCKED_COUNTRIES": "",
+                  "RATE_LIMIT_TABLE": "pfwise-api-dev-rate-limits",
+                  "CACHE_TIME_US_STOCK": "3600",
+                  "CACHE_TIME_JP_STOCK": "3600",
+                  "CACHE_TIME_MUTUAL_FUND": "10800",
+                  "CACHE_TIME_EXCHANGE_RATE": "3600",
+                  "SESSION_TABLE": "pfwise-api-dev-sessions",
+                  "CACHE_TABLE": "pfwise-api-dev-cache",
+                  "CORS_ALLOW_ORIGIN": "*.portfoliomanager.com",
+                  "DRIVE_FOLDER_NAME": "PortfolioManagerData",
+                  "LOG_LEVEL": "info",
+                  "BUDGET_CHECK_ENABLED": "false",
+                  "FREE_TIER_LIMIT": "25",
+                  "DEFAULT_EXCHANGE_RATE": "150.0",
+                  "SECRETS_MANAGER_SECRET_NAME": "pfwise-api/credentials",
+                  "USE_SECRETS_MANAGER": "true",
+                  "YAHOO_FINANCE_API_HOST": "yh-finance.p.rapidapi.com",
+                  "JP_STOCK_SCRAPING_TIMEOUT": "30000",
+                  "US_STOCK_SCRAPING_TIMEOUT": "20000",
+                  "MUTUAL_FUND_TIMEOUT": "30000",
+                  "SCRAPING_RATE_LIMIT_DELAY": "500",
+                  "SCRAPING_MAX_FAILURES": "3",
+                  "SCRAPING_COOLDOWN_DAYS": "7",
+                  "ENABLE_AUDIT_LOGGING": "true",
+                  "ENABLE_RATE_LIMITING": "true",
+                  "MAX_REQUESTS_PER_MINUTE": "100",
+                  "DRIVE_AUTH_SUCCESS_URL": "http://localhost:3001/drive-success",
+                  "CORS_ALLOWED_ORIGINS": "http://localhost:3000,http://localhost:3001,https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "LoadFileLogGroup"
+            ]
+          },
+          "ListFilesLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": {
+                  "Ref": "ServerlessDeploymentBucket"
+                },
+                "S3Key": "serverless/pfwise-api/dev/1748483377091-2025-05-29T01:49:37.091Z/pfwise-api.zip"
+              },
+              "Handler": "src/function/drive/listFiles.handler",
+              "Runtime": "nodejs18.x",
+              "FunctionName": "pfwise-api-dev-listFiles",
+              "MemorySize": 256,
+              "Timeout": 30,
+              "Environment": {
+                "Variables": {
+                  "NODE_ENV": "dev",
+                  "ADMIN_EMAIL": "",
+                  "DAILY_REQUEST_LIMIT": "5000",
+                  "MONTHLY_REQUEST_LIMIT": "100000",
+                  "DISABLE_ON_LIMIT": "true",
+                  "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
+                  "IP_BLACKLIST": "",
+                  "BLOCKED_COUNTRIES": "",
+                  "RATE_LIMIT_TABLE": "pfwise-api-dev-rate-limits",
+                  "CACHE_TIME_US_STOCK": "3600",
+                  "CACHE_TIME_JP_STOCK": "3600",
+                  "CACHE_TIME_MUTUAL_FUND": "10800",
+                  "CACHE_TIME_EXCHANGE_RATE": "3600",
+                  "SESSION_TABLE": "pfwise-api-dev-sessions",
+                  "CACHE_TABLE": "pfwise-api-dev-cache",
+                  "CORS_ALLOW_ORIGIN": "*.portfoliomanager.com",
+                  "DRIVE_FOLDER_NAME": "PortfolioManagerData",
+                  "LOG_LEVEL": "info",
+                  "BUDGET_CHECK_ENABLED": "false",
+                  "FREE_TIER_LIMIT": "25",
+                  "DEFAULT_EXCHANGE_RATE": "150.0",
+                  "SECRETS_MANAGER_SECRET_NAME": "pfwise-api/credentials",
+                  "USE_SECRETS_MANAGER": "true",
+                  "YAHOO_FINANCE_API_HOST": "yh-finance.p.rapidapi.com",
+                  "JP_STOCK_SCRAPING_TIMEOUT": "30000",
+                  "US_STOCK_SCRAPING_TIMEOUT": "20000",
+                  "MUTUAL_FUND_TIMEOUT": "30000",
+                  "SCRAPING_RATE_LIMIT_DELAY": "500",
+                  "SCRAPING_MAX_FAILURES": "3",
+                  "SCRAPING_COOLDOWN_DAYS": "7",
+                  "ENABLE_AUDIT_LOGGING": "true",
+                  "ENABLE_RATE_LIMITING": "true",
+                  "MAX_REQUESTS_PER_MINUTE": "100",
+                  "DRIVE_AUTH_SUCCESS_URL": "http://localhost:3001/drive-success",
+                  "CORS_ALLOWED_ORIGINS": "http://localhost:3000,http://localhost:3001,https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "ListFilesLogGroup"
+            ]
+          },
+          "GetClientConfigLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": {
+                  "Ref": "ServerlessDeploymentBucket"
+                },
+                "S3Key": "serverless/pfwise-api/dev/1748483377091-2025-05-29T01:49:37.091Z/pfwise-api.zip"
+              },
+              "Handler": "src/function/config/getClientConfig.handler",
+              "Runtime": "nodejs18.x",
+              "FunctionName": "pfwise-api-dev-getClientConfig",
+              "MemorySize": 256,
+              "Timeout": 30,
+              "Environment": {
+                "Variables": {
+                  "NODE_ENV": "dev",
+                  "ADMIN_EMAIL": "",
+                  "DAILY_REQUEST_LIMIT": "5000",
+                  "MONTHLY_REQUEST_LIMIT": "100000",
+                  "DISABLE_ON_LIMIT": "true",
+                  "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
+                  "IP_BLACKLIST": "",
+                  "BLOCKED_COUNTRIES": "",
+                  "RATE_LIMIT_TABLE": "pfwise-api-dev-rate-limits",
+                  "CACHE_TIME_US_STOCK": "3600",
+                  "CACHE_TIME_JP_STOCK": "3600",
+                  "CACHE_TIME_MUTUAL_FUND": "10800",
+                  "CACHE_TIME_EXCHANGE_RATE": "3600",
+                  "SESSION_TABLE": "pfwise-api-dev-sessions",
+                  "CACHE_TABLE": "pfwise-api-dev-cache",
+                  "CORS_ALLOW_ORIGIN": "*.portfoliomanager.com",
+                  "DRIVE_FOLDER_NAME": "PortfolioManagerData",
+                  "LOG_LEVEL": "info",
+                  "BUDGET_CHECK_ENABLED": "false",
+                  "FREE_TIER_LIMIT": "25",
+                  "DEFAULT_EXCHANGE_RATE": "150.0",
+                  "SECRETS_MANAGER_SECRET_NAME": "pfwise-api/credentials",
+                  "USE_SECRETS_MANAGER": "true",
+                  "YAHOO_FINANCE_API_HOST": "yh-finance.p.rapidapi.com",
+                  "JP_STOCK_SCRAPING_TIMEOUT": "30000",
+                  "US_STOCK_SCRAPING_TIMEOUT": "20000",
+                  "MUTUAL_FUND_TIMEOUT": "30000",
+                  "SCRAPING_RATE_LIMIT_DELAY": "500",
+                  "SCRAPING_MAX_FAILURES": "3",
+                  "SCRAPING_COOLDOWN_DAYS": "7",
+                  "ENABLE_AUDIT_LOGGING": "true",
+                  "ENABLE_RATE_LIMITING": "true",
+                  "MAX_REQUESTS_PER_MINUTE": "100",
+                  "DRIVE_AUTH_SUCCESS_URL": "http://localhost:3001/drive-success",
+                  "CORS_ALLOWED_ORIGINS": "http://localhost:3000,http://localhost:3001,https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "GetClientConfigLogGroup"
+            ]
+          },
+          "DebugGoogleConfigLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": {
+                  "Ref": "ServerlessDeploymentBucket"
+                },
+                "S3Key": "serverless/pfwise-api/dev/1748483377091-2025-05-29T01:49:37.091Z/pfwise-api.zip"
+              },
+              "Handler": "src/function/debug/googleConfig.handler",
+              "Runtime": "nodejs18.x",
+              "FunctionName": "pfwise-api-dev-debugGoogleConfig",
+              "MemorySize": 256,
+              "Timeout": 30,
+              "Environment": {
+                "Variables": {
+                  "NODE_ENV": "dev",
+                  "ADMIN_EMAIL": "",
+                  "DAILY_REQUEST_LIMIT": "5000",
+                  "MONTHLY_REQUEST_LIMIT": "100000",
+                  "DISABLE_ON_LIMIT": "true",
+                  "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
+                  "IP_BLACKLIST": "",
+                  "BLOCKED_COUNTRIES": "",
+                  "RATE_LIMIT_TABLE": "pfwise-api-dev-rate-limits",
+                  "CACHE_TIME_US_STOCK": "3600",
+                  "CACHE_TIME_JP_STOCK": "3600",
+                  "CACHE_TIME_MUTUAL_FUND": "10800",
+                  "CACHE_TIME_EXCHANGE_RATE": "3600",
+                  "SESSION_TABLE": "pfwise-api-dev-sessions",
+                  "CACHE_TABLE": "pfwise-api-dev-cache",
+                  "CORS_ALLOW_ORIGIN": "*.portfoliomanager.com",
+                  "DRIVE_FOLDER_NAME": "PortfolioManagerData",
+                  "LOG_LEVEL": "info",
+                  "BUDGET_CHECK_ENABLED": "false",
+                  "FREE_TIER_LIMIT": "25",
+                  "DEFAULT_EXCHANGE_RATE": "150.0",
+                  "SECRETS_MANAGER_SECRET_NAME": "pfwise-api/credentials",
+                  "USE_SECRETS_MANAGER": "true",
+                  "YAHOO_FINANCE_API_HOST": "yh-finance.p.rapidapi.com",
+                  "JP_STOCK_SCRAPING_TIMEOUT": "30000",
+                  "US_STOCK_SCRAPING_TIMEOUT": "20000",
+                  "MUTUAL_FUND_TIMEOUT": "30000",
+                  "SCRAPING_RATE_LIMIT_DELAY": "500",
+                  "SCRAPING_MAX_FAILURES": "3",
+                  "SCRAPING_COOLDOWN_DAYS": "7",
+                  "ENABLE_AUDIT_LOGGING": "true",
+                  "ENABLE_RATE_LIMITING": "true",
+                  "MAX_REQUESTS_PER_MINUTE": "100",
+                  "DRIVE_AUTH_SUCCESS_URL": "http://localhost:3001/drive-success",
+                  "CORS_ALLOWED_ORIGINS": "http://localhost:3000,http://localhost:3001,https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "DebugGoogleConfigLogGroup"
+            ]
+          },
+          "MarketDataLambdaVersion9srDeky0Yv2M6KinZck4qWQNb9LnJmkN6qJcrw3mY": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "MarketDataLambdaFunction"
+              },
+              "CodeSha256": "LX6cmiA9p/VYP7kdfyU0VE1qRkOfKDoaGpM6xAFQ27I="
+            }
+          },
+          "PreWarmCacheLambdaVersionDMwsbaTdMkX69lPGQVyhkwDWT10sj8ivCQmvfJBZpA": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "PreWarmCacheLambdaFunction"
+              },
+              "CodeSha256": "LX6cmiA9p/VYP7kdfyU0VE1qRkOfKDoaGpM6xAFQ27I="
+            }
+          },
+          "GetStatusLambdaVersionS4Yg9yQQYXpjzjO2WgXyyjgqoeQJ5b2CoqjAnKbY": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "GetStatusLambdaFunction"
+              },
+              "CodeSha256": "LX6cmiA9p/VYP7kdfyU0VE1qRkOfKDoaGpM6xAFQ27I="
+            }
+          },
+          "ResetUsageLambdaVersionqsC0oPsoEjhQ59fs05M7ovYCRAiSvoC5QH5vUi9NM": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "ResetUsageLambdaFunction"
+              },
+              "CodeSha256": "LX6cmiA9p/VYP7kdfyU0VE1qRkOfKDoaGpM6xAFQ27I="
+            }
+          },
+          "GetBudgetStatusLambdaVersiona9iw1xg1lfcKEwC3fUa9Fu2WVGpBXArKSZAfr744A": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "GetBudgetStatusLambdaFunction"
+              },
+              "CodeSha256": "LX6cmiA9p/VYP7kdfyU0VE1qRkOfKDoaGpM6xAFQ27I="
+            }
+          },
+          "GoogleLoginLambdaVersionbxuAzbiX0CiNumCdr6IP7tIfne5VPL8Y0lRwfAESOWE": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "GoogleLoginLambdaFunction"
+              },
+              "CodeSha256": "LX6cmiA9p/VYP7kdfyU0VE1qRkOfKDoaGpM6xAFQ27I="
+            }
+          },
+          "GetSessionLambdaVersionPqf4dx46hb9fugyvtlqneYhg3KQxIK3sKwmt2ttPKuo": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "GetSessionLambdaFunction"
+              },
+              "CodeSha256": "LX6cmiA9p/VYP7kdfyU0VE1qRkOfKDoaGpM6xAFQ27I="
+            }
+          },
+          "LogoutLambdaVersionFvWGFfs2bQ99PkVGy8Fkar8wwbAbMgNnc5IN336EznI": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "LogoutLambdaFunction"
+              },
+              "CodeSha256": "LX6cmiA9p/VYP7kdfyU0VE1qRkOfKDoaGpM6xAFQ27I="
+            }
+          },
+          "GoogleDriveAuthInitiateLambdaVersionjnavn7ZTnuqMnOxPLjmpccaplxIOqAyFbYdxiw7Gqo": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "GoogleDriveAuthInitiateLambdaFunction"
+              },
+              "CodeSha256": "LX6cmiA9p/VYP7kdfyU0VE1qRkOfKDoaGpM6xAFQ27I="
+            }
+          },
+          "GoogleDriveAuthCallbackLambdaVersionJ67ijimBx3CCB9w6aFWkuE3JqNzoL4HTDxDcSaVHbg": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "GoogleDriveAuthCallbackLambdaFunction"
+              },
+              "CodeSha256": "LX6cmiA9p/VYP7kdfyU0VE1qRkOfKDoaGpM6xAFQ27I="
+            }
+          },
+          "SaveFileLambdaVersionbtuimPd7ud00C3smc1nHXYriHMZpE3nMfJv96myI": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "SaveFileLambdaFunction"
+              },
+              "CodeSha256": "LX6cmiA9p/VYP7kdfyU0VE1qRkOfKDoaGpM6xAFQ27I="
+            }
+          },
+          "LoadFileLambdaVersionXtLqZmjbPuy7HtEIGBnmC1wJLJ9qhRFAWhcrdKkTXDY": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "LoadFileLambdaFunction"
+              },
+              "CodeSha256": "LX6cmiA9p/VYP7kdfyU0VE1qRkOfKDoaGpM6xAFQ27I="
+            }
+          },
+          "ListFilesLambdaVersion0RrP3fFUChNoUDRfXqgEsSeX3aATkkG2J4EOsq1bVo": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "ListFilesLambdaFunction"
+              },
+              "CodeSha256": "LX6cmiA9p/VYP7kdfyU0VE1qRkOfKDoaGpM6xAFQ27I="
+            }
+          },
+          "GetClientConfigLambdaVersionqWfY3skci0mM3EhpXIcUUuTwb2ljxwUIwgkApXG9Oo": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "GetClientConfigLambdaFunction"
+              },
+              "CodeSha256": "LX6cmiA9p/VYP7kdfyU0VE1qRkOfKDoaGpM6xAFQ27I="
+            }
+          },
+          "DebugGoogleConfigLambdaVersionFPcjrBjLpddMoyiOUEDI2KWPmakP6LphlS015ynzGc": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "DebugGoogleConfigLambdaFunction"
+              },
+              "CodeSha256": "LX6cmiA9p/VYP7kdfyU0VE1qRkOfKDoaGpM6xAFQ27I="
+            }
+          },
+          "PreWarmCacheEventsRuleSchedule1": {
+            "Type": "AWS::Events::Rule",
+            "Properties": {
+              "ScheduleExpression": "rate(6 hours)",
+              "State": "ENABLED",
+              "Targets": [
+                {
+                  "Arn": {
+                    "Fn::GetAtt": [
+                      "PreWarmCacheLambdaFunction",
+                      "Arn"
+                    ]
+                  },
+                  "Id": "preWarmCacheSchedule"
+                }
+              ]
+            }
+          },
+          "PreWarmCacheLambdaPermissionEventsRuleSchedule1": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "PreWarmCacheLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "events.amazonaws.com",
+              "SourceArn": {
+                "Fn::GetAtt": [
+                  "PreWarmCacheEventsRuleSchedule1",
+                  "Arn"
+                ]
+              }
+            }
+          },
+          "ApiGatewayRestApi": {
+            "Type": "AWS::ApiGateway::RestApi",
+            "Properties": {
+              "Name": "dev-pfwise-api",
+              "EndpointConfiguration": {
+                "Types": [
+                  "EDGE"
+                ]
+              },
+              "Policy": ""
+            }
+          },
+          "ApiGatewayResourceApi": {
+            "Type": "AWS::ApiGateway::Resource",
+            "Properties": {
+              "ParentId": {
+                "Fn::GetAtt": [
+                  "ApiGatewayRestApi",
+                  "RootResourceId"
+                ]
+              },
+              "PathPart": "api",
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayResourceApiMarketDashdata": {
+            "Type": "AWS::ApiGateway::Resource",
+            "Properties": {
+              "ParentId": {
+                "Ref": "ApiGatewayResourceApi"
+              },
+              "PathPart": "market-data",
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayResourceAdmin": {
+            "Type": "AWS::ApiGateway::Resource",
+            "Properties": {
+              "ParentId": {
+                "Fn::GetAtt": [
+                  "ApiGatewayRestApi",
+                  "RootResourceId"
+                ]
+              },
+              "PathPart": "admin",
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayResourceAdminStatus": {
+            "Type": "AWS::ApiGateway::Resource",
+            "Properties": {
+              "ParentId": {
+                "Ref": "ApiGatewayResourceAdmin"
+              },
+              "PathPart": "status",
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayResourceAdminReset": {
+            "Type": "AWS::ApiGateway::Resource",
+            "Properties": {
+              "ParentId": {
+                "Ref": "ApiGatewayResourceAdmin"
+              },
+              "PathPart": "reset",
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayResourceAdminGetbudgetstatus": {
+            "Type": "AWS::ApiGateway::Resource",
+            "Properties": {
+              "ParentId": {
+                "Ref": "ApiGatewayResourceAdmin"
+              },
+              "PathPart": "getBudgetStatus",
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayResourceAuth": {
+            "Type": "AWS::ApiGateway::Resource",
+            "Properties": {
+              "ParentId": {
+                "Fn::GetAtt": [
+                  "ApiGatewayRestApi",
+                  "RootResourceId"
+                ]
+              },
+              "PathPart": "auth",
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayResourceAuthGoogle": {
+            "Type": "AWS::ApiGateway::Resource",
+            "Properties": {
+              "ParentId": {
+                "Ref": "ApiGatewayResourceAuth"
+              },
+              "PathPart": "google",
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayResourceAuthGoogleLogin": {
+            "Type": "AWS::ApiGateway::Resource",
+            "Properties": {
+              "ParentId": {
+                "Ref": "ApiGatewayResourceAuthGoogle"
+              },
+              "PathPart": "login",
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayResourceAuthGoogleDrive": {
+            "Type": "AWS::ApiGateway::Resource",
+            "Properties": {
+              "ParentId": {
+                "Ref": "ApiGatewayResourceAuthGoogle"
+              },
+              "PathPart": "drive",
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayResourceAuthGoogleDriveInitiate": {
+            "Type": "AWS::ApiGateway::Resource",
+            "Properties": {
+              "ParentId": {
+                "Ref": "ApiGatewayResourceAuthGoogleDrive"
+              },
+              "PathPart": "initiate",
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayResourceAuthGoogleDriveCallback": {
+            "Type": "AWS::ApiGateway::Resource",
+            "Properties": {
+              "ParentId": {
+                "Ref": "ApiGatewayResourceAuthGoogleDrive"
+              },
+              "PathPart": "callback",
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayResourceAuthSession": {
+            "Type": "AWS::ApiGateway::Resource",
+            "Properties": {
+              "ParentId": {
+                "Ref": "ApiGatewayResourceAuth"
+              },
+              "PathPart": "session",
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayResourceAuthLogout": {
+            "Type": "AWS::ApiGateway::Resource",
+            "Properties": {
+              "ParentId": {
+                "Ref": "ApiGatewayResourceAuth"
+              },
+              "PathPart": "logout",
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayResourceDrive": {
+            "Type": "AWS::ApiGateway::Resource",
+            "Properties": {
+              "ParentId": {
+                "Fn::GetAtt": [
+                  "ApiGatewayRestApi",
+                  "RootResourceId"
+                ]
+              },
+              "PathPart": "drive",
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayResourceDriveSave": {
+            "Type": "AWS::ApiGateway::Resource",
+            "Properties": {
+              "ParentId": {
+                "Ref": "ApiGatewayResourceDrive"
+              },
+              "PathPart": "save",
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayResourceDriveLoad": {
+            "Type": "AWS::ApiGateway::Resource",
+            "Properties": {
+              "ParentId": {
+                "Ref": "ApiGatewayResourceDrive"
+              },
+              "PathPart": "load",
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayResourceDriveFiles": {
+            "Type": "AWS::ApiGateway::Resource",
+            "Properties": {
+              "ParentId": {
+                "Ref": "ApiGatewayResourceDrive"
+              },
+              "PathPart": "files",
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayResourceConfig": {
+            "Type": "AWS::ApiGateway::Resource",
+            "Properties": {
+              "ParentId": {
+                "Fn::GetAtt": [
+                  "ApiGatewayRestApi",
+                  "RootResourceId"
+                ]
+              },
+              "PathPart": "config",
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayResourceConfigClient": {
+            "Type": "AWS::ApiGateway::Resource",
+            "Properties": {
+              "ParentId": {
+                "Ref": "ApiGatewayResourceConfig"
+              },
+              "PathPart": "client",
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayResourceDebug": {
+            "Type": "AWS::ApiGateway::Resource",
+            "Properties": {
+              "ParentId": {
+                "Fn::GetAtt": [
+                  "ApiGatewayRestApi",
+                  "RootResourceId"
+                ]
+              },
+              "PathPart": "debug",
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayResourceDebugGoogleDashconfig": {
+            "Type": "AWS::ApiGateway::Resource",
+            "Properties": {
+              "ParentId": {
+                "Ref": "ApiGatewayResourceDebug"
+              },
+              "PathPart": "google-config",
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayMethodApiMarketDashdataOptions": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "AuthorizationType": "NONE",
+              "HttpMethod": "OPTIONS",
+              "MethodResponses": [
+                {
+                  "StatusCode": "200",
+                  "ResponseParameters": {
+                    "method.response.header.Access-Control-Allow-Origin": true,
+                    "method.response.header.Access-Control-Allow-Headers": true,
+                    "method.response.header.Access-Control-Allow-Methods": true,
+                    "method.response.header.Access-Control-Allow-Credentials": true
+                  },
+                  "ResponseModels": {}
+                }
+              ],
+              "RequestParameters": {},
+              "Integration": {
+                "Type": "MOCK",
+                "RequestTemplates": {
+                  "application/json": "{statusCode:200}"
+                },
+                "ContentHandling": "CONVERT_TO_TEXT",
+                "IntegrationResponses": [
+                  {
+                    "StatusCode": "200",
+                    "ResponseParameters": {
+                      "method.response.header.Access-Control-Allow-Origin": "'http://localhost:3001'",
+                      "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,Cookie'",
+                      "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,GET'",
+                      "method.response.header.Access-Control-Allow-Credentials": "'true'"
+                    },
+                    "ResponseTemplates": {
+                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3001\") || $origin.matches(\"http://localhost:3000\") || $origin.matches(\"https://portfolio-wise[.]com\") || $origin.matches(\"https://www[.]portfolio-wise[.]com\") || $origin.matches(\"https://app[.]portfolio-wise[.]com\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
+                    }
+                  }
+                ]
+              },
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceApiMarketDashdata"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayMethodAdminStatusOptions": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "AuthorizationType": "NONE",
+              "HttpMethod": "OPTIONS",
+              "MethodResponses": [
+                {
+                  "StatusCode": "200",
+                  "ResponseParameters": {
+                    "method.response.header.Access-Control-Allow-Origin": true,
+                    "method.response.header.Access-Control-Allow-Headers": true,
+                    "method.response.header.Access-Control-Allow-Methods": true,
+                    "method.response.header.Access-Control-Allow-Credentials": true
+                  },
+                  "ResponseModels": {}
+                }
+              ],
+              "RequestParameters": {},
+              "Integration": {
+                "Type": "MOCK",
+                "RequestTemplates": {
+                  "application/json": "{statusCode:200}"
+                },
+                "ContentHandling": "CONVERT_TO_TEXT",
+                "IntegrationResponses": [
+                  {
+                    "StatusCode": "200",
+                    "ResponseParameters": {
+                      "method.response.header.Access-Control-Allow-Origin": "'http://localhost:3001'",
+                      "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,Cookie'",
+                      "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,GET'",
+                      "method.response.header.Access-Control-Allow-Credentials": "'true'"
+                    },
+                    "ResponseTemplates": {
+                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3001\") || $origin.matches(\"http://localhost:3000\") || $origin.matches(\"https://portfolio-wise[.]com\") || $origin.matches(\"https://www[.]portfolio-wise[.]com\") || $origin.matches(\"https://app[.]portfolio-wise[.]com\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
+                    }
+                  }
+                ]
+              },
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceAdminStatus"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayMethodAdminResetOptions": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "AuthorizationType": "NONE",
+              "HttpMethod": "OPTIONS",
+              "MethodResponses": [
+                {
+                  "StatusCode": "200",
+                  "ResponseParameters": {
+                    "method.response.header.Access-Control-Allow-Origin": true,
+                    "method.response.header.Access-Control-Allow-Headers": true,
+                    "method.response.header.Access-Control-Allow-Methods": true,
+                    "method.response.header.Access-Control-Allow-Credentials": true
+                  },
+                  "ResponseModels": {}
+                }
+              ],
+              "RequestParameters": {},
+              "Integration": {
+                "Type": "MOCK",
+                "RequestTemplates": {
+                  "application/json": "{statusCode:200}"
+                },
+                "ContentHandling": "CONVERT_TO_TEXT",
+                "IntegrationResponses": [
+                  {
+                    "StatusCode": "200",
+                    "ResponseParameters": {
+                      "method.response.header.Access-Control-Allow-Origin": "'http://localhost:3001'",
+                      "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,Cookie'",
+                      "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,POST'",
+                      "method.response.header.Access-Control-Allow-Credentials": "'true'"
+                    },
+                    "ResponseTemplates": {
+                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3001\") || $origin.matches(\"http://localhost:3000\") || $origin.matches(\"https://portfolio-wise[.]com\") || $origin.matches(\"https://www[.]portfolio-wise[.]com\") || $origin.matches(\"https://app[.]portfolio-wise[.]com\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
+                    }
+                  }
+                ]
+              },
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceAdminReset"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayMethodAdminGetbudgetstatusOptions": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "AuthorizationType": "NONE",
+              "HttpMethod": "OPTIONS",
+              "MethodResponses": [
+                {
+                  "StatusCode": "200",
+                  "ResponseParameters": {
+                    "method.response.header.Access-Control-Allow-Origin": true,
+                    "method.response.header.Access-Control-Allow-Headers": true,
+                    "method.response.header.Access-Control-Allow-Methods": true,
+                    "method.response.header.Access-Control-Allow-Credentials": true
+                  },
+                  "ResponseModels": {}
+                }
+              ],
+              "RequestParameters": {},
+              "Integration": {
+                "Type": "MOCK",
+                "RequestTemplates": {
+                  "application/json": "{statusCode:200}"
+                },
+                "ContentHandling": "CONVERT_TO_TEXT",
+                "IntegrationResponses": [
+                  {
+                    "StatusCode": "200",
+                    "ResponseParameters": {
+                      "method.response.header.Access-Control-Allow-Origin": "'http://localhost:3001'",
+                      "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,Cookie'",
+                      "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,GET'",
+                      "method.response.header.Access-Control-Allow-Credentials": "'true'"
+                    },
+                    "ResponseTemplates": {
+                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3001\") || $origin.matches(\"http://localhost:3000\") || $origin.matches(\"https://portfolio-wise[.]com\") || $origin.matches(\"https://www[.]portfolio-wise[.]com\") || $origin.matches(\"https://app[.]portfolio-wise[.]com\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
+                    }
+                  }
+                ]
+              },
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceAdminGetbudgetstatus"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayMethodAuthGoogleLoginOptions": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "AuthorizationType": "NONE",
+              "HttpMethod": "OPTIONS",
+              "MethodResponses": [
+                {
+                  "StatusCode": "200",
+                  "ResponseParameters": {
+                    "method.response.header.Access-Control-Allow-Origin": true,
+                    "method.response.header.Access-Control-Allow-Headers": true,
+                    "method.response.header.Access-Control-Allow-Methods": true,
+                    "method.response.header.Access-Control-Allow-Credentials": true
+                  },
+                  "ResponseModels": {}
+                }
+              ],
+              "RequestParameters": {},
+              "Integration": {
+                "Type": "AWS_PROXY",
+                "RequestTemplates": {
+                  "application/json": "{statusCode:200}"
+                },
+                "ContentHandling": "CONVERT_TO_TEXT",
+                "IntegrationResponses": [
+                  {
+                    "StatusCode": "200",
+                    "ResponseParameters": {
+                      "method.response.header.Access-Control-Allow-Origin": "'http://localhost:3001'",
+                      "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,Cookie'",
+                      "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,POST'",
+                      "method.response.header.Access-Control-Allow-Credentials": "'true'"
+                    },
+                    "ResponseTemplates": {
+                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3001\") || $origin.matches(\"http://localhost:3000\") || $origin.matches(\"https://portfolio-wise[.]com\") || $origin.matches(\"https://www[.]portfolio-wise[.]com\") || $origin.matches(\"https://app[.]portfolio-wise[.]com\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
+                    }
+                  }
+                ],
+                "IntegrationHttpMethod": "POST",
+                "Uri": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":apigateway:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":lambda:path/2015-03-31/functions/",
+                      {
+                        "Fn::GetAtt": [
+                          "GoogleLoginLambdaFunction",
+                          "Arn"
+                        ]
+                      },
+                      "/invocations"
+                    ]
+                  ]
+                }
+              },
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceAuthGoogleLogin"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "ApiKeyRequired": false
+            },
+            "DependsOn": [
+              "GoogleLoginLambdaPermissionApiGateway"
+            ]
+          },
+          "ApiGatewayMethodAuthSessionOptions": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "AuthorizationType": "NONE",
+              "HttpMethod": "OPTIONS",
+              "MethodResponses": [
+                {
+                  "StatusCode": "200",
+                  "ResponseParameters": {
+                    "method.response.header.Access-Control-Allow-Origin": true,
+                    "method.response.header.Access-Control-Allow-Headers": true,
+                    "method.response.header.Access-Control-Allow-Methods": true,
+                    "method.response.header.Access-Control-Allow-Credentials": true
+                  },
+                  "ResponseModels": {}
+                }
+              ],
+              "RequestParameters": {},
+              "Integration": {
+                "Type": "MOCK",
+                "RequestTemplates": {
+                  "application/json": "{statusCode:200}"
+                },
+                "ContentHandling": "CONVERT_TO_TEXT",
+                "IntegrationResponses": [
+                  {
+                    "StatusCode": "200",
+                    "ResponseParameters": {
+                      "method.response.header.Access-Control-Allow-Origin": "'http://localhost:3001'",
+                      "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,Cookie'",
+                      "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,GET'",
+                      "method.response.header.Access-Control-Allow-Credentials": "'true'"
+                    },
+                    "ResponseTemplates": {
+                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3001\") || $origin.matches(\"http://localhost:3000\") || $origin.matches(\"https://portfolio-wise[.]com\") || $origin.matches(\"https://www[.]portfolio-wise[.]com\") || $origin.matches(\"https://app[.]portfolio-wise[.]com\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
+                    }
+                  }
+                ]
+              },
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceAuthSession"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayMethodAuthLogoutOptions": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "AuthorizationType": "NONE",
+              "HttpMethod": "OPTIONS",
+              "MethodResponses": [
+                {
+                  "StatusCode": "200",
+                  "ResponseParameters": {
+                    "method.response.header.Access-Control-Allow-Origin": true,
+                    "method.response.header.Access-Control-Allow-Headers": true,
+                    "method.response.header.Access-Control-Allow-Methods": true,
+                    "method.response.header.Access-Control-Allow-Credentials": true
+                  },
+                  "ResponseModels": {}
+                }
+              ],
+              "RequestParameters": {},
+              "Integration": {
+                "Type": "MOCK",
+                "RequestTemplates": {
+                  "application/json": "{statusCode:200}"
+                },
+                "ContentHandling": "CONVERT_TO_TEXT",
+                "IntegrationResponses": [
+                  {
+                    "StatusCode": "200",
+                    "ResponseParameters": {
+                      "method.response.header.Access-Control-Allow-Origin": "'http://localhost:3001'",
+                      "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,Cookie'",
+                      "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,POST'",
+                      "method.response.header.Access-Control-Allow-Credentials": "'true'"
+                    },
+                    "ResponseTemplates": {
+                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3001\") || $origin.matches(\"http://localhost:3000\") || $origin.matches(\"https://portfolio-wise[.]com\") || $origin.matches(\"https://www[.]portfolio-wise[.]com\") || $origin.matches(\"https://app[.]portfolio-wise[.]com\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
+                    }
+                  }
+                ]
+              },
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceAuthLogout"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayMethodAuthGoogleDriveInitiateOptions": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "AuthorizationType": "NONE",
+              "HttpMethod": "OPTIONS",
+              "MethodResponses": [
+                {
+                  "StatusCode": "200",
+                  "ResponseParameters": {
+                    "method.response.header.Access-Control-Allow-Origin": true,
+                    "method.response.header.Access-Control-Allow-Headers": true,
+                    "method.response.header.Access-Control-Allow-Methods": true,
+                    "method.response.header.Access-Control-Allow-Credentials": true
+                  },
+                  "ResponseModels": {}
+                }
+              ],
+              "RequestParameters": {},
+              "Integration": {
+                "Type": "AWS_PROXY",
+                "RequestTemplates": {
+                  "application/json": "{statusCode:200}"
+                },
+                "ContentHandling": "CONVERT_TO_TEXT",
+                "IntegrationResponses": [
+                  {
+                    "StatusCode": "200",
+                    "ResponseParameters": {
+                      "method.response.header.Access-Control-Allow-Origin": "'http://localhost:3001'",
+                      "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,Cookie'",
+                      "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,GET'",
+                      "method.response.header.Access-Control-Allow-Credentials": "'true'"
+                    },
+                    "ResponseTemplates": {
+                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3001\") || $origin.matches(\"http://localhost:3000\") || $origin.matches(\"https://portfolio-wise[.]com\") || $origin.matches(\"https://www[.]portfolio-wise[.]com\") || $origin.matches(\"https://app[.]portfolio-wise[.]com\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
+                    }
+                  }
+                ],
+                "IntegrationHttpMethod": "POST",
+                "Uri": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":apigateway:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":lambda:path/2015-03-31/functions/",
+                      {
+                        "Fn::GetAtt": [
+                          "GoogleDriveAuthInitiateLambdaFunction",
+                          "Arn"
+                        ]
+                      },
+                      "/invocations"
+                    ]
+                  ]
+                }
+              },
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceAuthGoogleDriveInitiate"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "ApiKeyRequired": false
+            },
+            "DependsOn": [
+              "GoogleDriveAuthInitiateLambdaPermissionApiGateway"
+            ]
+          },
+          "ApiGatewayMethodAuthGoogleDriveCallbackOptions": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "AuthorizationType": "NONE",
+              "HttpMethod": "OPTIONS",
+              "MethodResponses": [
+                {
+                  "StatusCode": "200",
+                  "ResponseParameters": {
+                    "method.response.header.Access-Control-Allow-Origin": true,
+                    "method.response.header.Access-Control-Allow-Headers": true,
+                    "method.response.header.Access-Control-Allow-Methods": true,
+                    "method.response.header.Access-Control-Allow-Credentials": true
+                  },
+                  "ResponseModels": {}
+                }
+              ],
+              "RequestParameters": {},
+              "Integration": {
+                "Type": "MOCK",
+                "RequestTemplates": {
+                  "application/json": "{statusCode:200}"
+                },
+                "ContentHandling": "CONVERT_TO_TEXT",
+                "IntegrationResponses": [
+                  {
+                    "StatusCode": "200",
+                    "ResponseParameters": {
+                      "method.response.header.Access-Control-Allow-Origin": "'http://localhost:3001'",
+                      "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,Cookie'",
+                      "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,GET'",
+                      "method.response.header.Access-Control-Allow-Credentials": "'true'"
+                    },
+                    "ResponseTemplates": {
+                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3001\") || $origin.matches(\"http://localhost:3000\") || $origin.matches(\"https://portfolio-wise[.]com\") || $origin.matches(\"https://www[.]portfolio-wise[.]com\") || $origin.matches(\"https://app[.]portfolio-wise[.]com\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
+                    }
+                  }
+                ]
+              },
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceAuthGoogleDriveCallback"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayMethodDriveSaveOptions": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "AuthorizationType": "NONE",
+              "HttpMethod": "OPTIONS",
+              "MethodResponses": [
+                {
+                  "StatusCode": "200",
+                  "ResponseParameters": {
+                    "method.response.header.Access-Control-Allow-Origin": true,
+                    "method.response.header.Access-Control-Allow-Headers": true,
+                    "method.response.header.Access-Control-Allow-Methods": true,
+                    "method.response.header.Access-Control-Allow-Credentials": true
+                  },
+                  "ResponseModels": {}
+                }
+              ],
+              "RequestParameters": {},
+              "Integration": {
+                "Type": "MOCK",
+                "RequestTemplates": {
+                  "application/json": "{statusCode:200}"
+                },
+                "ContentHandling": "CONVERT_TO_TEXT",
+                "IntegrationResponses": [
+                  {
+                    "StatusCode": "200",
+                    "ResponseParameters": {
+                      "method.response.header.Access-Control-Allow-Origin": "'http://localhost:3001'",
+                      "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,Cookie'",
+                      "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,POST'",
+                      "method.response.header.Access-Control-Allow-Credentials": "'true'"
+                    },
+                    "ResponseTemplates": {
+                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3001\") || $origin.matches(\"http://localhost:3000\") || $origin.matches(\"https://portfolio-wise[.]com\") || $origin.matches(\"https://www[.]portfolio-wise[.]com\") || $origin.matches(\"https://app[.]portfolio-wise[.]com\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
+                    }
+                  }
+                ]
+              },
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceDriveSave"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayMethodDriveLoadOptions": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "AuthorizationType": "NONE",
+              "HttpMethod": "OPTIONS",
+              "MethodResponses": [
+                {
+                  "StatusCode": "200",
+                  "ResponseParameters": {
+                    "method.response.header.Access-Control-Allow-Origin": true,
+                    "method.response.header.Access-Control-Allow-Headers": true,
+                    "method.response.header.Access-Control-Allow-Methods": true,
+                    "method.response.header.Access-Control-Allow-Credentials": true
+                  },
+                  "ResponseModels": {}
+                }
+              ],
+              "RequestParameters": {},
+              "Integration": {
+                "Type": "MOCK",
+                "RequestTemplates": {
+                  "application/json": "{statusCode:200}"
+                },
+                "ContentHandling": "CONVERT_TO_TEXT",
+                "IntegrationResponses": [
+                  {
+                    "StatusCode": "200",
+                    "ResponseParameters": {
+                      "method.response.header.Access-Control-Allow-Origin": "'http://localhost:3001'",
+                      "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,Cookie'",
+                      "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,GET'",
+                      "method.response.header.Access-Control-Allow-Credentials": "'true'"
+                    },
+                    "ResponseTemplates": {
+                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3001\") || $origin.matches(\"http://localhost:3000\") || $origin.matches(\"https://portfolio-wise[.]com\") || $origin.matches(\"https://www[.]portfolio-wise[.]com\") || $origin.matches(\"https://app[.]portfolio-wise[.]com\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
+                    }
+                  }
+                ]
+              },
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceDriveLoad"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayMethodDriveFilesOptions": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "AuthorizationType": "NONE",
+              "HttpMethod": "OPTIONS",
+              "MethodResponses": [
+                {
+                  "StatusCode": "200",
+                  "ResponseParameters": {
+                    "method.response.header.Access-Control-Allow-Origin": true,
+                    "method.response.header.Access-Control-Allow-Headers": true,
+                    "method.response.header.Access-Control-Allow-Methods": true,
+                    "method.response.header.Access-Control-Allow-Credentials": true
+                  },
+                  "ResponseModels": {}
+                }
+              ],
+              "RequestParameters": {},
+              "Integration": {
+                "Type": "MOCK",
+                "RequestTemplates": {
+                  "application/json": "{statusCode:200}"
+                },
+                "ContentHandling": "CONVERT_TO_TEXT",
+                "IntegrationResponses": [
+                  {
+                    "StatusCode": "200",
+                    "ResponseParameters": {
+                      "method.response.header.Access-Control-Allow-Origin": "'http://localhost:3001'",
+                      "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,Cookie'",
+                      "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,GET'",
+                      "method.response.header.Access-Control-Allow-Credentials": "'true'"
+                    },
+                    "ResponseTemplates": {
+                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3001\") || $origin.matches(\"http://localhost:3000\") || $origin.matches(\"https://portfolio-wise[.]com\") || $origin.matches(\"https://www[.]portfolio-wise[.]com\") || $origin.matches(\"https://app[.]portfolio-wise[.]com\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
+                    }
+                  }
+                ]
+              },
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceDriveFiles"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayMethodConfigClientOptions": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "AuthorizationType": "NONE",
+              "HttpMethod": "OPTIONS",
+              "MethodResponses": [
+                {
+                  "StatusCode": "200",
+                  "ResponseParameters": {
+                    "method.response.header.Access-Control-Allow-Origin": true,
+                    "method.response.header.Access-Control-Allow-Headers": true,
+                    "method.response.header.Access-Control-Allow-Methods": true,
+                    "method.response.header.Access-Control-Allow-Credentials": true
+                  },
+                  "ResponseModels": {}
+                }
+              ],
+              "RequestParameters": {},
+              "Integration": {
+                "Type": "MOCK",
+                "RequestTemplates": {
+                  "application/json": "{statusCode:200}"
+                },
+                "ContentHandling": "CONVERT_TO_TEXT",
+                "IntegrationResponses": [
+                  {
+                    "StatusCode": "200",
+                    "ResponseParameters": {
+                      "method.response.header.Access-Control-Allow-Origin": "'http://localhost:3001'",
+                      "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,Cookie'",
+                      "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,GET'",
+                      "method.response.header.Access-Control-Allow-Credentials": "'true'"
+                    },
+                    "ResponseTemplates": {
+                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3001\") || $origin.matches(\"http://localhost:3000\") || $origin.matches(\"https://portfolio-wise[.]com\") || $origin.matches(\"https://www[.]portfolio-wise[.]com\") || $origin.matches(\"https://app[.]portfolio-wise[.]com\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
+                    }
+                  }
+                ]
+              },
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceConfigClient"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayMethodDebugGoogleDashconfigOptions": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "AuthorizationType": "NONE",
+              "HttpMethod": "OPTIONS",
+              "MethodResponses": [
+                {
+                  "StatusCode": "200",
+                  "ResponseParameters": {
+                    "method.response.header.Access-Control-Allow-Origin": true,
+                    "method.response.header.Access-Control-Allow-Headers": true,
+                    "method.response.header.Access-Control-Allow-Methods": true
+                  },
+                  "ResponseModels": {}
+                }
+              ],
+              "RequestParameters": {},
+              "Integration": {
+                "Type": "MOCK",
+                "RequestTemplates": {
+                  "application/json": "{statusCode:200}"
+                },
+                "ContentHandling": "CONVERT_TO_TEXT",
+                "IntegrationResponses": [
+                  {
+                    "StatusCode": "200",
+                    "ResponseParameters": {
+                      "method.response.header.Access-Control-Allow-Origin": "'*'",
+                      "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,X-Amzn-Trace-Id'",
+                      "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,GET'"
+                    },
+                    "ResponseTemplates": {
+                      "application/json": ""
+                    }
+                  }
+                ]
+              },
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceDebugGoogleDashconfig"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayMethodApiMarketDashdataGet": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "HttpMethod": "GET",
+              "RequestParameters": {},
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceApiMarketDashdata"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "ApiKeyRequired": false,
+              "AuthorizationType": "NONE",
+              "Integration": {
+                "IntegrationHttpMethod": "POST",
+                "Type": "AWS_PROXY",
+                "Uri": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":apigateway:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":lambda:path/2015-03-31/functions/",
+                      {
+                        "Fn::GetAtt": [
+                          "MarketDataLambdaFunction",
+                          "Arn"
+                        ]
+                      },
+                      "/invocations"
+                    ]
+                  ]
+                }
+              },
+              "MethodResponses": []
+            },
+            "DependsOn": [
+              "MarketDataLambdaPermissionApiGateway"
+            ]
+          },
+          "ApiGatewayMethodAdminStatusGet": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "HttpMethod": "GET",
+              "RequestParameters": {},
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceAdminStatus"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "ApiKeyRequired": true,
+              "AuthorizationType": "NONE",
+              "Integration": {
+                "IntegrationHttpMethod": "POST",
+                "Type": "AWS_PROXY",
+                "Uri": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":apigateway:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":lambda:path/2015-03-31/functions/",
+                      {
+                        "Fn::GetAtt": [
+                          "GetStatusLambdaFunction",
+                          "Arn"
+                        ]
+                      },
+                      "/invocations"
+                    ]
+                  ]
+                }
+              },
+              "MethodResponses": []
+            },
+            "DependsOn": [
+              "GetStatusLambdaPermissionApiGateway"
+            ]
+          },
+          "ApiGatewayMethodAdminResetPost": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "HttpMethod": "POST",
+              "RequestParameters": {},
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceAdminReset"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "ApiKeyRequired": true,
+              "AuthorizationType": "NONE",
+              "Integration": {
+                "IntegrationHttpMethod": "POST",
+                "Type": "AWS_PROXY",
+                "Uri": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":apigateway:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":lambda:path/2015-03-31/functions/",
+                      {
+                        "Fn::GetAtt": [
+                          "ResetUsageLambdaFunction",
+                          "Arn"
+                        ]
+                      },
+                      "/invocations"
+                    ]
+                  ]
+                }
+              },
+              "MethodResponses": []
+            },
+            "DependsOn": [
+              "ResetUsageLambdaPermissionApiGateway"
+            ]
+          },
+          "ApiGatewayMethodAdminGetbudgetstatusGet": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "HttpMethod": "GET",
+              "RequestParameters": {},
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceAdminGetbudgetstatus"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "ApiKeyRequired": true,
+              "AuthorizationType": "NONE",
+              "Integration": {
+                "IntegrationHttpMethod": "POST",
+                "Type": "AWS_PROXY",
+                "Uri": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":apigateway:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":lambda:path/2015-03-31/functions/",
+                      {
+                        "Fn::GetAtt": [
+                          "GetBudgetStatusLambdaFunction",
+                          "Arn"
+                        ]
+                      },
+                      "/invocations"
+                    ]
+                  ]
+                }
+              },
+              "MethodResponses": []
+            },
+            "DependsOn": [
+              "GetBudgetStatusLambdaPermissionApiGateway"
+            ]
+          },
+          "ApiGatewayMethodAuthGoogleLoginPost": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "HttpMethod": "POST",
+              "RequestParameters": {},
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceAuthGoogleLogin"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "ApiKeyRequired": false,
+              "AuthorizationType": "NONE",
+              "Integration": {
+                "IntegrationHttpMethod": "POST",
+                "Type": "AWS_PROXY",
+                "Uri": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":apigateway:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":lambda:path/2015-03-31/functions/",
+                      {
+                        "Fn::GetAtt": [
+                          "GoogleLoginLambdaFunction",
+                          "Arn"
+                        ]
+                      },
+                      "/invocations"
+                    ]
+                  ]
+                }
+              },
+              "MethodResponses": []
+            },
+            "DependsOn": [
+              "GoogleLoginLambdaPermissionApiGateway"
+            ]
+          },
+          "ApiGatewayMethodAuthSessionGet": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "HttpMethod": "GET",
+              "RequestParameters": {},
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceAuthSession"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "ApiKeyRequired": false,
+              "AuthorizationType": "NONE",
+              "Integration": {
+                "IntegrationHttpMethod": "POST",
+                "Type": "AWS_PROXY",
+                "Uri": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":apigateway:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":lambda:path/2015-03-31/functions/",
+                      {
+                        "Fn::GetAtt": [
+                          "GetSessionLambdaFunction",
+                          "Arn"
+                        ]
+                      },
+                      "/invocations"
+                    ]
+                  ]
+                }
+              },
+              "MethodResponses": []
+            },
+            "DependsOn": [
+              "GetSessionLambdaPermissionApiGateway"
+            ]
+          },
+          "ApiGatewayMethodAuthLogoutPost": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "HttpMethod": "POST",
+              "RequestParameters": {},
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceAuthLogout"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "ApiKeyRequired": false,
+              "AuthorizationType": "NONE",
+              "Integration": {
+                "IntegrationHttpMethod": "POST",
+                "Type": "AWS_PROXY",
+                "Uri": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":apigateway:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":lambda:path/2015-03-31/functions/",
+                      {
+                        "Fn::GetAtt": [
+                          "LogoutLambdaFunction",
+                          "Arn"
+                        ]
+                      },
+                      "/invocations"
+                    ]
+                  ]
+                }
+              },
+              "MethodResponses": []
+            },
+            "DependsOn": [
+              "LogoutLambdaPermissionApiGateway"
+            ]
+          },
+          "ApiGatewayMethodAuthGoogleDriveInitiateGet": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "HttpMethod": "GET",
+              "RequestParameters": {},
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceAuthGoogleDriveInitiate"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "ApiKeyRequired": false,
+              "AuthorizationType": "NONE",
+              "Integration": {
+                "IntegrationHttpMethod": "POST",
+                "Type": "AWS_PROXY",
+                "Uri": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":apigateway:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":lambda:path/2015-03-31/functions/",
+                      {
+                        "Fn::GetAtt": [
+                          "GoogleDriveAuthInitiateLambdaFunction",
+                          "Arn"
+                        ]
+                      },
+                      "/invocations"
+                    ]
+                  ]
+                }
+              },
+              "MethodResponses": []
+            },
+            "DependsOn": [
+              "GoogleDriveAuthInitiateLambdaPermissionApiGateway"
+            ]
+          },
+          "ApiGatewayMethodAuthGoogleDriveCallbackGet": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "HttpMethod": "GET",
+              "RequestParameters": {},
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceAuthGoogleDriveCallback"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "ApiKeyRequired": false,
+              "AuthorizationType": "NONE",
+              "Integration": {
+                "IntegrationHttpMethod": "POST",
+                "Type": "AWS_PROXY",
+                "Uri": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":apigateway:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":lambda:path/2015-03-31/functions/",
+                      {
+                        "Fn::GetAtt": [
+                          "GoogleDriveAuthCallbackLambdaFunction",
+                          "Arn"
+                        ]
+                      },
+                      "/invocations"
+                    ]
+                  ]
+                }
+              },
+              "MethodResponses": []
+            },
+            "DependsOn": [
+              "GoogleDriveAuthCallbackLambdaPermissionApiGateway"
+            ]
+          },
+          "ApiGatewayMethodDriveSavePost": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "HttpMethod": "POST",
+              "RequestParameters": {},
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceDriveSave"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "ApiKeyRequired": false,
+              "AuthorizationType": "NONE",
+              "Integration": {
+                "IntegrationHttpMethod": "POST",
+                "Type": "AWS_PROXY",
+                "Uri": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":apigateway:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":lambda:path/2015-03-31/functions/",
+                      {
+                        "Fn::GetAtt": [
+                          "SaveFileLambdaFunction",
+                          "Arn"
+                        ]
+                      },
+                      "/invocations"
+                    ]
+                  ]
+                }
+              },
+              "MethodResponses": []
+            },
+            "DependsOn": [
+              "SaveFileLambdaPermissionApiGateway"
+            ]
+          },
+          "ApiGatewayMethodDriveLoadGet": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "HttpMethod": "GET",
+              "RequestParameters": {},
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceDriveLoad"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "ApiKeyRequired": false,
+              "AuthorizationType": "NONE",
+              "Integration": {
+                "IntegrationHttpMethod": "POST",
+                "Type": "AWS_PROXY",
+                "Uri": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":apigateway:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":lambda:path/2015-03-31/functions/",
+                      {
+                        "Fn::GetAtt": [
+                          "LoadFileLambdaFunction",
+                          "Arn"
+                        ]
+                      },
+                      "/invocations"
+                    ]
+                  ]
+                }
+              },
+              "MethodResponses": []
+            },
+            "DependsOn": [
+              "LoadFileLambdaPermissionApiGateway"
+            ]
+          },
+          "ApiGatewayMethodDriveFilesGet": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "HttpMethod": "GET",
+              "RequestParameters": {},
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceDriveFiles"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "ApiKeyRequired": false,
+              "AuthorizationType": "NONE",
+              "Integration": {
+                "IntegrationHttpMethod": "POST",
+                "Type": "AWS_PROXY",
+                "Uri": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":apigateway:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":lambda:path/2015-03-31/functions/",
+                      {
+                        "Fn::GetAtt": [
+                          "ListFilesLambdaFunction",
+                          "Arn"
+                        ]
+                      },
+                      "/invocations"
+                    ]
+                  ]
+                }
+              },
+              "MethodResponses": []
+            },
+            "DependsOn": [
+              "ListFilesLambdaPermissionApiGateway"
+            ]
+          },
+          "ApiGatewayMethodConfigClientGet": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "HttpMethod": "GET",
+              "RequestParameters": {},
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceConfigClient"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "ApiKeyRequired": false,
+              "AuthorizationType": "NONE",
+              "Integration": {
+                "IntegrationHttpMethod": "POST",
+                "Type": "AWS_PROXY",
+                "Uri": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":apigateway:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":lambda:path/2015-03-31/functions/",
+                      {
+                        "Fn::GetAtt": [
+                          "GetClientConfigLambdaFunction",
+                          "Arn"
+                        ]
+                      },
+                      "/invocations"
+                    ]
+                  ]
+                }
+              },
+              "MethodResponses": []
+            },
+            "DependsOn": [
+              "GetClientConfigLambdaPermissionApiGateway"
+            ]
+          },
+          "ApiGatewayMethodDebugGoogleDashconfigGet": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "HttpMethod": "GET",
+              "RequestParameters": {},
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceDebugGoogleDashconfig"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "ApiKeyRequired": false,
+              "AuthorizationType": "NONE",
+              "Integration": {
+                "IntegrationHttpMethod": "POST",
+                "Type": "AWS_PROXY",
+                "Uri": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":apigateway:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":lambda:path/2015-03-31/functions/",
+                      {
+                        "Fn::GetAtt": [
+                          "DebugGoogleConfigLambdaFunction",
+                          "Arn"
+                        ]
+                      },
+                      "/invocations"
+                    ]
+                  ]
+                }
+              },
+              "MethodResponses": []
+            },
+            "DependsOn": [
+              "DebugGoogleConfigLambdaPermissionApiGateway"
+            ]
+          },
+          "ApiGatewayDeployment1748483374996": {
+            "Type": "AWS::ApiGateway::Deployment",
+            "Properties": {
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "StageName": "dev"
+            },
+            "DependsOn": [
+              "ApiGatewayMethodApiMarketDashdataOptions",
+              "ApiGatewayMethodAdminStatusOptions",
+              "ApiGatewayMethodAdminResetOptions",
+              "ApiGatewayMethodAdminGetbudgetstatusOptions",
+              "ApiGatewayMethodAuthGoogleLoginOptions",
+              "ApiGatewayMethodAuthSessionOptions",
+              "ApiGatewayMethodAuthLogoutOptions",
+              "ApiGatewayMethodAuthGoogleDriveInitiateOptions",
+              "ApiGatewayMethodAuthGoogleDriveCallbackOptions",
+              "ApiGatewayMethodDriveSaveOptions",
+              "ApiGatewayMethodDriveLoadOptions",
+              "ApiGatewayMethodDriveFilesOptions",
+              "ApiGatewayMethodConfigClientOptions",
+              "ApiGatewayMethodDebugGoogleDashconfigOptions",
+              "ApiGatewayMethodApiMarketDashdataGet",
+              "ApiGatewayMethodAdminStatusGet",
+              "ApiGatewayMethodAdminResetPost",
+              "ApiGatewayMethodAdminGetbudgetstatusGet",
+              "ApiGatewayMethodAuthGoogleLoginPost",
+              "ApiGatewayMethodAuthGoogleLoginOptions",
+              "ApiGatewayMethodAuthSessionGet",
+              "ApiGatewayMethodAuthLogoutPost",
+              "ApiGatewayMethodAuthGoogleDriveInitiateGet",
+              "ApiGatewayMethodAuthGoogleDriveInitiateOptions",
+              "ApiGatewayMethodAuthGoogleDriveCallbackGet",
+              "ApiGatewayMethodDriveSavePost",
+              "ApiGatewayMethodDriveLoadGet",
+              "ApiGatewayMethodDriveFilesGet",
+              "ApiGatewayMethodConfigClientGet",
+              "ApiGatewayMethodDebugGoogleDashconfigGet"
+            ]
+          },
+          "MarketDataLambdaPermissionApiGateway": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "MarketDataLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "apigateway.amazonaws.com",
+              "SourceArn": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":execute-api:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":",
+                    {
+                      "Ref": "ApiGatewayRestApi"
+                    },
+                    "/*/*"
+                  ]
+                ]
+              }
+            }
+          },
+          "GetStatusLambdaPermissionApiGateway": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "GetStatusLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "apigateway.amazonaws.com",
+              "SourceArn": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":execute-api:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":",
+                    {
+                      "Ref": "ApiGatewayRestApi"
+                    },
+                    "/*/*"
+                  ]
+                ]
+              }
+            }
+          },
+          "ResetUsageLambdaPermissionApiGateway": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "ResetUsageLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "apigateway.amazonaws.com",
+              "SourceArn": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":execute-api:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":",
+                    {
+                      "Ref": "ApiGatewayRestApi"
+                    },
+                    "/*/*"
+                  ]
+                ]
+              }
+            }
+          },
+          "GetBudgetStatusLambdaPermissionApiGateway": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "GetBudgetStatusLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "apigateway.amazonaws.com",
+              "SourceArn": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":execute-api:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":",
+                    {
+                      "Ref": "ApiGatewayRestApi"
+                    },
+                    "/*/*"
+                  ]
+                ]
+              }
+            }
+          },
+          "GoogleLoginLambdaPermissionApiGateway": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "GoogleLoginLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "apigateway.amazonaws.com",
+              "SourceArn": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":execute-api:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":",
+                    {
+                      "Ref": "ApiGatewayRestApi"
+                    },
+                    "/*/*"
+                  ]
+                ]
+              }
+            }
+          },
+          "GetSessionLambdaPermissionApiGateway": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "GetSessionLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "apigateway.amazonaws.com",
+              "SourceArn": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":execute-api:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":",
+                    {
+                      "Ref": "ApiGatewayRestApi"
+                    },
+                    "/*/*"
+                  ]
+                ]
+              }
+            }
+          },
+          "LogoutLambdaPermissionApiGateway": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "LogoutLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "apigateway.amazonaws.com",
+              "SourceArn": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":execute-api:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":",
+                    {
+                      "Ref": "ApiGatewayRestApi"
+                    },
+                    "/*/*"
+                  ]
+                ]
+              }
+            }
+          },
+          "GoogleDriveAuthInitiateLambdaPermissionApiGateway": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "GoogleDriveAuthInitiateLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "apigateway.amazonaws.com",
+              "SourceArn": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":execute-api:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":",
+                    {
+                      "Ref": "ApiGatewayRestApi"
+                    },
+                    "/*/*"
+                  ]
+                ]
+              }
+            }
+          },
+          "GoogleDriveAuthCallbackLambdaPermissionApiGateway": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "GoogleDriveAuthCallbackLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "apigateway.amazonaws.com",
+              "SourceArn": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":execute-api:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":",
+                    {
+                      "Ref": "ApiGatewayRestApi"
+                    },
+                    "/*/*"
+                  ]
+                ]
+              }
+            }
+          },
+          "SaveFileLambdaPermissionApiGateway": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "SaveFileLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "apigateway.amazonaws.com",
+              "SourceArn": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":execute-api:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":",
+                    {
+                      "Ref": "ApiGatewayRestApi"
+                    },
+                    "/*/*"
+                  ]
+                ]
+              }
+            }
+          },
+          "LoadFileLambdaPermissionApiGateway": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "LoadFileLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "apigateway.amazonaws.com",
+              "SourceArn": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":execute-api:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":",
+                    {
+                      "Ref": "ApiGatewayRestApi"
+                    },
+                    "/*/*"
+                  ]
+                ]
+              }
+            }
+          },
+          "ListFilesLambdaPermissionApiGateway": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "ListFilesLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "apigateway.amazonaws.com",
+              "SourceArn": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":execute-api:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":",
+                    {
+                      "Ref": "ApiGatewayRestApi"
+                    },
+                    "/*/*"
+                  ]
+                ]
+              }
+            }
+          },
+          "GetClientConfigLambdaPermissionApiGateway": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "GetClientConfigLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "apigateway.amazonaws.com",
+              "SourceArn": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":execute-api:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":",
+                    {
+                      "Ref": "ApiGatewayRestApi"
+                    },
+                    "/*/*"
+                  ]
+                ]
+              }
+            }
+          },
+          "DebugGoogleConfigLambdaPermissionApiGateway": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "DebugGoogleConfigLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "apigateway.amazonaws.com",
+              "SourceArn": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":execute-api:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":",
+                    {
+                      "Ref": "ApiGatewayRestApi"
+                    },
+                    "/*/*"
+                  ]
+                ]
+              }
+            }
+          },
+          "MarketDataCacheTable": {
+            "Type": "AWS::DynamoDB::Table",
+            "Properties": {
+              "TableName": "pfwise-api-dev-cache",
+              "BillingMode": "PAY_PER_REQUEST",
+              "AttributeDefinitions": [
+                {
+                  "AttributeName": "key",
+                  "AttributeType": "S"
+                }
+              ],
+              "KeySchema": [
+                {
+                  "AttributeName": "key",
+                  "KeyType": "HASH"
+                }
+              ],
+              "TimeToLiveSpecification": {
+                "AttributeName": "ttl",
+                "Enabled": true
+              }
+            }
+          },
+          "SessionsTable": {
+            "Type": "AWS::DynamoDB::Table",
+            "Properties": {
+              "TableName": "pfwise-api-dev-sessions",
+              "BillingMode": "PAY_PER_REQUEST",
+              "AttributeDefinitions": [
+                {
+                  "AttributeName": "sessionId",
+                  "AttributeType": "S"
+                }
+              ],
+              "KeySchema": [
+                {
+                  "AttributeName": "sessionId",
+                  "KeyType": "HASH"
+                }
+              ],
+              "TimeToLiveSpecification": {
+                "AttributeName": "ttl",
+                "Enabled": true
+              }
+            }
+          },
+          "ScrapingBlacklistTable": {
+            "Type": "AWS::DynamoDB::Table",
+            "Properties": {
+              "TableName": "pfwise-api-dev-scraping-blacklist",
+              "BillingMode": "PAY_PER_REQUEST",
+              "AttributeDefinitions": [
+                {
+                  "AttributeName": "symbol",
+                  "AttributeType": "S"
+                }
+              ],
+              "KeySchema": [
+                {
+                  "AttributeName": "symbol",
+                  "KeyType": "HASH"
+                }
+              ],
+              "TimeToLiveSpecification": {
+                "AttributeName": "ttl",
+                "Enabled": true
+              }
+            }
+          },
+          "RateLimitTable": {
+            "Type": "AWS::DynamoDB::Table",
+            "Properties": {
+              "TableName": "pfwise-api-dev-rate-limits",
+              "BillingMode": "PAY_PER_REQUEST",
+              "AttributeDefinitions": [
+                {
+                  "AttributeName": "id",
+                  "AttributeType": "S"
+                }
+              ],
+              "KeySchema": [
+                {
+                  "AttributeName": "id",
+                  "KeyType": "HASH"
+                }
+              ],
+              "TimeToLiveSpecification": {
+                "AttributeName": "ttl",
+                "Enabled": true
+              }
+            }
+          }
+        },
+        "Outputs": {
+          "ServerlessDeploymentBucketName": {
+            "Value": {
+              "Ref": "ServerlessDeploymentBucket"
+            },
+            "Export": {
+              "Name": "sls-pfwise-api-dev-ServerlessDeploymentBucketName"
+            }
+          },
+          "MarketDataLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "MarketDataLambdaVersion9srDeky0Yv2M6KinZck4qWQNb9LnJmkN6qJcrw3mY"
+            },
+            "Export": {
+              "Name": "sls-pfwise-api-dev-MarketDataLambdaFunctionQualifiedArn"
+            }
+          },
+          "PreWarmCacheLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "PreWarmCacheLambdaVersionDMwsbaTdMkX69lPGQVyhkwDWT10sj8ivCQmvfJBZpA"
+            },
+            "Export": {
+              "Name": "sls-pfwise-api-dev-PreWarmCacheLambdaFunctionQualifiedArn"
+            }
+          },
+          "GetStatusLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "GetStatusLambdaVersionS4Yg9yQQYXpjzjO2WgXyyjgqoeQJ5b2CoqjAnKbY"
+            },
+            "Export": {
+              "Name": "sls-pfwise-api-dev-GetStatusLambdaFunctionQualifiedArn"
+            }
+          },
+          "ResetUsageLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "ResetUsageLambdaVersionqsC0oPsoEjhQ59fs05M7ovYCRAiSvoC5QH5vUi9NM"
+            },
+            "Export": {
+              "Name": "sls-pfwise-api-dev-ResetUsageLambdaFunctionQualifiedArn"
+            }
+          },
+          "GetBudgetStatusLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "GetBudgetStatusLambdaVersiona9iw1xg1lfcKEwC3fUa9Fu2WVGpBXArKSZAfr744A"
+            },
+            "Export": {
+              "Name": "sls-pfwise-api-dev-GetBudgetStatusLambdaFunctionQualifiedArn"
+            }
+          },
+          "GoogleLoginLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "GoogleLoginLambdaVersionbxuAzbiX0CiNumCdr6IP7tIfne5VPL8Y0lRwfAESOWE"
+            },
+            "Export": {
+              "Name": "sls-pfwise-api-dev-GoogleLoginLambdaFunctionQualifiedArn"
+            }
+          },
+          "GetSessionLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "GetSessionLambdaVersionPqf4dx46hb9fugyvtlqneYhg3KQxIK3sKwmt2ttPKuo"
+            },
+            "Export": {
+              "Name": "sls-pfwise-api-dev-GetSessionLambdaFunctionQualifiedArn"
+            }
+          },
+          "LogoutLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "LogoutLambdaVersionFvWGFfs2bQ99PkVGy8Fkar8wwbAbMgNnc5IN336EznI"
+            },
+            "Export": {
+              "Name": "sls-pfwise-api-dev-LogoutLambdaFunctionQualifiedArn"
+            }
+          },
+          "GoogleDriveAuthInitiateLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "GoogleDriveAuthInitiateLambdaVersionjnavn7ZTnuqMnOxPLjmpccaplxIOqAyFbYdxiw7Gqo"
+            },
+            "Export": {
+              "Name": "sls-pfwise-api-dev-GoogleDriveAuthInitiateLambdaFunctionQualifiedArn"
+            }
+          },
+          "GoogleDriveAuthCallbackLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "GoogleDriveAuthCallbackLambdaVersionJ67ijimBx3CCB9w6aFWkuE3JqNzoL4HTDxDcSaVHbg"
+            },
+            "Export": {
+              "Name": "sls-pfwise-api-dev-GoogleDriveAuthCallbackLambdaFunctionQualifiedArn"
+            }
+          },
+          "SaveFileLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "SaveFileLambdaVersionbtuimPd7ud00C3smc1nHXYriHMZpE3nMfJv96myI"
+            },
+            "Export": {
+              "Name": "sls-pfwise-api-dev-SaveFileLambdaFunctionQualifiedArn"
+            }
+          },
+          "LoadFileLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "LoadFileLambdaVersionXtLqZmjbPuy7HtEIGBnmC1wJLJ9qhRFAWhcrdKkTXDY"
+            },
+            "Export": {
+              "Name": "sls-pfwise-api-dev-LoadFileLambdaFunctionQualifiedArn"
+            }
+          },
+          "ListFilesLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "ListFilesLambdaVersion0RrP3fFUChNoUDRfXqgEsSeX3aATkkG2J4EOsq1bVo"
+            },
+            "Export": {
+              "Name": "sls-pfwise-api-dev-ListFilesLambdaFunctionQualifiedArn"
+            }
+          },
+          "GetClientConfigLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "GetClientConfigLambdaVersionqWfY3skci0mM3EhpXIcUUuTwb2ljxwUIwgkApXG9Oo"
+            },
+            "Export": {
+              "Name": "sls-pfwise-api-dev-GetClientConfigLambdaFunctionQualifiedArn"
+            }
+          },
+          "DebugGoogleConfigLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "DebugGoogleConfigLambdaVersionFPcjrBjLpddMoyiOUEDI2KWPmakP6LphlS015ynzGc"
+            },
+            "Export": {
+              "Name": "sls-pfwise-api-dev-DebugGoogleConfigLambdaFunctionQualifiedArn"
+            }
+          },
+          "ServiceEndpoint": {
+            "Description": "URL of the service endpoint",
+            "Value": {
+              "Fn::Join": [
+                "",
+                [
+                  "https://",
+                  {
+                    "Ref": "ApiGatewayRestApi"
+                  },
+                  ".execute-api.",
+                  {
+                    "Ref": "AWS::Region"
+                  },
+                  ".",
+                  {
+                    "Ref": "AWS::URLSuffix"
+                  },
+                  "/dev"
+                ]
+              ]
+            },
+            "Export": {
+              "Name": "sls-pfwise-api-dev-ServiceEndpoint"
+            }
+          }
+        }
+      },
+      "coreCloudFormationTemplate": {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "The AWS CloudFormation template for this Serverless application",
+        "Resources": {
+          "ServerlessDeploymentBucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+              "BucketEncryption": {
+                "ServerSideEncryptionConfiguration": [
+                  {
+                    "ServerSideEncryptionByDefault": {
+                      "SSEAlgorithm": "AES256"
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "ServerlessDeploymentBucketPolicy": {
+            "Type": "AWS::S3::BucketPolicy",
+            "Properties": {
+              "Bucket": {
+                "Ref": "ServerlessDeploymentBucket"
+              },
+              "PolicyDocument": {
+                "Statement": [
+                  {
+                    "Action": "s3:*",
+                    "Effect": "Deny",
+                    "Principal": "*",
+                    "Resource": [
+                      {
+                        "Fn::Join": [
+                          "",
+                          [
+                            "arn:",
+                            {
+                              "Ref": "AWS::Partition"
+                            },
+                            ":s3:::",
+                            {
+                              "Ref": "ServerlessDeploymentBucket"
+                            },
+                            "/*"
+                          ]
+                        ]
+                      },
+                      {
+                        "Fn::Join": [
+                          "",
+                          [
+                            "arn:",
+                            {
+                              "Ref": "AWS::Partition"
+                            },
+                            ":s3:::",
+                            {
+                              "Ref": "ServerlessDeploymentBucket"
+                            }
+                          ]
+                        ]
+                      }
+                    ],
+                    "Condition": {
+                      "Bool": {
+                        "aws:SecureTransport": false
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "Outputs": {
+          "ServerlessDeploymentBucketName": {
+            "Value": {
+              "Ref": "ServerlessDeploymentBucket"
+            }
+          }
+        }
+      },
+      "vpc": {}
+    },
+    "custom": {
+      "driveRedirectUri": {
+        "dev": "https://x4scpbsuv2.execute-api.us-west-2.amazonaws.com/dev/auth/google/drive/callback",
+        "prod": "https://api.portfoliomanager.com/auth/google/drive/callback"
+      },
+      "driveSuccessUrl": {
+        "dev": "http://localhost:3001/drive-success",
+        "prod": "https://portfoliomanager.com/drive-success"
+      },
+      "corsAllowedOrigins": {
+        "dev": "http://localhost:3000,http://localhost:3001,https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com",
+        "prod": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+      }
+    },
+    "plugins": [
+      "serverless-dotenv-plugin"
+    ],
+    "pluginsData": {},
+    "functions": {
+      "marketData": {
+        "handler": "src/function/marketData.handler",
+        "events": [
+          {
+            "http": {
+              "path": "api/market-data",
+              "method": "get",
+              "cors": {
+                "methods": [
+                  "OPTIONS",
+                  "GET"
+                ],
+                "headers": [
+                  "Content-Type",
+                  "X-Amz-Date",
+                  "Authorization",
+                  "X-Api-Key",
+                  "X-Amz-Security-Token",
+                  "X-Amz-User-Agent",
+                  "Cookie"
+                ],
+                "allowCredentials": true,
+                "origins": [
+                  "http://localhost:3001",
+                  "http://localhost:3000",
+                  "https://portfolio-wise.com",
+                  "https://www.portfolio-wise.com",
+                  "https://app.portfolio-wise.com"
+                ]
+              },
+              "integration": "AWS_PROXY"
+            }
+          }
+        ],
+        "name": "pfwise-api-dev-marketData",
+        "package": {},
+        "memory": 256,
+        "timeout": 30,
+        "runtime": "nodejs18.x",
+        "vpc": {},
+        "versionLogicalId": "MarketDataLambdaVersion9srDeky0Yv2M6KinZck4qWQNb9LnJmkN6qJcrw3mY"
+      },
+      "preWarmCache": {
+        "handler": "src/function/preWarmCache.handler",
+        "events": [
+          {
+            "schedule": "rate(6 hours)"
+          }
+        ],
+        "name": "pfwise-api-dev-preWarmCache",
+        "package": {},
+        "memory": 256,
+        "timeout": 30,
+        "runtime": "nodejs18.x",
+        "vpc": {},
+        "versionLogicalId": "PreWarmCacheLambdaVersionDMwsbaTdMkX69lPGQVyhkwDWT10sj8ivCQmvfJBZpA"
+      },
+      "getStatus": {
+        "handler": "src/function/admin/getStatus.handler",
+        "events": [
+          {
+            "http": {
+              "path": "admin/status",
+              "method": "get",
+              "cors": {
+                "methods": [
+                  "OPTIONS",
+                  "GET"
+                ],
+                "headers": [
+                  "Content-Type",
+                  "X-Amz-Date",
+                  "Authorization",
+                  "X-Api-Key",
+                  "X-Amz-Security-Token",
+                  "X-Amz-User-Agent",
+                  "Cookie"
+                ],
+                "allowCredentials": true,
+                "origins": [
+                  "http://localhost:3001",
+                  "http://localhost:3000",
+                  "https://portfolio-wise.com",
+                  "https://www.portfolio-wise.com",
+                  "https://app.portfolio-wise.com"
+                ]
+              },
+              "private": true,
+              "integration": "AWS_PROXY"
+            }
+          }
+        ],
+        "name": "pfwise-api-dev-getStatus",
+        "package": {},
+        "memory": 256,
+        "timeout": 30,
+        "runtime": "nodejs18.x",
+        "vpc": {},
+        "versionLogicalId": "GetStatusLambdaVersionS4Yg9yQQYXpjzjO2WgXyyjgqoeQJ5b2CoqjAnKbY"
+      },
+      "resetUsage": {
+        "handler": "src/function/admin/resetUsage.handler",
+        "events": [
+          {
+            "http": {
+              "path": "admin/reset",
+              "method": "post",
+              "cors": {
+                "methods": [
+                  "OPTIONS",
+                  "POST"
+                ],
+                "headers": [
+                  "Content-Type",
+                  "X-Amz-Date",
+                  "Authorization",
+                  "X-Api-Key",
+                  "X-Amz-Security-Token",
+                  "X-Amz-User-Agent",
+                  "Cookie"
+                ],
+                "allowCredentials": true,
+                "origins": [
+                  "http://localhost:3001",
+                  "http://localhost:3000",
+                  "https://portfolio-wise.com",
+                  "https://www.portfolio-wise.com",
+                  "https://app.portfolio-wise.com"
+                ]
+              },
+              "private": true,
+              "integration": "AWS_PROXY"
+            }
+          }
+        ],
+        "name": "pfwise-api-dev-resetUsage",
+        "package": {},
+        "memory": 256,
+        "timeout": 30,
+        "runtime": "nodejs18.x",
+        "vpc": {},
+        "versionLogicalId": "ResetUsageLambdaVersionqsC0oPsoEjhQ59fs05M7ovYCRAiSvoC5QH5vUi9NM"
+      },
+      "getBudgetStatus": {
+        "handler": "src/function/admin/getBudgetStatus.handler",
+        "events": [
+          {
+            "http": {
+              "path": "admin/getBudgetStatus",
+              "method": "get",
+              "cors": {
+                "methods": [
+                  "OPTIONS",
+                  "GET"
+                ],
+                "headers": [
+                  "Content-Type",
+                  "X-Amz-Date",
+                  "Authorization",
+                  "X-Api-Key",
+                  "X-Amz-Security-Token",
+                  "X-Amz-User-Agent",
+                  "Cookie"
+                ],
+                "allowCredentials": true,
+                "origins": [
+                  "http://localhost:3001",
+                  "http://localhost:3000",
+                  "https://portfolio-wise.com",
+                  "https://www.portfolio-wise.com",
+                  "https://app.portfolio-wise.com"
+                ]
+              },
+              "private": true,
+              "integration": "AWS_PROXY"
+            }
+          }
+        ],
+        "name": "pfwise-api-dev-getBudgetStatus",
+        "package": {},
+        "memory": 256,
+        "timeout": 30,
+        "runtime": "nodejs18.x",
+        "vpc": {},
+        "versionLogicalId": "GetBudgetStatusLambdaVersiona9iw1xg1lfcKEwC3fUa9Fu2WVGpBXArKSZAfr744A"
+      },
+      "googleLogin": {
+        "handler": "src/function/auth/googleLogin.handler",
+        "events": [
+          {
+            "http": {
+              "path": "auth/google/login",
+              "method": "post",
+              "cors": {
+                "methods": [
+                  "OPTIONS",
+                  "POST"
+                ],
+                "headers": [
+                  "Content-Type",
+                  "X-Amz-Date",
+                  "Authorization",
+                  "X-Api-Key",
+                  "X-Amz-Security-Token",
+                  "X-Amz-User-Agent",
+                  "Cookie"
+                ],
+                "allowCredentials": true,
+                "origins": [
+                  "http://localhost:3001",
+                  "http://localhost:3000",
+                  "https://portfolio-wise.com",
+                  "https://www.portfolio-wise.com",
+                  "https://app.portfolio-wise.com"
+                ]
+              },
+              "integration": "AWS_PROXY"
+            }
+          },
+          {
+            "http": {
+              "path": "auth/google/login",
+              "method": "options",
+              "cors": {
+                "methods": [
+                  "OPTIONS"
+                ],
+                "headers": [
+                  "Content-Type",
+                  "X-Amz-Date",
+                  "Authorization",
+                  "X-Api-Key",
+                  "X-Amz-Security-Token",
+                  "X-Amz-User-Agent",
+                  "Cookie"
+                ],
+                "allowCredentials": true,
+                "origins": [
+                  "http://localhost:3001",
+                  "http://localhost:3000",
+                  "https://portfolio-wise.com",
+                  "https://www.portfolio-wise.com",
+                  "https://app.portfolio-wise.com"
+                ]
+              },
+              "integration": "AWS_PROXY"
+            }
+          }
+        ],
+        "name": "pfwise-api-dev-googleLogin",
+        "package": {},
+        "memory": 256,
+        "timeout": 30,
+        "runtime": "nodejs18.x",
+        "vpc": {},
+        "versionLogicalId": "GoogleLoginLambdaVersionbxuAzbiX0CiNumCdr6IP7tIfne5VPL8Y0lRwfAESOWE"
+      },
+      "getSession": {
+        "handler": "src/function/auth/getSession.handler",
+        "events": [
+          {
+            "http": {
+              "path": "auth/session",
+              "method": "get",
+              "cors": {
+                "methods": [
+                  "OPTIONS",
+                  "GET"
+                ],
+                "headers": [
+                  "Content-Type",
+                  "X-Amz-Date",
+                  "Authorization",
+                  "X-Api-Key",
+                  "X-Amz-Security-Token",
+                  "X-Amz-User-Agent",
+                  "Cookie"
+                ],
+                "allowCredentials": true,
+                "origins": [
+                  "http://localhost:3001",
+                  "http://localhost:3000",
+                  "https://portfolio-wise.com",
+                  "https://www.portfolio-wise.com",
+                  "https://app.portfolio-wise.com"
+                ]
+              },
+              "integration": "AWS_PROXY"
+            }
+          }
+        ],
+        "name": "pfwise-api-dev-getSession",
+        "package": {},
+        "memory": 256,
+        "timeout": 30,
+        "runtime": "nodejs18.x",
+        "vpc": {},
+        "versionLogicalId": "GetSessionLambdaVersionPqf4dx46hb9fugyvtlqneYhg3KQxIK3sKwmt2ttPKuo"
+      },
+      "logout": {
+        "handler": "src/function/auth/logout.handler",
+        "events": [
+          {
+            "http": {
+              "path": "auth/logout",
+              "method": "post",
+              "cors": {
+                "methods": [
+                  "OPTIONS",
+                  "POST"
+                ],
+                "headers": [
+                  "Content-Type",
+                  "X-Amz-Date",
+                  "Authorization",
+                  "X-Api-Key",
+                  "X-Amz-Security-Token",
+                  "X-Amz-User-Agent",
+                  "Cookie"
+                ],
+                "allowCredentials": true,
+                "origins": [
+                  "http://localhost:3001",
+                  "http://localhost:3000",
+                  "https://portfolio-wise.com",
+                  "https://www.portfolio-wise.com",
+                  "https://app.portfolio-wise.com"
+                ]
+              },
+              "integration": "AWS_PROXY"
+            }
+          }
+        ],
+        "name": "pfwise-api-dev-logout",
+        "package": {},
+        "memory": 256,
+        "timeout": 30,
+        "runtime": "nodejs18.x",
+        "vpc": {},
+        "versionLogicalId": "LogoutLambdaVersionFvWGFfs2bQ99PkVGy8Fkar8wwbAbMgNnc5IN336EznI"
+      },
+      "googleDriveAuthInitiate": {
+        "handler": "src/function/auth/googleDriveAuth.initiateAuth",
+        "events": [
+          {
+            "http": {
+              "path": "auth/google/drive/initiate",
+              "method": "get",
+              "integration": "AWS_PROXY",
+              "cors": {
+                "methods": [
+                  "OPTIONS",
+                  "GET"
+                ],
+                "headers": [
+                  "Content-Type",
+                  "X-Amz-Date",
+                  "Authorization",
+                  "X-Api-Key",
+                  "X-Amz-Security-Token",
+                  "X-Amz-User-Agent",
+                  "Cookie"
+                ],
+                "allowCredentials": true,
+                "origins": [
+                  "http://localhost:3001",
+                  "http://localhost:3000",
+                  "https://portfolio-wise.com",
+                  "https://www.portfolio-wise.com",
+                  "https://app.portfolio-wise.com"
+                ]
+              }
+            }
+          },
+          {
+            "http": {
+              "path": "auth/google/drive/initiate",
+              "method": "options",
+              "cors": {
+                "methods": [
+                  "OPTIONS"
+                ],
+                "headers": [
+                  "Content-Type",
+                  "X-Amz-Date",
+                  "Authorization",
+                  "X-Api-Key",
+                  "X-Amz-Security-Token",
+                  "X-Amz-User-Agent",
+                  "Cookie"
+                ],
+                "allowCredentials": true,
+                "origins": [
+                  "http://localhost:3001",
+                  "http://localhost:3000",
+                  "https://portfolio-wise.com",
+                  "https://www.portfolio-wise.com",
+                  "https://app.portfolio-wise.com"
+                ]
+              },
+              "integration": "AWS_PROXY"
+            }
+          }
+        ],
+        "name": "pfwise-api-dev-googleDriveAuthInitiate",
+        "package": {},
+        "memory": 256,
+        "timeout": 30,
+        "runtime": "nodejs18.x",
+        "vpc": {},
+        "versionLogicalId": "GoogleDriveAuthInitiateLambdaVersionjnavn7ZTnuqMnOxPLjmpccaplxIOqAyFbYdxiw7Gqo"
+      },
+      "googleDriveAuthCallback": {
+        "handler": "src/function/auth/googleDriveAuth.callback",
+        "events": [
+          {
+            "http": {
+              "path": "auth/google/drive/callback",
+              "method": "get",
+              "cors": {
+                "methods": [
+                  "OPTIONS",
+                  "GET"
+                ],
+                "headers": [
+                  "Content-Type",
+                  "X-Amz-Date",
+                  "Authorization",
+                  "X-Api-Key",
+                  "X-Amz-Security-Token",
+                  "X-Amz-User-Agent",
+                  "Cookie"
+                ],
+                "allowCredentials": true,
+                "origins": [
+                  "http://localhost:3001",
+                  "http://localhost:3000",
+                  "https://portfolio-wise.com",
+                  "https://www.portfolio-wise.com",
+                  "https://app.portfolio-wise.com"
+                ]
+              },
+              "integration": "AWS_PROXY"
+            }
+          }
+        ],
+        "name": "pfwise-api-dev-googleDriveAuthCallback",
+        "package": {},
+        "memory": 256,
+        "timeout": 30,
+        "runtime": "nodejs18.x",
+        "vpc": {},
+        "versionLogicalId": "GoogleDriveAuthCallbackLambdaVersionJ67ijimBx3CCB9w6aFWkuE3JqNzoL4HTDxDcSaVHbg"
+      },
+      "saveFile": {
+        "handler": "src/function/drive/saveFile.handler",
+        "events": [
+          {
+            "http": {
+              "path": "drive/save",
+              "method": "post",
+              "cors": {
+                "methods": [
+                  "OPTIONS",
+                  "POST"
+                ],
+                "headers": [
+                  "Content-Type",
+                  "X-Amz-Date",
+                  "Authorization",
+                  "X-Api-Key",
+                  "X-Amz-Security-Token",
+                  "X-Amz-User-Agent",
+                  "Cookie"
+                ],
+                "allowCredentials": true,
+                "origins": [
+                  "http://localhost:3001",
+                  "http://localhost:3000",
+                  "https://portfolio-wise.com",
+                  "https://www.portfolio-wise.com",
+                  "https://app.portfolio-wise.com"
+                ]
+              },
+              "integration": "AWS_PROXY"
+            }
+          }
+        ],
+        "name": "pfwise-api-dev-saveFile",
+        "package": {},
+        "memory": 256,
+        "timeout": 30,
+        "runtime": "nodejs18.x",
+        "vpc": {},
+        "versionLogicalId": "SaveFileLambdaVersionbtuimPd7ud00C3smc1nHXYriHMZpE3nMfJv96myI"
+      },
+      "loadFile": {
+        "handler": "src/function/drive/loadFile.handler",
+        "events": [
+          {
+            "http": {
+              "path": "drive/load",
+              "method": "get",
+              "cors": {
+                "methods": [
+                  "OPTIONS",
+                  "GET"
+                ],
+                "headers": [
+                  "Content-Type",
+                  "X-Amz-Date",
+                  "Authorization",
+                  "X-Api-Key",
+                  "X-Amz-Security-Token",
+                  "X-Amz-User-Agent",
+                  "Cookie"
+                ],
+                "allowCredentials": true,
+                "origins": [
+                  "http://localhost:3001",
+                  "http://localhost:3000",
+                  "https://portfolio-wise.com",
+                  "https://www.portfolio-wise.com",
+                  "https://app.portfolio-wise.com"
+                ]
+              },
+              "integration": "AWS_PROXY"
+            }
+          }
+        ],
+        "name": "pfwise-api-dev-loadFile",
+        "package": {},
+        "memory": 256,
+        "timeout": 30,
+        "runtime": "nodejs18.x",
+        "vpc": {},
+        "versionLogicalId": "LoadFileLambdaVersionXtLqZmjbPuy7HtEIGBnmC1wJLJ9qhRFAWhcrdKkTXDY"
+      },
+      "listFiles": {
+        "handler": "src/function/drive/listFiles.handler",
+        "events": [
+          {
+            "http": {
+              "path": "drive/files",
+              "method": "get",
+              "cors": {
+                "methods": [
+                  "OPTIONS",
+                  "GET"
+                ],
+                "headers": [
+                  "Content-Type",
+                  "X-Amz-Date",
+                  "Authorization",
+                  "X-Api-Key",
+                  "X-Amz-Security-Token",
+                  "X-Amz-User-Agent",
+                  "Cookie"
+                ],
+                "allowCredentials": true,
+                "origins": [
+                  "http://localhost:3001",
+                  "http://localhost:3000",
+                  "https://portfolio-wise.com",
+                  "https://www.portfolio-wise.com",
+                  "https://app.portfolio-wise.com"
+                ]
+              },
+              "integration": "AWS_PROXY"
+            }
+          }
+        ],
+        "name": "pfwise-api-dev-listFiles",
+        "package": {},
+        "memory": 256,
+        "timeout": 30,
+        "runtime": "nodejs18.x",
+        "vpc": {},
+        "versionLogicalId": "ListFilesLambdaVersion0RrP3fFUChNoUDRfXqgEsSeX3aATkkG2J4EOsq1bVo"
+      },
+      "getClientConfig": {
+        "handler": "src/function/config/getClientConfig.handler",
+        "events": [
+          {
+            "http": {
+              "path": "config/client",
+              "method": "get",
+              "cors": {
+                "methods": [
+                  "OPTIONS",
+                  "GET"
+                ],
+                "headers": [
+                  "Content-Type",
+                  "X-Amz-Date",
+                  "Authorization",
+                  "X-Api-Key",
+                  "X-Amz-Security-Token",
+                  "X-Amz-User-Agent",
+                  "Cookie"
+                ],
+                "allowCredentials": true,
+                "origins": [
+                  "http://localhost:3001",
+                  "http://localhost:3000",
+                  "https://portfolio-wise.com",
+                  "https://www.portfolio-wise.com",
+                  "https://app.portfolio-wise.com"
+                ]
+              },
+              "integration": "AWS_PROXY"
+            }
+          }
+        ],
+        "name": "pfwise-api-dev-getClientConfig",
+        "package": {},
+        "memory": 256,
+        "timeout": 30,
+        "runtime": "nodejs18.x",
+        "vpc": {},
+        "versionLogicalId": "GetClientConfigLambdaVersionqWfY3skci0mM3EhpXIcUUuTwb2ljxwUIwgkApXG9Oo"
+      },
+      "debugGoogleConfig": {
+        "handler": "src/function/debug/googleConfig.handler",
+        "events": [
+          {
+            "http": {
+              "path": "debug/google-config",
+              "method": "get",
+              "cors": {
+                "origin": "*",
+                "methods": [
+                  "OPTIONS",
+                  "GET"
+                ],
+                "headers": [
+                  "Content-Type",
+                  "X-Amz-Date",
+                  "Authorization",
+                  "X-Api-Key",
+                  "X-Amz-Security-Token",
+                  "X-Amz-User-Agent",
+                  "X-Amzn-Trace-Id"
+                ],
+                "allowCredentials": false
+              },
+              "integration": "AWS_PROXY"
+            }
+          }
+        ],
+        "name": "pfwise-api-dev-debugGoogleConfig",
+        "package": {},
+        "memory": 256,
+        "timeout": 30,
+        "runtime": "nodejs18.x",
+        "vpc": {},
+        "versionLogicalId": "DebugGoogleConfigLambdaVersionFPcjrBjLpddMoyiOUEDI2KWPmakP6LphlS015ynzGc"
+      }
+    },
+    "resources": {
+      "Resources": {
+        "MarketDataCacheTable": {
+          "Type": "AWS::DynamoDB::Table",
+          "Properties": {
+            "TableName": "pfwise-api-dev-cache",
+            "BillingMode": "PAY_PER_REQUEST",
+            "AttributeDefinitions": [
+              {
+                "AttributeName": "key",
+                "AttributeType": "S"
+              }
+            ],
+            "KeySchema": [
+              {
+                "AttributeName": "key",
+                "KeyType": "HASH"
+              }
+            ],
+            "TimeToLiveSpecification": {
+              "AttributeName": "ttl",
+              "Enabled": true
+            }
+          }
+        },
+        "SessionsTable": {
+          "Type": "AWS::DynamoDB::Table",
+          "Properties": {
+            "TableName": "pfwise-api-dev-sessions",
+            "BillingMode": "PAY_PER_REQUEST",
+            "AttributeDefinitions": [
+              {
+                "AttributeName": "sessionId",
+                "AttributeType": "S"
+              }
+            ],
+            "KeySchema": [
+              {
+                "AttributeName": "sessionId",
+                "KeyType": "HASH"
+              }
+            ],
+            "TimeToLiveSpecification": {
+              "AttributeName": "ttl",
+              "Enabled": true
+            }
+          }
+        },
+        "ScrapingBlacklistTable": {
+          "Type": "AWS::DynamoDB::Table",
+          "Properties": {
+            "TableName": "pfwise-api-dev-scraping-blacklist",
+            "BillingMode": "PAY_PER_REQUEST",
+            "AttributeDefinitions": [
+              {
+                "AttributeName": "symbol",
+                "AttributeType": "S"
+              }
+            ],
+            "KeySchema": [
+              {
+                "AttributeName": "symbol",
+                "KeyType": "HASH"
+              }
+            ],
+            "TimeToLiveSpecification": {
+              "AttributeName": "ttl",
+              "Enabled": true
+            }
+          }
+        },
+        "RateLimitTable": {
+          "Type": "AWS::DynamoDB::Table",
+          "Properties": {
+            "TableName": "pfwise-api-dev-rate-limits",
+            "BillingMode": "PAY_PER_REQUEST",
+            "AttributeDefinitions": [
+              {
+                "AttributeName": "id",
+                "AttributeType": "S"
+              }
+            ],
+            "KeySchema": [
+              {
+                "AttributeName": "id",
+                "KeyType": "HASH"
+              }
+            ],
+            "TimeToLiveSpecification": {
+              "AttributeName": "ttl",
+              "Enabled": true
+            }
+          }
+        }
+      },
+      "Outputs": {}
+    },
+    "configValidationMode": "warn",
+    "serviceFilename": "serverless.yml",
+    "initialServerlessConfig": {
+      "service": "pfwise-api",
+      "package": {
+        "exclude": [
+          "__tests__/**",
+          "test-results/**",
+          "coverage/**",
+          "document/**",
+          "scripts/**",
+          ".jest-cache/**",
+          "dynamodb-local/**",
+          "*.md",
+          "*.bak*",
+          "*.test.js",
+          "*.spec.js",
+          ".git/**",
+          ".github/**",
+          "node_modules/aws-sdk/**",
+          "node_modules/jest/**",
+          "node_modules/sinon/**",
+          "node_modules/mock-fs/**",
+          "node_modules/nock/**",
+          "node_modules/supertest/**"
+        ],
+        "artifactsS3KeyDirname": "serverless/pfwise-api/dev/code-artifacts",
+        "artifact": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/backend/.serverless/pfwise-api.zip",
+        "artifactDirectoryName": "serverless/pfwise-api/dev/1748483377091-2025-05-29T01:49:37.091Z"
+      },
+      "provider": {
+        "$ref": "$[\"service\"][\"provider\"]"
+      },
+      "functions": {
+        "$ref": "$[\"service\"][\"functions\"]"
+      },
+      "resources": {
+        "$ref": "$[\"service\"][\"resources\"]"
+      },
+      "plugins": {
+        "$ref": "$[\"service\"][\"plugins\"]"
+      },
+      "custom": {
+        "$ref": "$[\"service\"][\"custom\"]"
+      }
+    },
+    "layers": {},
+    "isDashboardMonitoringPreconfigured": false,
+    "artifact": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/backend/.serverless/pfwise-api.zip"
+  },
+  "package": {
+    "artifactDirectoryName": "serverless/pfwise-api/dev/1748483377091-2025-05-29T01:49:37.091Z",
+    "artifact": "pfwise-api.zip"
+  }
+}

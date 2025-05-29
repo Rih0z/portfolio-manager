@@ -1,7 +1,5 @@
 service: pfwise-api
 
-frameworkVersion: '3'
-
 package:
   exclude:
     - __tests__/**
@@ -42,7 +40,7 @@ provider:
     DISABLE_ON_LIMIT: ${env:DISABLE_ON_LIMIT, 'true'}
     
     # セキュリティ設定
-    ADMIN_IP_WHITELIST: ${env:ADMIN_IP_WHITELIST, '127.0.0.1,::1'}
+    ADMIN_IP_WHITELIST: ${env:ADMIN_IP_WHITELIST, "127.0.0.1,::1"}
     IP_BLACKLIST: ${env:IP_BLACKLIST, ''}
     BLOCKED_COUNTRIES: ${env:BLOCKED_COUNTRIES, ''}
     RATE_LIMIT_TABLE: ${env:RATE_LIMIT_TABLE, '${self:service}-${self:provider.stage}-rate-limits'}
