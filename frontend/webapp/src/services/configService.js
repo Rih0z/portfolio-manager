@@ -19,7 +19,7 @@ let configFetchPromise = null;
 
 // AWS設定エンドポイント
 const CONFIG_ENDPOINT = process.env.REACT_APP_API_BASE_URL 
-  ? `${process.env.REACT_APP_API_BASE_URL}/dev/config/client`
+  ? `${process.env.REACT_APP_API_BASE_URL}/config`
   : null; // 環境変数が設定されていない場合はnull
 
 /**
