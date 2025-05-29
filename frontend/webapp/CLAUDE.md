@@ -115,6 +115,53 @@ This is a React-based portfolio management application with AI-powered investmen
 5. Ensure mobile responsiveness - the app is optimized for iOS devices
 6. Consider Japanese users (primary target audience) in UI/UX decisions
 
+## Build Issues and Notes
+
+### React DOM Compatibility
+- This project uses `react-dom` instead of `react-dom/client` for compatibility with react-scripts@3.4.4
+- Use `ReactDOM.render()` instead of `ReactDOM.createRoot().render()`
+- Node.js v22 requires `NODE_OPTIONS='--openssl-legacy-provider'` for building
+
+### Dependency Management
+- Use `npm install --legacy-peer-deps` to handle peer dependency conflicts
+- MSW requires TypeScript 4.8+ but the project uses TypeScript 3.9.10
+- Build process is handled by GitHub Actions with proper environment setup
+
+### Deployment
+
+#### Manual Deployment with Claude Code
+For immediate deployment using Claude Code environment:
+
+1. **Build the application**:
+   ```bash
+   cd frontend/webapp
+   npm install --legacy-peer-deps
+   NODE_OPTIONS='--openssl-legacy-provider' npm run build
+   ```
+
+2. **Deploy to Cloudflare Pages**:
+   ```bash
+   cd frontend/webapp
+   wrangler pages deploy build --project-name=portfolio-manager
+   ```
+
+3. **Alternative: Deploy from project root**:
+   ```bash
+   # From project root directory
+   npm run build:webapp
+   wrangler pages deploy frontend/webapp/build --project-name=portfolio-manager
+   ```
+
+#### Automated Deployment
+- Cloudflare Pages deployment is also automated via GitHub Actions
+- Build artifacts are generated in `frontend/webapp/build/` directory
+- Environment variables are configured in Cloudflare Pages dashboard
+
+#### Deployment Notes
+- Wrangler CLI must be installed and authenticated with Cloudflare
+- The project name `portfolio-manager` corresponds to the Cloudflare Pages project
+- Deployment URL: https://portfolio-manager-7bx.pages.dev
+
 ## Security Configuration
 
 ### Environment Variables

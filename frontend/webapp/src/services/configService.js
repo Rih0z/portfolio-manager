@@ -22,6 +22,13 @@ const CONFIG_ENDPOINT = process.env.REACT_APP_API_BASE_URL
   ? `${process.env.REACT_APP_API_BASE_URL}/config/client`
   : null; // 環境変数が設定されていない場合はnull
 
+// デバッグ用
+console.log('ConfigService initialization:', {
+  CONFIG_ENDPOINT,
+  REACT_APP_API_BASE_URL: process.env.REACT_APP_API_BASE_URL,
+  NODE_ENV: process.env.NODE_ENV
+});
+
 /**
  * AWS から API 設定を取得
  * @returns {Promise<Object>} API設定オブジェクト
@@ -40,6 +47,11 @@ export const fetchApiConfig = async () => {
   // CONFIG_ENDPOINTが設定されていない場合はエラー
   if (!CONFIG_ENDPOINT) {
     console.error('REACT_APP_API_BASE_URL が設定されていません。.env ファイルを確認してください。');
+    console.error('Current env:', {
+      REACT_APP_API_BASE_URL: process.env.REACT_APP_API_BASE_URL,
+      NODE_ENV: process.env.NODE_ENV,
+      allEnvVars: Object.keys(process.env).filter(key => key.startsWith('REACT_APP_'))
+    });
     return {
       marketDataApiUrl: '',
       apiStage: 'dev',
