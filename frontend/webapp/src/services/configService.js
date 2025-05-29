@@ -19,7 +19,7 @@ let configFetchPromise = null;
 
 // AWS設定エンドポイント
 const CONFIG_ENDPOINT = process.env.REACT_APP_API_BASE_URL 
-  ? `${process.env.REACT_APP_API_BASE_URL}/config`
+  ? `${process.env.REACT_APP_API_BASE_URL}/config/client`
   : null; // 環境変数が設定されていない場合はnull
 
 /**
@@ -56,7 +56,7 @@ export const fetchApiConfig = async () => {
   configFetchPromise = axios.get(CONFIG_ENDPOINT)
     .then(response => {
       if (response.data && response.data.success) {
-        configCache = response.data.config;
+        configCache = response.data.data;
         return configCache;
       }
       throw new Error('設定の取得に失敗しました');
