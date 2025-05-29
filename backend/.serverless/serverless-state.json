@@ -47,7 +47,7 @@
         "ENABLE_RATE_LIMITING": "true",
         "MAX_REQUESTS_PER_MINUTE": "100",
         "DRIVE_AUTH_SUCCESS_URL": "https://portfolio-wise.com/drive-success",
-        "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+        "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com,https://portfolio-manager-7bx.pages.dev,https://*.portfolio-manager-7bx.pages.dev"
       },
       "iamRoleStatements": [
         {
@@ -372,7 +372,7 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pfwise-api/prod/1748501020129-2025-05-29T06:43:40.129Z/pfwise-api.zip"
+                "S3Key": "serverless/pfwise-api/prod/1748552734242-2025-05-29T21:05:34.242Z/pfwise-api.zip"
               },
               "Handler": "src/function/marketData.handler",
               "Runtime": "nodejs18.x",
@@ -415,7 +415,7 @@
                   "ENABLE_RATE_LIMITING": "true",
                   "MAX_REQUESTS_PER_MINUTE": "100",
                   "DRIVE_AUTH_SUCCESS_URL": "https://portfolio-wise.com/drive-success",
-                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com,https://portfolio-manager-7bx.pages.dev,https://*.portfolio-manager-7bx.pages.dev"
                 }
               },
               "Role": {
@@ -436,7 +436,7 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pfwise-api/prod/1748501020129-2025-05-29T06:43:40.129Z/pfwise-api.zip"
+                "S3Key": "serverless/pfwise-api/prod/1748552734242-2025-05-29T21:05:34.242Z/pfwise-api.zip"
               },
               "Handler": "src/function/preWarmCache.handler",
               "Runtime": "nodejs18.x",
@@ -479,7 +479,7 @@
                   "ENABLE_RATE_LIMITING": "true",
                   "MAX_REQUESTS_PER_MINUTE": "100",
                   "DRIVE_AUTH_SUCCESS_URL": "https://portfolio-wise.com/drive-success",
-                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com,https://portfolio-manager-7bx.pages.dev,https://*.portfolio-manager-7bx.pages.dev"
                 }
               },
               "Role": {
@@ -500,7 +500,7 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pfwise-api/prod/1748501020129-2025-05-29T06:43:40.129Z/pfwise-api.zip"
+                "S3Key": "serverless/pfwise-api/prod/1748552734242-2025-05-29T21:05:34.242Z/pfwise-api.zip"
               },
               "Handler": "src/function/admin/getStatus.handler",
               "Runtime": "nodejs18.x",
@@ -543,7 +543,7 @@
                   "ENABLE_RATE_LIMITING": "true",
                   "MAX_REQUESTS_PER_MINUTE": "100",
                   "DRIVE_AUTH_SUCCESS_URL": "https://portfolio-wise.com/drive-success",
-                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com,https://portfolio-manager-7bx.pages.dev,https://*.portfolio-manager-7bx.pages.dev"
                 }
               },
               "Role": {
@@ -564,7 +564,7 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pfwise-api/prod/1748501020129-2025-05-29T06:43:40.129Z/pfwise-api.zip"
+                "S3Key": "serverless/pfwise-api/prod/1748552734242-2025-05-29T21:05:34.242Z/pfwise-api.zip"
               },
               "Handler": "src/function/admin/resetUsage.handler",
               "Runtime": "nodejs18.x",
@@ -607,7 +607,7 @@
                   "ENABLE_RATE_LIMITING": "true",
                   "MAX_REQUESTS_PER_MINUTE": "100",
                   "DRIVE_AUTH_SUCCESS_URL": "https://portfolio-wise.com/drive-success",
-                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com,https://portfolio-manager-7bx.pages.dev,https://*.portfolio-manager-7bx.pages.dev"
                 }
               },
               "Role": {
@@ -628,7 +628,7 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pfwise-api/prod/1748501020129-2025-05-29T06:43:40.129Z/pfwise-api.zip"
+                "S3Key": "serverless/pfwise-api/prod/1748552734242-2025-05-29T21:05:34.242Z/pfwise-api.zip"
               },
               "Handler": "src/function/admin/getBudgetStatus.handler",
               "Runtime": "nodejs18.x",
@@ -671,7 +671,7 @@
                   "ENABLE_RATE_LIMITING": "true",
                   "MAX_REQUESTS_PER_MINUTE": "100",
                   "DRIVE_AUTH_SUCCESS_URL": "https://portfolio-wise.com/drive-success",
-                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com,https://portfolio-manager-7bx.pages.dev,https://*.portfolio-manager-7bx.pages.dev"
                 }
               },
               "Role": {
@@ -692,7 +692,7 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pfwise-api/prod/1748501020129-2025-05-29T06:43:40.129Z/pfwise-api.zip"
+                "S3Key": "serverless/pfwise-api/prod/1748552734242-2025-05-29T21:05:34.242Z/pfwise-api.zip"
               },
               "Handler": "src/function/auth/googleLogin.handler",
               "Runtime": "nodejs18.x",
@@ -735,7 +735,7 @@
                   "ENABLE_RATE_LIMITING": "true",
                   "MAX_REQUESTS_PER_MINUTE": "100",
                   "DRIVE_AUTH_SUCCESS_URL": "https://portfolio-wise.com/drive-success",
-                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com,https://portfolio-manager-7bx.pages.dev,https://*.portfolio-manager-7bx.pages.dev"
                 }
               },
               "Role": {
@@ -756,7 +756,7 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pfwise-api/prod/1748501020129-2025-05-29T06:43:40.129Z/pfwise-api.zip"
+                "S3Key": "serverless/pfwise-api/prod/1748552734242-2025-05-29T21:05:34.242Z/pfwise-api.zip"
               },
               "Handler": "src/function/auth/getSession.handler",
               "Runtime": "nodejs18.x",
@@ -799,7 +799,7 @@
                   "ENABLE_RATE_LIMITING": "true",
                   "MAX_REQUESTS_PER_MINUTE": "100",
                   "DRIVE_AUTH_SUCCESS_URL": "https://portfolio-wise.com/drive-success",
-                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com,https://portfolio-manager-7bx.pages.dev,https://*.portfolio-manager-7bx.pages.dev"
                 }
               },
               "Role": {
@@ -820,7 +820,7 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pfwise-api/prod/1748501020129-2025-05-29T06:43:40.129Z/pfwise-api.zip"
+                "S3Key": "serverless/pfwise-api/prod/1748552734242-2025-05-29T21:05:34.242Z/pfwise-api.zip"
               },
               "Handler": "src/function/auth/generateCSRFToken.handler",
               "Runtime": "nodejs18.x",
@@ -863,7 +863,7 @@
                   "ENABLE_RATE_LIMITING": "true",
                   "MAX_REQUESTS_PER_MINUTE": "100",
                   "DRIVE_AUTH_SUCCESS_URL": "https://portfolio-wise.com/drive-success",
-                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com,https://portfolio-manager-7bx.pages.dev,https://*.portfolio-manager-7bx.pages.dev"
                 }
               },
               "Role": {
@@ -884,7 +884,7 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pfwise-api/prod/1748501020129-2025-05-29T06:43:40.129Z/pfwise-api.zip"
+                "S3Key": "serverless/pfwise-api/prod/1748552734242-2025-05-29T21:05:34.242Z/pfwise-api.zip"
               },
               "Handler": "src/function/auth/logout.handler",
               "Runtime": "nodejs18.x",
@@ -927,7 +927,7 @@
                   "ENABLE_RATE_LIMITING": "true",
                   "MAX_REQUESTS_PER_MINUTE": "100",
                   "DRIVE_AUTH_SUCCESS_URL": "https://portfolio-wise.com/drive-success",
-                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com,https://portfolio-manager-7bx.pages.dev,https://*.portfolio-manager-7bx.pages.dev"
                 }
               },
               "Role": {
@@ -948,7 +948,7 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pfwise-api/prod/1748501020129-2025-05-29T06:43:40.129Z/pfwise-api.zip"
+                "S3Key": "serverless/pfwise-api/prod/1748552734242-2025-05-29T21:05:34.242Z/pfwise-api.zip"
               },
               "Handler": "src/function/auth/googleDriveAuth.initiateAuth",
               "Runtime": "nodejs18.x",
@@ -991,7 +991,7 @@
                   "ENABLE_RATE_LIMITING": "true",
                   "MAX_REQUESTS_PER_MINUTE": "100",
                   "DRIVE_AUTH_SUCCESS_URL": "https://portfolio-wise.com/drive-success",
-                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com,https://portfolio-manager-7bx.pages.dev,https://*.portfolio-manager-7bx.pages.dev"
                 }
               },
               "Role": {
@@ -1012,7 +1012,7 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pfwise-api/prod/1748501020129-2025-05-29T06:43:40.129Z/pfwise-api.zip"
+                "S3Key": "serverless/pfwise-api/prod/1748552734242-2025-05-29T21:05:34.242Z/pfwise-api.zip"
               },
               "Handler": "src/function/auth/googleDriveAuth.callback",
               "Runtime": "nodejs18.x",
@@ -1055,7 +1055,7 @@
                   "ENABLE_RATE_LIMITING": "true",
                   "MAX_REQUESTS_PER_MINUTE": "100",
                   "DRIVE_AUTH_SUCCESS_URL": "https://portfolio-wise.com/drive-success",
-                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com,https://portfolio-manager-7bx.pages.dev,https://*.portfolio-manager-7bx.pages.dev"
                 }
               },
               "Role": {
@@ -1076,7 +1076,7 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pfwise-api/prod/1748501020129-2025-05-29T06:43:40.129Z/pfwise-api.zip"
+                "S3Key": "serverless/pfwise-api/prod/1748552734242-2025-05-29T21:05:34.242Z/pfwise-api.zip"
               },
               "Handler": "src/function/drive/saveFile.handler",
               "Runtime": "nodejs18.x",
@@ -1119,7 +1119,7 @@
                   "ENABLE_RATE_LIMITING": "true",
                   "MAX_REQUESTS_PER_MINUTE": "100",
                   "DRIVE_AUTH_SUCCESS_URL": "https://portfolio-wise.com/drive-success",
-                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com,https://portfolio-manager-7bx.pages.dev,https://*.portfolio-manager-7bx.pages.dev"
                 }
               },
               "Role": {
@@ -1140,7 +1140,7 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pfwise-api/prod/1748501020129-2025-05-29T06:43:40.129Z/pfwise-api.zip"
+                "S3Key": "serverless/pfwise-api/prod/1748552734242-2025-05-29T21:05:34.242Z/pfwise-api.zip"
               },
               "Handler": "src/function/drive/loadFile.handler",
               "Runtime": "nodejs18.x",
@@ -1183,7 +1183,7 @@
                   "ENABLE_RATE_LIMITING": "true",
                   "MAX_REQUESTS_PER_MINUTE": "100",
                   "DRIVE_AUTH_SUCCESS_URL": "https://portfolio-wise.com/drive-success",
-                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com,https://portfolio-manager-7bx.pages.dev,https://*.portfolio-manager-7bx.pages.dev"
                 }
               },
               "Role": {
@@ -1204,7 +1204,7 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pfwise-api/prod/1748501020129-2025-05-29T06:43:40.129Z/pfwise-api.zip"
+                "S3Key": "serverless/pfwise-api/prod/1748552734242-2025-05-29T21:05:34.242Z/pfwise-api.zip"
               },
               "Handler": "src/function/drive/listFiles.handler",
               "Runtime": "nodejs18.x",
@@ -1247,7 +1247,7 @@
                   "ENABLE_RATE_LIMITING": "true",
                   "MAX_REQUESTS_PER_MINUTE": "100",
                   "DRIVE_AUTH_SUCCESS_URL": "https://portfolio-wise.com/drive-success",
-                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com,https://portfolio-manager-7bx.pages.dev,https://*.portfolio-manager-7bx.pages.dev"
                 }
               },
               "Role": {
@@ -1268,7 +1268,7 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pfwise-api/prod/1748501020129-2025-05-29T06:43:40.129Z/pfwise-api.zip"
+                "S3Key": "serverless/pfwise-api/prod/1748552734242-2025-05-29T21:05:34.242Z/pfwise-api.zip"
               },
               "Handler": "src/function/config/getClientConfig.handler",
               "Runtime": "nodejs18.x",
@@ -1311,7 +1311,7 @@
                   "ENABLE_RATE_LIMITING": "true",
                   "MAX_REQUESTS_PER_MINUTE": "100",
                   "DRIVE_AUTH_SUCCESS_URL": "https://portfolio-wise.com/drive-success",
-                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com,https://portfolio-manager-7bx.pages.dev,https://*.portfolio-manager-7bx.pages.dev"
                 }
               },
               "Role": {
@@ -1325,154 +1325,154 @@
               "GetClientConfigLogGroup"
             ]
           },
-          "MarketDataLambdaVersion1Nkb3XHD3QztB9IJVFTyIIFFPwgJYO9BWQhliKguQ": {
+          "MarketDataLambdaVersionnRvlb4jWd8iGWJV474F98QJglCzKrn7rq3GUAkGRoM": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "MarketDataLambdaFunction"
               },
-              "CodeSha256": "4/AuI7rykaRfRrTrmXtAxyt2LOGz6+opmokQJv9r8z4="
+              "CodeSha256": "k9vWhCeeLDOYaOGGoLe5S6kZ6IIj/3rl6X+GtiQrL7Q="
             }
           },
-          "PreWarmCacheLambdaVersionlvBXrpweVA6jrKXxT9ZUJq2eIw2iL2g0fORicKEDBAs": {
+          "PreWarmCacheLambdaVersionvOJ91Zdz3fk48M9c2x17GhunSqnenpo2qfym5PTWeoY": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "PreWarmCacheLambdaFunction"
               },
-              "CodeSha256": "4/AuI7rykaRfRrTrmXtAxyt2LOGz6+opmokQJv9r8z4="
+              "CodeSha256": "k9vWhCeeLDOYaOGGoLe5S6kZ6IIj/3rl6X+GtiQrL7Q="
             }
           },
-          "GetStatusLambdaVersion59uraKPNgjnHAU7rECR5svo4lYbMfXCEfVrWxzA1uA": {
+          "GetStatusLambdaVersion62mDN3I0wgz3uNTaa54GIXr51z9VjYQsQ7asHCkhCbs": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "GetStatusLambdaFunction"
               },
-              "CodeSha256": "4/AuI7rykaRfRrTrmXtAxyt2LOGz6+opmokQJv9r8z4="
+              "CodeSha256": "k9vWhCeeLDOYaOGGoLe5S6kZ6IIj/3rl6X+GtiQrL7Q="
             }
           },
-          "ResetUsageLambdaVersiona2cBaDDYTnNFLeRFrhv286y7I3T3NLb3QtyISrX8Qg": {
+          "ResetUsageLambdaVersionBGbu3U8B7pYGalR8JLEOTf8WzLLVLwlNmZImCRg5zg": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "ResetUsageLambdaFunction"
               },
-              "CodeSha256": "4/AuI7rykaRfRrTrmXtAxyt2LOGz6+opmokQJv9r8z4="
+              "CodeSha256": "k9vWhCeeLDOYaOGGoLe5S6kZ6IIj/3rl6X+GtiQrL7Q="
             }
           },
-          "GetBudgetStatusLambdaVersionUIDwIOw3hJjpeBLSM64yuwzUfOGjNlb3FTwQorSX1g": {
+          "GetBudgetStatusLambdaVersionVGkZJ65sbX7IXksvq5EQFq9mUheoqMi4d1H2Hgyl9Kc": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "GetBudgetStatusLambdaFunction"
               },
-              "CodeSha256": "4/AuI7rykaRfRrTrmXtAxyt2LOGz6+opmokQJv9r8z4="
+              "CodeSha256": "k9vWhCeeLDOYaOGGoLe5S6kZ6IIj/3rl6X+GtiQrL7Q="
             }
           },
-          "GoogleLoginLambdaVersionaybaDjKSFyFf8dckkqOlSqUTBsgJgHUdQolI9HJDew": {
+          "GoogleLoginLambdaVersionGOy29mcIjSp8K16UlmQOh0MKIQSrGc8LOVpcPPBtNVs": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "GoogleLoginLambdaFunction"
               },
-              "CodeSha256": "4/AuI7rykaRfRrTrmXtAxyt2LOGz6+opmokQJv9r8z4="
+              "CodeSha256": "k9vWhCeeLDOYaOGGoLe5S6kZ6IIj/3rl6X+GtiQrL7Q="
             }
           },
-          "GetSessionLambdaVersionwhxp4naNVyaw3ZedMDAssy99isHaa5iNYfuuIuEPPmE": {
+          "GetSessionLambdaVersionvFmCB8Y4Lvk0alH8Lruzs2PT4RBM5ov05NB8295d9M": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "GetSessionLambdaFunction"
               },
-              "CodeSha256": "4/AuI7rykaRfRrTrmXtAxyt2LOGz6+opmokQJv9r8z4="
+              "CodeSha256": "k9vWhCeeLDOYaOGGoLe5S6kZ6IIj/3rl6X+GtiQrL7Q="
             }
           },
-          "GenerateCSRFTokenLambdaVersionhrVyvftdHGKbYOjDydy1Vp5UWQViYVGfNHA1WUUwg": {
+          "GenerateCSRFTokenLambdaVersionZiVgFit8jfABeTdL9RWkI34Ms095ACYG2GqddsjFjg": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "GenerateCSRFTokenLambdaFunction"
               },
-              "CodeSha256": "4/AuI7rykaRfRrTrmXtAxyt2LOGz6+opmokQJv9r8z4="
+              "CodeSha256": "k9vWhCeeLDOYaOGGoLe5S6kZ6IIj/3rl6X+GtiQrL7Q="
             }
           },
-          "LogoutLambdaVersionYhGCeVCLlNbF0FSziQy9QdtTwpY0CNUscNYLOKFNG0": {
+          "LogoutLambdaVersionFBGdfHHsgWlPytBSvoSqxTcLfSw6E21CLlXWs1Jg": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "LogoutLambdaFunction"
               },
-              "CodeSha256": "4/AuI7rykaRfRrTrmXtAxyt2LOGz6+opmokQJv9r8z4="
+              "CodeSha256": "k9vWhCeeLDOYaOGGoLe5S6kZ6IIj/3rl6X+GtiQrL7Q="
             }
           },
-          "GoogleDriveAuthInitiateLambdaVersionZegyea30LdC7TA5Rjpaxl5JPOIXxURwpRTWdpyF4SR4": {
+          "GoogleDriveAuthInitiateLambdaVersionCecxyYxVrn0ZVusDz3eczW9BXtOMwg8kxw4tVLdJPs": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "GoogleDriveAuthInitiateLambdaFunction"
               },
-              "CodeSha256": "4/AuI7rykaRfRrTrmXtAxyt2LOGz6+opmokQJv9r8z4="
+              "CodeSha256": "k9vWhCeeLDOYaOGGoLe5S6kZ6IIj/3rl6X+GtiQrL7Q="
             }
           },
-          "GoogleDriveAuthCallbackLambdaVersionyPFlFIaQQjpPVTfD5TE8srA5lV26RewXvlHI02pVk": {
+          "GoogleDriveAuthCallbackLambdaVersionQyGUrnZvMjswhmPvAmaWpf75A8NF5MIYzAUlTYC4": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "GoogleDriveAuthCallbackLambdaFunction"
               },
-              "CodeSha256": "4/AuI7rykaRfRrTrmXtAxyt2LOGz6+opmokQJv9r8z4="
+              "CodeSha256": "k9vWhCeeLDOYaOGGoLe5S6kZ6IIj/3rl6X+GtiQrL7Q="
             }
           },
-          "SaveFileLambdaVersionF2dRhPifOBkqQWQKfbMnjyBOtFILlNECnrwKyqOmws": {
+          "SaveFileLambdaVersionjW1WBYFvBvDCLSNIJK5X5TXv3N1Zu7r3NFOIUn6Pw4": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "SaveFileLambdaFunction"
               },
-              "CodeSha256": "4/AuI7rykaRfRrTrmXtAxyt2LOGz6+opmokQJv9r8z4="
+              "CodeSha256": "k9vWhCeeLDOYaOGGoLe5S6kZ6IIj/3rl6X+GtiQrL7Q="
             }
           },
-          "LoadFileLambdaVersionI82PLmST6aIkin7bkz42JiyH1nhlK29QD4Evbn8Wrw": {
+          "LoadFileLambdaVersionIIzNTbveVj7JRmQ3rdKno9yy98xxjQ92qYT5LiiWYk": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "LoadFileLambdaFunction"
               },
-              "CodeSha256": "4/AuI7rykaRfRrTrmXtAxyt2LOGz6+opmokQJv9r8z4="
+              "CodeSha256": "k9vWhCeeLDOYaOGGoLe5S6kZ6IIj/3rl6X+GtiQrL7Q="
             }
           },
-          "ListFilesLambdaVersionW50EJMxd34MAwjLfVy2kibo5wttxZtLMJWFjvpf2QA": {
+          "ListFilesLambdaVersionFlbVfB8wTct5MdjiaEvKsuSJ5DtmhCLxBHUhv1Yzx0": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "ListFilesLambdaFunction"
               },
-              "CodeSha256": "4/AuI7rykaRfRrTrmXtAxyt2LOGz6+opmokQJv9r8z4="
+              "CodeSha256": "k9vWhCeeLDOYaOGGoLe5S6kZ6IIj/3rl6X+GtiQrL7Q="
             }
           },
-          "GetClientConfigLambdaVersion7cBbaboYo7S8QLQrE3cTPPtlyASOiNmrHqbeT4fUI": {
+          "GetClientConfigLambdaVersionr4pRWHCa5uEqSW46ZsTEjRGQBvNcB7ojLL7Rn2MlSU": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "GetClientConfigLambdaFunction"
               },
-              "CodeSha256": "4/AuI7rykaRfRrTrmXtAxyt2LOGz6+opmokQJv9r8z4="
+              "CodeSha256": "k9vWhCeeLDOYaOGGoLe5S6kZ6IIj/3rl6X+GtiQrL7Q="
             }
           },
           "PreWarmCacheEventsRuleSchedule1": {
@@ -1825,7 +1825,7 @@
                       "method.response.header.Access-Control-Allow-Credentials": "'true'"
                     },
                     "ResponseTemplates": {
-                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3001\") || $origin.matches(\"http://localhost:3000\") || $origin.matches(\"https://portfolio-wise[.]com\") || $origin.matches(\"https://www[.]portfolio-wise[.]com\") || $origin.matches(\"https://app[.]portfolio-wise[.]com\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
+                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3001\") || $origin.matches(\"http://localhost:3000\") || $origin.matches(\"https://portfolio-wise[.]com\") || $origin.matches(\"https://www[.]portfolio-wise[.]com\") || $origin.matches(\"https://app[.]portfolio-wise[.]com\") || $origin.matches(\"https://portfolio-manager-7bx[.]pages[.]dev\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
                     }
                   }
                 ]
@@ -1872,7 +1872,7 @@
                       "method.response.header.Access-Control-Allow-Credentials": "'true'"
                     },
                     "ResponseTemplates": {
-                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3001\") || $origin.matches(\"http://localhost:3000\") || $origin.matches(\"https://portfolio-wise[.]com\") || $origin.matches(\"https://www[.]portfolio-wise[.]com\") || $origin.matches(\"https://app[.]portfolio-wise[.]com\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
+                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3001\") || $origin.matches(\"http://localhost:3000\") || $origin.matches(\"https://portfolio-wise[.]com\") || $origin.matches(\"https://www[.]portfolio-wise[.]com\") || $origin.matches(\"https://app[.]portfolio-wise[.]com\") || $origin.matches(\"https://portfolio-manager-7bx[.]pages[.]dev\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
                     }
                   }
                 ]
@@ -1919,7 +1919,7 @@
                       "method.response.header.Access-Control-Allow-Credentials": "'true'"
                     },
                     "ResponseTemplates": {
-                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3001\") || $origin.matches(\"http://localhost:3000\") || $origin.matches(\"https://portfolio-wise[.]com\") || $origin.matches(\"https://www[.]portfolio-wise[.]com\") || $origin.matches(\"https://app[.]portfolio-wise[.]com\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
+                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3001\") || $origin.matches(\"http://localhost:3000\") || $origin.matches(\"https://portfolio-wise[.]com\") || $origin.matches(\"https://www[.]portfolio-wise[.]com\") || $origin.matches(\"https://app[.]portfolio-wise[.]com\") || $origin.matches(\"https://portfolio-manager-7bx[.]pages[.]dev\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
                     }
                   }
                 ]
@@ -1966,7 +1966,7 @@
                       "method.response.header.Access-Control-Allow-Credentials": "'true'"
                     },
                     "ResponseTemplates": {
-                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3001\") || $origin.matches(\"http://localhost:3000\") || $origin.matches(\"https://portfolio-wise[.]com\") || $origin.matches(\"https://www[.]portfolio-wise[.]com\") || $origin.matches(\"https://app[.]portfolio-wise[.]com\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
+                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3001\") || $origin.matches(\"http://localhost:3000\") || $origin.matches(\"https://portfolio-wise[.]com\") || $origin.matches(\"https://www[.]portfolio-wise[.]com\") || $origin.matches(\"https://app[.]portfolio-wise[.]com\") || $origin.matches(\"https://portfolio-manager-7bx[.]pages[.]dev\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
                     }
                   }
                 ]
@@ -2013,7 +2013,7 @@
                       "method.response.header.Access-Control-Allow-Credentials": "'true'"
                     },
                     "ResponseTemplates": {
-                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3001\") || $origin.matches(\"http://localhost:3000\") || $origin.matches(\"https://portfolio-wise[.]com\") || $origin.matches(\"https://www[.]portfolio-wise[.]com\") || $origin.matches(\"https://app[.]portfolio-wise[.]com\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
+                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3001\") || $origin.matches(\"http://localhost:3000\") || $origin.matches(\"https://portfolio-wise[.]com\") || $origin.matches(\"https://www[.]portfolio-wise[.]com\") || $origin.matches(\"https://app[.]portfolio-wise[.]com\") || $origin.matches(\"https://portfolio-manager-7bx[.]pages[.]dev\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
                     }
                   }
                 ],
@@ -2088,7 +2088,7 @@
                       "method.response.header.Access-Control-Allow-Credentials": "'true'"
                     },
                     "ResponseTemplates": {
-                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3001\") || $origin.matches(\"http://localhost:3000\") || $origin.matches(\"https://portfolio-wise[.]com\") || $origin.matches(\"https://www[.]portfolio-wise[.]com\") || $origin.matches(\"https://app[.]portfolio-wise[.]com\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
+                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3001\") || $origin.matches(\"http://localhost:3000\") || $origin.matches(\"https://portfolio-wise[.]com\") || $origin.matches(\"https://www[.]portfolio-wise[.]com\") || $origin.matches(\"https://app[.]portfolio-wise[.]com\") || $origin.matches(\"https://portfolio-manager-7bx[.]pages[.]dev\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
                     }
                   }
                 ]
@@ -2135,7 +2135,7 @@
                       "method.response.header.Access-Control-Allow-Credentials": "'true'"
                     },
                     "ResponseTemplates": {
-                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3001\") || $origin.matches(\"http://localhost:3000\") || $origin.matches(\"https://portfolio-wise[.]com\") || $origin.matches(\"https://www[.]portfolio-wise[.]com\") || $origin.matches(\"https://app[.]portfolio-wise[.]com\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
+                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3001\") || $origin.matches(\"http://localhost:3000\") || $origin.matches(\"https://portfolio-wise[.]com\") || $origin.matches(\"https://www[.]portfolio-wise[.]com\") || $origin.matches(\"https://app[.]portfolio-wise[.]com\") || $origin.matches(\"https://portfolio-manager-7bx[.]pages[.]dev\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
                     }
                   }
                 ]
@@ -2182,7 +2182,7 @@
                       "method.response.header.Access-Control-Allow-Credentials": "'true'"
                     },
                     "ResponseTemplates": {
-                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3001\") || $origin.matches(\"http://localhost:3000\") || $origin.matches(\"https://portfolio-wise[.]com\") || $origin.matches(\"https://www[.]portfolio-wise[.]com\") || $origin.matches(\"https://app[.]portfolio-wise[.]com\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
+                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3001\") || $origin.matches(\"http://localhost:3000\") || $origin.matches(\"https://portfolio-wise[.]com\") || $origin.matches(\"https://www[.]portfolio-wise[.]com\") || $origin.matches(\"https://app[.]portfolio-wise[.]com\") || $origin.matches(\"https://portfolio-manager-7bx[.]pages[.]dev\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
                     }
                   }
                 ]
@@ -2229,7 +2229,7 @@
                       "method.response.header.Access-Control-Allow-Credentials": "'true'"
                     },
                     "ResponseTemplates": {
-                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3001\") || $origin.matches(\"http://localhost:3000\") || $origin.matches(\"https://portfolio-wise[.]com\") || $origin.matches(\"https://www[.]portfolio-wise[.]com\") || $origin.matches(\"https://app[.]portfolio-wise[.]com\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
+                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3001\") || $origin.matches(\"http://localhost:3000\") || $origin.matches(\"https://portfolio-wise[.]com\") || $origin.matches(\"https://www[.]portfolio-wise[.]com\") || $origin.matches(\"https://app[.]portfolio-wise[.]com\") || $origin.matches(\"https://portfolio-manager-7bx[.]pages[.]dev\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
                     }
                   }
                 ],
@@ -2304,7 +2304,7 @@
                       "method.response.header.Access-Control-Allow-Credentials": "'true'"
                     },
                     "ResponseTemplates": {
-                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3001\") || $origin.matches(\"http://localhost:3000\") || $origin.matches(\"https://portfolio-wise[.]com\") || $origin.matches(\"https://www[.]portfolio-wise[.]com\") || $origin.matches(\"https://app[.]portfolio-wise[.]com\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
+                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3001\") || $origin.matches(\"http://localhost:3000\") || $origin.matches(\"https://portfolio-wise[.]com\") || $origin.matches(\"https://www[.]portfolio-wise[.]com\") || $origin.matches(\"https://app[.]portfolio-wise[.]com\") || $origin.matches(\"https://portfolio-manager-7bx[.]pages[.]dev\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
                     }
                   }
                 ]
@@ -2351,7 +2351,7 @@
                       "method.response.header.Access-Control-Allow-Credentials": "'true'"
                     },
                     "ResponseTemplates": {
-                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3001\") || $origin.matches(\"http://localhost:3000\") || $origin.matches(\"https://portfolio-wise[.]com\") || $origin.matches(\"https://www[.]portfolio-wise[.]com\") || $origin.matches(\"https://app[.]portfolio-wise[.]com\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
+                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3001\") || $origin.matches(\"http://localhost:3000\") || $origin.matches(\"https://portfolio-wise[.]com\") || $origin.matches(\"https://www[.]portfolio-wise[.]com\") || $origin.matches(\"https://app[.]portfolio-wise[.]com\") || $origin.matches(\"https://portfolio-manager-7bx[.]pages[.]dev\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
                     }
                   }
                 ]
@@ -2398,7 +2398,7 @@
                       "method.response.header.Access-Control-Allow-Credentials": "'true'"
                     },
                     "ResponseTemplates": {
-                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3001\") || $origin.matches(\"http://localhost:3000\") || $origin.matches(\"https://portfolio-wise[.]com\") || $origin.matches(\"https://www[.]portfolio-wise[.]com\") || $origin.matches(\"https://app[.]portfolio-wise[.]com\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
+                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3001\") || $origin.matches(\"http://localhost:3000\") || $origin.matches(\"https://portfolio-wise[.]com\") || $origin.matches(\"https://www[.]portfolio-wise[.]com\") || $origin.matches(\"https://app[.]portfolio-wise[.]com\") || $origin.matches(\"https://portfolio-manager-7bx[.]pages[.]dev\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
                     }
                   }
                 ]
@@ -2445,7 +2445,7 @@
                       "method.response.header.Access-Control-Allow-Credentials": "'true'"
                     },
                     "ResponseTemplates": {
-                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3001\") || $origin.matches(\"http://localhost:3000\") || $origin.matches(\"https://portfolio-wise[.]com\") || $origin.matches(\"https://www[.]portfolio-wise[.]com\") || $origin.matches(\"https://app[.]portfolio-wise[.]com\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
+                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3001\") || $origin.matches(\"http://localhost:3000\") || $origin.matches(\"https://portfolio-wise[.]com\") || $origin.matches(\"https://www[.]portfolio-wise[.]com\") || $origin.matches(\"https://app[.]portfolio-wise[.]com\") || $origin.matches(\"https://portfolio-manager-7bx[.]pages[.]dev\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
                     }
                   }
                 ]
@@ -2492,7 +2492,7 @@
                       "method.response.header.Access-Control-Allow-Credentials": "'true'"
                     },
                     "ResponseTemplates": {
-                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3001\") || $origin.matches(\"http://localhost:3000\") || $origin.matches(\"https://portfolio-wise[.]com\") || $origin.matches(\"https://www[.]portfolio-wise[.]com\") || $origin.matches(\"https://app[.]portfolio-wise[.]com\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
+                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3001\") || $origin.matches(\"http://localhost:3000\") || $origin.matches(\"https://portfolio-wise[.]com\") || $origin.matches(\"https://www[.]portfolio-wise[.]com\") || $origin.matches(\"https://app[.]portfolio-wise[.]com\") || $origin.matches(\"https://portfolio-manager-7bx[.]pages[.]dev\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
                     }
                   }
                 ]
@@ -3149,7 +3149,7 @@
               "GetClientConfigLambdaPermissionApiGateway"
             ]
           },
-          "ApiGatewayDeployment1748501018430": {
+          "ApiGatewayDeployment1748552733160": {
             "Type": "AWS::ApiGateway::Deployment",
             "Properties": {
               "RestApiId": {
@@ -3813,7 +3813,7 @@
           "MarketDataLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "MarketDataLambdaVersion1Nkb3XHD3QztB9IJVFTyIIFFPwgJYO9BWQhliKguQ"
+              "Ref": "MarketDataLambdaVersionnRvlb4jWd8iGWJV474F98QJglCzKrn7rq3GUAkGRoM"
             },
             "Export": {
               "Name": "sls-pfwise-api-prod-MarketDataLambdaFunctionQualifiedArn"
@@ -3822,7 +3822,7 @@
           "PreWarmCacheLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "PreWarmCacheLambdaVersionlvBXrpweVA6jrKXxT9ZUJq2eIw2iL2g0fORicKEDBAs"
+              "Ref": "PreWarmCacheLambdaVersionvOJ91Zdz3fk48M9c2x17GhunSqnenpo2qfym5PTWeoY"
             },
             "Export": {
               "Name": "sls-pfwise-api-prod-PreWarmCacheLambdaFunctionQualifiedArn"
@@ -3831,7 +3831,7 @@
           "GetStatusLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "GetStatusLambdaVersion59uraKPNgjnHAU7rECR5svo4lYbMfXCEfVrWxzA1uA"
+              "Ref": "GetStatusLambdaVersion62mDN3I0wgz3uNTaa54GIXr51z9VjYQsQ7asHCkhCbs"
             },
             "Export": {
               "Name": "sls-pfwise-api-prod-GetStatusLambdaFunctionQualifiedArn"
@@ -3840,7 +3840,7 @@
           "ResetUsageLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "ResetUsageLambdaVersiona2cBaDDYTnNFLeRFrhv286y7I3T3NLb3QtyISrX8Qg"
+              "Ref": "ResetUsageLambdaVersionBGbu3U8B7pYGalR8JLEOTf8WzLLVLwlNmZImCRg5zg"
             },
             "Export": {
               "Name": "sls-pfwise-api-prod-ResetUsageLambdaFunctionQualifiedArn"
@@ -3849,7 +3849,7 @@
           "GetBudgetStatusLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "GetBudgetStatusLambdaVersionUIDwIOw3hJjpeBLSM64yuwzUfOGjNlb3FTwQorSX1g"
+              "Ref": "GetBudgetStatusLambdaVersionVGkZJ65sbX7IXksvq5EQFq9mUheoqMi4d1H2Hgyl9Kc"
             },
             "Export": {
               "Name": "sls-pfwise-api-prod-GetBudgetStatusLambdaFunctionQualifiedArn"
@@ -3858,7 +3858,7 @@
           "GoogleLoginLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "GoogleLoginLambdaVersionaybaDjKSFyFf8dckkqOlSqUTBsgJgHUdQolI9HJDew"
+              "Ref": "GoogleLoginLambdaVersionGOy29mcIjSp8K16UlmQOh0MKIQSrGc8LOVpcPPBtNVs"
             },
             "Export": {
               "Name": "sls-pfwise-api-prod-GoogleLoginLambdaFunctionQualifiedArn"
@@ -3867,7 +3867,7 @@
           "GetSessionLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "GetSessionLambdaVersionwhxp4naNVyaw3ZedMDAssy99isHaa5iNYfuuIuEPPmE"
+              "Ref": "GetSessionLambdaVersionvFmCB8Y4Lvk0alH8Lruzs2PT4RBM5ov05NB8295d9M"
             },
             "Export": {
               "Name": "sls-pfwise-api-prod-GetSessionLambdaFunctionQualifiedArn"
@@ -3876,7 +3876,7 @@
           "GenerateCSRFTokenLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "GenerateCSRFTokenLambdaVersionhrVyvftdHGKbYOjDydy1Vp5UWQViYVGfNHA1WUUwg"
+              "Ref": "GenerateCSRFTokenLambdaVersionZiVgFit8jfABeTdL9RWkI34Ms095ACYG2GqddsjFjg"
             },
             "Export": {
               "Name": "sls-pfwise-api-prod-GenerateCSRFTokenLambdaFunctionQualifiedArn"
@@ -3885,7 +3885,7 @@
           "LogoutLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "LogoutLambdaVersionYhGCeVCLlNbF0FSziQy9QdtTwpY0CNUscNYLOKFNG0"
+              "Ref": "LogoutLambdaVersionFBGdfHHsgWlPytBSvoSqxTcLfSw6E21CLlXWs1Jg"
             },
             "Export": {
               "Name": "sls-pfwise-api-prod-LogoutLambdaFunctionQualifiedArn"
@@ -3894,7 +3894,7 @@
           "GoogleDriveAuthInitiateLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "GoogleDriveAuthInitiateLambdaVersionZegyea30LdC7TA5Rjpaxl5JPOIXxURwpRTWdpyF4SR4"
+              "Ref": "GoogleDriveAuthInitiateLambdaVersionCecxyYxVrn0ZVusDz3eczW9BXtOMwg8kxw4tVLdJPs"
             },
             "Export": {
               "Name": "sls-pfwise-api-prod-GoogleDriveAuthInitiateLambdaFunctionQualifiedArn"
@@ -3903,7 +3903,7 @@
           "GoogleDriveAuthCallbackLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "GoogleDriveAuthCallbackLambdaVersionyPFlFIaQQjpPVTfD5TE8srA5lV26RewXvlHI02pVk"
+              "Ref": "GoogleDriveAuthCallbackLambdaVersionQyGUrnZvMjswhmPvAmaWpf75A8NF5MIYzAUlTYC4"
             },
             "Export": {
               "Name": "sls-pfwise-api-prod-GoogleDriveAuthCallbackLambdaFunctionQualifiedArn"
@@ -3912,7 +3912,7 @@
           "SaveFileLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "SaveFileLambdaVersionF2dRhPifOBkqQWQKfbMnjyBOtFILlNECnrwKyqOmws"
+              "Ref": "SaveFileLambdaVersionjW1WBYFvBvDCLSNIJK5X5TXv3N1Zu7r3NFOIUn6Pw4"
             },
             "Export": {
               "Name": "sls-pfwise-api-prod-SaveFileLambdaFunctionQualifiedArn"
@@ -3921,7 +3921,7 @@
           "LoadFileLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "LoadFileLambdaVersionI82PLmST6aIkin7bkz42JiyH1nhlK29QD4Evbn8Wrw"
+              "Ref": "LoadFileLambdaVersionIIzNTbveVj7JRmQ3rdKno9yy98xxjQ92qYT5LiiWYk"
             },
             "Export": {
               "Name": "sls-pfwise-api-prod-LoadFileLambdaFunctionQualifiedArn"
@@ -3930,7 +3930,7 @@
           "ListFilesLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "ListFilesLambdaVersionW50EJMxd34MAwjLfVy2kibo5wttxZtLMJWFjvpf2QA"
+              "Ref": "ListFilesLambdaVersionFlbVfB8wTct5MdjiaEvKsuSJ5DtmhCLxBHUhv1Yzx0"
             },
             "Export": {
               "Name": "sls-pfwise-api-prod-ListFilesLambdaFunctionQualifiedArn"
@@ -3939,7 +3939,7 @@
           "GetClientConfigLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "GetClientConfigLambdaVersion7cBbaboYo7S8QLQrE3cTPPtlyASOiNmrHqbeT4fUI"
+              "Ref": "GetClientConfigLambdaVersionr4pRWHCa5uEqSW46ZsTEjRGQBvNcB7ojLL7Rn2MlSU"
             },
             "Export": {
               "Name": "sls-pfwise-api-prod-GetClientConfigLambdaFunctionQualifiedArn"
@@ -4067,8 +4067,8 @@
         "prod": "https://portfolio-wise.com/drive-success"
       },
       "corsAllowedOrigins": {
-        "dev": "http://localhost:3000,http://localhost:3001,https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com",
-        "prod": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+        "dev": "http://localhost:3000,http://localhost:3001,https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com,https://portfolio-manager-7bx.pages.dev,https://*.portfolio-manager-7bx.pages.dev",
+        "prod": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com,https://portfolio-manager-7bx.pages.dev,https://*.portfolio-manager-7bx.pages.dev"
       },
       "logRetentionInDays": {
         "dev": 7,
@@ -4097,9 +4097,6 @@
         "prod": "true"
       }
     },
-    "plugins": [
-      "serverless-dotenv-plugin"
-    ],
     "pluginsData": {},
     "functions": {
       "marketData": {
@@ -4129,7 +4126,8 @@
                   "http://localhost:3000",
                   "https://portfolio-wise.com",
                   "https://www.portfolio-wise.com",
-                  "https://app.portfolio-wise.com"
+                  "https://app.portfolio-wise.com",
+                  "https://portfolio-manager-7bx.pages.dev"
                 ]
               },
               "integration": "AWS_PROXY"
@@ -4142,7 +4140,7 @@
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "MarketDataLambdaVersion1Nkb3XHD3QztB9IJVFTyIIFFPwgJYO9BWQhliKguQ"
+        "versionLogicalId": "MarketDataLambdaVersionnRvlb4jWd8iGWJV474F98QJglCzKrn7rq3GUAkGRoM"
       },
       "preWarmCache": {
         "handler": "src/function/preWarmCache.handler",
@@ -4157,7 +4155,7 @@
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "PreWarmCacheLambdaVersionlvBXrpweVA6jrKXxT9ZUJq2eIw2iL2g0fORicKEDBAs"
+        "versionLogicalId": "PreWarmCacheLambdaVersionvOJ91Zdz3fk48M9c2x17GhunSqnenpo2qfym5PTWeoY"
       },
       "getStatus": {
         "handler": "src/function/admin/getStatus.handler",
@@ -4186,7 +4184,8 @@
                   "http://localhost:3000",
                   "https://portfolio-wise.com",
                   "https://www.portfolio-wise.com",
-                  "https://app.portfolio-wise.com"
+                  "https://app.portfolio-wise.com",
+                  "https://portfolio-manager-7bx.pages.dev"
                 ]
               },
               "private": true,
@@ -4200,7 +4199,7 @@
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "GetStatusLambdaVersion59uraKPNgjnHAU7rECR5svo4lYbMfXCEfVrWxzA1uA"
+        "versionLogicalId": "GetStatusLambdaVersion62mDN3I0wgz3uNTaa54GIXr51z9VjYQsQ7asHCkhCbs"
       },
       "resetUsage": {
         "handler": "src/function/admin/resetUsage.handler",
@@ -4229,7 +4228,8 @@
                   "http://localhost:3000",
                   "https://portfolio-wise.com",
                   "https://www.portfolio-wise.com",
-                  "https://app.portfolio-wise.com"
+                  "https://app.portfolio-wise.com",
+                  "https://portfolio-manager-7bx.pages.dev"
                 ]
               },
               "private": true,
@@ -4243,7 +4243,7 @@
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "ResetUsageLambdaVersiona2cBaDDYTnNFLeRFrhv286y7I3T3NLb3QtyISrX8Qg"
+        "versionLogicalId": "ResetUsageLambdaVersionBGbu3U8B7pYGalR8JLEOTf8WzLLVLwlNmZImCRg5zg"
       },
       "getBudgetStatus": {
         "handler": "src/function/admin/getBudgetStatus.handler",
@@ -4272,7 +4272,8 @@
                   "http://localhost:3000",
                   "https://portfolio-wise.com",
                   "https://www.portfolio-wise.com",
-                  "https://app.portfolio-wise.com"
+                  "https://app.portfolio-wise.com",
+                  "https://portfolio-manager-7bx.pages.dev"
                 ]
               },
               "private": true,
@@ -4286,7 +4287,7 @@
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "GetBudgetStatusLambdaVersionUIDwIOw3hJjpeBLSM64yuwzUfOGjNlb3FTwQorSX1g"
+        "versionLogicalId": "GetBudgetStatusLambdaVersionVGkZJ65sbX7IXksvq5EQFq9mUheoqMi4d1H2Hgyl9Kc"
       },
       "googleLogin": {
         "handler": "src/function/auth/googleLogin.handler",
@@ -4315,7 +4316,8 @@
                   "http://localhost:3000",
                   "https://portfolio-wise.com",
                   "https://www.portfolio-wise.com",
-                  "https://app.portfolio-wise.com"
+                  "https://app.portfolio-wise.com",
+                  "https://portfolio-manager-7bx.pages.dev"
                 ]
               },
               "integration": "AWS_PROXY"
@@ -4344,7 +4346,8 @@
                   "http://localhost:3000",
                   "https://portfolio-wise.com",
                   "https://www.portfolio-wise.com",
-                  "https://app.portfolio-wise.com"
+                  "https://app.portfolio-wise.com",
+                  "https://portfolio-manager-7bx.pages.dev"
                 ]
               },
               "integration": "AWS_PROXY"
@@ -4357,7 +4360,7 @@
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "GoogleLoginLambdaVersionaybaDjKSFyFf8dckkqOlSqUTBsgJgHUdQolI9HJDew"
+        "versionLogicalId": "GoogleLoginLambdaVersionGOy29mcIjSp8K16UlmQOh0MKIQSrGc8LOVpcPPBtNVs"
       },
       "getSession": {
         "handler": "src/function/auth/getSession.handler",
@@ -4386,7 +4389,8 @@
                   "http://localhost:3000",
                   "https://portfolio-wise.com",
                   "https://www.portfolio-wise.com",
-                  "https://app.portfolio-wise.com"
+                  "https://app.portfolio-wise.com",
+                  "https://portfolio-manager-7bx.pages.dev"
                 ]
               },
               "integration": "AWS_PROXY"
@@ -4399,7 +4403,7 @@
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "GetSessionLambdaVersionwhxp4naNVyaw3ZedMDAssy99isHaa5iNYfuuIuEPPmE"
+        "versionLogicalId": "GetSessionLambdaVersionvFmCB8Y4Lvk0alH8Lruzs2PT4RBM5ov05NB8295d9M"
       },
       "generateCSRFToken": {
         "handler": "src/function/auth/generateCSRFToken.handler",
@@ -4429,7 +4433,8 @@
                   "http://localhost:3000",
                   "https://portfolio-wise.com",
                   "https://www.portfolio-wise.com",
-                  "https://app.portfolio-wise.com"
+                  "https://app.portfolio-wise.com",
+                  "https://portfolio-manager-7bx.pages.dev"
                 ]
               },
               "integration": "AWS_PROXY"
@@ -4442,7 +4447,7 @@
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "GenerateCSRFTokenLambdaVersionhrVyvftdHGKbYOjDydy1Vp5UWQViYVGfNHA1WUUwg"
+        "versionLogicalId": "GenerateCSRFTokenLambdaVersionZiVgFit8jfABeTdL9RWkI34Ms095ACYG2GqddsjFjg"
       },
       "logout": {
         "handler": "src/function/auth/logout.handler",
@@ -4471,7 +4476,8 @@
                   "http://localhost:3000",
                   "https://portfolio-wise.com",
                   "https://www.portfolio-wise.com",
-                  "https://app.portfolio-wise.com"
+                  "https://app.portfolio-wise.com",
+                  "https://portfolio-manager-7bx.pages.dev"
                 ]
               },
               "integration": "AWS_PROXY"
@@ -4484,7 +4490,7 @@
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "LogoutLambdaVersionYhGCeVCLlNbF0FSziQy9QdtTwpY0CNUscNYLOKFNG0"
+        "versionLogicalId": "LogoutLambdaVersionFBGdfHHsgWlPytBSvoSqxTcLfSw6E21CLlXWs1Jg"
       },
       "googleDriveAuthInitiate": {
         "handler": "src/function/auth/googleDriveAuth.initiateAuth",
@@ -4514,7 +4520,8 @@
                   "http://localhost:3000",
                   "https://portfolio-wise.com",
                   "https://www.portfolio-wise.com",
-                  "https://app.portfolio-wise.com"
+                  "https://app.portfolio-wise.com",
+                  "https://portfolio-manager-7bx.pages.dev"
                 ]
               }
             }
@@ -4542,7 +4549,8 @@
                   "http://localhost:3000",
                   "https://portfolio-wise.com",
                   "https://www.portfolio-wise.com",
-                  "https://app.portfolio-wise.com"
+                  "https://app.portfolio-wise.com",
+                  "https://portfolio-manager-7bx.pages.dev"
                 ]
               },
               "integration": "AWS_PROXY"
@@ -4555,7 +4563,7 @@
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "GoogleDriveAuthInitiateLambdaVersionZegyea30LdC7TA5Rjpaxl5JPOIXxURwpRTWdpyF4SR4"
+        "versionLogicalId": "GoogleDriveAuthInitiateLambdaVersionCecxyYxVrn0ZVusDz3eczW9BXtOMwg8kxw4tVLdJPs"
       },
       "googleDriveAuthCallback": {
         "handler": "src/function/auth/googleDriveAuth.callback",
@@ -4584,7 +4592,8 @@
                   "http://localhost:3000",
                   "https://portfolio-wise.com",
                   "https://www.portfolio-wise.com",
-                  "https://app.portfolio-wise.com"
+                  "https://app.portfolio-wise.com",
+                  "https://portfolio-manager-7bx.pages.dev"
                 ]
               },
               "integration": "AWS_PROXY"
@@ -4597,7 +4606,7 @@
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "GoogleDriveAuthCallbackLambdaVersionyPFlFIaQQjpPVTfD5TE8srA5lV26RewXvlHI02pVk"
+        "versionLogicalId": "GoogleDriveAuthCallbackLambdaVersionQyGUrnZvMjswhmPvAmaWpf75A8NF5MIYzAUlTYC4"
       },
       "saveFile": {
         "handler": "src/function/drive/saveFile.handler",
@@ -4626,7 +4635,8 @@
                   "http://localhost:3000",
                   "https://portfolio-wise.com",
                   "https://www.portfolio-wise.com",
-                  "https://app.portfolio-wise.com"
+                  "https://app.portfolio-wise.com",
+                  "https://portfolio-manager-7bx.pages.dev"
                 ]
               },
               "integration": "AWS_PROXY"
@@ -4639,7 +4649,7 @@
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "SaveFileLambdaVersionF2dRhPifOBkqQWQKfbMnjyBOtFILlNECnrwKyqOmws"
+        "versionLogicalId": "SaveFileLambdaVersionjW1WBYFvBvDCLSNIJK5X5TXv3N1Zu7r3NFOIUn6Pw4"
       },
       "loadFile": {
         "handler": "src/function/drive/loadFile.handler",
@@ -4668,7 +4678,8 @@
                   "http://localhost:3000",
                   "https://portfolio-wise.com",
                   "https://www.portfolio-wise.com",
-                  "https://app.portfolio-wise.com"
+                  "https://app.portfolio-wise.com",
+                  "https://portfolio-manager-7bx.pages.dev"
                 ]
               },
               "integration": "AWS_PROXY"
@@ -4681,7 +4692,7 @@
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "LoadFileLambdaVersionI82PLmST6aIkin7bkz42JiyH1nhlK29QD4Evbn8Wrw"
+        "versionLogicalId": "LoadFileLambdaVersionIIzNTbveVj7JRmQ3rdKno9yy98xxjQ92qYT5LiiWYk"
       },
       "listFiles": {
         "handler": "src/function/drive/listFiles.handler",
@@ -4710,7 +4721,8 @@
                   "http://localhost:3000",
                   "https://portfolio-wise.com",
                   "https://www.portfolio-wise.com",
-                  "https://app.portfolio-wise.com"
+                  "https://app.portfolio-wise.com",
+                  "https://portfolio-manager-7bx.pages.dev"
                 ]
               },
               "integration": "AWS_PROXY"
@@ -4723,7 +4735,7 @@
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "ListFilesLambdaVersionW50EJMxd34MAwjLfVy2kibo5wttxZtLMJWFjvpf2QA"
+        "versionLogicalId": "ListFilesLambdaVersionFlbVfB8wTct5MdjiaEvKsuSJ5DtmhCLxBHUhv1Yzx0"
       },
       "getClientConfig": {
         "handler": "src/function/config/getClientConfig.handler",
@@ -4752,7 +4764,8 @@
                   "http://localhost:3000",
                   "https://portfolio-wise.com",
                   "https://www.portfolio-wise.com",
-                  "https://app.portfolio-wise.com"
+                  "https://app.portfolio-wise.com",
+                  "https://portfolio-manager-7bx.pages.dev"
                 ]
               },
               "integration": "AWS_PROXY"
@@ -4765,7 +4778,7 @@
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "GetClientConfigLambdaVersion7cBbaboYo7S8QLQrE3cTPPtlyASOiNmrHqbeT4fUI"
+        "versionLogicalId": "GetClientConfigLambdaVersionr4pRWHCa5uEqSW46ZsTEjRGQBvNcB7ojLL7Rn2MlSU"
       }
     },
     "resources": {
@@ -4893,7 +4906,7 @@
         ],
         "artifactsS3KeyDirname": "serverless/pfwise-api/prod/code-artifacts",
         "artifact": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/backend/.serverless/pfwise-api.zip",
-        "artifactDirectoryName": "serverless/pfwise-api/prod/1748501020129-2025-05-29T06:43:40.129Z"
+        "artifactDirectoryName": "serverless/pfwise-api/prod/1748552734242-2025-05-29T21:05:34.242Z"
       },
       "provider": {
         "$ref": "$[\"service\"][\"provider\"]"
@@ -4904,9 +4917,6 @@
       "resources": {
         "$ref": "$[\"service\"][\"resources\"]"
       },
-      "plugins": {
-        "$ref": "$[\"service\"][\"plugins\"]"
-      },
       "custom": {
         "$ref": "$[\"service\"][\"custom\"]"
       }
@@ -4916,7 +4926,7 @@
     "artifact": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/backend/.serverless/pfwise-api.zip"
   },
   "package": {
-    "artifactDirectoryName": "serverless/pfwise-api/prod/1748501020129-2025-05-29T06:43:40.129Z",
+    "artifactDirectoryName": "serverless/pfwise-api/prod/1748552734242-2025-05-29T21:05:34.242Z",
     "artifact": "pfwise-api.zip"
   }
 }

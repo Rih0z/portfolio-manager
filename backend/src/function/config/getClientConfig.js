@@ -1,5 +1,6 @@
 const { getCorsHeaders, handleOptionsRequest } = require('../../utils/corsHeaders');
 const logger = require('../../utils/logger');
+const { getGoogleClientId } = require('../../utils/secretsManager');
 
 /**
  * Get client configuration
@@ -14,6 +15,9 @@ exports.handler = async (event) => {
     }
 
     logger.info('Getting client configuration');
+
+    // Google Client IDを取得
+    const googleClientId = await getGoogleClientId();
 
     // フロントエンドに公開可能な設定のみを返す
     const clientConfig = {
@@ -31,7 +35,8 @@ exports.handler = async (event) => {
       cacheTime: {
         marketData: 3600, // 1時間
         portfolioData: 300  // 5分
-      }
+      },
+      googleClientId: googleClientId || ''
     };
 
     return {

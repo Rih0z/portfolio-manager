@@ -601,8 +601,9 @@ resources:
     #       - Protocol: email
     #         Endpoint: ${env:ADMIN_EMAIL, ''}
 
-plugins:
-  - serverless-dotenv-plugin
+# plugins:
+#   - serverless-dotenv-plugin
+#   - serverless-offline
 
 custom:
   driveRedirectUri:
