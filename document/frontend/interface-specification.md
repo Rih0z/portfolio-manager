@@ -28,7 +28,7 @@
 
 ### 1.2 技術スタック
 - **フロントエンド**: React.js 18.x
-- **デプロイ**: Netlify
+- **デプロイ**: Cloudflare Pages
 - **認証**: Google OAuth 2.0 認可コードフロー (@react-oauth/google 0.11.0)
 - **スタイリング**: Tailwind CSS 3.x
 - **ステート管理**: React Context API

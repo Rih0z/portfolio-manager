@@ -64,7 +64,7 @@ PortfolioWiseは、投資家のためのスマートなポートフォリオ管�
 
 ### サイトURL
 
-https://portfolio-wise.com
+https://portfolio-wise.com （Cloudflare Pagesでホスティング）
 
 ## プロジェクト構造
 
@@ -131,7 +131,8 @@ PortfolioWiseのバックエンドシステムは現在、大規模な刷新を�
 - **リリース予定**: 2025年6月1日（フロントエンドと同時）
 
 ### 主な変更点
-- **Netlifyからの完全移行**: 以前はNetlify Functionsで実装していたバックエンド機能をAWSへ完全移行
+- **Cloudflare Pagesへの移行**: フロントエンドはNetlifyからCloudflare Pagesへ移行し、高速かつ安定したホスティングを実現
+- **バックエンドのAWS移行**: 以前はNetlify Functionsで実装していたバックエンド機能をAWSへ完全移行
 - **AWSインフラ採用**: API Gateway、Lambda、DynamoDB、S3などのAWSサービスを活用した堅牢なインフラ構築
 - **セキュリティ強化**: トークンベースの認証システム、エンドポイント保護、データ暗号化など
 - **スケーラビリティ向上**: 複数リージョン対応と自動スケーリング機能の実装

@@ -25,9 +25,9 @@
     "web-vitals": "2.1.4"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "node scripts/setup-test-with-env.js && react-scripts test --coverage --watchAll=false",
+    "start": "craco start",
+    "build": "craco build",
+    "test": "node scripts/setup-test-with-env.js && craco test --coverage --watchAll=false",
     "test:custom": "node __tests__/manual/test-custom.js",
     "eject": "react-scripts eject",
     "dev": "netlify dev",
@@ -93,6 +93,7 @@
     "@babel/core": "^7.21.0",
     "@babel/preset-env": "^7.21.0",
     "@babel/preset-react": "^7.18.6",
+    "@craco/craco": "^6.4.5",
     "autoprefixer": "^10.4.14",
     "babel-jest": "^29.5.0",
     "cheerio": "^1.0.0",

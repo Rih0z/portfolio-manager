@@ -18,8 +18,7 @@ portfolio-manager/           # プロジェクトルート
 │   ├── frontend/          # フロントエンド関連ドキュメント
 │   └── backend/           # バックエンド関連ドキュメント
 ├── README.md              # プロジェクト全体のREADME
-├── .gitignore            # Git無視ファイル設定
-└── netlify.toml          # Netlifyデプロイ設定
+└── .gitignore            # Git無視ファイル設定
 ```
 
 ## フロントエンド構造（frontend/webapp/）

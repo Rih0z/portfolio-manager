@@ -27,7 +27,7 @@
 | Project name | portfolio-manager |
 | Production branch | main |
 | Framework preset | Create React App |
-| Build command | `cd frontend/webapp && npm install && NODE_OPTIONS="--openssl-legacy-provider" CI= npm run build` |
+| Build command | `cd frontend/webapp && npm install && npm install @craco/craco@6.4.5 --save-dev && NODE_OPTIONS="--openssl-legacy-provider" CI= npm run build` |
 | Build output directory | `frontend/webapp/build` |
 
 ## ステップ3: 環境変数の設定

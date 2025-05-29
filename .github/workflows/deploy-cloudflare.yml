@@ -16,17 +16,18 @@ jobs:
         with:
           node-version: '18'
           
-      - name: Build Frontend
+      - name: Install dependencies
+        run: npm install
+          
+      - name: Build
         run: |
-          cd frontend/webapp
-          npm ci
-          SKIP_PREFLIGHT_CHECK=true NODE_OPTIONS="--openssl-legacy-provider" CI= npm run build
+          npm run build
         env:
-          REACT_APP_API_BASE_URL: https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod
+          REACT_APP_API_BASE_URL: ${{ secrets.REACT_APP_API_BASE_URL }}
           REACT_APP_DEFAULT_EXCHANGE_RATE: '150.0'
           
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          command: pages deploy frontend/webapp/build --project-name=portfolio-manager
+          command: pages deploy build --project-name=portfolio-manager
