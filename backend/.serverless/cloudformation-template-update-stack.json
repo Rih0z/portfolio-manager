@@ -309,7 +309,7 @@
           "S3Bucket": {
             "Ref": "ServerlessDeploymentBucket"
           },
-          "S3Key": "serverless/pfwise-api/prod/1748552734242-2025-05-29T21:05:34.242Z/pfwise-api.zip"
+          "S3Key": "serverless/pfwise-api/prod/1748553693048-2025-05-29T21:21:33.048Z/pfwise-api.zip"
         },
         "Handler": "src/function/marketData.handler",
         "Runtime": "nodejs18.x",
@@ -373,7 +373,7 @@
           "S3Bucket": {
             "Ref": "ServerlessDeploymentBucket"
           },
-          "S3Key": "serverless/pfwise-api/prod/1748552734242-2025-05-29T21:05:34.242Z/pfwise-api.zip"
+          "S3Key": "serverless/pfwise-api/prod/1748553693048-2025-05-29T21:21:33.048Z/pfwise-api.zip"
         },
         "Handler": "src/function/preWarmCache.handler",
         "Runtime": "nodejs18.x",
@@ -437,7 +437,7 @@
           "S3Bucket": {
             "Ref": "ServerlessDeploymentBucket"
           },
-          "S3Key": "serverless/pfwise-api/prod/1748552734242-2025-05-29T21:05:34.242Z/pfwise-api.zip"
+          "S3Key": "serverless/pfwise-api/prod/1748553693048-2025-05-29T21:21:33.048Z/pfwise-api.zip"
         },
         "Handler": "src/function/admin/getStatus.handler",
         "Runtime": "nodejs18.x",
@@ -501,7 +501,7 @@
           "S3Bucket": {
             "Ref": "ServerlessDeploymentBucket"
           },
-          "S3Key": "serverless/pfwise-api/prod/1748552734242-2025-05-29T21:05:34.242Z/pfwise-api.zip"
+          "S3Key": "serverless/pfwise-api/prod/1748553693048-2025-05-29T21:21:33.048Z/pfwise-api.zip"
         },
         "Handler": "src/function/admin/resetUsage.handler",
         "Runtime": "nodejs18.x",
@@ -565,7 +565,7 @@
           "S3Bucket": {
             "Ref": "ServerlessDeploymentBucket"
           },
-          "S3Key": "serverless/pfwise-api/prod/1748552734242-2025-05-29T21:05:34.242Z/pfwise-api.zip"
+          "S3Key": "serverless/pfwise-api/prod/1748553693048-2025-05-29T21:21:33.048Z/pfwise-api.zip"
         },
         "Handler": "src/function/admin/getBudgetStatus.handler",
         "Runtime": "nodejs18.x",
@@ -629,7 +629,7 @@
           "S3Bucket": {
             "Ref": "ServerlessDeploymentBucket"
           },
-          "S3Key": "serverless/pfwise-api/prod/1748552734242-2025-05-29T21:05:34.242Z/pfwise-api.zip"
+          "S3Key": "serverless/pfwise-api/prod/1748553693048-2025-05-29T21:21:33.048Z/pfwise-api.zip"
         },
         "Handler": "src/function/auth/googleLogin.handler",
         "Runtime": "nodejs18.x",
@@ -693,7 +693,7 @@
           "S3Bucket": {
             "Ref": "ServerlessDeploymentBucket"
           },
-          "S3Key": "serverless/pfwise-api/prod/1748552734242-2025-05-29T21:05:34.242Z/pfwise-api.zip"
+          "S3Key": "serverless/pfwise-api/prod/1748553693048-2025-05-29T21:21:33.048Z/pfwise-api.zip"
         },
         "Handler": "src/function/auth/getSession.handler",
         "Runtime": "nodejs18.x",
@@ -757,7 +757,7 @@
           "S3Bucket": {
             "Ref": "ServerlessDeploymentBucket"
           },
-          "S3Key": "serverless/pfwise-api/prod/1748552734242-2025-05-29T21:05:34.242Z/pfwise-api.zip"
+          "S3Key": "serverless/pfwise-api/prod/1748553693048-2025-05-29T21:21:33.048Z/pfwise-api.zip"
         },
         "Handler": "src/function/auth/generateCSRFToken.handler",
         "Runtime": "nodejs18.x",
@@ -821,7 +821,7 @@
           "S3Bucket": {
             "Ref": "ServerlessDeploymentBucket"
           },
-          "S3Key": "serverless/pfwise-api/prod/1748552734242-2025-05-29T21:05:34.242Z/pfwise-api.zip"
+          "S3Key": "serverless/pfwise-api/prod/1748553693048-2025-05-29T21:21:33.048Z/pfwise-api.zip"
         },
         "Handler": "src/function/auth/logout.handler",
         "Runtime": "nodejs18.x",
@@ -885,7 +885,7 @@
           "S3Bucket": {
             "Ref": "ServerlessDeploymentBucket"
           },
-          "S3Key": "serverless/pfwise-api/prod/1748552734242-2025-05-29T21:05:34.242Z/pfwise-api.zip"
+          "S3Key": "serverless/pfwise-api/prod/1748553693048-2025-05-29T21:21:33.048Z/pfwise-api.zip"
         },
         "Handler": "src/function/auth/googleDriveAuth.initiateAuth",
         "Runtime": "nodejs18.x",
@@ -949,7 +949,7 @@
           "S3Bucket": {
             "Ref": "ServerlessDeploymentBucket"
           },
-          "S3Key": "serverless/pfwise-api/prod/1748552734242-2025-05-29T21:05:34.242Z/pfwise-api.zip"
+          "S3Key": "serverless/pfwise-api/prod/1748553693048-2025-05-29T21:21:33.048Z/pfwise-api.zip"
         },
         "Handler": "src/function/auth/googleDriveAuth.callback",
         "Runtime": "nodejs18.x",
@@ -1013,7 +1013,7 @@
           "S3Bucket": {
             "Ref": "ServerlessDeploymentBucket"
           },
-          "S3Key": "serverless/pfwise-api/prod/1748552734242-2025-05-29T21:05:34.242Z/pfwise-api.zip"
+          "S3Key": "serverless/pfwise-api/prod/1748553693048-2025-05-29T21:21:33.048Z/pfwise-api.zip"
         },
         "Handler": "src/function/drive/saveFile.handler",
         "Runtime": "nodejs18.x",
@@ -1077,7 +1077,7 @@
           "S3Bucket": {
             "Ref": "ServerlessDeploymentBucket"
           },
-          "S3Key": "serverless/pfwise-api/prod/1748552734242-2025-05-29T21:05:34.242Z/pfwise-api.zip"
+          "S3Key": "serverless/pfwise-api/prod/1748553693048-2025-05-29T21:21:33.048Z/pfwise-api.zip"
         },
         "Handler": "src/function/drive/loadFile.handler",
         "Runtime": "nodejs18.x",
@@ -1141,7 +1141,7 @@
           "S3Bucket": {
             "Ref": "ServerlessDeploymentBucket"
           },
-          "S3Key": "serverless/pfwise-api/prod/1748552734242-2025-05-29T21:05:34.242Z/pfwise-api.zip"
+          "S3Key": "serverless/pfwise-api/prod/1748553693048-2025-05-29T21:21:33.048Z/pfwise-api.zip"
         },
         "Handler": "src/function/drive/listFiles.handler",
         "Runtime": "nodejs18.x",
@@ -1205,7 +1205,7 @@
           "S3Bucket": {
             "Ref": "ServerlessDeploymentBucket"
           },
-          "S3Key": "serverless/pfwise-api/prod/1748552734242-2025-05-29T21:05:34.242Z/pfwise-api.zip"
+          "S3Key": "serverless/pfwise-api/prod/1748553693048-2025-05-29T21:21:33.048Z/pfwise-api.zip"
         },
         "Handler": "src/function/config/getClientConfig.handler",
         "Runtime": "nodejs18.x",
@@ -1262,154 +1262,154 @@
         "GetClientConfigLogGroup"
       ]
     },
-    "MarketDataLambdaVersionnRvlb4jWd8iGWJV474F98QJglCzKrn7rq3GUAkGRoM": {
+    "MarketDataLambdaVersionyMk6LV6D5q9t45byXtbfIVNzI5Cc6Pl2ANrbdCyc8": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "MarketDataLambdaFunction"
         },
-        "CodeSha256": "k9vWhCeeLDOYaOGGoLe5S6kZ6IIj/3rl6X+GtiQrL7Q="
+        "CodeSha256": "/LF5SGMi4noT2l1zxfFUatQVuf1AGQe8dOTsDu+dvzI="
       }
     },
-    "PreWarmCacheLambdaVersionvOJ91Zdz3fk48M9c2x17GhunSqnenpo2qfym5PTWeoY": {
+    "PreWarmCacheLambdaVersiongOCVV2OmOBvHEj0Kc8aEonSXgnIVN9Qfyq7S2042Y": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "PreWarmCacheLambdaFunction"
         },
-        "CodeSha256": "k9vWhCeeLDOYaOGGoLe5S6kZ6IIj/3rl6X+GtiQrL7Q="
+        "CodeSha256": "/LF5SGMi4noT2l1zxfFUatQVuf1AGQe8dOTsDu+dvzI="
       }
     },
-    "GetStatusLambdaVersion62mDN3I0wgz3uNTaa54GIXr51z9VjYQsQ7asHCkhCbs": {
+    "GetStatusLambdaVersionZYEhvT8Da84w1oJuaK5Pnol6h63BlRoZN7eXZnQTw1o": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "GetStatusLambdaFunction"
         },
-        "CodeSha256": "k9vWhCeeLDOYaOGGoLe5S6kZ6IIj/3rl6X+GtiQrL7Q="
+        "CodeSha256": "/LF5SGMi4noT2l1zxfFUatQVuf1AGQe8dOTsDu+dvzI="
       }
     },
-    "ResetUsageLambdaVersionBGbu3U8B7pYGalR8JLEOTf8WzLLVLwlNmZImCRg5zg": {
+    "ResetUsageLambdaVersionAXqZoMpfCgT3S2yRMekqlODKPfIwJUPJV7MS4XoFI": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "ResetUsageLambdaFunction"
         },
-        "CodeSha256": "k9vWhCeeLDOYaOGGoLe5S6kZ6IIj/3rl6X+GtiQrL7Q="
+        "CodeSha256": "/LF5SGMi4noT2l1zxfFUatQVuf1AGQe8dOTsDu+dvzI="
       }
     },
-    "GetBudgetStatusLambdaVersionVGkZJ65sbX7IXksvq5EQFq9mUheoqMi4d1H2Hgyl9Kc": {
+    "GetBudgetStatusLambdaVersionHGYEzQWG3QVaw2Xx0vVL1BaQi7rhO6x9btjS4ESQ": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "GetBudgetStatusLambdaFunction"
         },
-        "CodeSha256": "k9vWhCeeLDOYaOGGoLe5S6kZ6IIj/3rl6X+GtiQrL7Q="
+        "CodeSha256": "/LF5SGMi4noT2l1zxfFUatQVuf1AGQe8dOTsDu+dvzI="
       }
     },
-    "GoogleLoginLambdaVersionGOy29mcIjSp8K16UlmQOh0MKIQSrGc8LOVpcPPBtNVs": {
+    "GoogleLoginLambdaVersionaHXmiZ00Lpm32rQoFMHlr747xqOhwR9nZT347PzCg": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "GoogleLoginLambdaFunction"
         },
-        "CodeSha256": "k9vWhCeeLDOYaOGGoLe5S6kZ6IIj/3rl6X+GtiQrL7Q="
+        "CodeSha256": "/LF5SGMi4noT2l1zxfFUatQVuf1AGQe8dOTsDu+dvzI="
       }
     },
-    "GetSessionLambdaVersionvFmCB8Y4Lvk0alH8Lruzs2PT4RBM5ov05NB8295d9M": {
+    "GetSessionLambdaVersionsUhVsvofdout4zEXLaHFoQDFtrWWnBKDwZP6315vA": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "GetSessionLambdaFunction"
         },
-        "CodeSha256": "k9vWhCeeLDOYaOGGoLe5S6kZ6IIj/3rl6X+GtiQrL7Q="
+        "CodeSha256": "/LF5SGMi4noT2l1zxfFUatQVuf1AGQe8dOTsDu+dvzI="
       }
     },
-    "GenerateCSRFTokenLambdaVersionZiVgFit8jfABeTdL9RWkI34Ms095ACYG2GqddsjFjg": {
+    "GenerateCSRFTokenLambdaVersionI1hkEjqfR5kVzESMDhk8VY59ws0lPndDo2yHdigI": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "GenerateCSRFTokenLambdaFunction"
         },
-        "CodeSha256": "k9vWhCeeLDOYaOGGoLe5S6kZ6IIj/3rl6X+GtiQrL7Q="
+        "CodeSha256": "/LF5SGMi4noT2l1zxfFUatQVuf1AGQe8dOTsDu+dvzI="
       }
     },
-    "LogoutLambdaVersionFBGdfHHsgWlPytBSvoSqxTcLfSw6E21CLlXWs1Jg": {
+    "LogoutLambdaVersion86V0rh5nKZ9Furi92kQTE01HtlVQfuu7B3C9Z7dU8": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "LogoutLambdaFunction"
         },
-        "CodeSha256": "k9vWhCeeLDOYaOGGoLe5S6kZ6IIj/3rl6X+GtiQrL7Q="
+        "CodeSha256": "/LF5SGMi4noT2l1zxfFUatQVuf1AGQe8dOTsDu+dvzI="
       }
     },
-    "GoogleDriveAuthInitiateLambdaVersionCecxyYxVrn0ZVusDz3eczW9BXtOMwg8kxw4tVLdJPs": {
+    "GoogleDriveAuthInitiateLambdaVersionQCgKxInaBD24yKxBcVxotDJ0qFxiRvywT8Y2p5FRjuU": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "GoogleDriveAuthInitiateLambdaFunction"
         },
-        "CodeSha256": "k9vWhCeeLDOYaOGGoLe5S6kZ6IIj/3rl6X+GtiQrL7Q="
+        "CodeSha256": "/LF5SGMi4noT2l1zxfFUatQVuf1AGQe8dOTsDu+dvzI="
       }
     },
-    "GoogleDriveAuthCallbackLambdaVersionQyGUrnZvMjswhmPvAmaWpf75A8NF5MIYzAUlTYC4": {
+    "GoogleDriveAuthCallbackLambdaVersionhlEMAGMTfMBeEKHFnFgw7dazB6TAHFA1guMnvpKCNI": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "GoogleDriveAuthCallbackLambdaFunction"
         },
-        "CodeSha256": "k9vWhCeeLDOYaOGGoLe5S6kZ6IIj/3rl6X+GtiQrL7Q="
+        "CodeSha256": "/LF5SGMi4noT2l1zxfFUatQVuf1AGQe8dOTsDu+dvzI="
       }
     },
-    "SaveFileLambdaVersionjW1WBYFvBvDCLSNIJK5X5TXv3N1Zu7r3NFOIUn6Pw4": {
+    "SaveFileLambdaVersion8zKpXE7umRr4LJIghLuQORjq5wNMXmcBuhsbr8Drrk": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "SaveFileLambdaFunction"
         },
-        "CodeSha256": "k9vWhCeeLDOYaOGGoLe5S6kZ6IIj/3rl6X+GtiQrL7Q="
+        "CodeSha256": "/LF5SGMi4noT2l1zxfFUatQVuf1AGQe8dOTsDu+dvzI="
       }
     },
-    "LoadFileLambdaVersionIIzNTbveVj7JRmQ3rdKno9yy98xxjQ92qYT5LiiWYk": {
+    "LoadFileLambdaVersionVmAyDy7edLcqjpLJkvC8yEg1pzrZ21K6Xil5R7KgE": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "LoadFileLambdaFunction"
         },
-        "CodeSha256": "k9vWhCeeLDOYaOGGoLe5S6kZ6IIj/3rl6X+GtiQrL7Q="
+        "CodeSha256": "/LF5SGMi4noT2l1zxfFUatQVuf1AGQe8dOTsDu+dvzI="
       }
     },
-    "ListFilesLambdaVersionFlbVfB8wTct5MdjiaEvKsuSJ5DtmhCLxBHUhv1Yzx0": {
+    "ListFilesLambdaVersionlewulx1OXFpJ0IzdW5v0HPEn6kpCIbqbEAIwgC3kk": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "ListFilesLambdaFunction"
         },
-        "CodeSha256": "k9vWhCeeLDOYaOGGoLe5S6kZ6IIj/3rl6X+GtiQrL7Q="
+        "CodeSha256": "/LF5SGMi4noT2l1zxfFUatQVuf1AGQe8dOTsDu+dvzI="
       }
     },
-    "GetClientConfigLambdaVersionr4pRWHCa5uEqSW46ZsTEjRGQBvNcB7ojLL7Rn2MlSU": {
+    "GetClientConfigLambdaVersionJZhaUpr9r0YI9ylmnuM7pLqkCP2knl810fEyUgoN0": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "GetClientConfigLambdaFunction"
         },
-        "CodeSha256": "k9vWhCeeLDOYaOGGoLe5S6kZ6IIj/3rl6X+GtiQrL7Q="
+        "CodeSha256": "/LF5SGMi4noT2l1zxfFUatQVuf1AGQe8dOTsDu+dvzI="
       }
     },
     "PreWarmCacheEventsRuleSchedule1": {
@@ -3086,7 +3086,7 @@
         "GetClientConfigLambdaPermissionApiGateway"
       ]
     },
-    "ApiGatewayDeployment1748552733160": {
+    "ApiGatewayDeployment1748553691933": {
       "Type": "AWS::ApiGateway::Deployment",
       "Properties": {
         "RestApiId": {
@@ -3750,7 +3750,7 @@
     "MarketDataLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "MarketDataLambdaVersionnRvlb4jWd8iGWJV474F98QJglCzKrn7rq3GUAkGRoM"
+        "Ref": "MarketDataLambdaVersionyMk6LV6D5q9t45byXtbfIVNzI5Cc6Pl2ANrbdCyc8"
       },
       "Export": {
         "Name": "sls-pfwise-api-prod-MarketDataLambdaFunctionQualifiedArn"
@@ -3759,7 +3759,7 @@
     "PreWarmCacheLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "PreWarmCacheLambdaVersionvOJ91Zdz3fk48M9c2x17GhunSqnenpo2qfym5PTWeoY"
+        "Ref": "PreWarmCacheLambdaVersiongOCVV2OmOBvHEj0Kc8aEonSXgnIVN9Qfyq7S2042Y"
       },
       "Export": {
         "Name": "sls-pfwise-api-prod-PreWarmCacheLambdaFunctionQualifiedArn"
@@ -3768,7 +3768,7 @@
     "GetStatusLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "GetStatusLambdaVersion62mDN3I0wgz3uNTaa54GIXr51z9VjYQsQ7asHCkhCbs"
+        "Ref": "GetStatusLambdaVersionZYEhvT8Da84w1oJuaK5Pnol6h63BlRoZN7eXZnQTw1o"
       },
       "Export": {
         "Name": "sls-pfwise-api-prod-GetStatusLambdaFunctionQualifiedArn"
@@ -3777,7 +3777,7 @@
     "ResetUsageLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "ResetUsageLambdaVersionBGbu3U8B7pYGalR8JLEOTf8WzLLVLwlNmZImCRg5zg"
+        "Ref": "ResetUsageLambdaVersionAXqZoMpfCgT3S2yRMekqlODKPfIwJUPJV7MS4XoFI"
       },
       "Export": {
         "Name": "sls-pfwise-api-prod-ResetUsageLambdaFunctionQualifiedArn"
@@ -3786,7 +3786,7 @@
     "GetBudgetStatusLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "GetBudgetStatusLambdaVersionVGkZJ65sbX7IXksvq5EQFq9mUheoqMi4d1H2Hgyl9Kc"
+        "Ref": "GetBudgetStatusLambdaVersionHGYEzQWG3QVaw2Xx0vVL1BaQi7rhO6x9btjS4ESQ"
       },
       "Export": {
         "Name": "sls-pfwise-api-prod-GetBudgetStatusLambdaFunctionQualifiedArn"
@@ -3795,7 +3795,7 @@
     "GoogleLoginLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "GoogleLoginLambdaVersionGOy29mcIjSp8K16UlmQOh0MKIQSrGc8LOVpcPPBtNVs"
+        "Ref": "GoogleLoginLambdaVersionaHXmiZ00Lpm32rQoFMHlr747xqOhwR9nZT347PzCg"
       },
       "Export": {
         "Name": "sls-pfwise-api-prod-GoogleLoginLambdaFunctionQualifiedArn"
@@ -3804,7 +3804,7 @@
     "GetSessionLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "GetSessionLambdaVersionvFmCB8Y4Lvk0alH8Lruzs2PT4RBM5ov05NB8295d9M"
+        "Ref": "GetSessionLambdaVersionsUhVsvofdout4zEXLaHFoQDFtrWWnBKDwZP6315vA"
       },
       "Export": {
         "Name": "sls-pfwise-api-prod-GetSessionLambdaFunctionQualifiedArn"
@@ -3813,7 +3813,7 @@
     "GenerateCSRFTokenLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "GenerateCSRFTokenLambdaVersionZiVgFit8jfABeTdL9RWkI34Ms095ACYG2GqddsjFjg"
+        "Ref": "GenerateCSRFTokenLambdaVersionI1hkEjqfR5kVzESMDhk8VY59ws0lPndDo2yHdigI"
       },
       "Export": {
         "Name": "sls-pfwise-api-prod-GenerateCSRFTokenLambdaFunctionQualifiedArn"
@@ -3822,7 +3822,7 @@
     "LogoutLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "LogoutLambdaVersionFBGdfHHsgWlPytBSvoSqxTcLfSw6E21CLlXWs1Jg"
+        "Ref": "LogoutLambdaVersion86V0rh5nKZ9Furi92kQTE01HtlVQfuu7B3C9Z7dU8"
       },
       "Export": {
         "Name": "sls-pfwise-api-prod-LogoutLambdaFunctionQualifiedArn"
@@ -3831,7 +3831,7 @@
     "GoogleDriveAuthInitiateLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "GoogleDriveAuthInitiateLambdaVersionCecxyYxVrn0ZVusDz3eczW9BXtOMwg8kxw4tVLdJPs"
+        "Ref": "GoogleDriveAuthInitiateLambdaVersionQCgKxInaBD24yKxBcVxotDJ0qFxiRvywT8Y2p5FRjuU"
       },
       "Export": {
         "Name": "sls-pfwise-api-prod-GoogleDriveAuthInitiateLambdaFunctionQualifiedArn"
@@ -3840,7 +3840,7 @@
     "GoogleDriveAuthCallbackLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "GoogleDriveAuthCallbackLambdaVersionQyGUrnZvMjswhmPvAmaWpf75A8NF5MIYzAUlTYC4"
+        "Ref": "GoogleDriveAuthCallbackLambdaVersionhlEMAGMTfMBeEKHFnFgw7dazB6TAHFA1guMnvpKCNI"
       },
       "Export": {
         "Name": "sls-pfwise-api-prod-GoogleDriveAuthCallbackLambdaFunctionQualifiedArn"
@@ -3849,7 +3849,7 @@
     "SaveFileLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "SaveFileLambdaVersionjW1WBYFvBvDCLSNIJK5X5TXv3N1Zu7r3NFOIUn6Pw4"
+        "Ref": "SaveFileLambdaVersion8zKpXE7umRr4LJIghLuQORjq5wNMXmcBuhsbr8Drrk"
       },
       "Export": {
         "Name": "sls-pfwise-api-prod-SaveFileLambdaFunctionQualifiedArn"
@@ -3858,7 +3858,7 @@
     "LoadFileLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "LoadFileLambdaVersionIIzNTbveVj7JRmQ3rdKno9yy98xxjQ92qYT5LiiWYk"
+        "Ref": "LoadFileLambdaVersionVmAyDy7edLcqjpLJkvC8yEg1pzrZ21K6Xil5R7KgE"
       },
       "Export": {
         "Name": "sls-pfwise-api-prod-LoadFileLambdaFunctionQualifiedArn"
@@ -3867,7 +3867,7 @@
     "ListFilesLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "ListFilesLambdaVersionFlbVfB8wTct5MdjiaEvKsuSJ5DtmhCLxBHUhv1Yzx0"
+        "Ref": "ListFilesLambdaVersionlewulx1OXFpJ0IzdW5v0HPEn6kpCIbqbEAIwgC3kk"
       },
       "Export": {
         "Name": "sls-pfwise-api-prod-ListFilesLambdaFunctionQualifiedArn"
@@ -3876,7 +3876,7 @@
     "GetClientConfigLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "GetClientConfigLambdaVersionr4pRWHCa5uEqSW46ZsTEjRGQBvNcB7ojLL7Rn2MlSU"
+        "Ref": "GetClientConfigLambdaVersionJZhaUpr9r0YI9ylmnuM7pLqkCP2knl810fEyUgoN0"
       },
       "Export": {
         "Name": "sls-pfwise-api-prod-GetClientConfigLambdaFunctionQualifiedArn"

@@ -162,7 +162,21 @@ const getApiKeys = async () => {
   }
 };
 
+/**
+ * Google Client ID を取得
+ */
+const getGoogleClientId = async () => {
+  try {
+    const apiKeys = await getApiKeys();
+    return apiKeys.googleClientId || '';
+  } catch (error) {
+    logger.error('Failed to get Google Client ID:', error.message);
+    return '';
+  }
+};
+
 module.exports = {
   getSecret,
-  getApiKeys
+  getApiKeys,
+  getGoogleClientId
 };
