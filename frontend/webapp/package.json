@@ -4,7 +4,7 @@
   "private": true,
   "description": "Portfolio Manager - テストカバレッジビジュアル化対応",
   "main": "src/index.js",
-  "homepage": "./",
+  "homepage": "/",
   "dependencies": {
     "@headlessui/react": "^1.7.15",
     "@react-oauth/google": "^0.12.2",

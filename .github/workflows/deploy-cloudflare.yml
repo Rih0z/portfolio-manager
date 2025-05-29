@@ -1,0 +1,32 @@
+name: Deploy to Cloudflare Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          
+      - name: Build Frontend
+        run: |
+          cd frontend/webapp
+          npm ci
+          SKIP_PREFLIGHT_CHECK=true NODE_OPTIONS="--openssl-legacy-provider" CI= npm run build
+        env:
+          REACT_APP_API_BASE_URL: https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod
+          REACT_APP_DEFAULT_EXCHANGE_RATE: '150.0'
+          
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          command: pages deploy frontend/webapp/build --project-name=portfolio-manager
