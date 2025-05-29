@@ -17,9 +17,9 @@
  * iOS風のUIを実現するためのスタイル定義や、セーフエリア対応のユーティリティクラスを提供する。
  */
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
 
 /* iPhone用の安全領域（ノッチやホームバー）への対応 */
 .h-safe-bottom {
