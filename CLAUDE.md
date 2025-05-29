@@ -82,6 +82,47 @@ This is a React-based portfolio management application with AI-powered investmen
 - **Database**: Amazon DynamoDB
 - **Authentication**: Google OAuth + AWS Cognito
 
+## Deployment Commands
+
+### Frontend Deployment to Cloudflare Pages
+
+```bash
+# 1. Build the project
+cd frontend/webapp
+npm install
+npm run build
+
+# 2. Deploy to Cloudflare Pages
+wrangler pages deploy build --project-name=portfolio-manager
+```
+
+### Backend Deployment to AWS
+
+```bash
+# 1. Install dependencies
+cd backend
+npm install
+
+# 2. Install required serverless plugin (if needed)
+npm install serverless-dotenv-plugin --save-dev
+
+# 3. Deploy to production
+npm run deploy:prod
+```
+
+### Environment Variables for Cloudflare Pages
+
+Set these in Cloudflare Pages dashboard:
+- `REACT_APP_API_BASE_URL`: https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod
+- `REACT_APP_DEFAULT_EXCHANGE_RATE`: 150.0
+
+### CORS Configuration
+
+The backend serverless.yml is configured to allow:
+- https://portfolio-manager-7bx.pages.dev
+- https://*.portfolio-manager-7bx.pages.dev
+- https://portfolio-wise.com
+
 ### API Integration
 - All API endpoints dynamically configured from AWS
 - Production API hosted on AWS (separate repository)
