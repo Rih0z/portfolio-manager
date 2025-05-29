@@ -17,11 +17,14 @@ jobs:
           node-version: '18'
           
       - name: Install dependencies
-        run: npm install
+        run: |
+          cd frontend/webapp
+          npm install --legacy-peer-deps
           
       - name: Build
         run: |
-          npm run build
+          cd frontend/webapp
+          NODE_OPTIONS='--openssl-legacy-provider' npm run build
         env:
           REACT_APP_API_BASE_URL: ${{ secrets.REACT_APP_API_BASE_URL }}
           REACT_APP_DEFAULT_EXCHANGE_RATE: '150.0'
@@ -30,4 +33,4 @@ jobs:
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          command: pages deploy build --project-name=portfolio-manager
+          command: pages deploy frontend/webapp/build --project-name=portfolio-manager
