@@ -30,10 +30,9 @@ const LoginButtonContent = () => {
   const [loginError, setLoginError] = useState(null);
   
   const handleGoogleLogin = async (credentialResponse) => {
-    console.log('Google Credential Response:', credentialResponse);
-    console.log('Response keys:', Object.keys(credentialResponse));
-    console.log('Has credential:', !!credentialResponse.credential);
-    console.log('Has code:', !!credentialResponse.code);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Google認証レスポンス受信');
+    }
     
     // 認証情報の確認
     if (!credentialResponse.credential && !credentialResponse.code) {
@@ -43,9 +42,7 @@ const LoginButtonContent = () => {
     }
     
     try {
-      console.log('loginWithGoogleを呼び出します...');
       const result = await loginWithGoogle(credentialResponse);
-      console.log('loginWithGoogleの結果:', result);
       
       if (!result || !result.success) {
         console.error('バックエンドでの認証処理に失敗しました');

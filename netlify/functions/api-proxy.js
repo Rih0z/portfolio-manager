@@ -3,7 +3,7 @@
 
 const axios = require('axios');
 
-const API_URL = process.env.REACT_APP_MARKET_DATA_API_URL || 'https://x4scpbsuv2.execute-api.us-west-2.amazonaws.com';
+const API_URL = process.env.REACT_APP_API_BASE_URL || process.env.REACT_APP_MARKET_DATA_API_URL;
 const API_STAGE = process.env.REACT_APP_API_STAGE || 'dev';
 
 exports.handler = async (event, context) => {

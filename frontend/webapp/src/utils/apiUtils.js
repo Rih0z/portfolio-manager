@@ -19,6 +19,8 @@
 
 import axios from 'axios';
 import { getApiEndpoint, isLocalDevelopment } from './envUtils';
+import csrfManager from './csrfManager';
+import { handleApiError } from './errorHandler';
 
 // リトライ設定
 export const RETRY = {
@@ -153,16 +155,26 @@ export const createApiClient = (withAuth = false) => {
   // インターセプターの設定
   if (client.interceptors?.request?.use) {
     client.interceptors.request.use(
-      config => {
-      console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`);
-      console.log('Request Data:', config.data);
+      async config => {
+          if (process.env.NODE_ENV === 'development') {
+        console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`);
+      }
+      
+      // CSRFトークンを追加（GETリクエスト以外）
+      if (config.method !== 'get') {
+        try {
+          await csrfManager.addTokenToRequest(config);
+        } catch (error) {
+          console.warn('Failed to add CSRF token:', error);
+        }
+      }
       
       // 共通ヘッダーを設定（最小限に保つ）
       // Content-TypeとAcceptはデフォルトで設定済みなので、上書きしない
       // 必要に応じて追加のヘッダーのみ設定
       
-      // POSTリクエストの場合、ボディの内容を確認
-      if (config.method === 'post' && config.data) {
+      // POSTリクエストのデバッグ（開発環境のみ）
+      if (process.env.NODE_ENV === 'development' && config.method === 'post' && config.data) {
         console.log('POST Request Body:', JSON.stringify(config.data, null, 2));
       }
       
@@ -173,34 +185,20 @@ export const createApiClient = (withAuth = false) => {
         } else {
           // トークンがない場合でも、セッションベース認証の可能性があるため
           // withCredentialsがtrueであることを確認
-          console.log('警告: トークンがありませんが、セッションベース認証でリクエストを試みます');
+          // セッションベース認証でリクエストを試行
         }
       }
       
       // withCredentialsを確実に設定
       config.withCredentials = true;
       
-      // デバッグ情報
-      if (withAuth || config.url.includes('/drive/') || config.url.includes('/auth/')) {
+      // デバッグ情報（本番環境では無効）
+      if (process.env.NODE_ENV === 'development' && (withAuth || config.url.includes('/drive/') || config.url.includes('/auth/'))) {
         console.log('認証情報付きリクエスト:', {
           url: config.url,
           method: config.method,
           hasToken: !!authToken,
-          headers: config.headers,
           withCredentials: config.withCredentials
-        });
-        
-        // 現在のCookieを確認
-        console.log('Current cookies:', document.cookie);
-        console.log('Cookie transmission debug:', {
-          cookieString: document.cookie,
-          cookieList: document.cookie.split(';').map(c => c.trim()).filter(c => c),
-          cookieCount: document.cookie.split(';').filter(c => c.trim()).length,
-          withCredentials: config.withCredentials,
-          isDriveRequest: config.url.includes('/drive/'),
-          isAuthRequest: config.url.includes('/auth/'),
-          origin: window.location.origin,
-          apiHost: config.url.includes('http') ? new URL(config.url).host : 'relative URL'
         });
       }
       
@@ -218,19 +216,8 @@ export const createApiClient = (withAuth = false) => {
     client.interceptors.response.use(
       response => {
       // 成功レスポンスを処理
-      console.log(`API Response: ${response.config.method?.toUpperCase()} ${response.config.url} -> ${response.status}`);
-      
-      // レスポンスヘッダーを確認（Set-Cookieなど）
-      if (response.config.url && response.config.url.includes('/auth/google/login')) {
-        console.log('ログインレスポンスヘッダー:', response.headers);
-        console.log('Set-Cookieヘッダー:', response.headers['set-cookie']);
-        
-        // ログイン後のCookie状態を確認
-        console.log('Cookies after login response:', {
-          cookieString: document.cookie,
-          cookieList: document.cookie.split(';').map(c => c.trim()).filter(c => c),
-          cookieCount: document.cookie.split(';').filter(c => c.trim()).length
-        });
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`API Response: ${response.config.method?.toUpperCase()} ${response.config.url} -> ${response.status}`);
       }
       
       // トークンがレスポンスに含まれていれば保存（複数の可能な場所をチェック）
@@ -243,7 +230,6 @@ export const createApiClient = (withAuth = false) => {
                            response.data?.jwtToken;
       
       if (possibleToken) {
-        console.log('レスポンスからトークンを検出し、保存します');
         setAuthToken(possibleToken);
       }
       
@@ -273,25 +259,17 @@ export const createApiClient = (withAuth = false) => {
           } else {
             console.log('Drive APIエンドポイントの401エラー。トークンは保持します。');
           }
-        } else if (error.response) {
-          // その他のエラーレスポンス
-          console.error('API Error:', {
-            status: error.response.status,
-            data: error.response.data,
-            url: error.config.url
-          });
-        } else if (error.request) {
-          // リクエストは送信されたがレスポンスが返ってこなかった場合
-          console.error('API Request Error (No Response):', {
-            url: error.config.url,
-            message: error.message
-          });
-        } else {
-          // リクエスト設定中にエラーが発生
-          console.error('API Error (Request Setup):', error.message);
+        }
+        
+        // エラーをサニタイズして返す
+        const sanitizedError = handleApiError(error);
+        
+        // 開発環境でのみ詳細をログ出力
+        if (process.env.NODE_ENV === 'development') {
+          console.error('API Error Details:', error);
         }
 
-        return Promise.reject(error);
+        return Promise.reject(sanitizedError);
       }
     );
   }
@@ -422,12 +400,13 @@ export const authFetch = async (endpoint, method = 'get', data = null, config = 
       throw new Error(`未対応のHTTPメソッド: ${method}`);
     }
     
-    // レスポンスデータの詳細をログ
-    console.log('APIレスポンス詳細:', {
-      status: response.status,
-      data: response.data,
-      headers: response.headers
-    });
+    // レスポンスデータの詳細をログ（開発環境のみ）
+    if (process.env.NODE_ENV === 'development') {
+      console.log('APIレスポンス詳細:', {
+        status: response.status,
+        data: response.data
+      });
+    }
     
     // 成功したらサーキットブレーカーをリセット
     circuitBreaker.recordSuccess();

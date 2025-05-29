@@ -19,6 +19,7 @@ const { ERROR_CODES, RESPONSE_FORMATS } = require('../config/constants');
 // テスト互換性対応: addBudgetWarningToResponse の追加
 const { isBudgetCritical, getBudgetWarningMessage, addBudgetWarningToResponse } = require('./budgetCheck');
 const { getCorsHeaders } = require('./corsHelper');
+const { mergeWithSecurityHeaders } = require('./securityHeaders');
 
 /**
  * 正常レスポンスを生成して返却する
@@ -115,11 +116,12 @@ const formatResponse = async (options = {}) => {
     console.log('WARNING: formatResponse/formatErrorResponse called without event object - CORS headers may be incorrect');
   }
   
-  const responseHeaders = {
+  // セキュリティヘッダーを含めたヘッダーの作成
+  const responseHeaders = mergeWithSecurityHeaders({
     'Content-Type': 'application/json',
     ...corsHeaders,
     ...headers
-  };
+  });
   
   // 予算警告がある場合はヘッダーに追加
   if (budgetWarning) {
@@ -229,11 +231,12 @@ const formatErrorResponse = async (options = {}) => {
     console.log('WARNING: formatResponse/formatErrorResponse called without event object - CORS headers may be incorrect');
   }
   
-  const responseHeaders = {
+  // セキュリティヘッダーを含めたヘッダーの作成
+  const responseHeaders = mergeWithSecurityHeaders({
     'Content-Type': 'application/json',
     ...corsHeaders,
     ...headers
-  };
+  });
   
   // リトライヘッダーの追加
   if (retryAfter) {

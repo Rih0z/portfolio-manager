@@ -253,22 +253,9 @@ export const AuthProvider = ({ children }) => {
                      response.data?.jwtToken;
                      
         if (token) {
-          console.log('認証トークンを保存します:', token.substring(0, 20) + '...');
           setAuthToken(token);
-        } else {
+        } else if (process.env.NODE_ENV === 'development') {
           console.warn('トークンがレスポンスに含まれていません');
-          console.warn('利用可能なレスポンスキー:', Object.keys(response));
-          // dataオブジェクトがある場合はその中も確認
-          if (response.data) {
-            console.warn('response.dataのキー:', Object.keys(response.data));
-          }
-          // レスポンス全体を詳しく調査
-          console.warn('レスポンス構造の詳細調査:');
-          for (const key in response) {
-            if (typeof response[key] === 'string' && response[key].length > 100) {
-              console.warn(`- ${key}: 長い文字列 (${response[key].length}文字) - トークンの可能性`);
-            }
-          }
         }
         
         setUser(response.user || response.data?.user);
@@ -462,19 +449,11 @@ export const AuthProvider = ({ children }) => {
         console.log(`- ${name}: ${value ? value.substring(0, 20) + '...' : 'empty'}`);
       });
       
-      console.log('Drive API認証前のCookie詳細:', {
-        cookieString: document.cookie,
-        cookieList: cookies,
-        cookieCount: cookies.length,
-        hasSessionCookie: document.cookie.includes('session'),
-        hasConnectSid: document.cookie.includes('connect.sid'),
-        hasAuthCookie: document.cookie.includes('auth')
-      });
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Drive API認証前のCookie数:', cookies.length);
+      }
       
       const driveInitEndpoint = await getApiEndpoint('auth/google/drive/initiate');
-      
-      console.log('Drive API initiate endpoint:', driveInitEndpoint);
-      console.log('Making request with authFetch (withCredentials: true)...');
       
       // 明示的にwithCredentialsを設定
       const response = await authFetch(driveInitEndpoint, 'get', null, {

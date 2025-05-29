@@ -1,0 +1,195 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # 毎日午前2時（JST 11時）に実行
+    - cron: '0 17 * * *'
+
+env:
+  NODE_VERSION: '18'
+  REACT_APP_API_BASE_URL: ${{ secrets.REACT_APP_API_BASE_URL }}
+  E2E_BASE_URL: ${{ secrets.E2E_BASE_URL || 'http://localhost:3000' }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        browser: [chromium, firefox, webkit]
+        include:
+          - browser: chromium
+            project: chromium
+          - browser: firefox
+            project: firefox
+          - browser: webkit
+            project: webkit
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: |
+        npm ci
+        cd frontend/webapp && npm ci
+        cd ../..
+        npx playwright install --with-deps ${{ matrix.browser }}
+
+    - name: Build application
+      run: |
+        cd frontend/webapp
+        npm run build
+        cd ../..
+
+    - name: Run E2E tests
+      run: |
+        npx playwright test --project=${{ matrix.project }}
+      env:
+        CI: true
+        REACT_APP_API_BASE_URL: ${{ env.REACT_APP_API_BASE_URL }}
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: playwright-report-${{ matrix.browser }}
+        path: |
+          e2e-report/
+          e2e-results.xml
+          test-results/
+
+    - name: Upload screenshots
+      if: failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: screenshots-${{ matrix.browser }}
+        path: test-results/**/*.png
+
+    - name: Upload videos
+      if: failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: videos-${{ matrix.browser }}
+        path: test-results/**/*.webm
+
+  performance:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: |
+        npm ci
+        cd frontend/webapp && npm ci
+        cd ../..
+        npx playwright install chromium
+
+    - name: Run performance tests
+      run: |
+        npx playwright test performance.spec.js --project=chromium
+
+    - name: Upload performance results
+      uses: actions/upload-artifact@v3
+      with:
+        name: performance-results
+        path: e2e-report/
+
+  aws-integration:
+    runs-on: ubuntu-latest
+    needs: test
+    # AWSテストは本番環境に対してのみ実行
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: |
+        npm ci
+        cd frontend/webapp && npm ci
+        cd ../..
+        npx playwright install chromium
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    - name: Run AWS integration tests
+      run: |
+        npx playwright test aws-integration.spec.js --project=chromium
+      env:
+        REACT_APP_API_BASE_URL: ${{ secrets.PROD_API_BASE_URL }}
+
+    - name: Upload AWS test results
+      uses: actions/upload-artifact@v3
+      with:
+        name: aws-integration-results
+        path: e2e-report/
+
+  report:
+    runs-on: ubuntu-latest
+    needs: [test, performance, aws-integration]
+    if: always()
+    
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+
+    - name: Merge test results
+      run: |
+        mkdir -p combined-report
+        find . -name "*.xml" -exec cp {} combined-report/ \;
+        
+    - name: Generate summary report
+      run: |
+        echo "# E2E Test Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "## Test Summary" >> $GITHUB_STEP_SUMMARY
+        echo "- Chromium: ${{ needs.test.outputs.chromium-status || 'Completed' }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Firefox: ${{ needs.test.outputs.firefox-status || 'Completed' }}" >> $GITHUB_STEP_SUMMARY
+        echo "- WebKit: ${{ needs.test.outputs.webkit-status || 'Completed' }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Performance: ${{ needs.performance.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- AWS Integration: ${{ needs.aws-integration.result }}" >> $GITHUB_STEP_SUMMARY
+
+    - name: Comment PR
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          const summary = fs.readFileSync('${{ github.step_summary }}', 'utf8');
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: summary
+          });

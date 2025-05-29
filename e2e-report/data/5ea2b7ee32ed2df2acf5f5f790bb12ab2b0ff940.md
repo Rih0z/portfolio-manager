@@ -1,0 +1,127 @@
+# Test info
+
+- Name: Error Scenarios >> API error handling
+- Location: /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/aws-integration.spec.js:216:7
+
+# Error details
+
+```
+Error: page.goto: Could not connect to the server.
+Call log:
+  - navigating to "http://localhost:3000/", waiting until "load"
+
+    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/aws-integration.spec.js:226:16
+```
+
+# Test source
+
+```ts
+  126 |     // ログイン実行
+  127 |     await loginButton.click();
+  128 |     
+  129 |     // ログイン後の確認（実際のUIに合わせて調整）
+  130 |     await expect(page.locator('text=ポートフォリオ')).toBeVisible({ timeout: 10000 });
+  131 |   });
+  132 |
+  133 |   test('Session persistence', async ({ page }) => {
+  134 |     // テスト用認証をセットアップ
+  135 |     await authHelper.setupTestAuth();
+  136 |     await page.goto('/');
+  137 |     
+  138 |     // セッション状態を確認
+  139 |     const sessionStatus = await awsHelper.testSessionManagement();
+  140 |     
+  141 |     if (sessionStatus.hasSession) {
+  142 |       expect(sessionStatus.sessionValid).toBe(true);
+  143 |     }
+  144 |     
+  145 |     // ページリロード後もセッションが保持されることを確認
+  146 |     await page.reload();
+  147 |     
+  148 |     const sessionAfterReload = await awsHelper.testSessionManagement();
+  149 |     expect(sessionAfterReload.hasSession).toBe(sessionStatus.hasSession);
+  150 |   });
+  151 | });
+  152 |
+  153 | test.describe('Frontend-Backend Integration', () => {
+  154 |   test('Portfolio data flow', async ({ page }) => {
+  155 |     await page.goto('/');
+  156 |     
+  157 |     // ポートフォリオデータの追加
+  158 |     await page.click('text=設定');
+  159 |     await page.click('text=保有銘柄を追加');
+  160 |     
+  161 |     // 銘柄を入力
+  162 |     await page.fill('input[placeholder="銘柄コード"]', 'AAPL');
+  163 |     await page.fill('input[placeholder="数量"]', '10');
+  164 |     await page.click('button:has-text("追加")');
+  165 |     
+  166 |     // データが表示されることを確認
+  167 |     await expect(page.locator('text=AAPL')).toBeVisible();
+  168 |     
+  169 |     // APIからデータが取得されることを確認
+  170 |     await page.waitForResponse(response => 
+  171 |       response.url().includes('/api/market-data') && 
+  172 |       response.status() === 200
+  173 |     );
+  174 |     
+  175 |     // 価格が表示されることを確認
+  176 |     await expect(page.locator('text=/\\$[0-9]+\\.[0-9]+/')).toBeVisible();
+  177 |   });
+  178 |
+  179 |   test('Real-time data update', async ({ page }) => {
+  180 |     await page.goto('/');
+  181 |     
+  182 |     // ダッシュボードに移動
+  183 |     await page.click('text=ダッシュボード');
+  184 |     
+  185 |     // 更新ボタンをクリック
+  186 |     const refreshButton = page.locator('button:has-text("更新")');
+  187 |     if (await refreshButton.isVisible()) {
+  188 |       await refreshButton.click();
+  189 |       
+  190 |       // API呼び出しを待つ
+  191 |       const response = await page.waitForResponse(response => 
+  192 |         response.url().includes('/api/market-data') && 
+  193 |         response.status() === 200
+  194 |       );
+  195 |       
+  196 |       const data = await response.json();
+  197 |       expect(data.success).toBe(true);
+  198 |     }
+  199 |   });
+  200 | });
+  201 |
+  202 | test.describe('Error Scenarios', () => {
+  203 |   test('Network error handling', async ({ page, context }) => {
+  204 |     // ネットワークをオフラインにする
+  205 |     await context.setOffline(true);
+  206 |     
+  207 |     await page.goto('/', { waitUntil: 'domcontentloaded' });
+  208 |     
+  209 |     // エラーメッセージが表示されることを確認
+  210 |     await expect(page.locator('text=/ネットワーク|接続|オフライン/i')).toBeVisible({ timeout: 10000 });
+  211 |     
+  212 |     // ネットワークを復元
+  213 |     await context.setOffline(false);
+  214 |   });
+  215 |
+  216 |   test('API error handling', async ({ page }) => {
+  217 |     // APIエラーをシミュレート
+  218 |     await page.route('**/api/market-data', route => {
+  219 |       route.fulfill({
+  220 |         status: 500,
+  221 |         contentType: 'application/json',
+  222 |         body: JSON.stringify({ error: 'Internal Server Error' })
+  223 |       });
+  224 |     });
+  225 |     
+> 226 |     await page.goto('/');
+      |                ^ Error: page.goto: Could not connect to the server.
+  227 |     
+  228 |     // エラーハンドリングが機能することを確認
+  229 |     // アプリケーションがクラッシュしないことを確認
+  230 |     await expect(page).toHaveTitle(/Portfolio/i);
+  231 |   });
+  232 | });
+```

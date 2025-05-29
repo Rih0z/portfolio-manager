@@ -1,10 +1,10 @@
-const { createProxyMiddleware } = require('http-proxy-middleware');
+const proxy = require('http-proxy-middleware');
 
 module.exports = function(app) {
   // APIプロキシ設定
   app.use(
     '/api',
-    createProxyMiddleware({
+    proxy({
       target: process.env.REACT_APP_API_BASE_URL || 'http://localhost:4000', // デフォルトはローカル開発用
       changeOrigin: true,
       pathRewrite: {

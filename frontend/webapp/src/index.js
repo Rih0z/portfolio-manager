@@ -23,6 +23,14 @@ import App from './App';
 import reportWebVitals from './reportWebVitals';
 import './utils/resetCircuitBreaker'; // サーキットブレーカーリセット機能
 import './utils/fixExchangeRate'; // 為替レート修復機能
+import { replaceConsoleLog } from './utils/logger'; // ログフィルタリング
+import { setupGlobalErrorHandlers } from './utils/errorHandler'; // エラーハンドリング
+
+// 本番環境でログをフィルタリング
+replaceConsoleLog();
+
+// グローバルエラーハンドラーの設定
+setupGlobalErrorHandlers();
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(

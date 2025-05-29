@@ -293,6 +293,30 @@ functions:
               - Cookie
             allowCredentials: true
   
+  generateCSRFToken:
+    handler: src/function/auth/generateCSRFToken.handler
+    events:
+      - http:
+          path: auth/csrf-token
+          method: post
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+              - X-Session-Id
+            allowCredentials: true
+  
   logout:
     handler: src/function/auth/logout.handler
     events:
@@ -478,13 +502,14 @@ functions:
             allowCredentials: true
 
   # デバッグエンドポイント（開発環境のみ）
-  debugGoogleConfig:
-    handler: src/function/debug/googleConfig.handler
-    events:
-      - http:
-          path: debug/google-config
-          method: get
-          cors: true
+  # 本番環境ではコメントアウトすること
+  # debugGoogleConfig:
+  #   handler: src/function/debug/googleConfig.handler
+  #   events:
+  #     - http:
+  #         path: debug/google-config
+  #         method: get
+  #         cors: true
 
 resources:
   Resources:

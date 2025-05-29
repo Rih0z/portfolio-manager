@@ -4,7 +4,7 @@
   "description": "ポートフォリオマネージャーWebアプリケーション用の市場データ取得APIサービス",
   "main": "index.js",
   "scripts": {
-    "dev": "serverless offline start",
+    "dev": "npx serverless@3.32.2 offline start",
     "deploy": "npx serverless@3.32.2 deploy --stage dev",
     "deploy:prod": "npx serverless@3.32.2 deploy --stage prod",
     "logs": "serverless logs -f marketData -t",

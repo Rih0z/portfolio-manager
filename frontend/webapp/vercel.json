@@ -1,0 +1,23 @@
+{
+  "name": "portfolio-manager",
+  "version": 2,
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "build"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ],
+  "env": {
+    "REACT_APP_API_BASE_URL": "https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod",
+    "REACT_APP_DEFAULT_EXCHANGE_RATE": "150.0"
+  }
+}

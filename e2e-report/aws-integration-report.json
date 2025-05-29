@@ -1,0 +1,798 @@
+{
+  "summary": {
+    "total": 39,
+    "passed": 12,
+    "failed": 27,
+    "skipped": 0,
+    "duration": 5041
+  },
+  "tests": [
+    {
+      "title": "Market data API - US stock",
+      "fullTitle": " > chromium > aws-integration.spec.js > AWS Integration Tests > Market data API - US stock",
+      "status": "passed",
+      "duration": 331,
+      "error": null,
+      "retry": 0,
+      "attachments": []
+    },
+    {
+      "title": "Exchange rate API",
+      "fullTitle": " > chromium > aws-integration.spec.js > AWS Integration Tests > Exchange rate API",
+      "status": "passed",
+      "duration": 330,
+      "error": null,
+      "retry": 0,
+      "attachments": []
+    },
+    {
+      "title": "API health check",
+      "fullTitle": " > chromium > aws-integration.spec.js > AWS Integration Tests > API health check",
+      "status": "passed",
+      "duration": 330,
+      "error": null,
+      "retry": 0,
+      "attachments": []
+    },
+    {
+      "title": "Market data API - Multiple symbols",
+      "fullTitle": " > chromium > aws-integration.spec.js > AWS Integration Tests > Market data API - Multiple symbols",
+      "status": "passed",
+      "duration": 335,
+      "error": null,
+      "retry": 0,
+      "attachments": []
+    },
+    {
+      "title": "Error handling - Invalid symbol",
+      "fullTitle": " > chromium > aws-integration.spec.js > AWS Integration Tests > Error handling - Invalid symbol",
+      "status": "failed",
+      "duration": 357,
+      "error": {
+        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveProperty\u001b[2m(\u001b[22m\u001b[32mpath\u001b[39m\u001b[2m)\u001b[22m\n\nExpected path: \u001b[32m\"error\"\u001b[39m\nReceived path: \u001b[31m[]\u001b[39m\n\nReceived value: \u001b[31m{\"currency\": \"USD\", \"price\": 211.241981760962, \"source\": \"mock\", \"symbol\": \"INVALID_SYMBOL_12345\", \"timestamp\": \"2025-05-29T06:19:49.424Z\"}\u001b[39m",
+        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveProperty\u001b[2m(\u001b[22m\u001b[32mpath\u001b[39m\u001b[2m)\u001b[22m\n\nExpected path: \u001b[32m\"error\"\u001b[39m\nReceived path: \u001b[31m[]\u001b[39m\n\nReceived value: \u001b[31m{\"currency\": \"USD\", \"price\": 211.241981760962, \"source\": \"mock\", \"symbol\": \"INVALID_SYMBOL_12345\", \"timestamp\": \"2025-05-29T06:19:49.424Z\"}\u001b[39m\n    at AWSIntegrationHelper.testErrorHandling (/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/helpers/aws-integration.js:173:25)\n    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/aws-integration.spec.js:67:27"
+      },
+      "retry": 0,
+      "attachments": [
+        {
+          "name": "screenshot",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-AWS-Integr-16195-r-handling---Invalid-symbol-chromium/test-failed-1.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "video",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-AWS-Integr-16195-r-handling---Invalid-symbol-chromium/video.webm",
+          "contentType": "video/webm"
+        },
+        {
+          "name": "_error-context-0",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-AWS-Integr-16195-r-handling---Invalid-symbol-chromium/error-context.md",
+          "contentType": "text/markdown"
+        }
+      ]
+    },
+    {
+      "title": "CORS configuration",
+      "fullTitle": " > chromium > aws-integration.spec.js > AWS Integration Tests > CORS configuration",
+      "status": "passed",
+      "duration": 104,
+      "error": null,
+      "retry": 0,
+      "attachments": []
+    },
+    {
+      "title": "Rate limiting",
+      "fullTitle": " > chromium > aws-integration.spec.js > AWS Integration Tests > Rate limiting",
+      "status": "passed",
+      "duration": 119,
+      "error": null,
+      "retry": 0,
+      "attachments": []
+    },
+    {
+      "title": "Session persistence",
+      "fullTitle": " > chromium > aws-integration.spec.js > Authentication Flow > Session persistence",
+      "status": "failed",
+      "duration": 130,
+      "error": {
+        "message": "Error: browserContext.addCookies: Cookie should have a url or a domain/path pair",
+        "stack": "Error: browserContext.addCookies: Cookie should have a url or a domain/path pair\n    at AuthHelper.setupTestAuth (/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/helpers/auth.js:50:31)\n    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/aws-integration.spec.js:135:22"
+      },
+      "retry": 0,
+      "attachments": [
+        {
+          "name": "screenshot",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-Authentication-Flow-Session-persistence-chromium/test-failed-1.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "video",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-Authentication-Flow-Session-persistence-chromium/video.webm",
+          "contentType": "video/webm"
+        }
+      ]
+    },
+    {
+      "title": "Login flow with mock Google auth",
+      "fullTitle": " > chromium > aws-integration.spec.js > Authentication Flow > Login flow with mock Google auth",
+      "status": "failed",
+      "duration": 176,
+      "error": {
+        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3000/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/\", waiting until \"load\"\u001b[22m\n",
+        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3000/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/\", waiting until \"load\"\u001b[22m\n\n    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/aws-integration.spec.js:117:16"
+      },
+      "retry": 0,
+      "attachments": [
+        {
+          "name": "screenshot",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-Authentica-0e6cf--flow-with-mock-Google-auth-chromium/test-failed-1.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "video",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-Authentica-0e6cf--flow-with-mock-Google-auth-chromium/video.webm",
+          "contentType": "video/webm"
+        },
+        {
+          "name": "_error-context-0",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-Authentica-0e6cf--flow-with-mock-Google-auth-chromium/error-context.md",
+          "contentType": "text/markdown"
+        }
+      ]
+    },
+    {
+      "title": "Real-time data update",
+      "fullTitle": " > chromium > aws-integration.spec.js > Frontend-Backend Integration > Real-time data update",
+      "status": "failed",
+      "duration": 154,
+      "error": {
+        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3000/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/\", waiting until \"load\"\u001b[22m\n",
+        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3000/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/\", waiting until \"load\"\u001b[22m\n\n    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/aws-integration.spec.js:180:16"
+      },
+      "retry": 0,
+      "attachments": [
+        {
+          "name": "screenshot",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-Frontend-B-1caa9-ation-Real-time-data-update-chromium/test-failed-1.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "video",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-Frontend-B-1caa9-ation-Real-time-data-update-chromium/video.webm",
+          "contentType": "video/webm"
+        },
+        {
+          "name": "_error-context-0",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-Frontend-B-1caa9-ation-Real-time-data-update-chromium/error-context.md",
+          "contentType": "text/markdown"
+        }
+      ]
+    },
+    {
+      "title": "Network error handling",
+      "fullTitle": " > chromium > aws-integration.spec.js > Error Scenarios > Network error handling",
+      "status": "failed",
+      "duration": 150,
+      "error": {
+        "message": "Error: page.goto: net::ERR_INTERNET_DISCONNECTED at http://localhost:3000/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/\", waiting until \"domcontentloaded\"\u001b[22m\n",
+        "stack": "Error: page.goto: net::ERR_INTERNET_DISCONNECTED at http://localhost:3000/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/\", waiting until \"domcontentloaded\"\u001b[22m\n\n    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/aws-integration.spec.js:207:16"
+      },
+      "retry": 0,
+      "attachments": [
+        {
+          "name": "screenshot",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-Error-Scenarios-Network-error-handling-chromium/test-failed-1.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "video",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-Error-Scenarios-Network-error-handling-chromium/video.webm",
+          "contentType": "video/webm"
+        },
+        {
+          "name": "_error-context-0",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-Error-Scenarios-Network-error-handling-chromium/error-context.md",
+          "contentType": "text/markdown"
+        }
+      ]
+    },
+    {
+      "title": "Portfolio data flow",
+      "fullTitle": " > chromium > aws-integration.spec.js > Frontend-Backend Integration > Portfolio data flow",
+      "status": "failed",
+      "duration": 176,
+      "error": {
+        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3000/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/\", waiting until \"load\"\u001b[22m\n",
+        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3000/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/\", waiting until \"load\"\u001b[22m\n\n    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/aws-integration.spec.js:155:16"
+      },
+      "retry": 0,
+      "attachments": [
+        {
+          "name": "screenshot",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-Frontend-B-04dee-gration-Portfolio-data-flow-chromium/test-failed-1.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "video",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-Frontend-B-04dee-gration-Portfolio-data-flow-chromium/video.webm",
+          "contentType": "video/webm"
+        },
+        {
+          "name": "_error-context-0",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-Frontend-B-04dee-gration-Portfolio-data-flow-chromium/error-context.md",
+          "contentType": "text/markdown"
+        }
+      ]
+    },
+    {
+      "title": "API error handling",
+      "fullTitle": " > chromium > aws-integration.spec.js > Error Scenarios > API error handling",
+      "status": "failed",
+      "duration": 184,
+      "error": {
+        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3000/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/\", waiting until \"load\"\u001b[22m\n",
+        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3000/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/\", waiting until \"load\"\u001b[22m\n\n    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/aws-integration.spec.js:226:16"
+      },
+      "retry": 0,
+      "attachments": [
+        {
+          "name": "screenshot",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-Error-Scenarios-API-error-handling-chromium/test-failed-1.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "video",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-Error-Scenarios-API-error-handling-chromium/video.webm",
+          "contentType": "video/webm"
+        },
+        {
+          "name": "_error-context-0",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-Error-Scenarios-API-error-handling-chromium/error-context.md",
+          "contentType": "text/markdown"
+        }
+      ]
+    },
+    {
+      "title": "Market data API - US stock",
+      "fullTitle": " > mobile > aws-integration.spec.js > AWS Integration Tests > Market data API - US stock",
+      "status": "passed",
+      "duration": 384,
+      "error": null,
+      "retry": 0,
+      "attachments": []
+    },
+    {
+      "title": "API health check",
+      "fullTitle": " > mobile > aws-integration.spec.js > AWS Integration Tests > API health check",
+      "status": "passed",
+      "duration": 408,
+      "error": null,
+      "retry": 0,
+      "attachments": []
+    },
+    {
+      "title": "Market data API - Multiple symbols",
+      "fullTitle": " > mobile > aws-integration.spec.js > AWS Integration Tests > Market data API - Multiple symbols",
+      "status": "passed",
+      "duration": 336,
+      "error": null,
+      "retry": 0,
+      "attachments": []
+    },
+    {
+      "title": "CORS configuration",
+      "fullTitle": " > mobile > aws-integration.spec.js > AWS Integration Tests > CORS configuration",
+      "status": "passed",
+      "duration": 157,
+      "error": null,
+      "retry": 0,
+      "attachments": []
+    },
+    {
+      "title": "Rate limiting",
+      "fullTitle": " > mobile > aws-integration.spec.js > AWS Integration Tests > Rate limiting",
+      "status": "passed",
+      "duration": 179,
+      "error": null,
+      "retry": 0,
+      "attachments": []
+    },
+    {
+      "title": "Login flow with mock Google auth",
+      "fullTitle": " > mobile > aws-integration.spec.js > Authentication Flow > Login flow with mock Google auth",
+      "status": "failed",
+      "duration": 200,
+      "error": {
+        "message": "Error: page.goto: Could not connect to the server.\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/\", waiting until \"load\"\u001b[22m\n",
+        "stack": "Error: page.goto: Could not connect to the server.\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/\", waiting until \"load\"\u001b[22m\n\n    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/aws-integration.spec.js:117:16"
+      },
+      "retry": 0,
+      "attachments": [
+        {
+          "name": "screenshot",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-Authentica-0e6cf--flow-with-mock-Google-auth-mobile/test-failed-1.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "video",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-Authentica-0e6cf--flow-with-mock-Google-auth-mobile/video.webm",
+          "contentType": "video/webm"
+        },
+        {
+          "name": "_error-context-0",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-Authentica-0e6cf--flow-with-mock-Google-auth-mobile/error-context.md",
+          "contentType": "text/markdown"
+        }
+      ]
+    },
+    {
+      "title": "Session persistence",
+      "fullTitle": " > mobile > aws-integration.spec.js > Authentication Flow > Session persistence",
+      "status": "failed",
+      "duration": 156,
+      "error": {
+        "message": "Error: browserContext.addCookies: Cookie should have a url or a domain/path pair",
+        "stack": "Error: browserContext.addCookies: Cookie should have a url or a domain/path pair\n    at AuthHelper.setupTestAuth (/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/helpers/auth.js:50:31)\n    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/aws-integration.spec.js:135:22"
+      },
+      "retry": 0,
+      "attachments": [
+        {
+          "name": "screenshot",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-Authentication-Flow-Session-persistence-mobile/test-failed-1.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "video",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-Authentication-Flow-Session-persistence-mobile/video.webm",
+          "contentType": "video/webm"
+        }
+      ]
+    },
+    {
+      "title": "Portfolio data flow",
+      "fullTitle": " > mobile > aws-integration.spec.js > Frontend-Backend Integration > Portfolio data flow",
+      "status": "failed",
+      "duration": 157,
+      "error": {
+        "message": "Error: page.goto: Could not connect to the server.\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/\", waiting until \"load\"\u001b[22m\n",
+        "stack": "Error: page.goto: Could not connect to the server.\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/\", waiting until \"load\"\u001b[22m\n\n    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/aws-integration.spec.js:155:16"
+      },
+      "retry": 0,
+      "attachments": [
+        {
+          "name": "screenshot",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-Frontend-B-04dee-gration-Portfolio-data-flow-mobile/test-failed-1.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "video",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-Frontend-B-04dee-gration-Portfolio-data-flow-mobile/video.webm",
+          "contentType": "video/webm"
+        },
+        {
+          "name": "_error-context-0",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-Frontend-B-04dee-gration-Portfolio-data-flow-mobile/error-context.md",
+          "contentType": "text/markdown"
+        }
+      ]
+    },
+    {
+      "title": "Exchange rate API",
+      "fullTitle": " > mobile > aws-integration.spec.js > AWS Integration Tests > Exchange rate API",
+      "status": "passed",
+      "duration": 272,
+      "error": null,
+      "retry": 0,
+      "attachments": []
+    },
+    {
+      "title": "Error handling - Invalid symbol",
+      "fullTitle": " > mobile > aws-integration.spec.js > AWS Integration Tests > Error handling - Invalid symbol",
+      "status": "failed",
+      "duration": 253,
+      "error": {
+        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveProperty\u001b[2m(\u001b[22m\u001b[32mpath\u001b[39m\u001b[2m)\u001b[22m\n\nExpected path: \u001b[32m\"error\"\u001b[39m\nReceived path: \u001b[31m[]\u001b[39m\n\nReceived value: \u001b[31m{\"currency\": \"USD\", \"price\": 103.21267932433233, \"source\": \"mock\", \"symbol\": \"INVALID_SYMBOL_12345\", \"timestamp\": \"2025-05-29T06:19:51.452Z\"}\u001b[39m",
+        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveProperty\u001b[2m(\u001b[22m\u001b[32mpath\u001b[39m\u001b[2m)\u001b[22m\n\nExpected path: \u001b[32m\"error\"\u001b[39m\nReceived path: \u001b[31m[]\u001b[39m\n\nReceived value: \u001b[31m{\"currency\": \"USD\", \"price\": 103.21267932433233, \"source\": \"mock\", \"symbol\": \"INVALID_SYMBOL_12345\", \"timestamp\": \"2025-05-29T06:19:51.452Z\"}\u001b[39m\n    at AWSIntegrationHelper.testErrorHandling (/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/helpers/aws-integration.js:173:25)\n    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/aws-integration.spec.js:67:27"
+      },
+      "retry": 0,
+      "attachments": [
+        {
+          "name": "screenshot",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-AWS-Integr-16195-r-handling---Invalid-symbol-mobile/test-failed-1.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "video",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-AWS-Integr-16195-r-handling---Invalid-symbol-mobile/video.webm",
+          "contentType": "video/webm"
+        },
+        {
+          "name": "_error-context-0",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-AWS-Integr-16195-r-handling---Invalid-symbol-mobile/error-context.md",
+          "contentType": "text/markdown"
+        }
+      ]
+    },
+    {
+      "title": "Real-time data update",
+      "fullTitle": " > mobile > aws-integration.spec.js > Frontend-Backend Integration > Real-time data update",
+      "status": "failed",
+      "duration": 331,
+      "error": {
+        "message": "Error: page.goto: Could not connect to the server.\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/\", waiting until \"load\"\u001b[22m\n",
+        "stack": "Error: page.goto: Could not connect to the server.\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/\", waiting until \"load\"\u001b[22m\n\n    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/aws-integration.spec.js:180:16"
+      },
+      "retry": 0,
+      "attachments": [
+        {
+          "name": "screenshot",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-Frontend-B-1caa9-ation-Real-time-data-update-mobile/test-failed-1.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "video",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-Frontend-B-1caa9-ation-Real-time-data-update-mobile/video.webm",
+          "contentType": "video/webm"
+        },
+        {
+          "name": "_error-context-0",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-Frontend-B-1caa9-ation-Real-time-data-update-mobile/error-context.md",
+          "contentType": "text/markdown"
+        }
+      ]
+    },
+    {
+      "title": "Network error handling",
+      "fullTitle": " > mobile > aws-integration.spec.js > Error Scenarios > Network error handling",
+      "status": "failed",
+      "duration": 300,
+      "error": {
+        "message": "Error: page.goto: WebKit encountered an internal error\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/\", waiting until \"domcontentloaded\"\u001b[22m\n",
+        "stack": "Error: page.goto: WebKit encountered an internal error\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/\", waiting until \"domcontentloaded\"\u001b[22m\n\n    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/aws-integration.spec.js:207:16"
+      },
+      "retry": 0,
+      "attachments": [
+        {
+          "name": "screenshot",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-Error-Scenarios-Network-error-handling-mobile/test-failed-1.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "video",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-Error-Scenarios-Network-error-handling-mobile/video.webm",
+          "contentType": "video/webm"
+        },
+        {
+          "name": "_error-context-0",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-Error-Scenarios-Network-error-handling-mobile/error-context.md",
+          "contentType": "text/markdown"
+        }
+      ]
+    },
+    {
+      "title": "API error handling",
+      "fullTitle": " > mobile > aws-integration.spec.js > Error Scenarios > API error handling",
+      "status": "failed",
+      "duration": 322,
+      "error": {
+        "message": "Error: page.goto: Could not connect to the server.\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/\", waiting until \"load\"\u001b[22m\n",
+        "stack": "Error: page.goto: Could not connect to the server.\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/\", waiting until \"load\"\u001b[22m\n\n    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/aws-integration.spec.js:226:16"
+      },
+      "retry": 0,
+      "attachments": [
+        {
+          "name": "screenshot",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-Error-Scenarios-API-error-handling-mobile/test-failed-1.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "video",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-Error-Scenarios-API-error-handling-mobile/video.webm",
+          "contentType": "video/webm"
+        },
+        {
+          "name": "_error-context-0",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-Error-Scenarios-API-error-handling-mobile/error-context.md",
+          "contentType": "text/markdown"
+        }
+      ]
+    },
+    {
+      "title": "API health check",
+      "fullTitle": " > authenticated > aws-integration.spec.js > AWS Integration Tests > API health check",
+      "status": "failed",
+      "duration": 9,
+      "error": {
+        "message": "Error: Error reading storage state from e2e/.auth/user.json:\nENOENT: no such file or directory, open 'e2e/.auth/user.json'",
+        "stack": "Error: Error reading storage state from e2e/.auth/user.json:\nENOENT: no such file or directory, open 'e2e/.auth/user.json'"
+      },
+      "retry": 0,
+      "attachments": [
+        {
+          "name": "_error-context-0",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-AWS-Integration-Tests-API-health-check-authenticated/error-context.md",
+          "contentType": "text/markdown"
+        }
+      ]
+    },
+    {
+      "title": "Market data API - US stock",
+      "fullTitle": " > authenticated > aws-integration.spec.js > AWS Integration Tests > Market data API - US stock",
+      "status": "failed",
+      "duration": 10,
+      "error": {
+        "message": "Error: Error reading storage state from e2e/.auth/user.json:\nENOENT: no such file or directory, open 'e2e/.auth/user.json'",
+        "stack": "Error: Error reading storage state from e2e/.auth/user.json:\nENOENT: no such file or directory, open 'e2e/.auth/user.json'"
+      },
+      "retry": 0,
+      "attachments": [
+        {
+          "name": "_error-context-0",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-AWS-Integr-0a7fc--Market-data-API---US-stock-authenticated/error-context.md",
+          "contentType": "text/markdown"
+        }
+      ]
+    },
+    {
+      "title": "Market data API - Multiple symbols",
+      "fullTitle": " > authenticated > aws-integration.spec.js > AWS Integration Tests > Market data API - Multiple symbols",
+      "status": "failed",
+      "duration": 5,
+      "error": {
+        "message": "Error: Error reading storage state from e2e/.auth/user.json:\nENOENT: no such file or directory, open 'e2e/.auth/user.json'",
+        "stack": "Error: Error reading storage state from e2e/.auth/user.json:\nENOENT: no such file or directory, open 'e2e/.auth/user.json'"
+      },
+      "retry": 0,
+      "attachments": [
+        {
+          "name": "_error-context-0",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-AWS-Integr-ec96d-data-API---Multiple-symbols-authenticated/error-context.md",
+          "contentType": "text/markdown"
+        }
+      ]
+    },
+    {
+      "title": "Exchange rate API",
+      "fullTitle": " > authenticated > aws-integration.spec.js > AWS Integration Tests > Exchange rate API",
+      "status": "failed",
+      "duration": 5,
+      "error": {
+        "message": "Error: Error reading storage state from e2e/.auth/user.json:\nENOENT: no such file or directory, open 'e2e/.auth/user.json'",
+        "stack": "Error: Error reading storage state from e2e/.auth/user.json:\nENOENT: no such file or directory, open 'e2e/.auth/user.json'"
+      },
+      "retry": 0,
+      "attachments": [
+        {
+          "name": "_error-context-0",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-AWS-Integration-Tests-Exchange-rate-API-authenticated/error-context.md",
+          "contentType": "text/markdown"
+        }
+      ]
+    },
+    {
+      "title": "CORS configuration",
+      "fullTitle": " > authenticated > aws-integration.spec.js > AWS Integration Tests > CORS configuration",
+      "status": "failed",
+      "duration": 4,
+      "error": {
+        "message": "Error: Error reading storage state from e2e/.auth/user.json:\nENOENT: no such file or directory, open 'e2e/.auth/user.json'",
+        "stack": "Error: Error reading storage state from e2e/.auth/user.json:\nENOENT: no such file or directory, open 'e2e/.auth/user.json'"
+      },
+      "retry": 0,
+      "attachments": [
+        {
+          "name": "_error-context-0",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-AWS-Integration-Tests-CORS-configuration-authenticated/error-context.md",
+          "contentType": "text/markdown"
+        }
+      ]
+    },
+    {
+      "title": "Error handling - Invalid symbol",
+      "fullTitle": " > authenticated > aws-integration.spec.js > AWS Integration Tests > Error handling - Invalid symbol",
+      "status": "failed",
+      "duration": 5,
+      "error": {
+        "message": "Error: Error reading storage state from e2e/.auth/user.json:\nENOENT: no such file or directory, open 'e2e/.auth/user.json'",
+        "stack": "Error: Error reading storage state from e2e/.auth/user.json:\nENOENT: no such file or directory, open 'e2e/.auth/user.json'"
+      },
+      "retry": 0,
+      "attachments": [
+        {
+          "name": "_error-context-0",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-AWS-Integr-16195-r-handling---Invalid-symbol-authenticated/error-context.md",
+          "contentType": "text/markdown"
+        }
+      ]
+    },
+    {
+      "title": "Rate limiting",
+      "fullTitle": " > authenticated > aws-integration.spec.js > AWS Integration Tests > Rate limiting",
+      "status": "failed",
+      "duration": 4,
+      "error": {
+        "message": "Error: Error reading storage state from e2e/.auth/user.json:\nENOENT: no such file or directory, open 'e2e/.auth/user.json'",
+        "stack": "Error: Error reading storage state from e2e/.auth/user.json:\nENOENT: no such file or directory, open 'e2e/.auth/user.json'"
+      },
+      "retry": 0,
+      "attachments": [
+        {
+          "name": "_error-context-0",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-AWS-Integration-Tests-Rate-limiting-authenticated/error-context.md",
+          "contentType": "text/markdown"
+        }
+      ]
+    },
+    {
+      "title": "Real-time data update",
+      "fullTitle": " > authenticated > aws-integration.spec.js > Frontend-Backend Integration > Real-time data update",
+      "status": "failed",
+      "duration": 5,
+      "error": {
+        "message": "Error: Error reading storage state from e2e/.auth/user.json:\nENOENT: no such file or directory, open 'e2e/.auth/user.json'",
+        "stack": "Error: Error reading storage state from e2e/.auth/user.json:\nENOENT: no such file or directory, open 'e2e/.auth/user.json'"
+      },
+      "retry": 0,
+      "attachments": [
+        {
+          "name": "_error-context-0",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-Frontend-B-1caa9-ation-Real-time-data-update-authenticated/error-context.md",
+          "contentType": "text/markdown"
+        }
+      ]
+    },
+    {
+      "title": "Portfolio data flow",
+      "fullTitle": " > authenticated > aws-integration.spec.js > Frontend-Backend Integration > Portfolio data flow",
+      "status": "failed",
+      "duration": 4,
+      "error": {
+        "message": "Error: Error reading storage state from e2e/.auth/user.json:\nENOENT: no such file or directory, open 'e2e/.auth/user.json'",
+        "stack": "Error: Error reading storage state from e2e/.auth/user.json:\nENOENT: no such file or directory, open 'e2e/.auth/user.json'"
+      },
+      "retry": 0,
+      "attachments": [
+        {
+          "name": "_error-context-0",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-Frontend-B-04dee-gration-Portfolio-data-flow-authenticated/error-context.md",
+          "contentType": "text/markdown"
+        }
+      ]
+    },
+    {
+      "title": "Login flow with mock Google auth",
+      "fullTitle": " > authenticated > aws-integration.spec.js > Authentication Flow > Login flow with mock Google auth",
+      "status": "failed",
+      "duration": 7,
+      "error": {
+        "message": "Error: Error reading storage state from e2e/.auth/user.json:\nENOENT: no such file or directory, open 'e2e/.auth/user.json'",
+        "stack": "Error: Error reading storage state from e2e/.auth/user.json:\nENOENT: no such file or directory, open 'e2e/.auth/user.json'"
+      },
+      "retry": 0,
+      "attachments": [
+        {
+          "name": "_error-context-0",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-Authentica-0e6cf--flow-with-mock-Google-auth-authenticated/error-context.md",
+          "contentType": "text/markdown"
+        }
+      ]
+    },
+    {
+      "title": "Session persistence",
+      "fullTitle": " > authenticated > aws-integration.spec.js > Authentication Flow > Session persistence",
+      "status": "failed",
+      "duration": 6,
+      "error": {
+        "message": "Error: Error reading storage state from e2e/.auth/user.json:\nENOENT: no such file or directory, open 'e2e/.auth/user.json'",
+        "stack": "Error: Error reading storage state from e2e/.auth/user.json:\nENOENT: no such file or directory, open 'e2e/.auth/user.json'"
+      },
+      "retry": 0,
+      "attachments": [
+        {
+          "name": "_error-context-0",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-Authentication-Flow-Session-persistence-authenticated/error-context.md",
+          "contentType": "text/markdown"
+        }
+      ]
+    },
+    {
+      "title": "Network error handling",
+      "fullTitle": " > authenticated > aws-integration.spec.js > Error Scenarios > Network error handling",
+      "status": "failed",
+      "duration": 3,
+      "error": {
+        "message": "Error: Error reading storage state from e2e/.auth/user.json:\nENOENT: no such file or directory, open 'e2e/.auth/user.json'",
+        "stack": "Error: Error reading storage state from e2e/.auth/user.json:\nENOENT: no such file or directory, open 'e2e/.auth/user.json'"
+      },
+      "retry": 0,
+      "attachments": [
+        {
+          "name": "_error-context-0",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-Error-Scenarios-Network-error-handling-authenticated/error-context.md",
+          "contentType": "text/markdown"
+        }
+      ]
+    },
+    {
+      "title": "API error handling",
+      "fullTitle": " > authenticated > aws-integration.spec.js > Error Scenarios > API error handling",
+      "status": "failed",
+      "duration": 2,
+      "error": {
+        "message": "Error: Error reading storage state from e2e/.auth/user.json:\nENOENT: no such file or directory, open 'e2e/.auth/user.json'",
+        "stack": "Error: Error reading storage state from e2e/.auth/user.json:\nENOENT: no such file or directory, open 'e2e/.auth/user.json'"
+      },
+      "retry": 0,
+      "attachments": [
+        {
+          "name": "_error-context-0",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/aws-integration-Error-Scenarios-API-error-handling-authenticated/error-context.md",
+          "contentType": "text/markdown"
+        }
+      ]
+    }
+  ],
+  "awsIntegration": {
+    "apiCalls": [],
+    "performance": [],
+    "errors": [
+      {
+        "test": "API error handling",
+        "error": {
+          "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3000/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/\", waiting until \"load\"\u001b[22m\n",
+          "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3000/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/\", waiting until \"load\"\u001b[22m\n\n    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/aws-integration.spec.js:226:16"
+        },
+        "timestamp": "2025-05-29T06:19:50.365Z"
+      },
+      {
+        "test": "API error handling",
+        "error": {
+          "message": "Error: page.goto: Could not connect to the server.\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/\", waiting until \"load\"\u001b[22m\n",
+          "stack": "Error: page.goto: Could not connect to the server.\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/\", waiting until \"load\"\u001b[22m\n\n    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/aws-integration.spec.js:226:16"
+        },
+        "timestamp": "2025-05-29T06:19:52.148Z"
+      },
+      {
+        "test": "API health check",
+        "error": {
+          "message": "Error: Error reading storage state from e2e/.auth/user.json:\nENOENT: no such file or directory, open 'e2e/.auth/user.json'",
+          "stack": "Error: Error reading storage state from e2e/.auth/user.json:\nENOENT: no such file or directory, open 'e2e/.auth/user.json'"
+        },
+        "timestamp": "2025-05-29T06:19:52.186Z"
+      },
+      {
+        "test": "Market data API - US stock",
+        "error": {
+          "message": "Error: Error reading storage state from e2e/.auth/user.json:\nENOENT: no such file or directory, open 'e2e/.auth/user.json'",
+          "stack": "Error: Error reading storage state from e2e/.auth/user.json:\nENOENT: no such file or directory, open 'e2e/.auth/user.json'"
+        },
+        "timestamp": "2025-05-29T06:19:52.296Z"
+      },
+      {
+        "test": "Market data API - Multiple symbols",
+        "error": {
+          "message": "Error: Error reading storage state from e2e/.auth/user.json:\nENOENT: no such file or directory, open 'e2e/.auth/user.json'",
+          "stack": "Error: Error reading storage state from e2e/.auth/user.json:\nENOENT: no such file or directory, open 'e2e/.auth/user.json'"
+        },
+        "timestamp": "2025-05-29T06:19:52.695Z"
+      },
+      {
+        "test": "Exchange rate API",
+        "error": {
+          "message": "Error: Error reading storage state from e2e/.auth/user.json:\nENOENT: no such file or directory, open 'e2e/.auth/user.json'",
+          "stack": "Error: Error reading storage state from e2e/.auth/user.json:\nENOENT: no such file or directory, open 'e2e/.auth/user.json'"
+        },
+        "timestamp": "2025-05-29T06:19:52.717Z"
+      },
+      {
+        "test": "API error handling",
+        "error": {
+          "message": "Error: Error reading storage state from e2e/.auth/user.json:\nENOENT: no such file or directory, open 'e2e/.auth/user.json'",
+          "stack": "Error: Error reading storage state from e2e/.auth/user.json:\nENOENT: no such file or directory, open 'e2e/.auth/user.json'"
+        },
+        "timestamp": "2025-05-29T06:19:53.645Z"
+      }
+    ]
+  },
+  "timestamp": "2025-05-29T06:19:48.613Z"
+}

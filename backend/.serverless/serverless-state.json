@@ -18,7 +18,7 @@
         "DAILY_REQUEST_LIMIT": "10000",
         "MONTHLY_REQUEST_LIMIT": "200000",
         "DISABLE_ON_LIMIT": "true",
-        "ADMIN_IP_WHITELIST": "98.234.86.34",
+        "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
         "IP_BLACKLIST": "",
         "BLOCKED_COUNTRIES": "",
         "RATE_LIMIT_TABLE": "pfwise-api-prod-rate-limits",
@@ -230,6 +230,12 @@
               "LogGroupName": "/aws/lambda/pfwise-api-prod-getSession"
             }
           },
+          "GenerateCSRFTokenLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/pfwise-api-prod-generateCSRFToken"
+            }
+          },
           "LogoutLogGroup": {
             "Type": "AWS::Logs::LogGroup",
             "Properties": {
@@ -270,12 +276,6 @@
             "Type": "AWS::Logs::LogGroup",
             "Properties": {
               "LogGroupName": "/aws/lambda/pfwise-api-prod-getClientConfig"
-            }
-          },
-          "DebugGoogleConfigLogGroup": {
-            "Type": "AWS::Logs::LogGroup",
-            "Properties": {
-              "LogGroupName": "/aws/lambda/pfwise-api-prod-debugGoogleConfig"
             }
           },
           "IamRoleLambdaExecution": {
@@ -372,7 +372,7 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pfwise-api/prod/1748484562603-2025-05-29T02:09:22.603Z/pfwise-api.zip"
+                "S3Key": "serverless/pfwise-api/prod/1748501020129-2025-05-29T06:43:40.129Z/pfwise-api.zip"
               },
               "Handler": "src/function/marketData.handler",
               "Runtime": "nodejs18.x",
@@ -386,7 +386,7 @@
                   "DAILY_REQUEST_LIMIT": "10000",
                   "MONTHLY_REQUEST_LIMIT": "200000",
                   "DISABLE_ON_LIMIT": "true",
-                  "ADMIN_IP_WHITELIST": "98.234.86.34",
+                  "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
                   "IP_BLACKLIST": "",
                   "BLOCKED_COUNTRIES": "",
                   "RATE_LIMIT_TABLE": "pfwise-api-prod-rate-limits",
@@ -436,7 +436,7 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pfwise-api/prod/1748484562603-2025-05-29T02:09:22.603Z/pfwise-api.zip"
+                "S3Key": "serverless/pfwise-api/prod/1748501020129-2025-05-29T06:43:40.129Z/pfwise-api.zip"
               },
               "Handler": "src/function/preWarmCache.handler",
               "Runtime": "nodejs18.x",
@@ -450,7 +450,7 @@
                   "DAILY_REQUEST_LIMIT": "10000",
                   "MONTHLY_REQUEST_LIMIT": "200000",
                   "DISABLE_ON_LIMIT": "true",
-                  "ADMIN_IP_WHITELIST": "98.234.86.34",
+                  "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
                   "IP_BLACKLIST": "",
                   "BLOCKED_COUNTRIES": "",
                   "RATE_LIMIT_TABLE": "pfwise-api-prod-rate-limits",
@@ -500,7 +500,7 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pfwise-api/prod/1748484562603-2025-05-29T02:09:22.603Z/pfwise-api.zip"
+                "S3Key": "serverless/pfwise-api/prod/1748501020129-2025-05-29T06:43:40.129Z/pfwise-api.zip"
               },
               "Handler": "src/function/admin/getStatus.handler",
               "Runtime": "nodejs18.x",
@@ -514,7 +514,7 @@
                   "DAILY_REQUEST_LIMIT": "10000",
                   "MONTHLY_REQUEST_LIMIT": "200000",
                   "DISABLE_ON_LIMIT": "true",
-                  "ADMIN_IP_WHITELIST": "98.234.86.34",
+                  "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
                   "IP_BLACKLIST": "",
                   "BLOCKED_COUNTRIES": "",
                   "RATE_LIMIT_TABLE": "pfwise-api-prod-rate-limits",
@@ -564,7 +564,7 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pfwise-api/prod/1748484562603-2025-05-29T02:09:22.603Z/pfwise-api.zip"
+                "S3Key": "serverless/pfwise-api/prod/1748501020129-2025-05-29T06:43:40.129Z/pfwise-api.zip"
               },
               "Handler": "src/function/admin/resetUsage.handler",
               "Runtime": "nodejs18.x",
@@ -578,7 +578,7 @@
                   "DAILY_REQUEST_LIMIT": "10000",
                   "MONTHLY_REQUEST_LIMIT": "200000",
                   "DISABLE_ON_LIMIT": "true",
-                  "ADMIN_IP_WHITELIST": "98.234.86.34",
+                  "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
                   "IP_BLACKLIST": "",
                   "BLOCKED_COUNTRIES": "",
                   "RATE_LIMIT_TABLE": "pfwise-api-prod-rate-limits",
@@ -628,7 +628,7 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pfwise-api/prod/1748484562603-2025-05-29T02:09:22.603Z/pfwise-api.zip"
+                "S3Key": "serverless/pfwise-api/prod/1748501020129-2025-05-29T06:43:40.129Z/pfwise-api.zip"
               },
               "Handler": "src/function/admin/getBudgetStatus.handler",
               "Runtime": "nodejs18.x",
@@ -642,7 +642,7 @@
                   "DAILY_REQUEST_LIMIT": "10000",
                   "MONTHLY_REQUEST_LIMIT": "200000",
                   "DISABLE_ON_LIMIT": "true",
-                  "ADMIN_IP_WHITELIST": "98.234.86.34",
+                  "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
                   "IP_BLACKLIST": "",
                   "BLOCKED_COUNTRIES": "",
                   "RATE_LIMIT_TABLE": "pfwise-api-prod-rate-limits",
@@ -692,7 +692,7 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pfwise-api/prod/1748484562603-2025-05-29T02:09:22.603Z/pfwise-api.zip"
+                "S3Key": "serverless/pfwise-api/prod/1748501020129-2025-05-29T06:43:40.129Z/pfwise-api.zip"
               },
               "Handler": "src/function/auth/googleLogin.handler",
               "Runtime": "nodejs18.x",
@@ -706,7 +706,7 @@
                   "DAILY_REQUEST_LIMIT": "10000",
                   "MONTHLY_REQUEST_LIMIT": "200000",
                   "DISABLE_ON_LIMIT": "true",
-                  "ADMIN_IP_WHITELIST": "98.234.86.34",
+                  "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
                   "IP_BLACKLIST": "",
                   "BLOCKED_COUNTRIES": "",
                   "RATE_LIMIT_TABLE": "pfwise-api-prod-rate-limits",
@@ -756,7 +756,7 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pfwise-api/prod/1748484562603-2025-05-29T02:09:22.603Z/pfwise-api.zip"
+                "S3Key": "serverless/pfwise-api/prod/1748501020129-2025-05-29T06:43:40.129Z/pfwise-api.zip"
               },
               "Handler": "src/function/auth/getSession.handler",
               "Runtime": "nodejs18.x",
@@ -770,7 +770,7 @@
                   "DAILY_REQUEST_LIMIT": "10000",
                   "MONTHLY_REQUEST_LIMIT": "200000",
                   "DISABLE_ON_LIMIT": "true",
-                  "ADMIN_IP_WHITELIST": "98.234.86.34",
+                  "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
                   "IP_BLACKLIST": "",
                   "BLOCKED_COUNTRIES": "",
                   "RATE_LIMIT_TABLE": "pfwise-api-prod-rate-limits",
@@ -813,6 +813,70 @@
               "GetSessionLogGroup"
             ]
           },
+          "GenerateCSRFTokenLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": {
+                  "Ref": "ServerlessDeploymentBucket"
+                },
+                "S3Key": "serverless/pfwise-api/prod/1748501020129-2025-05-29T06:43:40.129Z/pfwise-api.zip"
+              },
+              "Handler": "src/function/auth/generateCSRFToken.handler",
+              "Runtime": "nodejs18.x",
+              "FunctionName": "pfwise-api-prod-generateCSRFToken",
+              "MemorySize": 256,
+              "Timeout": 30,
+              "Environment": {
+                "Variables": {
+                  "NODE_ENV": "prod",
+                  "ADMIN_EMAIL": "",
+                  "DAILY_REQUEST_LIMIT": "10000",
+                  "MONTHLY_REQUEST_LIMIT": "200000",
+                  "DISABLE_ON_LIMIT": "true",
+                  "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
+                  "IP_BLACKLIST": "",
+                  "BLOCKED_COUNTRIES": "",
+                  "RATE_LIMIT_TABLE": "pfwise-api-prod-rate-limits",
+                  "CACHE_TIME_US_STOCK": "3600",
+                  "CACHE_TIME_JP_STOCK": "3600",
+                  "CACHE_TIME_MUTUAL_FUND": "10800",
+                  "CACHE_TIME_EXCHANGE_RATE": "3600",
+                  "SESSION_TABLE": "pfwise-api-prod-sessions",
+                  "CACHE_TABLE": "pfwise-api-prod-cache",
+                  "CORS_ALLOW_ORIGIN": "*.portfoliomanager.com",
+                  "DRIVE_FOLDER_NAME": "PortfolioManagerData",
+                  "LOG_LEVEL": "warn",
+                  "BUDGET_CHECK_ENABLED": "true",
+                  "FREE_TIER_LIMIT": "25",
+                  "DEFAULT_EXCHANGE_RATE": "150.0",
+                  "SECRETS_MANAGER_SECRET_NAME": "pfwise-api/credentials",
+                  "USE_SECRETS_MANAGER": "true",
+                  "YAHOO_FINANCE_API_HOST": "yh-finance.p.rapidapi.com",
+                  "JP_STOCK_SCRAPING_TIMEOUT": "30000",
+                  "US_STOCK_SCRAPING_TIMEOUT": "20000",
+                  "MUTUAL_FUND_TIMEOUT": "30000",
+                  "SCRAPING_RATE_LIMIT_DELAY": "500",
+                  "SCRAPING_MAX_FAILURES": "3",
+                  "SCRAPING_COOLDOWN_DAYS": "7",
+                  "ENABLE_AUDIT_LOGGING": "true",
+                  "ENABLE_RATE_LIMITING": "true",
+                  "MAX_REQUESTS_PER_MINUTE": "100",
+                  "DRIVE_AUTH_SUCCESS_URL": "https://portfolio-wise.com/drive-success",
+                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
+                }
+              },
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "GenerateCSRFTokenLogGroup"
+            ]
+          },
           "LogoutLambdaFunction": {
             "Type": "AWS::Lambda::Function",
             "Properties": {
@@ -820,7 +884,7 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pfwise-api/prod/1748484562603-2025-05-29T02:09:22.603Z/pfwise-api.zip"
+                "S3Key": "serverless/pfwise-api/prod/1748501020129-2025-05-29T06:43:40.129Z/pfwise-api.zip"
               },
               "Handler": "src/function/auth/logout.handler",
               "Runtime": "nodejs18.x",
@@ -834,7 +898,7 @@
                   "DAILY_REQUEST_LIMIT": "10000",
                   "MONTHLY_REQUEST_LIMIT": "200000",
                   "DISABLE_ON_LIMIT": "true",
-                  "ADMIN_IP_WHITELIST": "98.234.86.34",
+                  "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
                   "IP_BLACKLIST": "",
                   "BLOCKED_COUNTRIES": "",
                   "RATE_LIMIT_TABLE": "pfwise-api-prod-rate-limits",
@@ -884,7 +948,7 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pfwise-api/prod/1748484562603-2025-05-29T02:09:22.603Z/pfwise-api.zip"
+                "S3Key": "serverless/pfwise-api/prod/1748501020129-2025-05-29T06:43:40.129Z/pfwise-api.zip"
               },
               "Handler": "src/function/auth/googleDriveAuth.initiateAuth",
               "Runtime": "nodejs18.x",
@@ -898,7 +962,7 @@
                   "DAILY_REQUEST_LIMIT": "10000",
                   "MONTHLY_REQUEST_LIMIT": "200000",
                   "DISABLE_ON_LIMIT": "true",
-                  "ADMIN_IP_WHITELIST": "98.234.86.34",
+                  "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
                   "IP_BLACKLIST": "",
                   "BLOCKED_COUNTRIES": "",
                   "RATE_LIMIT_TABLE": "pfwise-api-prod-rate-limits",
@@ -948,7 +1012,7 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pfwise-api/prod/1748484562603-2025-05-29T02:09:22.603Z/pfwise-api.zip"
+                "S3Key": "serverless/pfwise-api/prod/1748501020129-2025-05-29T06:43:40.129Z/pfwise-api.zip"
               },
               "Handler": "src/function/auth/googleDriveAuth.callback",
               "Runtime": "nodejs18.x",
@@ -962,7 +1026,7 @@
                   "DAILY_REQUEST_LIMIT": "10000",
                   "MONTHLY_REQUEST_LIMIT": "200000",
                   "DISABLE_ON_LIMIT": "true",
-                  "ADMIN_IP_WHITELIST": "98.234.86.34",
+                  "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
                   "IP_BLACKLIST": "",
                   "BLOCKED_COUNTRIES": "",
                   "RATE_LIMIT_TABLE": "pfwise-api-prod-rate-limits",
@@ -1012,7 +1076,7 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pfwise-api/prod/1748484562603-2025-05-29T02:09:22.603Z/pfwise-api.zip"
+                "S3Key": "serverless/pfwise-api/prod/1748501020129-2025-05-29T06:43:40.129Z/pfwise-api.zip"
               },
               "Handler": "src/function/drive/saveFile.handler",
               "Runtime": "nodejs18.x",
@@ -1026,7 +1090,7 @@
                   "DAILY_REQUEST_LIMIT": "10000",
                   "MONTHLY_REQUEST_LIMIT": "200000",
                   "DISABLE_ON_LIMIT": "true",
-                  "ADMIN_IP_WHITELIST": "98.234.86.34",
+                  "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
                   "IP_BLACKLIST": "",
                   "BLOCKED_COUNTRIES": "",
                   "RATE_LIMIT_TABLE": "pfwise-api-prod-rate-limits",
@@ -1076,7 +1140,7 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pfwise-api/prod/1748484562603-2025-05-29T02:09:22.603Z/pfwise-api.zip"
+                "S3Key": "serverless/pfwise-api/prod/1748501020129-2025-05-29T06:43:40.129Z/pfwise-api.zip"
               },
               "Handler": "src/function/drive/loadFile.handler",
               "Runtime": "nodejs18.x",
@@ -1090,7 +1154,7 @@
                   "DAILY_REQUEST_LIMIT": "10000",
                   "MONTHLY_REQUEST_LIMIT": "200000",
                   "DISABLE_ON_LIMIT": "true",
-                  "ADMIN_IP_WHITELIST": "98.234.86.34",
+                  "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
                   "IP_BLACKLIST": "",
                   "BLOCKED_COUNTRIES": "",
                   "RATE_LIMIT_TABLE": "pfwise-api-prod-rate-limits",
@@ -1140,7 +1204,7 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pfwise-api/prod/1748484562603-2025-05-29T02:09:22.603Z/pfwise-api.zip"
+                "S3Key": "serverless/pfwise-api/prod/1748501020129-2025-05-29T06:43:40.129Z/pfwise-api.zip"
               },
               "Handler": "src/function/drive/listFiles.handler",
               "Runtime": "nodejs18.x",
@@ -1154,7 +1218,7 @@
                   "DAILY_REQUEST_LIMIT": "10000",
                   "MONTHLY_REQUEST_LIMIT": "200000",
                   "DISABLE_ON_LIMIT": "true",
-                  "ADMIN_IP_WHITELIST": "98.234.86.34",
+                  "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
                   "IP_BLACKLIST": "",
                   "BLOCKED_COUNTRIES": "",
                   "RATE_LIMIT_TABLE": "pfwise-api-prod-rate-limits",
@@ -1204,7 +1268,7 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/pfwise-api/prod/1748484562603-2025-05-29T02:09:22.603Z/pfwise-api.zip"
+                "S3Key": "serverless/pfwise-api/prod/1748501020129-2025-05-29T06:43:40.129Z/pfwise-api.zip"
               },
               "Handler": "src/function/config/getClientConfig.handler",
               "Runtime": "nodejs18.x",
@@ -1218,7 +1282,7 @@
                   "DAILY_REQUEST_LIMIT": "10000",
                   "MONTHLY_REQUEST_LIMIT": "200000",
                   "DISABLE_ON_LIMIT": "true",
-                  "ADMIN_IP_WHITELIST": "98.234.86.34",
+                  "ADMIN_IP_WHITELIST": "127.0.0.1,::1",
                   "IP_BLACKLIST": "",
                   "BLOCKED_COUNTRIES": "",
                   "RATE_LIMIT_TABLE": "pfwise-api-prod-rate-limits",
@@ -1261,218 +1325,154 @@
               "GetClientConfigLogGroup"
             ]
           },
-          "DebugGoogleConfigLambdaFunction": {
-            "Type": "AWS::Lambda::Function",
-            "Properties": {
-              "Code": {
-                "S3Bucket": {
-                  "Ref": "ServerlessDeploymentBucket"
-                },
-                "S3Key": "serverless/pfwise-api/prod/1748484562603-2025-05-29T02:09:22.603Z/pfwise-api.zip"
-              },
-              "Handler": "src/function/debug/googleConfig.handler",
-              "Runtime": "nodejs18.x",
-              "FunctionName": "pfwise-api-prod-debugGoogleConfig",
-              "MemorySize": 256,
-              "Timeout": 30,
-              "Environment": {
-                "Variables": {
-                  "NODE_ENV": "prod",
-                  "ADMIN_EMAIL": "",
-                  "DAILY_REQUEST_LIMIT": "10000",
-                  "MONTHLY_REQUEST_LIMIT": "200000",
-                  "DISABLE_ON_LIMIT": "true",
-                  "ADMIN_IP_WHITELIST": "98.234.86.34",
-                  "IP_BLACKLIST": "",
-                  "BLOCKED_COUNTRIES": "",
-                  "RATE_LIMIT_TABLE": "pfwise-api-prod-rate-limits",
-                  "CACHE_TIME_US_STOCK": "3600",
-                  "CACHE_TIME_JP_STOCK": "3600",
-                  "CACHE_TIME_MUTUAL_FUND": "10800",
-                  "CACHE_TIME_EXCHANGE_RATE": "3600",
-                  "SESSION_TABLE": "pfwise-api-prod-sessions",
-                  "CACHE_TABLE": "pfwise-api-prod-cache",
-                  "CORS_ALLOW_ORIGIN": "*.portfoliomanager.com",
-                  "DRIVE_FOLDER_NAME": "PortfolioManagerData",
-                  "LOG_LEVEL": "warn",
-                  "BUDGET_CHECK_ENABLED": "true",
-                  "FREE_TIER_LIMIT": "25",
-                  "DEFAULT_EXCHANGE_RATE": "150.0",
-                  "SECRETS_MANAGER_SECRET_NAME": "pfwise-api/credentials",
-                  "USE_SECRETS_MANAGER": "true",
-                  "YAHOO_FINANCE_API_HOST": "yh-finance.p.rapidapi.com",
-                  "JP_STOCK_SCRAPING_TIMEOUT": "30000",
-                  "US_STOCK_SCRAPING_TIMEOUT": "20000",
-                  "MUTUAL_FUND_TIMEOUT": "30000",
-                  "SCRAPING_RATE_LIMIT_DELAY": "500",
-                  "SCRAPING_MAX_FAILURES": "3",
-                  "SCRAPING_COOLDOWN_DAYS": "7",
-                  "ENABLE_AUDIT_LOGGING": "true",
-                  "ENABLE_RATE_LIMITING": "true",
-                  "MAX_REQUESTS_PER_MINUTE": "100",
-                  "DRIVE_AUTH_SUCCESS_URL": "https://portfolio-wise.com/drive-success",
-                  "CORS_ALLOWED_ORIGINS": "https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com"
-                }
-              },
-              "Role": {
-                "Fn::GetAtt": [
-                  "IamRoleLambdaExecution",
-                  "Arn"
-                ]
-              }
-            },
-            "DependsOn": [
-              "DebugGoogleConfigLogGroup"
-            ]
-          },
-          "MarketDataLambdaVersionrz2yW4XzBqJzksIlqwQ0EphO2pJOMskBSsVkofbKI": {
+          "MarketDataLambdaVersion1Nkb3XHD3QztB9IJVFTyIIFFPwgJYO9BWQhliKguQ": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "MarketDataLambdaFunction"
               },
-              "CodeSha256": "wZX/b6u+l38n9/3eITMzU3ErEB6+pTM981xczibQDrc="
+              "CodeSha256": "4/AuI7rykaRfRrTrmXtAxyt2LOGz6+opmokQJv9r8z4="
             }
           },
-          "PreWarmCacheLambdaVersionaSXJuSFsqw6HVkxmu0t8fiTKlFoC6VRZ611l1zB0Y": {
+          "PreWarmCacheLambdaVersionlvBXrpweVA6jrKXxT9ZUJq2eIw2iL2g0fORicKEDBAs": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "PreWarmCacheLambdaFunction"
               },
-              "CodeSha256": "wZX/b6u+l38n9/3eITMzU3ErEB6+pTM981xczibQDrc="
+              "CodeSha256": "4/AuI7rykaRfRrTrmXtAxyt2LOGz6+opmokQJv9r8z4="
             }
           },
-          "GetStatusLambdaVersionFCFWJYVzCUZbDf6WbxujeMXLchXVNvrv65otp2QFY": {
+          "GetStatusLambdaVersion59uraKPNgjnHAU7rECR5svo4lYbMfXCEfVrWxzA1uA": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "GetStatusLambdaFunction"
               },
-              "CodeSha256": "wZX/b6u+l38n9/3eITMzU3ErEB6+pTM981xczibQDrc="
+              "CodeSha256": "4/AuI7rykaRfRrTrmXtAxyt2LOGz6+opmokQJv9r8z4="
             }
           },
-          "ResetUsageLambdaVersiontSZKQKRuCW4lpp9AIg8dpLbNVOdUy46fJgQEhL11NHs": {
+          "ResetUsageLambdaVersiona2cBaDDYTnNFLeRFrhv286y7I3T3NLb3QtyISrX8Qg": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "ResetUsageLambdaFunction"
               },
-              "CodeSha256": "wZX/b6u+l38n9/3eITMzU3ErEB6+pTM981xczibQDrc="
+              "CodeSha256": "4/AuI7rykaRfRrTrmXtAxyt2LOGz6+opmokQJv9r8z4="
             }
           },
-          "GetBudgetStatusLambdaVersion8CVJdp5j34L8Rm8ERfB2zsfsha8S4nsvKeod1jJDQ8": {
+          "GetBudgetStatusLambdaVersionUIDwIOw3hJjpeBLSM64yuwzUfOGjNlb3FTwQorSX1g": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "GetBudgetStatusLambdaFunction"
               },
-              "CodeSha256": "wZX/b6u+l38n9/3eITMzU3ErEB6+pTM981xczibQDrc="
+              "CodeSha256": "4/AuI7rykaRfRrTrmXtAxyt2LOGz6+opmokQJv9r8z4="
             }
           },
-          "GoogleLoginLambdaVersionXjYy3dfIxa2pzEg4crpVmNMjbtN1lYId2imWxrxscY": {
+          "GoogleLoginLambdaVersionaybaDjKSFyFf8dckkqOlSqUTBsgJgHUdQolI9HJDew": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "GoogleLoginLambdaFunction"
               },
-              "CodeSha256": "wZX/b6u+l38n9/3eITMzU3ErEB6+pTM981xczibQDrc="
+              "CodeSha256": "4/AuI7rykaRfRrTrmXtAxyt2LOGz6+opmokQJv9r8z4="
             }
           },
-          "GetSessionLambdaVersionbfBvINraGp7ZdQAmOLbBHGy4H8gUmtVIWCIUbtkU4": {
+          "GetSessionLambdaVersionwhxp4naNVyaw3ZedMDAssy99isHaa5iNYfuuIuEPPmE": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "GetSessionLambdaFunction"
               },
-              "CodeSha256": "wZX/b6u+l38n9/3eITMzU3ErEB6+pTM981xczibQDrc="
+              "CodeSha256": "4/AuI7rykaRfRrTrmXtAxyt2LOGz6+opmokQJv9r8z4="
             }
           },
-          "LogoutLambdaVersionnxng7UhwG9m921DzTdhVPGhCmNkXx65qYJfkhR7mUs": {
+          "GenerateCSRFTokenLambdaVersionhrVyvftdHGKbYOjDydy1Vp5UWQViYVGfNHA1WUUwg": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "GenerateCSRFTokenLambdaFunction"
+              },
+              "CodeSha256": "4/AuI7rykaRfRrTrmXtAxyt2LOGz6+opmokQJv9r8z4="
+            }
+          },
+          "LogoutLambdaVersionYhGCeVCLlNbF0FSziQy9QdtTwpY0CNUscNYLOKFNG0": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "LogoutLambdaFunction"
               },
-              "CodeSha256": "wZX/b6u+l38n9/3eITMzU3ErEB6+pTM981xczibQDrc="
+              "CodeSha256": "4/AuI7rykaRfRrTrmXtAxyt2LOGz6+opmokQJv9r8z4="
             }
           },
-          "GoogleDriveAuthInitiateLambdaVersion30rRVuwXhXfBKwq6pri4ggImZkJVIZUQrb3Vjsp7Ig": {
+          "GoogleDriveAuthInitiateLambdaVersionZegyea30LdC7TA5Rjpaxl5JPOIXxURwpRTWdpyF4SR4": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "GoogleDriveAuthInitiateLambdaFunction"
               },
-              "CodeSha256": "wZX/b6u+l38n9/3eITMzU3ErEB6+pTM981xczibQDrc="
+              "CodeSha256": "4/AuI7rykaRfRrTrmXtAxyt2LOGz6+opmokQJv9r8z4="
             }
           },
-          "GoogleDriveAuthCallbackLambdaVersion5GjxK88v4j365vdSjFZdVOtqv3guOZ8f5L3aDuATqQ": {
+          "GoogleDriveAuthCallbackLambdaVersionyPFlFIaQQjpPVTfD5TE8srA5lV26RewXvlHI02pVk": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "GoogleDriveAuthCallbackLambdaFunction"
               },
-              "CodeSha256": "wZX/b6u+l38n9/3eITMzU3ErEB6+pTM981xczibQDrc="
+              "CodeSha256": "4/AuI7rykaRfRrTrmXtAxyt2LOGz6+opmokQJv9r8z4="
             }
           },
-          "SaveFileLambdaVersionXbqOKL9kJIDkuY8nSKTNq09b9yRsc09M8gPO0TFRs": {
+          "SaveFileLambdaVersionF2dRhPifOBkqQWQKfbMnjyBOtFILlNECnrwKyqOmws": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "SaveFileLambdaFunction"
               },
-              "CodeSha256": "wZX/b6u+l38n9/3eITMzU3ErEB6+pTM981xczibQDrc="
+              "CodeSha256": "4/AuI7rykaRfRrTrmXtAxyt2LOGz6+opmokQJv9r8z4="
             }
           },
-          "LoadFileLambdaVersionIBg7LZRoCnHQr9rOR9F1Aavn8xcObqNEkwvnkjYjo": {
+          "LoadFileLambdaVersionI82PLmST6aIkin7bkz42JiyH1nhlK29QD4Evbn8Wrw": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "LoadFileLambdaFunction"
               },
-              "CodeSha256": "wZX/b6u+l38n9/3eITMzU3ErEB6+pTM981xczibQDrc="
+              "CodeSha256": "4/AuI7rykaRfRrTrmXtAxyt2LOGz6+opmokQJv9r8z4="
             }
           },
-          "ListFilesLambdaVersionlfP3ZZ3IcjMezFUjW821mZMq9gSbH03rnxVOPYnv16s": {
+          "ListFilesLambdaVersionW50EJMxd34MAwjLfVy2kibo5wttxZtLMJWFjvpf2QA": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "ListFilesLambdaFunction"
               },
-              "CodeSha256": "wZX/b6u+l38n9/3eITMzU3ErEB6+pTM981xczibQDrc="
+              "CodeSha256": "4/AuI7rykaRfRrTrmXtAxyt2LOGz6+opmokQJv9r8z4="
             }
           },
-          "GetClientConfigLambdaVersionvIKZCFBpAMKpXBCak9lu6Q0x4R0mRDG74f6fNvKuK8": {
+          "GetClientConfigLambdaVersion7cBbaboYo7S8QLQrE3cTPPtlyASOiNmrHqbeT4fUI": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
                 "Ref": "GetClientConfigLambdaFunction"
               },
-              "CodeSha256": "wZX/b6u+l38n9/3eITMzU3ErEB6+pTM981xczibQDrc="
-            }
-          },
-          "DebugGoogleConfigLambdaVersionQcX2s9fgyDEXBrYc5JJfk5YjliDOrpvytP5ips9hdg": {
-            "Type": "AWS::Lambda::Version",
-            "DeletionPolicy": "Retain",
-            "Properties": {
-              "FunctionName": {
-                "Ref": "DebugGoogleConfigLambdaFunction"
-              },
-              "CodeSha256": "wZX/b6u+l38n9/3eITMzU3ErEB6+pTM981xczibQDrc="
+              "CodeSha256": "4/AuI7rykaRfRrTrmXtAxyt2LOGz6+opmokQJv9r8z4="
             }
           },
           "PreWarmCacheEventsRuleSchedule1": {
@@ -1689,6 +1689,18 @@
               }
             }
           },
+          "ApiGatewayResourceAuthCsrfDashtoken": {
+            "Type": "AWS::ApiGateway::Resource",
+            "Properties": {
+              "ParentId": {
+                "Ref": "ApiGatewayResourceAuth"
+              },
+              "PathPart": "csrf-token",
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
           "ApiGatewayResourceAuthLogout": {
             "Type": "AWS::ApiGateway::Resource",
             "Properties": {
@@ -1774,33 +1786,6 @@
                 "Ref": "ApiGatewayResourceConfig"
               },
               "PathPart": "client",
-              "RestApiId": {
-                "Ref": "ApiGatewayRestApi"
-              }
-            }
-          },
-          "ApiGatewayResourceDebug": {
-            "Type": "AWS::ApiGateway::Resource",
-            "Properties": {
-              "ParentId": {
-                "Fn::GetAtt": [
-                  "ApiGatewayRestApi",
-                  "RootResourceId"
-                ]
-              },
-              "PathPart": "debug",
-              "RestApiId": {
-                "Ref": "ApiGatewayRestApi"
-              }
-            }
-          },
-          "ApiGatewayResourceDebugGoogleDashconfig": {
-            "Type": "AWS::ApiGateway::Resource",
-            "Properties": {
-              "ParentId": {
-                "Ref": "ApiGatewayResourceDebug"
-              },
-              "PathPart": "google-config",
               "RestApiId": {
                 "Ref": "ApiGatewayRestApi"
               }
@@ -2110,6 +2095,53 @@
               },
               "ResourceId": {
                 "Ref": "ApiGatewayResourceAuthSession"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayMethodAuthCsrfDashtokenOptions": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "AuthorizationType": "NONE",
+              "HttpMethod": "OPTIONS",
+              "MethodResponses": [
+                {
+                  "StatusCode": "200",
+                  "ResponseParameters": {
+                    "method.response.header.Access-Control-Allow-Origin": true,
+                    "method.response.header.Access-Control-Allow-Headers": true,
+                    "method.response.header.Access-Control-Allow-Methods": true,
+                    "method.response.header.Access-Control-Allow-Credentials": true
+                  },
+                  "ResponseModels": {}
+                }
+              ],
+              "RequestParameters": {},
+              "Integration": {
+                "Type": "MOCK",
+                "RequestTemplates": {
+                  "application/json": "{statusCode:200}"
+                },
+                "ContentHandling": "CONVERT_TO_TEXT",
+                "IntegrationResponses": [
+                  {
+                    "StatusCode": "200",
+                    "ResponseParameters": {
+                      "method.response.header.Access-Control-Allow-Origin": "'http://localhost:3001'",
+                      "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,Cookie,X-Session-Id'",
+                      "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,POST'",
+                      "method.response.header.Access-Control-Allow-Credentials": "'true'"
+                    },
+                    "ResponseTemplates": {
+                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3001\") || $origin.matches(\"http://localhost:3000\") || $origin.matches(\"https://portfolio-wise[.]com\") || $origin.matches(\"https://www[.]portfolio-wise[.]com\") || $origin.matches(\"https://app[.]portfolio-wise[.]com\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
+                    }
+                  }
+                ]
+              },
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceAuthCsrfDashtoken"
               },
               "RestApiId": {
                 "Ref": "ApiGatewayRestApi"
@@ -2473,51 +2505,6 @@
               }
             }
           },
-          "ApiGatewayMethodDebugGoogleDashconfigOptions": {
-            "Type": "AWS::ApiGateway::Method",
-            "Properties": {
-              "AuthorizationType": "NONE",
-              "HttpMethod": "OPTIONS",
-              "MethodResponses": [
-                {
-                  "StatusCode": "200",
-                  "ResponseParameters": {
-                    "method.response.header.Access-Control-Allow-Origin": true,
-                    "method.response.header.Access-Control-Allow-Headers": true,
-                    "method.response.header.Access-Control-Allow-Methods": true
-                  },
-                  "ResponseModels": {}
-                }
-              ],
-              "RequestParameters": {},
-              "Integration": {
-                "Type": "MOCK",
-                "RequestTemplates": {
-                  "application/json": "{statusCode:200}"
-                },
-                "ContentHandling": "CONVERT_TO_TEXT",
-                "IntegrationResponses": [
-                  {
-                    "StatusCode": "200",
-                    "ResponseParameters": {
-                      "method.response.header.Access-Control-Allow-Origin": "'*'",
-                      "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,X-Amzn-Trace-Id'",
-                      "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,GET'"
-                    },
-                    "ResponseTemplates": {
-                      "application/json": ""
-                    }
-                  }
-                ]
-              },
-              "ResourceId": {
-                "Ref": "ApiGatewayResourceDebugGoogleDashconfig"
-              },
-              "RestApiId": {
-                "Ref": "ApiGatewayRestApi"
-              }
-            }
-          },
           "ApiGatewayMethodApiMarketDashdataGet": {
             "Type": "AWS::ApiGateway::Method",
             "Properties": {
@@ -2792,6 +2779,52 @@
             },
             "DependsOn": [
               "GetSessionLambdaPermissionApiGateway"
+            ]
+          },
+          "ApiGatewayMethodAuthCsrfDashtokenPost": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "HttpMethod": "POST",
+              "RequestParameters": {},
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceAuthCsrfDashtoken"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "ApiKeyRequired": false,
+              "AuthorizationType": "NONE",
+              "Integration": {
+                "IntegrationHttpMethod": "POST",
+                "Type": "AWS_PROXY",
+                "Uri": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":apigateway:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":lambda:path/2015-03-31/functions/",
+                      {
+                        "Fn::GetAtt": [
+                          "GenerateCSRFTokenLambdaFunction",
+                          "Arn"
+                        ]
+                      },
+                      "/invocations"
+                    ]
+                  ]
+                }
+              },
+              "MethodResponses": []
+            },
+            "DependsOn": [
+              "GenerateCSRFTokenLambdaPermissionApiGateway"
             ]
           },
           "ApiGatewayMethodAuthLogoutPost": {
@@ -3116,53 +3149,7 @@
               "GetClientConfigLambdaPermissionApiGateway"
             ]
           },
-          "ApiGatewayMethodDebugGoogleDashconfigGet": {
-            "Type": "AWS::ApiGateway::Method",
-            "Properties": {
-              "HttpMethod": "GET",
-              "RequestParameters": {},
-              "ResourceId": {
-                "Ref": "ApiGatewayResourceDebugGoogleDashconfig"
-              },
-              "RestApiId": {
-                "Ref": "ApiGatewayRestApi"
-              },
-              "ApiKeyRequired": false,
-              "AuthorizationType": "NONE",
-              "Integration": {
-                "IntegrationHttpMethod": "POST",
-                "Type": "AWS_PROXY",
-                "Uri": {
-                  "Fn::Join": [
-                    "",
-                    [
-                      "arn:",
-                      {
-                        "Ref": "AWS::Partition"
-                      },
-                      ":apigateway:",
-                      {
-                        "Ref": "AWS::Region"
-                      },
-                      ":lambda:path/2015-03-31/functions/",
-                      {
-                        "Fn::GetAtt": [
-                          "DebugGoogleConfigLambdaFunction",
-                          "Arn"
-                        ]
-                      },
-                      "/invocations"
-                    ]
-                  ]
-                }
-              },
-              "MethodResponses": []
-            },
-            "DependsOn": [
-              "DebugGoogleConfigLambdaPermissionApiGateway"
-            ]
-          },
-          "ApiGatewayDeployment1748484561077": {
+          "ApiGatewayDeployment1748501018430": {
             "Type": "AWS::ApiGateway::Deployment",
             "Properties": {
               "RestApiId": {
@@ -3177,6 +3164,7 @@
               "ApiGatewayMethodAdminGetbudgetstatusOptions",
               "ApiGatewayMethodAuthGoogleLoginOptions",
               "ApiGatewayMethodAuthSessionOptions",
+              "ApiGatewayMethodAuthCsrfDashtokenOptions",
               "ApiGatewayMethodAuthLogoutOptions",
               "ApiGatewayMethodAuthGoogleDriveInitiateOptions",
               "ApiGatewayMethodAuthGoogleDriveCallbackOptions",
@@ -3184,7 +3172,6 @@
               "ApiGatewayMethodDriveLoadOptions",
               "ApiGatewayMethodDriveFilesOptions",
               "ApiGatewayMethodConfigClientOptions",
-              "ApiGatewayMethodDebugGoogleDashconfigOptions",
               "ApiGatewayMethodApiMarketDashdataGet",
               "ApiGatewayMethodAdminStatusGet",
               "ApiGatewayMethodAdminResetPost",
@@ -3192,6 +3179,7 @@
               "ApiGatewayMethodAuthGoogleLoginPost",
               "ApiGatewayMethodAuthGoogleLoginOptions",
               "ApiGatewayMethodAuthSessionGet",
+              "ApiGatewayMethodAuthCsrfDashtokenPost",
               "ApiGatewayMethodAuthLogoutPost",
               "ApiGatewayMethodAuthGoogleDriveInitiateGet",
               "ApiGatewayMethodAuthGoogleDriveInitiateOptions",
@@ -3199,8 +3187,7 @@
               "ApiGatewayMethodDriveSavePost",
               "ApiGatewayMethodDriveLoadGet",
               "ApiGatewayMethodDriveFilesGet",
-              "ApiGatewayMethodConfigClientGet",
-              "ApiGatewayMethodDebugGoogleDashconfigGet"
+              "ApiGatewayMethodConfigClientGet"
             ]
           },
           "MarketDataLambdaPermissionApiGateway": {
@@ -3394,6 +3381,43 @@
               "FunctionName": {
                 "Fn::GetAtt": [
                   "GetSessionLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "apigateway.amazonaws.com",
+              "SourceArn": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":execute-api:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":",
+                    {
+                      "Ref": "ApiGatewayRestApi"
+                    },
+                    "/*/*"
+                  ]
+                ]
+              }
+            }
+          },
+          "GenerateCSRFTokenLambdaPermissionApiGateway": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "GenerateCSRFTokenLambdaFunction",
                   "Arn"
                 ]
               },
@@ -3684,43 +3708,6 @@
               }
             }
           },
-          "DebugGoogleConfigLambdaPermissionApiGateway": {
-            "Type": "AWS::Lambda::Permission",
-            "Properties": {
-              "FunctionName": {
-                "Fn::GetAtt": [
-                  "DebugGoogleConfigLambdaFunction",
-                  "Arn"
-                ]
-              },
-              "Action": "lambda:InvokeFunction",
-              "Principal": "apigateway.amazonaws.com",
-              "SourceArn": {
-                "Fn::Join": [
-                  "",
-                  [
-                    "arn:",
-                    {
-                      "Ref": "AWS::Partition"
-                    },
-                    ":execute-api:",
-                    {
-                      "Ref": "AWS::Region"
-                    },
-                    ":",
-                    {
-                      "Ref": "AWS::AccountId"
-                    },
-                    ":",
-                    {
-                      "Ref": "ApiGatewayRestApi"
-                    },
-                    "/*/*"
-                  ]
-                ]
-              }
-            }
-          },
           "MarketDataCacheTable": {
             "Type": "AWS::DynamoDB::Table",
             "Properties": {
@@ -3826,7 +3813,7 @@
           "MarketDataLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "MarketDataLambdaVersionrz2yW4XzBqJzksIlqwQ0EphO2pJOMskBSsVkofbKI"
+              "Ref": "MarketDataLambdaVersion1Nkb3XHD3QztB9IJVFTyIIFFPwgJYO9BWQhliKguQ"
             },
             "Export": {
               "Name": "sls-pfwise-api-prod-MarketDataLambdaFunctionQualifiedArn"
@@ -3835,7 +3822,7 @@
           "PreWarmCacheLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "PreWarmCacheLambdaVersionaSXJuSFsqw6HVkxmu0t8fiTKlFoC6VRZ611l1zB0Y"
+              "Ref": "PreWarmCacheLambdaVersionlvBXrpweVA6jrKXxT9ZUJq2eIw2iL2g0fORicKEDBAs"
             },
             "Export": {
               "Name": "sls-pfwise-api-prod-PreWarmCacheLambdaFunctionQualifiedArn"
@@ -3844,7 +3831,7 @@
           "GetStatusLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "GetStatusLambdaVersionFCFWJYVzCUZbDf6WbxujeMXLchXVNvrv65otp2QFY"
+              "Ref": "GetStatusLambdaVersion59uraKPNgjnHAU7rECR5svo4lYbMfXCEfVrWxzA1uA"
             },
             "Export": {
               "Name": "sls-pfwise-api-prod-GetStatusLambdaFunctionQualifiedArn"
@@ -3853,7 +3840,7 @@
           "ResetUsageLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "ResetUsageLambdaVersiontSZKQKRuCW4lpp9AIg8dpLbNVOdUy46fJgQEhL11NHs"
+              "Ref": "ResetUsageLambdaVersiona2cBaDDYTnNFLeRFrhv286y7I3T3NLb3QtyISrX8Qg"
             },
             "Export": {
               "Name": "sls-pfwise-api-prod-ResetUsageLambdaFunctionQualifiedArn"
@@ -3862,7 +3849,7 @@
           "GetBudgetStatusLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "GetBudgetStatusLambdaVersion8CVJdp5j34L8Rm8ERfB2zsfsha8S4nsvKeod1jJDQ8"
+              "Ref": "GetBudgetStatusLambdaVersionUIDwIOw3hJjpeBLSM64yuwzUfOGjNlb3FTwQorSX1g"
             },
             "Export": {
               "Name": "sls-pfwise-api-prod-GetBudgetStatusLambdaFunctionQualifiedArn"
@@ -3871,7 +3858,7 @@
           "GoogleLoginLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "GoogleLoginLambdaVersionXjYy3dfIxa2pzEg4crpVmNMjbtN1lYId2imWxrxscY"
+              "Ref": "GoogleLoginLambdaVersionaybaDjKSFyFf8dckkqOlSqUTBsgJgHUdQolI9HJDew"
             },
             "Export": {
               "Name": "sls-pfwise-api-prod-GoogleLoginLambdaFunctionQualifiedArn"
@@ -3880,16 +3867,25 @@
           "GetSessionLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "GetSessionLambdaVersionbfBvINraGp7ZdQAmOLbBHGy4H8gUmtVIWCIUbtkU4"
+              "Ref": "GetSessionLambdaVersionwhxp4naNVyaw3ZedMDAssy99isHaa5iNYfuuIuEPPmE"
             },
             "Export": {
               "Name": "sls-pfwise-api-prod-GetSessionLambdaFunctionQualifiedArn"
             }
           },
+          "GenerateCSRFTokenLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "GenerateCSRFTokenLambdaVersionhrVyvftdHGKbYOjDydy1Vp5UWQViYVGfNHA1WUUwg"
+            },
+            "Export": {
+              "Name": "sls-pfwise-api-prod-GenerateCSRFTokenLambdaFunctionQualifiedArn"
+            }
+          },
           "LogoutLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "LogoutLambdaVersionnxng7UhwG9m921DzTdhVPGhCmNkXx65qYJfkhR7mUs"
+              "Ref": "LogoutLambdaVersionYhGCeVCLlNbF0FSziQy9QdtTwpY0CNUscNYLOKFNG0"
             },
             "Export": {
               "Name": "sls-pfwise-api-prod-LogoutLambdaFunctionQualifiedArn"
@@ -3898,7 +3894,7 @@
           "GoogleDriveAuthInitiateLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "GoogleDriveAuthInitiateLambdaVersion30rRVuwXhXfBKwq6pri4ggImZkJVIZUQrb3Vjsp7Ig"
+              "Ref": "GoogleDriveAuthInitiateLambdaVersionZegyea30LdC7TA5Rjpaxl5JPOIXxURwpRTWdpyF4SR4"
             },
             "Export": {
               "Name": "sls-pfwise-api-prod-GoogleDriveAuthInitiateLambdaFunctionQualifiedArn"
@@ -3907,7 +3903,7 @@
           "GoogleDriveAuthCallbackLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "GoogleDriveAuthCallbackLambdaVersion5GjxK88v4j365vdSjFZdVOtqv3guOZ8f5L3aDuATqQ"
+              "Ref": "GoogleDriveAuthCallbackLambdaVersionyPFlFIaQQjpPVTfD5TE8srA5lV26RewXvlHI02pVk"
             },
             "Export": {
               "Name": "sls-pfwise-api-prod-GoogleDriveAuthCallbackLambdaFunctionQualifiedArn"
@@ -3916,7 +3912,7 @@
           "SaveFileLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "SaveFileLambdaVersionXbqOKL9kJIDkuY8nSKTNq09b9yRsc09M8gPO0TFRs"
+              "Ref": "SaveFileLambdaVersionF2dRhPifOBkqQWQKfbMnjyBOtFILlNECnrwKyqOmws"
             },
             "Export": {
               "Name": "sls-pfwise-api-prod-SaveFileLambdaFunctionQualifiedArn"
@@ -3925,7 +3921,7 @@
           "LoadFileLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "LoadFileLambdaVersionIBg7LZRoCnHQr9rOR9F1Aavn8xcObqNEkwvnkjYjo"
+              "Ref": "LoadFileLambdaVersionI82PLmST6aIkin7bkz42JiyH1nhlK29QD4Evbn8Wrw"
             },
             "Export": {
               "Name": "sls-pfwise-api-prod-LoadFileLambdaFunctionQualifiedArn"
@@ -3934,7 +3930,7 @@
           "ListFilesLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "ListFilesLambdaVersionlfP3ZZ3IcjMezFUjW821mZMq9gSbH03rnxVOPYnv16s"
+              "Ref": "ListFilesLambdaVersionW50EJMxd34MAwjLfVy2kibo5wttxZtLMJWFjvpf2QA"
             },
             "Export": {
               "Name": "sls-pfwise-api-prod-ListFilesLambdaFunctionQualifiedArn"
@@ -3943,19 +3939,10 @@
           "GetClientConfigLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "GetClientConfigLambdaVersionvIKZCFBpAMKpXBCak9lu6Q0x4R0mRDG74f6fNvKuK8"
+              "Ref": "GetClientConfigLambdaVersion7cBbaboYo7S8QLQrE3cTPPtlyASOiNmrHqbeT4fUI"
             },
             "Export": {
               "Name": "sls-pfwise-api-prod-GetClientConfigLambdaFunctionQualifiedArn"
-            }
-          },
-          "DebugGoogleConfigLambdaFunctionQualifiedArn": {
-            "Description": "Current Lambda function version",
-            "Value": {
-              "Ref": "DebugGoogleConfigLambdaVersionQcX2s9fgyDEXBrYc5JJfk5YjliDOrpvytP5ips9hdg"
-            },
-            "Export": {
-              "Name": "sls-pfwise-api-prod-DebugGoogleConfigLambdaFunctionQualifiedArn"
             }
           },
           "ServiceEndpoint": {
@@ -4155,7 +4142,7 @@
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "MarketDataLambdaVersionrz2yW4XzBqJzksIlqwQ0EphO2pJOMskBSsVkofbKI"
+        "versionLogicalId": "MarketDataLambdaVersion1Nkb3XHD3QztB9IJVFTyIIFFPwgJYO9BWQhliKguQ"
       },
       "preWarmCache": {
         "handler": "src/function/preWarmCache.handler",
@@ -4170,7 +4157,7 @@
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "PreWarmCacheLambdaVersionaSXJuSFsqw6HVkxmu0t8fiTKlFoC6VRZ611l1zB0Y"
+        "versionLogicalId": "PreWarmCacheLambdaVersionlvBXrpweVA6jrKXxT9ZUJq2eIw2iL2g0fORicKEDBAs"
       },
       "getStatus": {
         "handler": "src/function/admin/getStatus.handler",
@@ -4213,7 +4200,7 @@
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "GetStatusLambdaVersionFCFWJYVzCUZbDf6WbxujeMXLchXVNvrv65otp2QFY"
+        "versionLogicalId": "GetStatusLambdaVersion59uraKPNgjnHAU7rECR5svo4lYbMfXCEfVrWxzA1uA"
       },
       "resetUsage": {
         "handler": "src/function/admin/resetUsage.handler",
@@ -4256,7 +4243,7 @@
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "ResetUsageLambdaVersiontSZKQKRuCW4lpp9AIg8dpLbNVOdUy46fJgQEhL11NHs"
+        "versionLogicalId": "ResetUsageLambdaVersiona2cBaDDYTnNFLeRFrhv286y7I3T3NLb3QtyISrX8Qg"
       },
       "getBudgetStatus": {
         "handler": "src/function/admin/getBudgetStatus.handler",
@@ -4299,7 +4286,7 @@
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "GetBudgetStatusLambdaVersion8CVJdp5j34L8Rm8ERfB2zsfsha8S4nsvKeod1jJDQ8"
+        "versionLogicalId": "GetBudgetStatusLambdaVersionUIDwIOw3hJjpeBLSM64yuwzUfOGjNlb3FTwQorSX1g"
       },
       "googleLogin": {
         "handler": "src/function/auth/googleLogin.handler",
@@ -4370,7 +4357,7 @@
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "GoogleLoginLambdaVersionXjYy3dfIxa2pzEg4crpVmNMjbtN1lYId2imWxrxscY"
+        "versionLogicalId": "GoogleLoginLambdaVersionaybaDjKSFyFf8dckkqOlSqUTBsgJgHUdQolI9HJDew"
       },
       "getSession": {
         "handler": "src/function/auth/getSession.handler",
@@ -4412,7 +4399,50 @@
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "GetSessionLambdaVersionbfBvINraGp7ZdQAmOLbBHGy4H8gUmtVIWCIUbtkU4"
+        "versionLogicalId": "GetSessionLambdaVersionwhxp4naNVyaw3ZedMDAssy99isHaa5iNYfuuIuEPPmE"
+      },
+      "generateCSRFToken": {
+        "handler": "src/function/auth/generateCSRFToken.handler",
+        "events": [
+          {
+            "http": {
+              "path": "auth/csrf-token",
+              "method": "post",
+              "cors": {
+                "methods": [
+                  "OPTIONS",
+                  "POST"
+                ],
+                "headers": [
+                  "Content-Type",
+                  "X-Amz-Date",
+                  "Authorization",
+                  "X-Api-Key",
+                  "X-Amz-Security-Token",
+                  "X-Amz-User-Agent",
+                  "Cookie",
+                  "X-Session-Id"
+                ],
+                "allowCredentials": true,
+                "origins": [
+                  "http://localhost:3001",
+                  "http://localhost:3000",
+                  "https://portfolio-wise.com",
+                  "https://www.portfolio-wise.com",
+                  "https://app.portfolio-wise.com"
+                ]
+              },
+              "integration": "AWS_PROXY"
+            }
+          }
+        ],
+        "name": "pfwise-api-prod-generateCSRFToken",
+        "package": {},
+        "memory": 256,
+        "timeout": 30,
+        "runtime": "nodejs18.x",
+        "vpc": {},
+        "versionLogicalId": "GenerateCSRFTokenLambdaVersionhrVyvftdHGKbYOjDydy1Vp5UWQViYVGfNHA1WUUwg"
       },
       "logout": {
         "handler": "src/function/auth/logout.handler",
@@ -4454,7 +4484,7 @@
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "LogoutLambdaVersionnxng7UhwG9m921DzTdhVPGhCmNkXx65qYJfkhR7mUs"
+        "versionLogicalId": "LogoutLambdaVersionYhGCeVCLlNbF0FSziQy9QdtTwpY0CNUscNYLOKFNG0"
       },
       "googleDriveAuthInitiate": {
         "handler": "src/function/auth/googleDriveAuth.initiateAuth",
@@ -4525,7 +4555,7 @@
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "GoogleDriveAuthInitiateLambdaVersion30rRVuwXhXfBKwq6pri4ggImZkJVIZUQrb3Vjsp7Ig"
+        "versionLogicalId": "GoogleDriveAuthInitiateLambdaVersionZegyea30LdC7TA5Rjpaxl5JPOIXxURwpRTWdpyF4SR4"
       },
       "googleDriveAuthCallback": {
         "handler": "src/function/auth/googleDriveAuth.callback",
@@ -4567,7 +4597,7 @@
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "GoogleDriveAuthCallbackLambdaVersion5GjxK88v4j365vdSjFZdVOtqv3guOZ8f5L3aDuATqQ"
+        "versionLogicalId": "GoogleDriveAuthCallbackLambdaVersionyPFlFIaQQjpPVTfD5TE8srA5lV26RewXvlHI02pVk"
       },
       "saveFile": {
         "handler": "src/function/drive/saveFile.handler",
@@ -4609,7 +4639,7 @@
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "SaveFileLambdaVersionXbqOKL9kJIDkuY8nSKTNq09b9yRsc09M8gPO0TFRs"
+        "versionLogicalId": "SaveFileLambdaVersionF2dRhPifOBkqQWQKfbMnjyBOtFILlNECnrwKyqOmws"
       },
       "loadFile": {
         "handler": "src/function/drive/loadFile.handler",
@@ -4651,7 +4681,7 @@
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "LoadFileLambdaVersionIBg7LZRoCnHQr9rOR9F1Aavn8xcObqNEkwvnkjYjo"
+        "versionLogicalId": "LoadFileLambdaVersionI82PLmST6aIkin7bkz42JiyH1nhlK29QD4Evbn8Wrw"
       },
       "listFiles": {
         "handler": "src/function/drive/listFiles.handler",
@@ -4693,7 +4723,7 @@
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "ListFilesLambdaVersionlfP3ZZ3IcjMezFUjW821mZMq9gSbH03rnxVOPYnv16s"
+        "versionLogicalId": "ListFilesLambdaVersionW50EJMxd34MAwjLfVy2kibo5wttxZtLMJWFjvpf2QA"
       },
       "getClientConfig": {
         "handler": "src/function/config/getClientConfig.handler",
@@ -4735,43 +4765,7 @@
         "timeout": 30,
         "runtime": "nodejs18.x",
         "vpc": {},
-        "versionLogicalId": "GetClientConfigLambdaVersionvIKZCFBpAMKpXBCak9lu6Q0x4R0mRDG74f6fNvKuK8"
-      },
-      "debugGoogleConfig": {
-        "handler": "src/function/debug/googleConfig.handler",
-        "events": [
-          {
-            "http": {
-              "path": "debug/google-config",
-              "method": "get",
-              "cors": {
-                "origin": "*",
-                "methods": [
-                  "OPTIONS",
-                  "GET"
-                ],
-                "headers": [
-                  "Content-Type",
-                  "X-Amz-Date",
-                  "Authorization",
-                  "X-Api-Key",
-                  "X-Amz-Security-Token",
-                  "X-Amz-User-Agent",
-                  "X-Amzn-Trace-Id"
-                ],
-                "allowCredentials": false
-              },
-              "integration": "AWS_PROXY"
-            }
-          }
-        ],
-        "name": "pfwise-api-prod-debugGoogleConfig",
-        "package": {},
-        "memory": 256,
-        "timeout": 30,
-        "runtime": "nodejs18.x",
-        "vpc": {},
-        "versionLogicalId": "DebugGoogleConfigLambdaVersionQcX2s9fgyDEXBrYc5JJfk5YjliDOrpvytP5ips9hdg"
+        "versionLogicalId": "GetClientConfigLambdaVersion7cBbaboYo7S8QLQrE3cTPPtlyASOiNmrHqbeT4fUI"
       }
     },
     "resources": {
@@ -4899,7 +4893,7 @@
         ],
         "artifactsS3KeyDirname": "serverless/pfwise-api/prod/code-artifacts",
         "artifact": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/backend/.serverless/pfwise-api.zip",
-        "artifactDirectoryName": "serverless/pfwise-api/prod/1748484562603-2025-05-29T02:09:22.603Z"
+        "artifactDirectoryName": "serverless/pfwise-api/prod/1748501020129-2025-05-29T06:43:40.129Z"
       },
       "provider": {
         "$ref": "$[\"service\"][\"provider\"]"
@@ -4922,7 +4916,7 @@
     "artifact": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/backend/.serverless/pfwise-api.zip"
   },
   "package": {
-    "artifactDirectoryName": "serverless/pfwise-api/prod/1748484562603-2025-05-29T02:09:22.603Z",
+    "artifactDirectoryName": "serverless/pfwise-api/prod/1748501020129-2025-05-29T06:43:40.129Z",
     "artifact": "pfwise-api.zip"
   }
 }

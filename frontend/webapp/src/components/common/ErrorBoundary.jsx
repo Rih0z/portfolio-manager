@@ -16,6 +16,7 @@
 // src/components/common/ErrorBoundary.jsx
 
 import React, { Component } from 'react';
+import { logErrorToService, sanitizeError } from '../../utils/errorHandler';
 
 /**
  * エラーバウンダリーコンポーネント
@@ -33,11 +34,9 @@ class ErrorBoundary extends Component {
   }
   
   componentDidCatch(error, errorInfo) {
-    // エラー情報をログに記録
-    console.error('Component error:', error, errorInfo);
+    // エラー情報をログに記録（本番環境では外部サービスに送信）
+    logErrorToService(error, errorInfo);
     this.setState({ errorInfo });
-    
-    // エラー情報を収集サービスに送信するなどの処理を追加可能
   }
   
   render() {
@@ -53,20 +52,26 @@ class ErrorBoundary extends Component {
       }
       
       // デフォルトのエラー表示
+      const sanitized = sanitizeError(error);
+      const isDevelopment = process.env.NODE_ENV === 'development';
+      
       return (
         <div className="p-4 border border-red-200 rounded-md bg-red-50 my-4">
           <h2 className="text-lg font-semibold text-red-700 mb-2">
-            コンポーネントの読み込み中にエラーが発生しました
+            エラーが発生しました
           </h2>
           <p className="text-red-600 mb-4">
-            {error && error.toString()}
+            {sanitized.message}
           </p>
-          <details className="text-sm text-gray-700">
-            <summary>詳細を表示</summary>
-            <pre className="mt-2 whitespace-pre-wrap overflow-auto p-2 bg-gray-100 rounded">
-              {errorInfo && errorInfo.componentStack}
-            </pre>
-          </details>
+          {isDevelopment && (
+            <details className="text-sm text-gray-700">
+              <summary>詳細を表示</summary>
+              <pre className="mt-2 whitespace-pre-wrap overflow-auto p-2 bg-gray-100 rounded">
+                {error && error.toString()}
+                {errorInfo && errorInfo.componentStack}
+              </pre>
+            </details>
+          )}
           <button
             className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
             onClick={this.resetError}

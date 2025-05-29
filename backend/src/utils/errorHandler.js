@@ -79,10 +79,13 @@ const handleError = async (error, type, context = {}) => {
   };
   
   // エラータイプに応じたログ出力
+  const isProd = process.env.NODE_ENV === 'production' || process.env.STAGE === 'prod';
+  const logContext = isProd ? { ...context, errorMessage: error.message } : { ...context, error };
+  
   if (type === errorTypes.CRITICAL_ERROR) {
-    logger.critical(`${type} Error Occurred`, error, context);
+    logger.critical(`${type} Error Occurred`, logContext);
   } else {
-    logger.error(`${type} Error Occurred`, error, context);
+    logger.error(`${type} Error Occurred`, logContext);
   }
   
   // 重要なエラーのみアラート送信
@@ -118,6 +121,7 @@ const handleError = async (error, type, context = {}) => {
 const createErrorResponse = async (error, type, context = {}) => {
   // エラー情報を取得
   const errorInfo = await handleError(error, type, context);
+  const isProd = process.env.NODE_ENV === 'production' || process.env.STAGE === 'prod';
   
   // HTTPステータスコードを決定
   const statusCode = context.statusCode || statusCodes[type] || 500;
@@ -148,7 +152,7 @@ const createErrorResponse = async (error, type, context = {}) => {
       error: {
         code: errorCode,
         message: errorInfo.message,
-        ...(context.includeDetails && { details: errorInfo.details || error.message }),
+        ...(context.includeDetails && !isProd && { details: errorInfo.details || error.message }),
         ...(context.retryAfter && { retryAfter: context.retryAfter }),
         ...(context.usage && { usage: context.usage }),
         ...(context.requestId && { requestId: context.requestId })

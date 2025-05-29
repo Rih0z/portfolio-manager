@@ -8,10 +8,29 @@
     "build:webapp": "cd frontend/webapp && npm run build",
     "test:webapp": "cd frontend/webapp && npm test",
     "install:all": "npm install && cd frontend/webapp && npm install",
-    "netlify:build": "cd frontend/webapp && CI= npm run build"
+    "netlify:build": "cd frontend/webapp && CI= npm run build",
+    "e2e": "./scripts/run-e2e-tests.sh all",
+    "e2e:aws": "./scripts/run-e2e-tests.sh aws",
+    "e2e:performance": "./scripts/run-e2e-tests.sh performance",
+    "e2e:ui": "./scripts/run-e2e-tests.sh ui",
+    "e2e:debug": "./scripts/run-e2e-tests.sh debug",
+    "e2e:report": "./scripts/run-e2e-tests.sh report"
   },
   "workspaces": [
     "frontend/webapp",
     "backend"
-  ]
+  ],
+  "overrides": {
+    "cookie": "^0.7.0",
+    "cross-spawn": "^7.0.5",
+    "follow-redirects": "^1.15.6",
+    "nanoid": "^3.3.8",
+    "protobufjs": "^7.2.5",
+    "tar": "^6.2.1",
+    "word-wrap": "^1.2.5",
+    "@grpc/grpc-js": "^1.8.22"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.52.0"
+  }
 }
