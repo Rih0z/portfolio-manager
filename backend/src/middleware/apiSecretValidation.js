@@ -30,7 +30,11 @@ const validateApiSecret = async (event) => {
         API_SECRET = await getApiSecret();
       } catch (error) {
         logger.warn('API Secret取得でエラー、フォールバックを使用:', error.message);
-        API_SECRET = '***REMOVED***'; // フォールバック値
+        // セキュリティのため、フォールバック値は環境変数のみ使用
+        API_SECRET = process.env.API_SECRET;
+        if (!API_SECRET) {
+          throw new Error('API_SECRET not available from both Secrets Manager and environment variables');
+        }
       }
     }
     

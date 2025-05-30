@@ -76,3 +76,6 @@ backend/deploy.log
 # 内部ドキュメント（機密情報を含む可能性があるため）
 /document/message/
 /frontend/webapp/document/message/
+/backend/document/message/
+/backend/document/frontend/message/
+/backend/document/backend/message/
