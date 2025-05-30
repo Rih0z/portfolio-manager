@@ -132,25 +132,43 @@ This is a React-based portfolio management application with AI-powered investmen
 #### Manual Deployment with Claude Code
 For immediate deployment using Claude Code environment:
 
-1. **Build the application**:
+**Note**: Due to npm workspace conflicts in the monorepo structure, use the following method:
+
+1. **Create an isolated copy for building**:
    ```bash
-   cd frontend/webapp
-   npm install --legacy-peer-deps
-   NODE_OPTIONS='--openssl-legacy-provider' npm run build
+   cd frontend
+   cp -r webapp webapp-build
    ```
 
-2. **Deploy to Cloudflare Pages**:
+2. **Install dependencies in the isolated copy**:
    ```bash
-   cd frontend/webapp
+   cd webapp-build
+   npm install --legacy-peer-deps --no-audit --no-fund
+   ```
+
+3. **Build with environment variables**:
+   ```bash
+   REACT_APP_API_BASE_URL='https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod' \
+   REACT_APP_DEFAULT_EXCHANGE_RATE='150.0' \
+   NODE_OPTIONS='--openssl-legacy-provider' \
+   npm run build
+   ```
+
+4. **Deploy to Cloudflare Pages**:
+   ```bash
    wrangler pages deploy build --project-name=portfolio-manager
    ```
 
-3. **Alternative: Deploy from project root**:
+5. **Clean up**:
    ```bash
-   # From project root directory
-   npm run build:webapp
-   wrangler pages deploy frontend/webapp/build --project-name=portfolio-manager
+   cd ../..
+   rm -rf frontend/webapp-build
    ```
+
+**Important Notes**:
+- This method avoids npm workspace conflicts by creating an isolated build directory
+- Environment variables must be set at build time for React apps
+- The deployment creates a preview URL first, then updates the main site
 
 #### Automated Deployment
 - Cloudflare Pages deployment is also automated via GitHub Actions
