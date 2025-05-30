@@ -18,7 +18,7 @@
 const { ERROR_CODES, RESPONSE_FORMATS } = require('../config/constants');
 // テスト互換性対応: addBudgetWarningToResponse の追加
 const { isBudgetCritical, getBudgetWarningMessage, addBudgetWarningToResponse } = require('./budgetCheck');
-const { getCorsHeaders } = require('./corsHelper');
+const { getCorsHeaders } = require('./corsHeaders');
 const { mergeWithSecurityHeaders } = require('./securityHeaders');
 
 /**

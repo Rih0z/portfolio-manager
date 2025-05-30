@@ -60,6 +60,10 @@ const createUserSession = async (userData) => {
     refreshToken: userData.refreshToken || null, // リフレッシュトークンがない場合もある
     tokenExpiry: userData.tokenExpiry || null,
     requiresOAuth: userData.requiresOAuth || false, // Drive API用OAuth2フローが必要かどうか
+    // Google Drive関連のトークンを追加
+    driveAccessToken: userData.driveAccessToken || null,
+    driveRefreshToken: userData.driveRefreshToken || null,
+    driveTokenExpiry: userData.driveTokenExpiry || null,
     createdAt: now.toISOString(),
     updatedAt: now.toISOString(),
     expiresAt: expiresAt.toISOString(),

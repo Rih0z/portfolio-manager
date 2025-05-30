@@ -18,7 +18,7 @@ import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 import Papa from 'papaparse';
 
 const ImportOptions = () => {
-  const { importPortfolioData } = usePortfolioContext();
+  const { importData } = usePortfolioContext();
   const [importFormat, setImportFormat] = useState('json');
   const [importMethod, setImportMethod] = useState('file');
   const [importText, setImportText] = useState('');
@@ -96,8 +96,12 @@ const ImportOptions = () => {
           data = parseCSV(content);
         }
         
-        await importPortfolioData(data);
-        setImportStatus({ type: 'success', message: 'データを正常にインポートしました' });
+        const result = await importData(data);
+        if (result && result.success) {
+          setImportStatus({ type: 'success', message: result.message || 'データを正常にインポートしました' });
+        } else {
+          throw new Error(result?.message || 'インポートに失敗しました');
+        }
       } catch (error) {
         console.error('インポートエラー:', error);
         setImportStatus({ type: 'error', message: `インポートに失敗しました: ${error.message}` });
@@ -116,7 +120,7 @@ const ImportOptions = () => {
     } else {
       reader.readAsText(file);
     }
-  }, [importFormat, importPortfolioData, parseCSV]);
+  }, [importFormat, importData, parseCSV]);
 
   // クリップボードからのインポート
   const handlePaste = useCallback(async () => {
@@ -137,15 +141,19 @@ const ImportOptions = () => {
         data = parseCSV(clipboardText);
       }
       
-      await importPortfolioData(data);
-      setImportStatus({ type: 'success', message: 'データを正常にインポートしました' });
+      const result = await importData(data);
+      if (result && result.success) {
+        setImportStatus({ type: 'success', message: result.message || 'データを正常にインポートしました' });
+      } else {
+        throw new Error(result?.message || 'インポートに失敗しました');
+      }
     } catch (error) {
       console.error('クリップボードインポートエラー:', error);
       setImportStatus({ type: 'error', message: `インポートに失敗しました: ${error.message}` });
     } finally {
       setIsLoading(false);
     }
-  }, [importFormat, importPortfolioData, parseCSV]);
+  }, [importFormat, importData, parseCSV]);
 
   // テキスト入力からのインポート
   const handleTextImport = useCallback(async () => {
@@ -165,8 +173,12 @@ const ImportOptions = () => {
         data = parseCSV(importText);
       }
       
-      await importPortfolioData(data);
-      setImportStatus({ type: 'success', message: 'データを正常にインポートしました' });
+      const result = await importData(data);
+      if (result && result.success) {
+        setImportStatus({ type: 'success', message: result.message || 'データを正常にインポートしました' });
+      } else {
+        throw new Error(result?.message || 'インポートに失敗しました');
+      }
       setImportText(''); // 入力フィールドをクリア
     } catch (error) {
       console.error('テキストインポートエラー:', error);
@@ -174,7 +186,7 @@ const ImportOptions = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [importText, importFormat, importPortfolioData, parseCSV]);
+  }, [importText, importFormat, importData, parseCSV]);
 
   return (
     <div className="bg-white rounded-lg shadow p-4 mb-6">

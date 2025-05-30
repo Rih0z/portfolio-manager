@@ -126,8 +126,8 @@ const getApiKeys = async () => {
       fixerApi: externalApis.FIXER_API_KEY || process.env.FIXER_API_KEY,
       
       // Google OAuth
-      googleClientId: googleOAuth.clientId || process.env.GOOGLE_CLIENT_ID,
-      googleClientSecret: googleOAuth.clientSecret || process.env.GOOGLE_CLIENT_SECRET,
+      googleClientId: googleOAuth.clientId || credentials.googleClientId || process.env.GOOGLE_CLIENT_ID,
+      googleClientSecret: googleOAuth.clientSecret || credentials.googleClientSecret || process.env.GOOGLE_CLIENT_SECRET,
       googleRedirectUri: googleOAuth.redirectUri || process.env.GOOGLE_REDIRECT_URI,
       
       // GitHub

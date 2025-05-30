@@ -26,10 +26,10 @@ const { createSessionCookie } = require('../../utils/cookieParser');
 module.exports.handler = async (event) => {
   // OPTIONSリクエストの処理
   if (event.httpMethod === 'OPTIONS') {
-    const { getCorsHeaders } = require('../../utils/corsHelper');
+    const { getCorsHeaders } = require('../../utils/corsHeaders');
     return {
       statusCode: 200,
-      headers: getCorsHeaders({}, event),
+      headers: getCorsHeaders(event),
       body: ''
     };
   }

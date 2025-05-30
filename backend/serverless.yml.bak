@@ -1,41 +1,26 @@
 service: pfwise-api
 
 package:
-  individually: false
-  excludeDevDependencies: true
-  patterns:
-    - '!__tests__/**'
-    - '!test-results/**'
-    - '!coverage/**'
-    - '!document/**'
-    - '!scripts/**'
-    - '!.jest-cache/**'
-    - '!dynamodb-local/**'
-    - '!*.md'
-    - '!*.bak*'
-    - '!*.test.js'
-    - '!*.spec.js'
-    - '!.git/**'
-    - '!.github/**'
-    - '!node_modules/aws-sdk/**'
-    - '!node_modules/jest/**'
-    - '!node_modules/sinon/**'
-    - '!node_modules/mock-fs/**'
-    - '!node_modules/nock/**'
-    - '!node_modules/supertest/**'
-    - '!node_modules/@types/**'
-    - '!node_modules/serverless/**'
-    - '!node_modules/serverless-*/**'
-    # Explicitly include critical dependencies
-    - 'node_modules/axios/**'
-    - 'node_modules/@aws-sdk/**'
-    - 'node_modules/jsonwebtoken/**'
-    - 'node_modules/joi/**'
-    - 'node_modules/lodash/**'
-    - 'node_modules/winston/**'
-    - 'node_modules/bottleneck/**'
-    - 'node_modules/p-retry/**'
-    - 'node_modules/uuid/**'
+  exclude:
+    - __tests__/**
+    - test-results/**
+    - coverage/**
+    - document/**
+    - scripts/**
+    - .jest-cache/**
+    - dynamodb-local/**
+    - "*.md"
+    - "*.bak*"
+    - "*.test.js"
+    - "*.spec.js"
+    - .git/**
+    - .github/**
+    - node_modules/aws-sdk/** # AWS SDK v2は不要
+    - node_modules/jest/**
+    - node_modules/sinon/**
+    - node_modules/mock-fs/**
+    - node_modules/nock/**
+    - node_modules/supertest/**
 
 provider:
   name: aws
@@ -129,7 +114,6 @@ provider:
         - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pfwise-api/google-oauth-*'
         - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pfwise-api/github-token-*'
         - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pfwise-api/api-secret-*'
-        - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pfwise-api/external-apis-*'
     # SNS権限を一時的に無効化
     # - Effect: Allow
     #   Action:
@@ -156,7 +140,7 @@ functions:
               - https://portfolio-wise.com
               - https://www.portfolio-wise.com
               - https://app.portfolio-wise.com
-              - https://pfwise-portfolio-manager.pages.dev
+              - https://portfolio-manager-7bx.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -186,7 +170,7 @@ functions:
               - https://portfolio-wise.com
               - https://www.portfolio-wise.com
               - https://app.portfolio-wise.com
-              - https://pfwise-portfolio-manager.pages.dev
+              - https://portfolio-manager-7bx.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -211,7 +195,7 @@ functions:
               - https://portfolio-wise.com
               - https://www.portfolio-wise.com
               - https://app.portfolio-wise.com
-              - https://pfwise-portfolio-manager.pages.dev
+              - https://portfolio-manager-7bx.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -236,7 +220,7 @@ functions:
               - https://portfolio-wise.com
               - https://www.portfolio-wise.com
               - https://app.portfolio-wise.com
-              - https://pfwise-portfolio-manager.pages.dev
+              - https://portfolio-manager-7bx.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -262,7 +246,7 @@ functions:
               - https://portfolio-wise.com
               - https://www.portfolio-wise.com
               - https://app.portfolio-wise.com
-              - https://pfwise-portfolio-manager.pages.dev
+              - https://portfolio-manager-7bx.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -282,7 +266,7 @@ functions:
               - https://portfolio-wise.com
               - https://www.portfolio-wise.com
               - https://app.portfolio-wise.com
-              - https://pfwise-portfolio-manager.pages.dev
+              - https://portfolio-manager-7bx.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -306,7 +290,7 @@ functions:
               - https://portfolio-wise.com
               - https://www.portfolio-wise.com
               - https://app.portfolio-wise.com
-              - https://pfwise-portfolio-manager.pages.dev
+              - https://portfolio-manager-7bx.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -330,7 +314,7 @@ functions:
               - https://portfolio-wise.com
               - https://www.portfolio-wise.com
               - https://app.portfolio-wise.com
-              - https://pfwise-portfolio-manager.pages.dev
+              - https://portfolio-manager-7bx.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -355,7 +339,7 @@ functions:
               - https://portfolio-wise.com
               - https://www.portfolio-wise.com
               - https://app.portfolio-wise.com
-              - https://pfwise-portfolio-manager.pages.dev
+              - https://portfolio-manager-7bx.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -381,7 +365,7 @@ functions:
               - https://portfolio-wise.com
               - https://www.portfolio-wise.com
               - https://app.portfolio-wise.com
-              - https://pfwise-portfolio-manager.pages.dev
+              - https://portfolio-manager-7bx.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -401,7 +385,7 @@ functions:
               - https://portfolio-wise.com
               - https://www.portfolio-wise.com
               - https://app.portfolio-wise.com
-              - https://pfwise-portfolio-manager.pages.dev
+              - https://portfolio-manager-7bx.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -425,7 +409,7 @@ functions:
               - https://portfolio-wise.com
               - https://www.portfolio-wise.com
               - https://app.portfolio-wise.com
-              - https://pfwise-portfolio-manager.pages.dev
+              - https://portfolio-manager-7bx.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -450,7 +434,7 @@ functions:
               - https://portfolio-wise.com
               - https://www.portfolio-wise.com
               - https://app.portfolio-wise.com
-              - https://pfwise-portfolio-manager.pages.dev
+              - https://portfolio-manager-7bx.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -474,7 +458,7 @@ functions:
               - https://portfolio-wise.com
               - https://www.portfolio-wise.com
               - https://app.portfolio-wise.com
-              - https://pfwise-portfolio-manager.pages.dev
+              - https://portfolio-manager-7bx.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -498,7 +482,7 @@ functions:
               - https://portfolio-wise.com
               - https://www.portfolio-wise.com
               - https://app.portfolio-wise.com
-              - https://pfwise-portfolio-manager.pages.dev
+              - https://portfolio-manager-7bx.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -523,7 +507,7 @@ functions:
               - https://portfolio-wise.com
               - https://www.portfolio-wise.com
               - https://app.portfolio-wise.com
-              - https://pfwise-portfolio-manager.pages.dev
+              - https://portfolio-manager-7bx.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -630,8 +614,8 @@ custom:
     dev: ${env:DRIVE_AUTH_SUCCESS_URL, 'http://localhost:3001/drive-success'}
     prod: https://${env:DOMAIN_NAME, 'portfolio-wise.com'}/drive-success
   corsAllowedOrigins:
-    dev: ${env:CORS_ALLOWED_ORIGINS, 'http://localhost:3000,http://localhost:3001,https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com,https://pfwise-portfolio-manager.pages.dev,https://*.pfwise-portfolio-manager.pages.dev'}
-    prod: ${env:CORS_ALLOWED_ORIGINS, 'https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com,https://pfwise-portfolio-manager.pages.dev,https://*.pfwise-portfolio-manager.pages.dev'}
+    dev: ${env:CORS_ALLOWED_ORIGINS, 'http://localhost:3000,http://localhost:3001,https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com,https://portfolio-manager-7bx.pages.dev,https://*.portfolio-manager-7bx.pages.dev'}
+    prod: ${env:CORS_ALLOWED_ORIGINS, 'https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com,https://portfolio-manager-7bx.pages.dev,https://*.portfolio-manager-7bx.pages.dev'}
   # Production specific settings
   logRetentionInDays:
     dev: 7

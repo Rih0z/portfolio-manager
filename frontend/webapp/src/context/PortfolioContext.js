@@ -1090,13 +1090,65 @@ export const PortfolioProvider = ({ children }) => {
     if (!data) return { success: false, message: 'データが無効です' };
     
     try {
-      // 基本的なデータ構造の検証
-      const requiredFields = ['baseCurrency', 'currentAssets', 'targetPortfolio'];
-      const missingFields = requiredFields.filter(field => !(field in data));
+      console.log('ImportData: 受信したデータ:', data);
+      console.log('ImportData: データの型:', typeof data);
+      console.log('ImportData: データのキー:', Object.keys(data));
+      
+      // データが文字列の場合（誤ってJSON.stringifyを2回かけた場合など）
+      if (typeof data === 'string') {
+        try {
+          console.log('ImportData: データが文字列形式です。JSONパースを試みます');
+          data = JSON.parse(data);
+        } catch (e) {
+          console.error('ImportData: JSONパースに失敗しました:', e);
+          throw new Error('データの形式が無効です。JSONとして解析できませんでした。');
+        }
+      }
+      
+      // データ構造の自動変換（portfolioData形式への対応）
+      let importDataStructure = data;
+      
+      // もしdataがportfolioData形式の場合（ネストした構造）
+      if (data.portfolioData && typeof data.portfolioData === 'object') {
+        console.log('ImportData: portfolioData形式を検出、変換します');
+        importDataStructure = {
+          baseCurrency: data.portfolioData.baseCurrency || data.baseCurrency || 'JPY',
+          exchangeRate: data.portfolioData.exchangeRate || data.exchangeRate,
+          currentAssets: data.portfolioData.assets || data.portfolioData.currentAssets || [],
+          targetPortfolio: data.portfolioData.targetAllocation || data.portfolioData.targetPortfolio || [],
+          additionalBudget: data.portfolioData.additionalBudget || data.additionalBudget,
+          aiPromptTemplate: data.portfolioData.aiPromptTemplate || data.aiPromptTemplate
+        };
+      }
+      
+      // baseCurrencyがない場合のデフォルト値設定
+      if (!importDataStructure.baseCurrency) {
+        console.log('ImportData: baseCurrencyが未定義です。JPYをデフォルト値として設定します');
+        importDataStructure.baseCurrency = 'JPY';
+      }
+      
+      // 基本的なデータ構造の検証（必須フィールドのみチェック）
+      const requiredFields = ['currentAssets', 'targetPortfolio'];
+      const missingFields = requiredFields.filter(field => !(field in importDataStructure));
+      
+      console.log('ImportData: 必須フィールドチェック結果:', {
+        originalKeys: Object.keys(data),
+        transformedKeys: Object.keys(importDataStructure),
+        requiredFields,
+        missingFields,
+        hasBaseCurrency: 'baseCurrency' in importDataStructure,
+        hasCurrentAssets: 'currentAssets' in importDataStructure,
+        hasTargetPortfolio: 'targetPortfolio' in importDataStructure,
+        currentAssetsCount: Array.isArray(importDataStructure.currentAssets) ? importDataStructure.currentAssets.length : 0,
+        targetPortfolioCount: Array.isArray(importDataStructure.targetPortfolio) ? importDataStructure.targetPortfolio.length : 0
+      });
       
       if (missingFields.length > 0) {
         throw new Error(`必須フィールドがありません: ${missingFields.join(', ')}`);
       }
+      
+      // 変換されたデータを使用
+      data = importDataStructure;
       
       // 必須フィールドの検証
       if (data.baseCurrency) setBaseCurrency(data.baseCurrency);

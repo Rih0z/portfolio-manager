@@ -63,6 +63,7 @@ frontend/webapp/coverage/
 frontend/webapp/.env*
 frontend/webapp/test-results/
 frontend/webapp/*.log
+frontend/webapp-build/
 
 # Backend specific
 backend/node_modules/

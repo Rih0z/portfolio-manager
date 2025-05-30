@@ -75,8 +75,8 @@ export const getApiEndpoint = async (path) => {
   const cleanPath = path.startsWith('/') ? path.slice(1) : path;
   
   // プロダクション環境でCloudflare Pagesプロキシを使用
-  if (process.env.NODE_ENV === 'production' && !path.includes('auth/google')) {
-    // Google認証関連以外はプロキシ経由
+  if (process.env.NODE_ENV === 'production') {
+    // プロダクション環境では全てプロキシ経由
     return `/api-proxy/${cleanPath}`;
   }
   
@@ -88,6 +88,10 @@ export const getApiEndpoint = async (path) => {
   
   // AWS APIのURLを使用
   if (baseUrl) {
+    // baseUrlに既にステージが含まれているかチェック
+    if (baseUrl.includes('/prod') || baseUrl.includes('/dev')) {
+      return `${baseUrl}/${cleanPath}`;
+    }
     return `${baseUrl}/${stage}/${cleanPath}`;
   }
   

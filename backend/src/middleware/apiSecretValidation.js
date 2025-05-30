@@ -3,8 +3,8 @@
  * Cloudflare経由のリクエストのみを許可
  */
 
-const { createResponse } = require('../utils/response');
 const logger = require('../utils/logger');
+const { getCorsHeaders } = require('../utils/corsHeaders');
 
 // AWS Secrets Managerから取得
 const { getApiSecret } = require('../utils/secretsManager');
@@ -48,19 +48,27 @@ const validateApiSecret = async (event) => {
         userAgent: event.headers['User-Agent']
       });
       
-      return createResponse(403, {
-        error: 'Forbidden',
-        message: 'Direct API access is not allowed'
-      });
+      return {
+        statusCode: 403,
+        headers: getCorsHeaders(event),
+        body: JSON.stringify({
+          error: 'Forbidden',
+          message: 'Direct API access is not allowed'
+        })
+      };
     }
     
     return null;
   } catch (error) {
     logger.error('API secret validation error:', error);
     // エラーの場合はリクエストを拒否
-    return createResponse(500, {
-      error: 'Internal server error'
-    });
+    return {
+      statusCode: 500,
+      headers: getCorsHeaders(event),
+      body: JSON.stringify({
+        error: 'Internal server error'
+      })
+    };
   }
 };
 

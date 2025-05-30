@@ -138,8 +138,8 @@ const parseCookies = (cookieInput = '') => {
  */
 const createSessionCookie = (sessionId, maxAge = 604800, secure = true, sameSite = 'None') => {
   // API Gatewayを通じて配信されるため、常にSecureとSameSite=Noneが必要
-  // sessionId という名前でCookieを設定
-  return `sessionId=${encodeURIComponent(sessionId)}; HttpOnly; Secure; SameSite=None; Max-Age=${maxAge}; Path=/`;
+  // session という名前でCookieを設定
+  return `session=${encodeURIComponent(sessionId)}; HttpOnly; Secure; SameSite=None; Max-Age=${maxAge}; Path=/`;
 };
 
 /**
@@ -148,8 +148,8 @@ const createSessionCookie = (sessionId, maxAge = 604800, secure = true, sameSite
  * @returns {string} - Cookie文字列
  */
 const createClearSessionCookie = (secure = true) => {
-  // sessionId という名前でCookieを削除
-  return `sessionId=; HttpOnly; Secure; SameSite=None; Max-Age=0; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+  // session という名前でCookieを削除
+  return `session=; HttpOnly; Secure; SameSite=None; Max-Age=0; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT`;
 };
 
 module.exports = {

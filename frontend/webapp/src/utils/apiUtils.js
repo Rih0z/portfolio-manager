@@ -306,7 +306,8 @@ export const fetchWithRetry = async (
   while (retries <= maxRetries) {
     try {
       // APIエンドポイントのURL生成
-      const url = endpoint.startsWith('http') ? endpoint : await getApiEndpoint(endpoint);
+      // endpointが既に /api-proxy/ で始まっている場合はそのまま使用
+      const url = endpoint.startsWith('http') || endpoint.startsWith('/') ? endpoint : await getApiEndpoint(endpoint);
       
       console.log(`[Attempt ${retries + 1}] 市場データ取得: ${url}`, params);
       
@@ -358,7 +359,7 @@ export const authFetch = async (endpoint, method = 'get', data = null, config = 
   
   try {
     // APIエンドポイントのURL生成
-    const url = endpoint.startsWith('http') ? endpoint : await getApiEndpoint(endpoint);
+    const url = endpoint.startsWith('http') || endpoint.startsWith('/') ? endpoint : await getApiEndpoint(endpoint);
     
     console.log(`認証付きリクエスト: ${method.toUpperCase()} ${url}`);
     console.log('authFetch cookie debug:', {
