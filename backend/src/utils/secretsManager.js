@@ -175,8 +175,22 @@ const getGoogleClientId = async () => {
   }
 };
 
+/**
+ * API Secret を取得
+ */
+const getApiSecret = async () => {
+  try {
+    return await getSecret('pfwise-api/api-secret');
+  } catch (error) {
+    logger.error('Failed to get API Secret:', error.message);
+    // フォールバック
+    return process.env.API_SECRET || '';
+  }
+};
+
 module.exports = {
   getSecret,
   getApiKeys,
-  getGoogleClientId
+  getGoogleClientId,
+  getApiSecret
 };

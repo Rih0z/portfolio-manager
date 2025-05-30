@@ -6,20 +6,27 @@
 const { createResponse } = require('../utils/response');
 const logger = require('../utils/logger');
 
-const API_SECRET = process.env.API_SECRET || 'your-secret-key-here';
+// AWS Secrets Managerから取得
+const { getApiSecret } = require('../utils/secretsManager');
+let API_SECRET = null;
 const SKIP_VALIDATION_PATHS = [
   '/auth/google/login',  // Google認証は直接アクセス必要
   '/auth/google/callback',
   '/auth/google/drive/callback'
 ];
 
-const validateApiSecret = (event) => {
+const validateApiSecret = async (event) => {
   try {
     const path = event.path;
     
     // 特定のパスはスキップ
     if (SKIP_VALIDATION_PATHS.some(skipPath => path.includes(skipPath))) {
       return null;
+    }
+    
+    // API_SECRETを遅延ロード
+    if (!API_SECRET) {
+      API_SECRET = await getApiSecret();
     }
     
     // X-API-Secretヘッダーの検証

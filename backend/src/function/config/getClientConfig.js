@@ -16,7 +16,7 @@ exports.handler = async (event) => {
     }
 
     // APIシークレットの検証
-    const validationError = validateApiSecret(event);
+    const validationError = await validateApiSecret(event);
     if (validationError) {
       return validationError;
     }

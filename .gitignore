@@ -12,6 +12,9 @@ coverage/
 build/
 dist/
 
+# Security - API Secret file
+cloudflare-env.txt
+
 # misc
 .DS_Store
 .env
