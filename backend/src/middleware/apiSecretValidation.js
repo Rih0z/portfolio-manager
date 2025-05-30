@@ -24,9 +24,14 @@ const validateApiSecret = async (event) => {
       return null;
     }
     
-    // API_SECRETを遅延ロード
+    // API_SECRETを遅延ロード（エラーが起きても処理を続行）
     if (!API_SECRET) {
-      API_SECRET = await getApiSecret();
+      try {
+        API_SECRET = await getApiSecret();
+      } catch (error) {
+        logger.warn('API Secret取得でエラー、フォールバックを使用:', error.message);
+        API_SECRET = '***REMOVED***'; // フォールバック値
+      }
     }
     
     // X-API-Secretヘッダーの検証

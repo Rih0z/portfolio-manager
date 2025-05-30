@@ -183,8 +183,8 @@ const getApiSecret = async () => {
     return await getSecret('pfwise-api/api-secret');
   } catch (error) {
     logger.error('Failed to get API Secret:', error.message);
-    // フォールバック
-    return process.env.API_SECRET || '';
+    // フォールバック（一時的に固定値を返す）
+    return process.env.API_SECRET || '***REMOVED***';
   }
 };
 
