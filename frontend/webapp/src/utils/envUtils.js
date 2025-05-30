@@ -74,6 +74,12 @@ export const getApiEndpoint = async (path) => {
   // パスが既にスラッシュで始まる場合は削除
   const cleanPath = path.startsWith('/') ? path.slice(1) : path;
   
+  // プロダクション環境でCloudflare Pagesプロキシを使用
+  if (process.env.NODE_ENV === 'production' && !path.includes('auth/google')) {
+    // Google認証関連以外はプロキシ経由
+    return `/api-proxy/${cleanPath}`;
+  }
+  
   // ローカル開発環境でプロキシを使用する場合
   if (isLocalDevelopment() && config.features?.useProxy) {
     // プロキシではシンプルなパスを使用

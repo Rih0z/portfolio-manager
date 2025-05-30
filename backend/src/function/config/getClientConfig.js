@@ -1,6 +1,7 @@
 const { getCorsHeaders, handleOptionsRequest } = require('../../utils/corsHeaders');
 const logger = require('../../utils/logger');
 const { getGoogleClientId } = require('../../utils/secretsManager');
+const { validateApiSecret } = require('../../middleware/apiSecretValidation');
 
 /**
  * Get client configuration
@@ -12,6 +13,12 @@ exports.handler = async (event) => {
     const optionsResponse = handleOptionsRequest(event);
     if (optionsResponse) {
       return optionsResponse;
+    }
+
+    // APIシークレットの検証
+    const validationError = validateApiSecret(event);
+    if (validationError) {
+      return validationError;
     }
 
     logger.info('Getting client configuration');

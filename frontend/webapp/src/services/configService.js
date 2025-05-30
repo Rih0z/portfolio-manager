@@ -17,10 +17,12 @@ import axios from 'axios';
 let configCache = null;
 let configFetchPromise = null;
 
-// AWS設定エンドポイント
-const CONFIG_ENDPOINT = process.env.REACT_APP_API_BASE_URL 
-  ? `${process.env.REACT_APP_API_BASE_URL}/config/client`
-  : null; // 環境変数が設定されていない場合はnull
+// AWS設定エンドポイント（Cloudflare Pagesプロキシ経由）
+const CONFIG_ENDPOINT = process.env.NODE_ENV === 'production'
+  ? '/api-proxy/config/client'  // プロダクション環境ではプロキシ経由
+  : process.env.REACT_APP_API_BASE_URL 
+    ? `${process.env.REACT_APP_API_BASE_URL}/config/client`
+    : null; // 開発環境では直接アクセス
 
 // デバッグ用
 console.log('ConfigService initialization:', {
