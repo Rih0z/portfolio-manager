@@ -97,8 +97,27 @@ const ImportOptions = () => {
           data = parseCSV(content);
         }
         
-        console.log('Calling importData with:', data);
-        const result = await importData(data);
+        // データの正規化
+        const normalizedData = {
+          ...data,
+          // additionalBudgetがない場合はデフォルト値を設定
+          additionalBudget: data.additionalBudget || { amount: 0, currency: 'JPY' },
+          // currentAssetsの各アイテムにidがある場合、tickerと一致させる
+          currentAssets: data.currentAssets?.map(asset => ({
+            ...asset,
+            ticker: asset.ticker || asset.id,
+            id: asset.id || asset.ticker
+          })) || [],
+          // targetPortfolioも同様に処理
+          targetPortfolio: data.targetPortfolio?.map(target => ({
+            ...target,
+            ticker: target.ticker || target.id,
+            id: target.id || target.ticker
+          })) || []
+        };
+        
+        console.log('Calling importData with normalized data:', normalizedData);
+        const result = await importData(normalizedData);
         console.log('Import result:', result);
         
         if (result && result.success) {
@@ -149,7 +168,23 @@ const ImportOptions = () => {
         throw new Error('インポート機能が利用できません。ページを再読み込みしてください。');
       }
       
-      const result = await importData(data);
+      // データの正規化
+      const normalizedData = {
+        ...data,
+        additionalBudget: data.additionalBudget || { amount: 0, currency: 'JPY' },
+        currentAssets: data.currentAssets?.map(asset => ({
+          ...asset,
+          ticker: asset.ticker || asset.id,
+          id: asset.id || asset.ticker
+        })) || [],
+        targetPortfolio: data.targetPortfolio?.map(target => ({
+          ...target,
+          ticker: target.ticker || target.id,
+          id: target.id || target.ticker
+        })) || []
+      };
+      
+      const result = await importData(normalizedData);
       if (result && result.success) {
         setImportStatus({ type: 'success', message: result.message || 'データを正常にインポートしました' });
       } else {
@@ -185,7 +220,23 @@ const ImportOptions = () => {
         throw new Error('インポート機能が利用できません。ページを再読み込みしてください。');
       }
       
-      const result = await importData(data);
+      // データの正規化
+      const normalizedData = {
+        ...data,
+        additionalBudget: data.additionalBudget || { amount: 0, currency: 'JPY' },
+        currentAssets: data.currentAssets?.map(asset => ({
+          ...asset,
+          ticker: asset.ticker || asset.id,
+          id: asset.id || asset.ticker
+        })) || [],
+        targetPortfolio: data.targetPortfolio?.map(target => ({
+          ...target,
+          ticker: target.ticker || target.id,
+          id: target.id || target.ticker
+        })) || []
+      };
+      
+      const result = await importData(normalizedData);
       if (result && result.success) {
         setImportStatus({ type: 'success', message: result.message || 'データを正常にインポートしました' });
       } else {
