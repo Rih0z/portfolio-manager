@@ -13,12 +13,20 @@
  * ファイル、クリップボード、テキスト入力の3種類のインポート方法をサポートし、
  * JSONとCSV形式のデータをインポート可能。Papa Parseライブラリを使用してCSVを解析する。
  */
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 import Papa from 'papaparse';
 
 const ImportOptions = () => {
-  const { importData } = usePortfolioContext();
+  const portfolioContext = usePortfolioContext();
+  const importData = portfolioContext.importData || portfolioContext.importPortfolioData;
+  
+  // デバッグ用
+  useEffect(() => {
+    console.log('PortfolioContext keys:', Object.keys(portfolioContext));
+    console.log('importData type:', typeof importData);
+  }, [portfolioContext, importData]);
+  
   const [importFormat, setImportFormat] = useState('json');
   const [importMethod, setImportMethod] = useState('file');
   const [importText, setImportText] = useState('');
@@ -96,6 +104,10 @@ const ImportOptions = () => {
           data = parseCSV(content);
         }
         
+        if (typeof importData !== 'function') {
+          throw new Error('インポート機能が利用できません。ページを再読み込みしてください。');
+        }
+        
         const result = await importData(data);
         if (result && result.success) {
           setImportStatus({ type: 'success', message: result.message || 'データを正常にインポートしました' });
@@ -141,6 +153,10 @@ const ImportOptions = () => {
         data = parseCSV(clipboardText);
       }
       
+      if (typeof importData !== 'function') {
+        throw new Error('インポート機能が利用できません。ページを再読み込みしてください。');
+      }
+      
       const result = await importData(data);
       if (result && result.success) {
         setImportStatus({ type: 'success', message: result.message || 'データを正常にインポートしました' });
@@ -171,6 +187,10 @@ const ImportOptions = () => {
         data = JSON.parse(importText);
       } else {
         data = parseCSV(importText);
+      }
+      
+      if (typeof importData !== 'function') {
+        throw new Error('インポート機能が利用できません。ページを再読み込みしてください。');
       }
       
       const result = await importData(data);
