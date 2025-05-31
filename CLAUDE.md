@@ -184,7 +184,7 @@ API configurations are fetched dynamically from AWS. The following environment v
 
 4. The `.gitignore` file is configured to exclude all `.env*` files except `.env.example`
 
-5. For production deployments on Cloudflare Pages, set `REACT_APP_API_BASE_URL` in your Cloudflare Pages environment variables
+5. For production deployments, set `REACT_APP_API_BASE_URL` in your hosting platform's environment variables
 
 ### API Security
 - All API configurations are managed server-side on AWS
@@ -213,3 +213,40 @@ API configurations are fetched dynamically from AWS. The following environment v
 3. **Using Mock API**:
    - If `USE_API_MOCKS=true` is set in .env.test, tests will use MSW mocks instead of real API
    - This is useful for unit tests and when the backend is unavailable
+
+## Deployment and URL Management
+
+### Production URL
+- **Primary Domain**: https://portfolio-wise.com/
+- **Hosting**: Cloudflare Pages
+- **Important**: Only this URL is registered with Google OAuth. Preview URLs (e.g., https://abc123.portfolio-manager-7bx.pages.dev) will NOT work for authentication.
+
+### Deployment Process
+1. **Build the production bundle**:
+   ```bash
+   cd frontend/webapp
+   REACT_APP_API_BASE_URL='https://YOUR_AWS_API_URL.execute-api.REGION.amazonaws.com/prod' \
+   REACT_APP_DEFAULT_EXCHANGE_RATE='150.0' \
+   NODE_OPTIONS='--openssl-legacy-provider' \
+   npm run build
+   ```
+
+2. **Deploy to Cloudflare Pages**:
+   ```bash
+   wrangler pages deploy build --project-name=portfolio-manager
+   ```
+   This creates a preview URL (e.g., https://abc123.portfolio-manager-7bx.pages.dev)
+
+3. **Production Deployment**:
+   - The deployment automatically promotes to https://portfolio-wise.com/ when pushed to the main branch
+   - Custom domain is configured in Cloudflare Pages settings
+   - SSL certificates are managed automatically by Cloudflare
+
+### Important Notes on URLs
+- **Preview URLs**: Generated for each deployment, useful for testing UI changes but cannot authenticate with Google
+- **Production URL**: Fixed domain (portfolio-wise.com) that is registered with Google OAuth
+- **Google OAuth Redirect URIs**: Only the following are registered:
+  - https://portfolio-wise.com/auth/google/callback
+  - https://portfolio-wise.com/ (for popup auth)
+  
+Never attempt to add preview URLs to Google OAuth settings as they change with each deployment.
