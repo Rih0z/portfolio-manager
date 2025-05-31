@@ -1,0 +1,657 @@
+service: pfwise-api
+
+package:
+  individually: false
+  excludeDevDependencies: true
+  patterns:
+    - '!__tests__/**'
+    - '!test-results/**'
+    - '!coverage/**'
+    - '!document/**'
+    - '!scripts/**'
+    - '!.jest-cache/**'
+    - '!dynamodb-local/**'
+    - '!*.md'
+    - '!*.bak*'
+    - '!*.test.js'
+    - '!*.spec.js'
+    - '!.git/**'
+    - '!.github/**'
+    - '!node_modules/aws-sdk/**'
+    - '!node_modules/jest/**'
+    - '!node_modules/sinon/**'
+    - '!node_modules/mock-fs/**'
+    - '!node_modules/nock/**'
+    - '!node_modules/supertest/**'
+    - '!node_modules/@types/**'
+    - '!node_modules/serverless/**'
+    - '!node_modules/serverless-*/**'
+    # Explicitly include critical dependencies
+    - 'node_modules/axios/**'
+    - 'node_modules/@aws-sdk/**'
+    - 'node_modules/jsonwebtoken/**'
+    - 'node_modules/joi/**'
+    - 'node_modules/lodash/**'
+    - 'node_modules/winston/**'
+    - 'node_modules/bottleneck/**'
+    - 'node_modules/p-retry/**'
+    - 'node_modules/uuid/**'
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: ${opt:region, 'us-west-2'}
+  stage: ${opt:stage, 'dev'}
+  profile: ${opt:profile, ''}
+  memorySize: 256
+  timeout: 30
+  
+  environment:
+    NODE_ENV: ${self:provider.stage}
+    # 管理者設定（Secrets Manager から取得）
+    ADMIN_EMAIL: ${env:ADMIN_EMAIL, ''}
+    DAILY_REQUEST_LIMIT: ${self:custom.limits.${self:provider.stage}.daily}
+    MONTHLY_REQUEST_LIMIT: ${self:custom.limits.${self:provider.stage}.monthly}
+    DISABLE_ON_LIMIT: ${env:DISABLE_ON_LIMIT, 'true'}
+    
+    # セキュリティ設定
+    ADMIN_IP_WHITELIST: ${env:ADMIN_IP_WHITELIST, "127.0.0.1,::1"}
+    IP_BLACKLIST: ${env:IP_BLACKLIST, ''}
+    BLOCKED_COUNTRIES: ${env:BLOCKED_COUNTRIES, ''}
+    RATE_LIMIT_TABLE: ${env:RATE_LIMIT_TABLE, '${self:service}-${self:provider.stage}-rate-limits'}
+    
+    # キャッシュ設定
+    CACHE_TIME_US_STOCK: ${env:CACHE_TIME_US_STOCK, '3600'}
+    CACHE_TIME_JP_STOCK: ${env:CACHE_TIME_JP_STOCK, '3600'}
+    CACHE_TIME_MUTUAL_FUND: ${env:CACHE_TIME_MUTUAL_FUND, '10800'}
+    CACHE_TIME_EXCHANGE_RATE: ${env:CACHE_TIME_EXCHANGE_RATE, '3600'}
+    
+    # データベーステーブル
+    SESSION_TABLE: ${env:SESSION_TABLE, '${self:service}-${self:provider.stage}-sessions'}
+    CACHE_TABLE: ${env:CACHE_TABLE, '${self:service}-${self:provider.stage}-cache'}
+    
+    # セキュリティ設定
+    CORS_ALLOW_ORIGIN: ${env:CORS_ALLOW_ORIGIN, '*.portfoliomanager.com'}
+    DRIVE_FOLDER_NAME: ${env:DRIVE_FOLDER_NAME, 'PortfolioManagerData'}
+    LOG_LEVEL: ${self:custom.logLevel.${self:provider.stage}}
+    BUDGET_CHECK_ENABLED: ${self:custom.budgetCheck.${self:provider.stage}}
+    FREE_TIER_LIMIT: ${env:FREE_TIER_LIMIT, '25'}
+    DEFAULT_EXCHANGE_RATE: ${env:DEFAULT_EXCHANGE_RATE, '150.0'}
+    
+    # Secrets Manager 設定
+    SECRETS_MANAGER_SECRET_NAME: ${env:SECRETS_MANAGER_SECRET_NAME, 'pfwise-api/credentials'}
+    USE_SECRETS_MANAGER: ${env:USE_SECRETS_MANAGER, 'true'}
+    
+    # API設定
+    YAHOO_FINANCE_API_HOST: ${env:YAHOO_FINANCE_API_HOST, 'yh-finance.p.rapidapi.com'}
+    
+    # スクレイピング設定
+    JP_STOCK_SCRAPING_TIMEOUT: ${env:JP_STOCK_SCRAPING_TIMEOUT, '30000'}
+    US_STOCK_SCRAPING_TIMEOUT: ${env:US_STOCK_SCRAPING_TIMEOUT, '20000'}
+    MUTUAL_FUND_TIMEOUT: ${env:MUTUAL_FUND_TIMEOUT, '30000'}
+    SCRAPING_RATE_LIMIT_DELAY: ${env:SCRAPING_RATE_LIMIT_DELAY, '500'}
+    SCRAPING_MAX_FAILURES: ${env:SCRAPING_MAX_FAILURES, '3'}
+    SCRAPING_COOLDOWN_DAYS: ${env:SCRAPING_COOLDOWN_DAYS, '7'}
+    
+    # セキュリティ監査設定
+    ENABLE_AUDIT_LOGGING: ${env:ENABLE_AUDIT_LOGGING, 'true'}
+    ENABLE_RATE_LIMITING: ${env:ENABLE_RATE_LIMITING, 'true'}
+    MAX_REQUESTS_PER_MINUTE: ${env:MAX_REQUESTS_PER_MINUTE, '100'}
+    
+    # Google Drive OAuth設定
+    # Google認証情報（Client ID, Secret, Redirect URI）はSecrets Managerから取得（pfwise-api/google-oauth）
+    DRIVE_AUTH_SUCCESS_URL: ${self:custom.driveSuccessUrl.${self:provider.stage}}
+    
+    # CORS設定
+    CORS_ALLOWED_ORIGINS: ${self:custom.corsAllowedOrigins.${self:provider.stage}}
+  
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+        - dynamodb:DescribeTable
+      Resource: 
+        - !GetAtt MarketDataCacheTable.Arn
+        - !GetAtt SessionsTable.Arn
+        - !GetAtt ScrapingBlacklistTable.Arn
+        - !GetAtt RateLimitTable.Arn
+    # Secrets Manager アクセス権限
+    - Effect: Allow
+      Action:
+        - secretsmanager:GetSecretValue
+      Resource: 
+        - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pfwise-api/credentials-*'
+        - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pfwise-api/google-oauth-*'
+        - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pfwise-api/github-token-*'
+        - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pfwise-api/api-secret-*'
+        - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pfwise-api/external-apis-*'
+    # SNS権限を一時的に無効化
+    # - Effect: Allow
+    #   Action:
+    #     - sns:Publish
+    #   Resource: !Ref AlertTopic
+    - Effect: Allow
+      Action:
+        - budgets:DescribeBudgetPerformanceHistory
+        - budgets:DescribeBudgets
+      Resource: '*'
+
+functions:
+  # マーケットデータ関連機能
+  marketData:
+    handler: src/function/marketData.handler
+    events:
+      - http:
+          path: api/market-data
+          method: get
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+  
+  preWarmCache:
+    handler: src/function/preWarmCache.handler
+    events:
+      - schedule: rate(6 hours) # コスト削減のため1時間から6時間に変更
+  
+  # 管理者機能
+  getStatus:
+    handler: src/function/admin/getStatus.handler
+    events:
+      - http:
+          path: admin/status
+          method: get
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+          private: true
+  
+  resetUsage:
+    handler: src/function/admin/resetUsage.handler
+    events:
+      - http:
+          path: admin/reset
+          method: post
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+          private: true
+  
+  getBudgetStatus:
+    handler: src/function/admin/getBudgetStatus.handler
+    events:
+      - http:
+          path: admin/getBudgetStatus
+          method: get
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+          private: true
+  
+  # Google認証関連
+  googleLogin:
+    handler: src/function/auth/googleLogin.handler
+    events:
+      - http:
+          path: auth/google/login
+          method: post
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+      - http:
+          path: auth/google/login
+          method: options
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+  
+  getSession:
+    handler: src/function/auth/getSession.handler
+    events:
+      - http:
+          path: auth/session
+          method: get
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+  
+  generateCSRFToken:
+    handler: src/function/auth/generateCSRFToken.handler
+    events:
+      - http:
+          path: auth/csrf-token
+          method: post
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+              - X-Session-Id
+            allowCredentials: true
+  
+  logout:
+    handler: src/function/auth/logout.handler
+    events:
+      - http:
+          path: auth/logout
+          method: post
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+  
+  # Google Drive OAuth2認証
+  googleDriveAuthInitiate:
+    handler: src/function/auth/googleDriveAuth.initiateAuth
+    events:
+      - http:
+          path: auth/google/drive/initiate
+          method: get
+          integration: lambda-proxy
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+      - http:
+          path: auth/google/drive/initiate
+          method: options
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+  
+  googleDriveAuthCallback:
+    handler: src/function/auth/googleDriveAuth.callback
+    events:
+      - http:
+          path: auth/google/drive/callback
+          method: get
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+  
+  # Google Drive連携
+  saveFile:
+    handler: src/function/drive/saveFile.handler
+    events:
+      - http:
+          path: drive/save
+          method: post
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+  
+  loadFile:
+    handler: src/function/drive/loadFile.handler
+    events:
+      - http:
+          path: drive/load
+          method: get
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+  
+  listFiles:
+    handler: src/function/drive/listFiles.handler
+    events:
+      - http:
+          path: drive/files
+          method: get
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+  
+  # クライアント設定エンドポイント
+  getClientConfig:
+    handler: src/function/config/getClientConfig.handler
+    events:
+      - http:
+          path: config/client
+          method: get
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+
+  # デバッグエンドポイント（開発環境のみ）
+  # 本番環境ではコメントアウトすること
+  # debugGoogleConfig:
+  #   handler: src/function/debug/googleConfig.handler
+  #   events:
+  #     - http:
+  #         path: debug/google-config
+  #         method: get
+  #         cors: true
+
+resources:
+  Resources:
+    MarketDataCacheTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-${self:provider.stage}-cache
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: key
+            AttributeType: S
+        KeySchema:
+          - AttributeName: key
+            KeyType: HASH
+        TimeToLiveSpecification:
+          AttributeName: ttl
+          Enabled: true
+    
+    # セッション管理用DynamoDBテーブル
+    SessionsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${env:SESSION_TABLE, '${self:service}-${self:provider.stage}-sessions'}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: sessionId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: sessionId
+            KeyType: HASH
+        TimeToLiveSpecification:
+          AttributeName: ttl
+          Enabled: true
+    
+    # スクレイピングブラックリスト用DynamoDBテーブル
+    ScrapingBlacklistTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-${self:provider.stage}-scraping-blacklist
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: symbol
+            AttributeType: S
+        KeySchema:
+          - AttributeName: symbol
+            KeyType: HASH
+        TimeToLiveSpecification:
+          AttributeName: ttl
+          Enabled: true
+    
+    # レート制限用DynamoDBテーブル
+    RateLimitTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-${self:provider.stage}-rate-limits
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        TimeToLiveSpecification:
+          AttributeName: ttl
+          Enabled: true
+    
+    # AlertTopic を一時的に無効化
+    # AlertTopic:
+    #   Type: AWS::SNS::Topic
+    #   Properties:
+    #     TopicName: ${self:service}-${self:provider.stage}-alerts
+    #     Subscription:
+    #       - Protocol: email
+    #         Endpoint: ${env:ADMIN_EMAIL, ''}
+
+# plugins:
+#   - serverless-dotenv-plugin
+#   - serverless-offline
+
+custom:
+  driveRedirectUri:
+    dev: ${env:GOOGLE_REDIRECT_URI, 'https://x4scpbsuv2.execute-api.us-west-2.amazonaws.com/dev/auth/google/drive/callback'}
+    prod: https://api.${env:DOMAIN_NAME, 'portfolio-wise.com'}/auth/google/drive/callback
+  driveSuccessUrl:
+    dev: ${env:DRIVE_AUTH_SUCCESS_URL, 'http://localhost:3001/drive-success'}
+    prod: https://${env:DOMAIN_NAME, 'portfolio-wise.com'}/drive-success
+  corsAllowedOrigins:
+    dev: ${env:CORS_ALLOWED_ORIGINS, 'http://localhost:3000,http://localhost:3001,https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com,https://pfwise-portfolio-manager.pages.dev,https://*.pfwise-portfolio-manager.pages.dev'}
+    prod: ${env:CORS_ALLOWED_ORIGINS, 'https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com,https://pfwise-portfolio-manager.pages.dev,https://*.pfwise-portfolio-manager.pages.dev'}
+  # Production specific settings
+  logRetentionInDays:
+    dev: 7
+    prod: 30
+  reservedConcurrentExecutions:
+    dev: ~
+    prod: 100
+  # API limits per stage
+  limits:
+    dev:
+      daily: '5000'
+      monthly: '100000'
+    prod:
+      daily: '10000'
+      monthly: '200000'
+  # Log level per stage
+  logLevel:
+    dev: 'info'
+    prod: 'warn'
+  # Budget check per stage
+  budgetCheck:
+    dev: 'false'
+    prod: 'true'

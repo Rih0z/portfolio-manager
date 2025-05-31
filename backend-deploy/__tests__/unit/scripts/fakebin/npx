@@ -1,0 +1,5 @@
+#!/bin/bash
+if [[ "$1" == "jest" && "$2" == "--version" ]]; then
+  echo "29.0.0"; exit 0
+fi
+echo "mock npx $@"; exit 0

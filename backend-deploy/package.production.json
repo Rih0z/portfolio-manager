@@ -1,0 +1,40 @@
+{
+  "name": "pfwise-api",
+  "version": "1.0.0",
+  "description": "Production deployment package for pfwise-api",
+  "main": "index.js",
+  "dependencies": {
+    "@aws-sdk/client-budgets": "^3.808.0",
+    "@aws-sdk/client-cloudwatch": "^3.808.0",
+    "@aws-sdk/client-dynamodb": "^3.808.0",
+    "@aws-sdk/client-lambda": "^3.808.0",
+    "@aws-sdk/client-secrets-manager": "^3.817.0",
+    "@aws-sdk/client-sns": "^3.808.0",
+    "@aws-sdk/client-ssm": "^3.808.0",
+    "@aws-sdk/client-sts": "^3.808.0",
+    "@aws-sdk/lib-dynamodb": "^3.808.0",
+    "@aws-sdk/util-dynamodb": "^3.808.0",
+    "@octokit/rest": "^20.0.2",
+    "axios": "^1.6.2",
+    "bottleneck": "^2.19.5",
+    "cheerio": "^1.0.0-rc.12",
+    "csv-parse": "^5.5.3",
+    "dayjs": "^1.11.10",
+    "fast-xml-parser": "^4.3.2",
+    "google-auth-library": "^9.15.1",
+    "googleapis": "^148.0.0",
+    "iconv-lite": "^0.6.3",
+    "joi": "^17.11.0",
+    "jsonwebtoken": "^9.0.2",
+    "lodash": "^4.17.21",
+    "node-cache": "^5.1.2",
+    "p-retry": "^6.1.0",
+    "user-agents": "^1.1.124",
+    "uuid": "^9.0.1",
+    "winston": "^3.11.0",
+    "yahoo-finance2": "^2.13.3"
+  },
+  "engines": {
+    "node": ">=18.x"
+  }
+}

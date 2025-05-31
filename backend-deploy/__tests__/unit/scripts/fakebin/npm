@@ -1,0 +1,11 @@
+#!/bin/bash
+if [[ "$1" == "run" && "$2" == "test:setup" ]]; then
+  echo "mock setup"; exit 0
+fi
+if [[ "$1" == "run" && "$2" == "test:clean" ]]; then
+  echo "mock clean"; exit 0
+fi
+if [[ "$1" == "list" ]]; then
+  echo "jest\nistanbul\ncoverage"; exit 0
+fi
+echo "mock npm $@"; exit 0
