@@ -19,12 +19,29 @@ import Papa from 'papaparse';
 
 const ImportOptions = () => {
   const portfolioContext = usePortfolioContext();
-  const importData = portfolioContext.importData || portfolioContext.importPortfolioData;
+  
+  // より安全な関数取得
+  let importData;
+  if (portfolioContext && typeof portfolioContext === 'object') {
+    importData = portfolioContext.importData || 
+                 portfolioContext.importPortfolioData || 
+                 portfolioContext.import ||
+                 null;
+  }
   
   // デバッグ用
   useEffect(() => {
-    console.log('PortfolioContext keys:', Object.keys(portfolioContext));
-    console.log('importData type:', typeof importData);
+    if (portfolioContext) {
+      console.log('PortfolioContext keys:', Object.keys(portfolioContext));
+      console.log('importData found:', importData !== null);
+      console.log('importData type:', typeof importData);
+      
+      // 全ての関数を列挙
+      const functions = Object.entries(portfolioContext)
+        .filter(([key, value]) => typeof value === 'function')
+        .map(([key]) => key);
+      console.log('Available functions:', functions);
+    }
   }, [portfolioContext, importData]);
   
   const [importFormat, setImportFormat] = useState('json');
@@ -104,11 +121,19 @@ const ImportOptions = () => {
           data = parseCSV(content);
         }
         
-        if (typeof importData !== 'function') {
+        if (!importData || typeof importData !== 'function') {
+          console.error('Import function not available:', {
+            importData,
+            type: typeof importData,
+            contextKeys: portfolioContext ? Object.keys(portfolioContext) : 'context is null'
+          });
           throw new Error('インポート機能が利用できません。ページを再読み込みしてください。');
         }
         
+        console.log('Calling importData with:', data);
         const result = await importData(data);
+        console.log('Import result:', result);
+        
         if (result && result.success) {
           setImportStatus({ type: 'success', message: result.message || 'データを正常にインポートしました' });
         } else {
