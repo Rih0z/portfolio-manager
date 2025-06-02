@@ -93,8 +93,11 @@ export const fetchStockData = async (ticker, refresh = false) => {
     type = 'jp-stock';
     timeout = TIMEOUT.JP_STOCK;
   }
-  // 投資信託判定（数字7桁 + C + オプションの.T）
-  else if (/^\d{7}C(\.T)?$/.test(ticker)) {
+  // 投資信託判定（複数のパターンに対応）
+  // パターン1: 8桁の数字（例：03311187）
+  // パターン2: 7桁の数字+アルファベット1文字（例：0331418A）
+  // パターン3: アルファベット+数字の組み合わせ（例：9C31116A）
+  else if (/^(\d{8}|\d{7}[A-Z]|[A-Z0-9]{8})$/i.test(ticker)) {
     type = 'mutual-fund';
     timeout = TIMEOUT.MUTUAL_FUND;
   }
@@ -142,9 +145,9 @@ export const fetchMultipleStocks = async (tickers, refresh = false) => {
   
   // 銘柄をタイプ別に分類
   const jpStocks = tickers.filter(ticker => /^\d{4}(\.T)?$/.test(ticker));
-  const mutualFunds = tickers.filter(ticker => /^\d{7}C(\.T)?$/.test(ticker));
+  const mutualFunds = tickers.filter(ticker => /^(\d{8}|\d{7}[A-Z]|[A-Z0-9]{8})$/i.test(ticker));
   const usStocks = tickers.filter(ticker => 
-    !(/^\d{4}(\.T)?$/.test(ticker)) && !(/^\d{7}C(\.T)?$/.test(ticker))
+    !(/^\d{4}(\.T)?$/.test(ticker)) && !(/^(\d{8}|\d{7}[A-Z]|[A-Z0-9]{8})$/i.test(ticker))
   );
   
   const results = {

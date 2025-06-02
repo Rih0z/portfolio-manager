@@ -275,6 +275,14 @@ export const AuthProvider = ({ children }) => {
         // ログイン成功時は失敗カウントをリセット
         sessionCheckFailureCount.current = 0;
         
+        // Google Driveのアクセス権がある場合、自動的にデータを読み込む
+        if (driveAccess && portfolioContextRef.current?.loadFromGoogleDrive) {
+          console.log('ログイン成功後、Google Driveからデータを自動読み込み中...');
+          setTimeout(() => {
+            portfolioContextRef.current.loadFromGoogleDrive();
+          }, 1000); // 1秒待ってから読み込む
+        }
+        
         return { success: true, hasDriveAccess: driveAccess };
       } else {
         console.error('認証レスポンスエラー:', response);

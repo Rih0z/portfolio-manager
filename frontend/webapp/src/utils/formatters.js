@@ -73,3 +73,97 @@ export const formatDate = (date, formatStr) => {
   const day = d.getDate();
   return `${y}年${m}月${day}日`;
 };
+
+/**
+ * パーセンテージをフォーマットする
+ * @param {number} value - フォーマットする値（0.1 = 10%）
+ * @param {number} decimals - 小数点以下の桁数
+ * @returns {string} フォーマットされたパーセンテージ文字列
+ */
+export const formatPercentage = (value, decimals = 1) => {
+  if (typeof value !== 'number' || Number.isNaN(value) || value === null || value === undefined) {
+    return '0.0%';
+  }
+  
+  return `${(value * 100).toFixed(decimals)}%`;
+};
+
+/**
+ * 数値をカンマ区切りでフォーマットする
+ * @param {number} value - フォーマットする数値
+ * @param {number} decimals - 小数点以下の桁数
+ * @returns {string} フォーマットされた数値文字列
+ */
+export const formatNumber = (value, decimals) => {
+  const num = Number(value);
+  if (Number.isNaN(num) || value === null || value === undefined) {
+    return '0';
+  }
+  
+  if (decimals !== undefined) {
+    return num.toLocaleString('en-US', { 
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals
+    });
+  }
+  
+  return num.toLocaleString('en-US');
+};
+
+/**
+ * 日付をIntl.DateTimeFormatでフォーマットする
+ * @param {Date|string|number} date - フォーマットする日付
+ * @param {object} options - フォーマットオプション
+ * @param {string} locale - ロケール
+ * @returns {string} フォーマットされた日付文字列
+ */
+export const formatDateIntl = (date, options = {}, locale = 'ja-JP') => {
+  if (!date) return 'Invalid Date';
+  
+  try {
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return 'Invalid Date';
+    
+    const defaultOptions = {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    };
+    
+    return d.toLocaleDateString(locale, { ...defaultOptions, ...options });
+  } catch (error) {
+    return 'Invalid Date';
+  }
+};
+
+/**
+ * 相対時間をフォーマットする
+ * @param {Date|string|number} date - フォーマットする日付
+ * @param {string} locale - ロケール
+ * @returns {string} フォーマットされた相対時間文字列
+ */
+export const formatDateRelative = (date, locale = 'ja-JP') => {
+  if (!date) return 'Invalid Date';
+  
+  try {
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return 'Invalid Date';
+    
+    const now = new Date();
+    const diffMs = now.getTime() - d.getTime();
+    
+    const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
+    
+    if (Math.abs(diffMs) < 60000) { // 1分未満
+      return rtf.format(-Math.round(diffMs / 1000), 'second');
+    } else if (Math.abs(diffMs) < 3600000) { // 1時間未満
+      return rtf.format(-Math.round(diffMs / 60000), 'minute');
+    } else if (Math.abs(diffMs) < 86400000) { // 1日未満
+      return rtf.format(-Math.round(diffMs / 3600000), 'hour');
+    } else {
+      return rtf.format(-Math.round(diffMs / 86400000), 'day');
+    }
+  } catch (error) {
+    return 'Invalid Date';
+  }
+};

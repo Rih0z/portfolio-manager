@@ -1,0 +1,17 @@
+name: Test GitHub Actions
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test Action
+        run: |
+          echo "✅ GitHub Actions is working!"
+          echo "Time: $(date)"
+          echo "Runner: ${{ runner.os }}"

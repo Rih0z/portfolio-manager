@@ -17,6 +17,7 @@
 import React from 'react';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 import { formatCurrency, formatPercent } from '../../utils/formatters';
+import { getJapaneseStockName } from '../../utils/japaneseStockNames';
 import DataSourceBadge from '../common/DataSourceBadge';
 
 const AssetsTable = () => {
@@ -129,7 +130,14 @@ const AssetsTable = () => {
                   <div className="flex items-center">
                     <div>
                       <div className="text-sm font-medium text-gray-900">
-                        {asset.name}
+                        {(() => {
+                          // 日本の投資信託や株式の場合、わかりやすい名前を表示
+                          if (/^(\d{8}|\d{7}[A-Z]|[A-Z0-9]{8})$/i.test(asset.ticker) || /^\d{4}(\.T)?$/.test(asset.ticker)) {
+                            const japaneseName = getJapaneseStockName(asset.ticker);
+                            return japaneseName !== asset.ticker ? japaneseName : asset.name;
+                          }
+                          return asset.name;
+                        })()}
                       </div>
                       <div className="text-sm text-gray-500">
                         {asset.ticker}

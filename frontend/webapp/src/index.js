@@ -17,7 +17,7 @@
  */
 
 import React from 'react';
-import ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
@@ -26,18 +26,35 @@ import './utils/fixExchangeRate'; // 為替レート修復機能
 import { replaceConsoleLog } from './utils/logger'; // ログフィルタリング
 import { setupGlobalErrorHandlers } from './utils/errorHandler'; // エラーハンドリング
 
+// 開発環境でのテスト機能の現代化
+const loadDevelopmentFeatures = async () => {
+  if (process.env.NODE_ENV === 'development') {
+    try {
+      await import('./services/testJapaneseTickers');
+    } catch (error) {
+      console.warn('開発機能の読み込みに失敗しました:', error);
+    }
+  }
+};
+
 // 本番環境でログをフィルタリング
 replaceConsoleLog();
 
 // グローバルエラーハンドラーの設定
 setupGlobalErrorHandlers();
 
-ReactDOM.render(
+// React 18の現代的なRoot APIを使用
+const container = document.getElementById('root');
+const root = createRoot(container);
+
+root.render(
   <React.StrictMode>
     <App />
-  </React.StrictMode>,
-  document.getElementById('root')
+  </React.StrictMode>
 );
+
+// 開発機能の非同期読み込み
+loadDevelopmentFeatures();
 
 // If you want to start measuring performance in your app, pass a function
 // to log results (for example: reportWebVitals(console.log))

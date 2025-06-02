@@ -20,6 +20,7 @@ jobs:
         run: |
           cd frontend/webapp
           npm install --legacy-peer-deps
+          npm install ajv@8 --legacy-peer-deps
           
       - name: Build
         run: |
@@ -36,4 +37,10 @@ jobs:
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          command: pages deploy frontend/webapp/build --project-name=portfolio-manager
+          command: pages deploy frontend/webapp/build --project-name=pfwise-portfolio-manager --branch=main --commit-dirty=true
+          
+      - name: Show deployment info
+        run: |
+          echo "Deployment should be available at:"
+          echo "Production: https://portfolio-wise.com"
+          echo "Please check Cloudflare Dashboard for deployment status"

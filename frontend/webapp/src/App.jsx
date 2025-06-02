@@ -33,6 +33,9 @@ import { useAuth } from './hooks/useAuth';
 import { usePortfolioContext } from './hooks/usePortfolioContext';
 import { initializeApiConfig, getGoogleClientId } from './utils/envUtils';
 
+// i18n初期化
+import './i18n';
+
 // API設定の初期化
 const AppInitializer = ({ children }) => {
   const [initialized, setInitialized] = useState(false);
@@ -55,7 +58,7 @@ const AppInitializer = ({ children }) => {
   }, []);
   
   if (!initialized) {
-    return <div className="flex items-center justify-center h-screen">設定を読み込み中...</div>;
+    return <div className="flex items-center justify-center h-screen">PortfolioWise 設定を読み込み中...</div>;
   }
   
   return (
@@ -125,7 +128,7 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-function App() {
+const App = () => {
   return (
     <ErrorBoundary>
       <AppInitializer>

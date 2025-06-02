@@ -21,7 +21,7 @@ const SENSITIVE_PATTERNS = [
 /**
  * 機密情報を含む可能性があるかチェック
  */
-function containsSensitiveInfo(args) {
+const containsSensitiveInfo = (args) => {
     const str = args.map(arg => {
         if (typeof arg === 'object') {
             return JSON.stringify(arg);
@@ -30,12 +30,12 @@ function containsSensitiveInfo(args) {
     }).join(' ');
     
     return SENSITIVE_PATTERNS.some(pattern => pattern.test(str));
-}
+};
 
 /**
  * 機密情報をマスク
  */
-function maskSensitiveData(data) {
+const maskSensitiveData = (data) => {
     if (typeof data === 'string') {
         // トークンのような文字列をマスク
         if (data.length > 10 && /^[A-Za-z0-9_\-\.]+$/.test(data)) {

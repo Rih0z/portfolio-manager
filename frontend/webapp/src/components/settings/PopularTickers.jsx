@@ -15,15 +15,26 @@
  */
 import React, { useState } from 'react';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
+import { getJapaneseStockName } from '../../utils/japaneseStockNames';
 
 // 人気銘柄のリスト（更新版）
-// インデックスファンド・ETF
+// 日本の投資信託
+const POPULAR_JP_MUTUAL_FUNDS = [
+  { ticker: '0331418A', name: getJapaneseStockName('0331418A') },
+  { ticker: '03311187', name: getJapaneseStockName('03311187') },
+  { ticker: '0331119A', name: getJapaneseStockName('0331119A') },
+  { ticker: '9C31116A', name: getJapaneseStockName('9C31116A') },
+  { ticker: '89311199', name: getJapaneseStockName('89311199') },
+  { ticker: '9I311179', name: getJapaneseStockName('9I311179') }
+];
+
+// インデックスファンド・ETF（米国）
 const POPULAR_FUNDS = [
-  { ticker: '2533106', name: 'eMAXIS Slim 全世界株式（オール・カントリー）' },
-  { ticker: '2531108', name: 'eMAXIS Slim 米国株式（S&P500）' },
   { ticker: 'VOO', name: 'Vanguard S&P 500 ETF' },
+  { ticker: 'VTI', name: 'Vanguard Total Stock Market ETF' },
   { ticker: 'VXUS', name: 'Vanguard Total International Stock ETF' },
   { ticker: 'GLD', name: 'SPDR Gold Shares' },
+  { ticker: 'QQQ', name: 'Invesco QQQ Trust' },
   { ticker: 'LQD', name: 'iShares iBoxx $ Investment Grade Corporate Bond ETF' }
 ];
 
@@ -31,26 +42,29 @@ const POPULAR_FUNDS = [
 const POPULAR_STOCKS = [
   { ticker: 'AAPL', name: 'アップル' },
   { ticker: 'NVDA', name: 'エヌビディア' },
-  { ticker: 'MSFT', name: 'マイクロソフト' }
+  { ticker: 'MSFT', name: 'マイクロソフト' },
+  { ticker: 'GOOGL', name: 'Google（アルファベット）' },
+  { ticker: 'AMZN', name: 'アマゾン' },
+  { ticker: 'TSLA', name: 'テスラ' }
 ];
 
-// 日本市場の人気銘柄（現状維持）
-const POPULAR_JP_TICKERS = [
-  { ticker: '7203.T', name: 'トヨタ自動車' },
-  { ticker: '9984.T', name: 'ソフトバンクグループ' },
-  { ticker: '6758.T', name: 'ソニーグループ' },
-  { ticker: '8306.T', name: '三菱UFJフィナンシャル' },
-  { ticker: '9433.T', name: 'KDDI' },
-  { ticker: '6861.T', name: 'キーエンス' },
-  { ticker: '9432.T', name: 'NTT' },
-  { ticker: '7974.T', name: '任天堂' },
-  { ticker: '6501.T', name: '日立製作所' },
-  { ticker: '4502.T', name: '武田薬品工業' }
+// 日本市場の人気銘柄
+const POPULAR_JP_STOCKS = [
+  { ticker: '7203.T', name: getJapaneseStockName('7203') },
+  { ticker: '9984.T', name: getJapaneseStockName('9984') },
+  { ticker: '6758.T', name: getJapaneseStockName('6758') },
+  { ticker: '8306.T', name: getJapaneseStockName('8306') },
+  { ticker: '9433.T', name: getJapaneseStockName('9433') },
+  { ticker: '6861.T', name: getJapaneseStockName('6861') },
+  { ticker: '9432.T', name: getJapaneseStockName('9432') },
+  { ticker: '7974.T', name: getJapaneseStockName('7974') },
+  { ticker: '6501.T', name: getJapaneseStockName('6501') },
+  { ticker: '4502.T', name: getJapaneseStockName('4502') }
 ];
 
 const PopularTickers = () => {
   const { addTicker } = usePortfolioContext();
-  const [category, setCategory] = useState('funds'); // 'funds', 'stocks', 'jp'
+  const [category, setCategory] = useState('jp-mutual-funds'); // 'jp-mutual-funds', 'funds', 'stocks', 'jp-stocks'
   const [isLoading, setIsLoading] = useState(false);
   const [addedTickers, setAddedTickers] = useState({});
   const [message, setMessage] = useState('');
@@ -97,22 +111,35 @@ const PopularTickers = () => {
   // 表示する銘柄リスト
   let tickerList;
   switch (category) {
+    case 'jp-mutual-funds':
+      tickerList = POPULAR_JP_MUTUAL_FUNDS;
+      break;
     case 'funds':
       tickerList = POPULAR_FUNDS;
       break;
     case 'stocks':
       tickerList = POPULAR_STOCKS;
       break;
-    case 'jp':
-      tickerList = POPULAR_JP_TICKERS;
+    case 'jp-stocks':
+      tickerList = POPULAR_JP_STOCKS;
       break;
     default:
-      tickerList = POPULAR_FUNDS;
+      tickerList = POPULAR_JP_MUTUAL_FUNDS;
   }
 
   return (
     <div>
-      <div className="flex space-x-2 mb-4">
+      <div className="flex flex-wrap gap-2 mb-4">
+        <button
+          onClick={() => setCategory('jp-mutual-funds')}
+          className={`px-3 py-2 rounded text-sm ${
+            category === 'jp-mutual-funds'
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+          }`}
+        >
+          日本投資信託
+        </button>
         <button
           onClick={() => setCategory('funds')}
           className={`px-3 py-2 rounded text-sm ${
@@ -121,7 +148,7 @@ const PopularTickers = () => {
               : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
           }`}
         >
-          インデックス・ETF
+          米国ETF
         </button>
         <button
           onClick={() => setCategory('stocks')}
@@ -131,17 +158,17 @@ const PopularTickers = () => {
               : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
           }`}
         >
-          人気個別株
+          米国個別株
         </button>
         <button
-          onClick={() => setCategory('jp')}
+          onClick={() => setCategory('jp-stocks')}
           className={`px-3 py-2 rounded text-sm ${
-            category === 'jp'
+            category === 'jp-stocks'
               ? 'bg-blue-600 text-white'
               : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
           }`}
         >
-          日本市場
+          日本個別株
         </button>
       </div>
       

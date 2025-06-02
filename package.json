@@ -11,6 +11,7 @@
     "deploy": "npm run deploy:production",
     "deploy:production": "./scripts/deploy-production.sh",
     "deploy:preview": "./scripts/deploy-preview.sh",
+    "deploy:force": "bash ./scripts/deploy-production.sh",
     "e2e": "./scripts/run-e2e-tests.sh all",
     "e2e:aws": "./scripts/run-e2e-tests.sh aws",
     "e2e:performance": "./scripts/run-e2e-tests.sh performance",

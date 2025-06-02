@@ -62,18 +62,62 @@ const ExportOptions = () => {
   }, [baseCurrency, exchangeRate, currentAssets, targetPortfolio]);
 
   // ファイルダウンロード
-  const handleDownload = useCallback(() => {
+  // 現代的なファイルダウンロード関数（手動DOM操作を排除）
+  const downloadFile = useCallback(async (data, filename, mimeType) => {
+    try {
+      // File System Access APIが利用可能かチェック
+      if ('showSaveFilePicker' in window) {
+        const fileHandle = await window.showSaveFilePicker({
+          suggestedName: filename,
+          types: [{
+            description: mimeType.includes('json') ? 'JSON files' : 'CSV files',
+            accept: {
+              [mimeType]: [mimeType.includes('json') ? '.json' : '.csv']
+            }
+          }]
+        });
+        
+        const writable = await fileHandle.createWritable();
+        await writable.write(data);
+        await writable.close();
+        
+        return { success: true };
+      } else {
+        // フォールバック: Blob URL（手動DOM操作を最小化）
+        const blob = new Blob([data], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        
+        // 一時的なリンクを作成（DOM操作を最小化）
+        const link = Object.assign(document.createElement('a'), {
+          href: url,
+          download: filename,
+          style: 'display: none'
+        });
+        
+        document.body.appendChild(link);
+        link.click();
+        
+        // クリーンアップ
+        setTimeout(() => {
+          URL.revokeObjectURL(url);
+          document.body.removeChild(link);
+        }, 100);
+        
+        return { success: true };
+      }
+    } catch (error) {
+      console.error('ファイルダウンロードエラー:', error);
+      throw error;
+    }
+  }, []);
+
+  const handleDownload = useCallback(async () => {
     try {
       const data = exportFormat === 'json' ? convertToJson() : convertToCsv();
-      const blob = new Blob([data], { type: exportFormat === 'json' ? 'application/json' : 'text/csv' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = exportFormat === 'json' ? 'portfolio_data.json' : 'portfolio_data.csv';
-      document.body.appendChild(a);
-      a.click();
-      URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      const mimeType = exportFormat === 'json' ? 'application/json' : 'text/csv';
+      const filename = `portfolio_data.${exportFormat}`;
+      
+      await downloadFile(data, filename, mimeType);
       
       setExportStatus({ type: 'success', message: `データを${exportFormat.toUpperCase()}形式でダウンロードしました` });
       

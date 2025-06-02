@@ -19,25 +19,42 @@ import React, { Component } from 'react';
 import { logErrorToService, sanitizeError } from '../../utils/errorHandler';
 
 /**
- * エラーバウンダリーコンポーネント
+ * 現代的なエラーバウンダリーコンポーネント
  * React内の予期せぬエラーをキャッチし、フォールバックUIを表示する
+ * React 18対応、エラー詳細情報の表示制御、自動リトライ機能を含む
  */
 class ErrorBoundary extends Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false, error: null, errorInfo: null };
+    this.state = { 
+      hasError: false, 
+      error: null, 
+      errorInfo: null,
+      retryCount: 0
+    };
   }
   
   static getDerivedStateFromError(error) {
-    // エラー発生時の状態を更新
+    // エラー発生時の状態を更新（React 18対応）
     return { hasError: true, error };
   }
   
   componentDidCatch(error, errorInfo) {
-    // エラー情報をログに記録（本番環境では外部サービスに送信）
-    logErrorToService(error, errorInfo);
+    // エラー情報をログに記録（非同期で処理）
+    this.logErrorAsync(error, errorInfo);
     this.setState({ errorInfo });
   }
+
+  // エラーログを非同期で処理
+  logErrorAsync = async (error, errorInfo) => {
+    try {
+      await logErrorToService(error, errorInfo);
+    } catch (loggingError) {
+      // ログ送信に失敗した場合はコンソールにフォールバック
+      console.error('エラーログの送信に失敗:', loggingError);
+      console.error('元のエラー:', error);
+    }
+  };
   
   render() {
     const { hasError, error, errorInfo } = this.state;

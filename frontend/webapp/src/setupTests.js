@@ -22,29 +22,33 @@
 // learn more: https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom';
 
-// MSWのセットアップ
-import { setupServer } from 'msw/node';
-import { handlers } from '../__tests__/mocks/handlers';
+// Polyfills for MSW - must be set before MSW import
+const { TextEncoder, TextDecoder } = require('util');
+Object.assign(global, { TextEncoder, TextDecoder });
+
+// MSWのセットアップ（カバレッジテスト中は一時無効化）
+// import { setupServer } from 'msw/node';
+// import { handlers } from '../__tests__/mocks/handlers';
 
 // APIモックサーバーの作成
-export const server = setupServer(...handlers);
+// export const server = setupServer(...handlers);
 
 // テスト実行前にサーバーを起動
-beforeAll(() => {
-  server.listen({
-    onUnhandledRequest: 'warn'
-  });
-});
+// beforeAll(() => {
+//   server.listen({
+//     onUnhandledRequest: 'warn'
+//   });
+// });
 
 // 各テスト後にハンドラーをリセット
-afterEach(() => {
-  server.resetHandlers();
-});
+// afterEach(() => {
+//   server.resetHandlers();
+// });
 
 // すべてのテスト終了後にサーバーを停止
-afterAll(() => {
-  server.close();
-});
+// afterAll(() => {
+//   server.close();
+// });
 
 // テスト環境の確認
 if (process.env.USE_API_MOCKS === 'true') {

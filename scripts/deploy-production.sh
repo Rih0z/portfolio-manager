@@ -45,10 +45,12 @@ npm run build
 
 # Deploy to Cloudflare Pages (production)
 echo "☁️  Deploying to Cloudflare Pages..."
+echo "📍 Target: Production (main branch)"
 npx wrangler pages deploy build \
-  --project-name=portfolio-manager \
+  --project-name=pfwise-portfolio-manager \
   --branch=main \
-  --commit-dirty=true
+  --commit-dirty=true \
+  --compatibility-date=2024-01-01
 
 # Clean up
 cd ../..

@@ -18,13 +18,9 @@ cloudflare-env.txt
 # misc
 .DS_Store
 .env
-.env.local
-.env.development
-.env.production
-.env.test
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+!.env.example
+!.env.test.example
 
 npm-debug.log*
 yarn-debug.log*
@@ -80,3 +76,23 @@ backend/deploy.log
 /backend/document/message/
 /backend/document/frontend/message/
 /backend/document/backend/message/
+
+# E2E test reports
+e2e-report/
+e2e-results.xml
+playwright-report/
+
+# Custom reporter
+custom-reporter.js
+
+# Test data
+test-data/
+
+# Deployment scripts logs
+scripts/deployment/*.log
+
+# AWS DynamoDB local
+backend/dynamodb-local/
+backend/dynamodb-local-metadata.json
+backend-deploy/dynamodb-local/
+backend-deploy/dynamodb-local-metadata.json

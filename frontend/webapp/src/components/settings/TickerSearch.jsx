@@ -15,6 +15,7 @@
  */
 import React, { useState } from 'react';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
+import { getJapaneseStockName } from '../../utils/japaneseStockNames';
 
 const TickerSearch = () => {
   const { addTicker } = usePortfolioContext();
@@ -104,7 +105,10 @@ const TickerSearch = () => {
           <strong>米国株:</strong> AAPL (アップル), MSFT (マイクロソフト)
         </p>
         <p>
-          <strong>日本株:</strong> 7203.T (トヨタ), 9984.T (ソフトバンクG)
+          <strong>日本株:</strong> 7203.T ({getJapaneseStockName('7203')}), 9984.T ({getJapaneseStockName('9984')})
+        </p>
+        <p>
+          <strong>投資信託:</strong> 0331418A ({getJapaneseStockName('0331418A')}), 03311187 ({getJapaneseStockName('03311187')})
         </p>
       </div>
       

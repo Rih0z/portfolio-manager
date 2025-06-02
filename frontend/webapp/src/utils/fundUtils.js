@@ -241,12 +241,12 @@ export const JP_CODE_PREFIX_MAP = {
 };
 
 // ETFかどうかの簡易判定（TICKER_SPECIFIC_FEESに含まれるか）
-function isKnownETF(ticker) {
+const isKnownETF = (ticker) => {
   return Object.keys(TICKER_SPECIFIC_FEES).includes(ticker) || US_ETF_LIST.includes(ticker);
-}
+};
 
 // ティッカーシンボルからファンドの種類を推定する
-export function guessFundType(ticker, name = '') {
+export const guessFundType = (ticker, name = '') => {
   if (!ticker) return FUND_TYPES.UNKNOWN;
   
   ticker = ticker.toUpperCase();
@@ -295,8 +295,32 @@ export function guessFundType(ticker, name = '') {
     }
   }
   
-  // 日本のコード接頭辞による判定
-  if (/^\d+$/.test(ticker)) {
+  // 日本の投資信託パターン（8桁数字、または7桁+アルファベット）
+  if (/^(\d{8}|\d{7}[A-Z]|[A-Z0-9]{8})$/i.test(ticker)) {
+    // 投資信託として判定
+    // 名称に基づいてインデックスかアクティブか判定
+    if (isIndex(name)) {
+      if (isGlobal(name)) {
+        return FUND_TYPES.INDEX_GLOBAL;
+      } else if (name.includes('米国') || name.includes('米株') || name.includes('US') || name.includes('S&P')) {
+        return FUND_TYPES.INDEX_US;
+      } else {
+        return FUND_TYPES.INDEX_JP;
+      }
+    } else {
+      // アクティブファンド
+      if (isGlobal(name)) {
+        return FUND_TYPES.ACTIVE_GLOBAL;
+      } else if (name.includes('米国') || name.includes('米株') || name.includes('US')) {
+        return FUND_TYPES.ACTIVE_US;
+      } else {
+        return FUND_TYPES.ACTIVE_JP;
+      }
+    }
+  }
+  
+  // 日本のコード接頭辞による判定（4桁数字）
+  if (/^\d{4}$/.test(ticker)) {
     const prefix1 = ticker.substring(0, 1);
     const prefix2 = ticker.substring(0, 2);
     const prefix3 = ticker.substring(0, 3);
@@ -315,6 +339,9 @@ export function guessFundType(ticker, name = '') {
       } else {
         return FUND_TYPES.ETF_JP;
       }
+    } else {
+      // 4桁の通常の株式
+      return FUND_TYPES.STOCK;
     }
   }
   
@@ -396,7 +423,7 @@ export function guessFundType(ticker, name = '') {
 }
 
 // ファンド名称に明らかなファンド指標があるかチェック
-function containsFundIndicators(name) {
+const containsFundIndicators = (name) => {
   return name.includes('fund') || 
          name.includes('ファンド') || 
          name.includes('投信') || 
@@ -408,20 +435,20 @@ function containsFundIndicators(name) {
          name.includes('vanguard') ||
          name.includes('シェアーズ') ||
          name.includes('spdr');
-}
+};
 
 // ETFかどうかを判定
-function isETF(name, ticker) {
+const isETF = (name, ticker) => {
   return name.includes('etf') || 
          name.includes('exchange traded fund') || 
          name.includes('上場投信') || 
          name.includes('上場投資信託') ||
          ETF_PREFIXES.some(prefix => name.includes(prefix.toLowerCase())) ||
          (ticker.includes('-') && (name.includes('ishares') || name.includes('vanguard') || name.includes('spdr')));
-}
+};
 
 // インデックスファンドかどうかを判定
-function isIndex(name) {
+const isIndex = (name) => {
   return name.includes('index') ||
          name.includes('インデックス') ||
          name.includes('日経') ||
@@ -435,10 +462,10 @@ function isIndex(name) {
          name.includes('ベンチマーク') ||
          name.includes('パッシブ') ||
          INDEX_FUND_PREFIXES.some(prefix => name.includes(prefix.toLowerCase()));
-}
+};
 
 // グローバル分散かどうかを判定
-function isGlobal(name) {
+const isGlobal = (name) => {
   return name.includes('global') ||
          name.includes('グローバル') ||
          name.includes('international') ||
@@ -446,19 +473,19 @@ function isGlobal(name) {
          name.includes('世界') ||
          name.includes('全世界') ||
          name.includes('海外');
-}
+};
 
 // REITかどうかを判定
-function isREIT(name) {
+const isREIT = (name) => {
   return name.includes('reit') ||
          name.includes('リート') ||
          name.includes('不動産投資') ||
          name.includes('real estate') ||
          name.includes('不動産投資法人');
-}
+};
 
 // 債券ファンドかどうかを判定
-function isBond(name, ticker) {
+const isBond = (name, ticker) => {
   return name.includes('bond') ||
          name.includes('債券') ||
          name.includes('aggregate') ||
@@ -474,10 +501,10 @@ function isBond(name, ticker) {
          ticker === 'TLT' ||
          ticker === 'SHY' ||
          ticker === 'MUB';
-}
+};
 
 // 暗号資産関連かどうかを判定
-function isCrypto(name, ticker) {
+const isCrypto = (name, ticker) => {
   return name.includes('bitcoin') ||
          name.includes('ethereum') ||
          name.includes('crypto') ||
@@ -487,10 +514,10 @@ function isCrypto(name, ticker) {
          ticker === 'GBTC' ||
          ticker === 'ETHE' ||
          ticker === 'IBIT';
-}
+};
 
 // アクティブファンドかどうかを判定
-function isActive(name) {
+const isActive = (name) => {
   return name.includes('active') ||
          name.includes('アクティブ') ||
          name.includes('厳選') ||
@@ -498,10 +525,10 @@ function isActive(name) {
          name.includes('選定') ||
          name.includes('運用') ||
          name.includes('マネージド');
-}
+};
 
 // インデックスファンドかアクティブファンドかを判定
-function isActiveOrIndex(name, isJapanese) {
+const isActiveOrIndex = (name, isJapanese) => {
   if (isActive(name)) {
     if (isGlobal(name)) {
       return FUND_TYPES.ACTIVE_GLOBAL;
@@ -515,10 +542,10 @@ function isActiveOrIndex(name, isJapanese) {
       return isJapanese ? FUND_TYPES.INDEX_JP : FUND_TYPES.INDEX_US;
     }
   }
-}
+};
 
 // ティッカーシンボルからファンドの年間手数料を推定する
-export function estimateAnnualFee(ticker, name = '') {
+export const estimateAnnualFee = (ticker, name = '') => {
   if (!ticker) return {
     fee: FUND_TYPE_FEES[FUND_TYPES.UNKNOWN],
     fundType: FUND_TYPES.UNKNOWN,
@@ -564,7 +591,7 @@ export function estimateAnnualFee(ticker, name = '') {
 }
 
 // ファンド名から追加情報を推測する（ファンドタイプの補助情報）
-export function extractFundInfo(ticker, name = '') {
+export const extractFundInfo = (ticker, name = '') => {
   const info = {};
   ticker = ticker.toUpperCase();
   name = (name || '').toLowerCase();
@@ -664,7 +691,7 @@ export function extractFundInfo(ticker, name = '') {
 }
 
 // 推定配当利回りを計算する
-export function estimateDividendYield(ticker, name = '') {
+export const estimateDividendYield = (ticker, name = '') => {
   if (!ticker) return {
     yield: 0,
     isEstimated: true,

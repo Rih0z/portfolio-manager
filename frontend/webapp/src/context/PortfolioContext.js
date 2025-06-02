@@ -107,6 +107,7 @@ export const PortfolioProvider = ({ children }) => {
   // データソース管理のための状態
   const [dataSource, setDataSource] = useState('local');
   const [lastSyncTime, setLastSyncTime] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
 
   // 通知を追加する関数（タイムアウト付き）
   const addNotification = useCallback((message, type = 'info') => {
@@ -760,7 +761,12 @@ export const PortfolioProvider = ({ children }) => {
         // 明示的にリストにある場合はETF_USとして扱う
         fundType = FUND_TYPES.ETF_US;
       } else {
-        fundType = tickerData.fundType || fundInfoResult.fundType || 'unknown';
+        // API応答からファンドタイプが取得できない場合は、guessFundTypeを使用
+        fundType = tickerData.fundType || fundInfoResult.fundType;
+        if (!fundType || fundType === 'unknown') {
+          // guessFundTypeを使って適切なファンドタイプを推測
+          fundType = guessFundType(ticker, tickerData.name || '');
+        }
       }
       
       const isStock = fundType === FUND_TYPES.STOCK;
@@ -1198,13 +1204,16 @@ export const PortfolioProvider = ({ children }) => {
       // インポート後に自動保存
       setTimeout(() => saveToLocalStorage(), 100);
       
+      // Google Driveへの自動保存はimportData関数の外で実装する
+      // （循環依存を避けるため）
+      
       return { success: true, message: 'データをインポートしました' };
     } catch (error) {
       console.error('データのインポートに失敗しました', error);
       addNotification(`データのインポートに失敗しました: ${error.message}`, 'error');
       return { success: false, message: `データのインポートに失敗しました: ${error.message}` };
     }
-  }, [saveToLocalStorage, addNotification, validateAssetTypes]);
+  }, [saveToLocalStorage, addNotification, validateAssetTypes, dataSource]);
 
   // データのエクスポート
   const exportData = useCallback(() => {
@@ -1383,15 +1392,20 @@ export const PortfolioProvider = ({ children }) => {
     if (isAuthenticated && user) {
       // ログイン時にクラウドデータを優先
       setDataSource('cloud');
+      setCurrentUser(user);
     } else {
       // ログアウト時にローカルデータを使用
       setDataSource('local');
+      setCurrentUser(null);
     }
   }, []);
 
   // Googleドライブにデータを保存（修正版）
-  const saveToGoogleDrive = useCallback(async (userData) => {
-    if (!userData) {
+  const saveToGoogleDrive = useCallback(async (userData = null) => {
+    // userDataが渡されない場合は、currentUserを使用
+    const user = userData || currentUser;
+    
+    if (!user) {
       addNotification('Googleアカウントにログインしていないため、クラウド保存できません', 'warning');
       return { success: false, message: 'ログインしていません' };
     }
@@ -1415,7 +1429,7 @@ export const PortfolioProvider = ({ children }) => {
       
       // 実際のGoogleドライブAPI呼び出し
       console.log('Googleドライブに保存:', portfolioData);
-      const result = await apiSaveToGoogleDrive(portfolioData, userData);
+      const result = await apiSaveToGoogleDrive(portfolioData, user);
       
       if (result.success) {
         // 同期時間を更新
@@ -1433,11 +1447,14 @@ export const PortfolioProvider = ({ children }) => {
       addNotification('クラウドへの保存に失敗しました', 'error');
       return { success: false, message: 'クラウド保存に失敗しました' };
     }
-  }, [baseCurrency, exchangeRate, lastUpdated, currentAssets, targetPortfolio, additionalBudget, aiPromptTemplate, addNotification]);
+  }, [baseCurrency, exchangeRate, lastUpdated, currentAssets, targetPortfolio, additionalBudget, aiPromptTemplate, addNotification, currentUser]);
 
   // Googleドライブからデータを読み込み（修正版）
-  const loadFromGoogleDrive = useCallback(async (userData) => {
-    if (!userData) {
+  const loadFromGoogleDrive = useCallback(async (userData = null) => {
+    // userDataが渡されない場合は、currentUserを使用
+    const user = userData || currentUser;
+    
+    if (!user) {
       addNotification('Googleアカウントにログインしていないため、クラウドから読み込めません', 'warning');
       return { success: false, message: 'ログインしていません' };
     }
@@ -1448,7 +1465,7 @@ export const PortfolioProvider = ({ children }) => {
       
       // 実際のGoogleドライブAPI呼び出し
       console.log('Googleドライブから読み込み中');
-      const result = await apiLoadFromGoogleDrive(userData);
+      const result = await apiLoadFromGoogleDrive(user);
       
       // API呼び出し結果を確認
       if (result.success && result.data) {
@@ -1531,7 +1548,7 @@ export const PortfolioProvider = ({ children }) => {
       addNotification(`クラウドからの読み込みに失敗しました: ${error.message}`, 'error');
       return { success: false, message: `クラウド読み込みに失敗しました: ${error.message}` };
     }
-  }, [addNotification, saveToLocalStorage, validateAssetTypes]);
+  }, [addNotification, saveToLocalStorage, validateAssetTypes, currentUser]);
 
   // データの初期化処理（ローカルストレージからデータを読み込み、銘柄情報を検証）
   const initializeData = useCallback(() => {

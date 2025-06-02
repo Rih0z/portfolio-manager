@@ -17,19 +17,19 @@ import axios from 'axios';
 let configCache = null;
 let configFetchPromise = null;
 
-// AWS設定エンドポイント（Cloudflare Pagesプロキシ経由）
-const CONFIG_ENDPOINT = process.env.NODE_ENV === 'production'
-  ? '/api-proxy/config/client'  // プロダクション環境ではプロキシ経由
-  : process.env.REACT_APP_API_BASE_URL 
-    ? `${process.env.REACT_APP_API_BASE_URL}/config/client`
-    : null; // 開発環境では直接アクセス
+// AWS設定エンドポイント
+const CONFIG_ENDPOINT = process.env.REACT_APP_API_BASE_URL 
+  ? `${process.env.REACT_APP_API_BASE_URL}/config/client`
+  : '/api-proxy/config/client'; // フォールバックとしてプロキシを使用
 
-// デバッグ用
-console.log('ConfigService initialization:', {
-  CONFIG_ENDPOINT,
-  REACT_APP_API_BASE_URL: process.env.REACT_APP_API_BASE_URL,
-  NODE_ENV: process.env.NODE_ENV
-});
+// デバッグ用（開発環境のみ）
+if (process.env.NODE_ENV === 'development') {
+  console.log('ConfigService initialization:', {
+    CONFIG_ENDPOINT,
+    REACT_APP_API_BASE_URL: process.env.REACT_APP_API_BASE_URL,
+    NODE_ENV: process.env.NODE_ENV
+  });
+}
 
 /**
  * AWS から API 設定を取得
@@ -75,17 +75,33 @@ export const fetchApiConfig = async () => {
       }
       throw new Error('設定の取得に失敗しました');
     })
-    .catch(error => {
-      console.error('API設定の取得エラー:', error);
+    .catch(async error => {
+      // エラーの詳細をログに記録
+      console.warn('API設定の取得エラー:', error.message);
+      
+      // 本番環境ではプロキシ経由で再試行
+      if (process.env.NODE_ENV === 'production' && CONFIG_ENDPOINT.includes('execute-api')) {
+        try {
+          const proxyResponse = await axios.get('/api-proxy/config/client');
+          if (proxyResponse.data && proxyResponse.data.success) {
+            configCache = proxyResponse.data.data;
+            return configCache;
+          }
+        } catch (proxyError) {
+          console.warn('プロキシ経由でもAPI設定の取得に失敗:', proxyError.message);
+        }
+      }
+      
       // フォールバック設定を返す
+      const baseUrl = process.env.REACT_APP_API_BASE_URL || '';
       configCache = {
-        marketDataApiUrl: process.env.REACT_APP_API_BASE_URL || '',
-        apiStage: 'dev',
+        marketDataApiUrl: baseUrl,
+        apiStage: baseUrl.includes('/prod') ? 'prod' : 'dev',
         googleClientId: '', // Google Client IDは環境変数または設定APIから取得すべき
         features: {
-          useProxy: false,
+          useProxy: process.env.NODE_ENV === 'production', // 本番環境ではプロキシを使用
           useMockApi: false,
-          useDirectApi: true
+          useDirectApi: process.env.NODE_ENV !== 'production'
         }
       };
       return configCache;

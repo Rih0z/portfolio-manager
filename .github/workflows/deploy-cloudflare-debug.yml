@@ -1,0 +1,45 @@
+name: Debug Cloudflare Deployment
+
+on:
+  workflow_dispatch:
+
+jobs:
+  debug-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          
+      - name: Install dependencies
+        run: |
+          cd frontend/webapp
+          npm install --legacy-peer-deps
+          npm install ajv@8 --legacy-peer-deps
+          
+      - name: Build
+        run: |
+          cd frontend/webapp
+          NODE_OPTIONS='--openssl-legacy-provider' npm run build
+        env:
+          REACT_APP_API_BASE_URL: 'https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod'
+          REACT_APP_DEFAULT_EXCHANGE_RATE: '150.0'
+          
+      - name: List build files
+        run: |
+          echo "Build directory contents:"
+          ls -la frontend/webapp/build/
+          
+      - name: Deploy to Cloudflare Pages (with debug)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          command: pages deploy frontend/webapp/build --project-name=portfolio-manager --branch=main --commit-dirty=true
+          
+      - name: Check deployment result
+        run: |
+          echo "Deployment completed. Check Cloudflare Dashboard for results."
+          echo "Production URL should be: https://portfolio-wise.com"

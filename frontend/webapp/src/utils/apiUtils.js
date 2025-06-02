@@ -94,12 +94,12 @@ class CircuitBreaker {
 }
 
 // サーキットブレーカーの取得または作成
-function getCircuitBreaker(name) {
+const getCircuitBreaker = (name) => {
   if (!circuitBreakers.has(name)) {
     circuitBreakers.set(name, new CircuitBreaker(name));
   }
   return circuitBreakers.get(name);
-}
+};
 
 // サーキットブレーカーをリセット
 export function resetCircuitBreaker(name) {
@@ -489,18 +489,35 @@ export const formatErrorResponse = (error, ticker) => {
 export const generateFallbackData = (ticker) => {
   // 銘柄のタイプを判定
   const isJPStock = /^\d{4}(\.T)?$/.test(ticker);
-  const isMutualFund = /^\d{7}C(\.T)?$/.test(ticker);
+  const isMutualFund = /^(\d{8}|\d{7}[A-Z]|[A-Z0-9]{8})$/i.test(ticker);
+  
+  // 日本の銘柄名を取得
+  const { getJapaneseStockName } = require('./japaneseStockNames');
+  const { guessFundType, FUND_TYPES } = require('./fundUtils');
+  const japaneseName = getJapaneseStockName(ticker);
+  const displayName = japaneseName !== ticker ? japaneseName : `${ticker} (フォールバック)`;
+  
+  // ファンドタイプを推測
+  let fundType;
+  if (isJPStock) {
+    fundType = FUND_TYPES.STOCK;
+  } else if (isMutualFund) {
+    fundType = FUND_TYPES.MUTUAL_FUND;
+  } else {
+    fundType = guessFundType(displayName, ticker);
+  }
   
   // デフォルト値
   return {
     ticker: ticker,
     price: isJPStock ? 1000 : isMutualFund ? 10000 : 100,
-    name: `${ticker} (フォールバック)`,
+    name: displayName,
     currency: isJPStock || isMutualFund ? 'JPY' : 'USD',
     lastUpdated: new Date().toISOString(),
     source: 'Fallback',
     isStock: !isMutualFund,
-    isMutualFund: isMutualFund
+    isMutualFund: isMutualFund,
+    fundType: fundType
   };
 };
 
