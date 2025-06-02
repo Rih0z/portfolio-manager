@@ -241,6 +241,7 @@ API configurations are fetched dynamically from AWS. The following environment v
    - The deployment automatically promotes to https://portfolio-wise.com/ when pushed to the main branch
    - Custom domain is configured in Cloudflare Pages settings
    - SSL certificates are managed automatically by Cloudflare
+   - **Note**: GitHub Actions is NOT used for deployment. Manual deployment via Wrangler CLI is required.
 
 ### Important Notes on URLs
 - **Preview URLs**: Generated for each deployment, useful for testing UI changes but cannot authenticate with Google

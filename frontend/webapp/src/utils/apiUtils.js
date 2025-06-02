@@ -142,15 +142,17 @@ export const createApiClient = (withAuth = false) => {
     }
   });
   
-  // デフォルト設定の追加（念のため）
-  client.defaults.withCredentials = true;
-  
   // クライアント設定を確認
-  console.log('API client defaults:', {
-    withCredentials: client.defaults.withCredentials,
-    timeout: client.defaults.timeout,
-    headers: client.defaults.headers
-  });
+  if (client) {
+    console.log('API client created with configuration:', {
+      withCredentials: true,
+      timeout: TIMEOUT.DEFAULT,
+      hasInterceptors: !!client.interceptors
+    });
+  } else {
+    console.error('Failed to create API client');
+    return null;
+  }
   
   // インターセプターの設定
   if (client.interceptors?.request?.use) {

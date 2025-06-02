@@ -61,17 +61,17 @@ const TabNavigation = () => {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-lg border-t border-secondary-200 z-50">
-      <div className="grid grid-cols-4 h-16 max-w-md mx-auto">
+    <nav className="fixed bottom-0 left-0 right-0 bg-dark-200/95 backdrop-blur-xl border-t border-dark-400 z-50">
+      <div className="grid grid-cols-4 h-16 sm:h-18 max-w-sm sm:max-w-lg mx-auto">
         {tabs.map(tab => (
           <NavLink
             key={tab.path}
             to={tab.path}
             className={({ isActive }) => `
-              flex flex-col items-center justify-center transition-all duration-200 group relative
+              flex flex-col items-center justify-center transition-all duration-200 group relative min-h-[60px] sm:min-h-[72px]
               ${isActive 
-                ? 'text-primary-600' 
-                : 'text-secondary-400 hover:text-secondary-600'
+                ? 'text-primary-400' 
+                : 'text-gray-400 hover:text-gray-300 active:text-gray-200'
               }
             `}
           >
@@ -79,17 +79,28 @@ const TabNavigation = () => {
               <>
                 {/* Active indicator */}
                 {isActive && (
-                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-8 h-1 bg-primary-600 rounded-full"></div>
+                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-8 sm:w-10 h-1 bg-primary-400 rounded-full shadow-glow"></div>
                 )}
                 
-                {/* Icon */}
-                <div className={`mb-1 transition-transform duration-200 ${isActive ? 'scale-110' : 'group-hover:scale-105'}`}>
-                  {tab.icon}
+                {/* Icon with background for active state */}
+                <div className={`mb-1 transition-all duration-200 relative ${
+                  isActive 
+                    ? 'scale-110' 
+                    : 'group-hover:scale-105 group-active:scale-95'
+                }`}>
+                  {isActive && (
+                    <div className="absolute inset-0 bg-primary-500/10 rounded-lg blur-sm transform scale-150"></div>
+                  )}
+                  <div className={`w-6 h-6 sm:w-7 sm:h-7 relative ${
+                    isActive ? 'bg-primary-500/10 rounded-lg p-1' : ''
+                  }`}>
+                    {tab.icon}
+                  </div>
                 </div>
                 
                 {/* Label */}
-                <span className={`text-xs font-medium transition-all duration-200 ${
-                  isActive ? 'text-primary-600 font-semibold' : 'text-secondary-500'
+                <span className={`text-xs sm:text-sm font-medium transition-all duration-200 text-center leading-tight ${
+                  isActive ? 'text-primary-400 font-semibold' : 'text-gray-400'
                 }`}>
                   {t(tab.labelKey)}
                 </span>
@@ -100,7 +111,7 @@ const TabNavigation = () => {
       </div>
       
       {/* iPhone home indicator space */}
-      <div className="h-safe-bottom bg-white/95"></div>
+      <div className="h-safe-bottom bg-dark-200/95"></div>
     </nav>
   );
 };

@@ -21,7 +21,10 @@
  * @returns {string} フォーマットされた通貨文字列
  */
 export const formatCurrency = (amount, currency = 'JPY') => {
-  if (typeof amount !== 'number' || Number.isNaN(amount)) return 'N/A';
+  // 無効な値やInfinityの場合は0として扱う
+  if (typeof amount !== 'number' || Number.isNaN(amount) || amount === null || amount === undefined || !Number.isFinite(amount)) {
+    amount = 0;
+  }
 
   const formatter = new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -53,13 +56,13 @@ export const formatPercent = (value, fractionDigits = 2) => {
    * @returns {string} フォーマットされた日付文字列
    */
 export const formatDate = (date, formatStr) => {
-  if (date === null || date === undefined) return '無効な日付';
+  if (date === null || date === undefined || date === '') return 'Invalid Date';
 
   const d =
     typeof date === 'string' || typeof date === 'number'
       ? new Date(date)
       : date;
-  if (Number.isNaN(d?.getTime())) return '無効な日付';
+  if (Number.isNaN(d?.getTime())) return 'Invalid Date';
 
   if (formatStr === 'yyyy/MM/dd') {
     const y = d.getFullYear();
@@ -68,10 +71,11 @@ export const formatDate = (date, formatStr) => {
     return `${y}/${m}/${day}`;
   }
 
+  // デフォルトはISO風フォーマット（YYYY-MM-DD）
   const y = d.getFullYear();
-  const m = d.getMonth() + 1;
-  const day = d.getDate();
-  return `${y}年${m}月${day}日`;
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 };
 
 /**
@@ -81,7 +85,7 @@ export const formatDate = (date, formatStr) => {
  * @returns {string} フォーマットされたパーセンテージ文字列
  */
 export const formatPercentage = (value, decimals = 1) => {
-  if (typeof value !== 'number' || Number.isNaN(value) || value === null || value === undefined) {
+  if (typeof value !== 'number' || Number.isNaN(value) || value === null || value === undefined || !Number.isFinite(value)) {
     return '0.0%';
   }
   
@@ -96,7 +100,7 @@ export const formatPercentage = (value, decimals = 1) => {
  */
 export const formatNumber = (value, decimals) => {
   const num = Number(value);
-  if (Number.isNaN(num) || value === null || value === undefined) {
+  if (Number.isNaN(num) || value === null || value === undefined || !Number.isFinite(num)) {
     return '0';
   }
   

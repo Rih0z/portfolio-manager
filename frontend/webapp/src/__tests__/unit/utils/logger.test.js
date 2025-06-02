@@ -1,241 +1,301 @@
+import logger, { replaceConsoleLog } from '../../../utils/logger';
+
 /**
  * logger.js のユニットテスト
  * ログユーティリティとセキュリティフィルタリングのテスト
  */
 
-describe('logger', () => {
-  let originalConsole;
-  let originalEnv;
+// Mock process.env to test different environments
+const originalEnv = process.env.NODE_ENV;
 
+describe('logger', () => {
   beforeEach(() => {
-    // コンソールとプロセス環境をバックアップ
-    originalConsole = {
-      log: console.log,
-      warn: console.warn,
-      error: console.error,
-      info: console.info,
-      debug: console.debug
-    };
-    originalEnv = process.env.NODE_ENV;
-    
-    // モックコンソールを設定
-    console.log = jest.fn();
-    console.warn = jest.fn();
-    console.error = jest.fn();
-    console.info = jest.fn();
-    console.debug = jest.fn();
+    jest.clearAllMocks();
+    process.env.NODE_ENV = 'test';
   });
 
   afterEach(() => {
-    // コンソールと環境を復元
-    Object.assign(console, originalConsole);
     process.env.NODE_ENV = originalEnv;
-    
-    // require cacheをクリア
-    delete require.cache[require.resolve('../../../utils/logger')];
   });
 
-  describe('logger functionality', () => {
-    it('logger.jsがエラーなく読み込める', () => {
-      expect(() => require('../../../utils/logger')).not.toThrow();
+  describe('log method', () => {
+    it('logs messages in test environment', () => {
+      const consoleSpy = jest.spyOn(console, 'log');
+      
+      logger.log('Test message');
+      
+      expect(consoleSpy).toHaveBeenCalledWith('Test message');
+      
+      consoleSpy.mockRestore();
     });
 
-    it('開発環境でlogger.jsを読み込める', () => {
+    it('logs messages in development environment', () => {
       process.env.NODE_ENV = 'development';
-      expect(() => require('../../../utils/logger')).not.toThrow();
+      const consoleSpy = jest.spyOn(console, 'log');
+      
+      logger.log('Test message');
+      
+      expect(consoleSpy).toHaveBeenCalledWith('Test message');
+      
+      consoleSpy.mockRestore();
     });
 
-    it('本番環境でlogger.jsを読み込める', () => {
+    it('masks sensitive information in development', () => {
+      process.env.NODE_ENV = 'development';
+      const consoleSpy = jest.spyOn(console, 'log');
+      
+      logger.log({ token: 'secret123', password: 'mypassword' });
+      
+      expect(consoleSpy).toHaveBeenCalledWith({ token: '[MASKED]', password: '[MASKED]' });
+      
+      consoleSpy.mockRestore();
+    });
+
+    it('masks sensitive strings', () => {
+      const consoleSpy = jest.spyOn(console, 'log');
+      
+      logger.log('Bearer abcd1234567890abcd');
+      
+      // 長い文字列はマスクされる
+      expect(consoleSpy).toHaveBeenCalledWith('abcd...abcd');
+      
+      consoleSpy.mockRestore();
+    });
+
+    it('does not log sensitive info in production without masking', () => {
       process.env.NODE_ENV = 'production';
-      expect(() => require('../../../utils/logger')).not.toThrow();
+      const consoleSpy = jest.spyOn(console, 'log');
+      
+      logger.log('This contains token information');
+      
+      // 機密情報を含むログは本番環境では出力されない
+      expect(consoleSpy).not.toHaveBeenCalled();
+      
+      consoleSpy.mockRestore();
     });
 
-    it('テスト環境でlogger.jsを読み込める', () => {
-      process.env.NODE_ENV = 'test';
-      expect(() => require('../../../utils/logger')).not.toThrow();
-    });
-
-    it('未定義環境でlogger.jsを読み込める', () => {
-      process.env.NODE_ENV = undefined;
-      expect(() => require('../../../utils/logger')).not.toThrow();
-    });
-  });
-
-  describe('console methods existence', () => {
-    it('コンソールメソッドが利用可能', () => {
-      expect(typeof console.log).toBe('function');
-      expect(typeof console.warn).toBe('function');
-      expect(typeof console.error).toBe('function');
-      expect(typeof console.info).toBe('function');
-      expect(typeof console.debug).toBe('function');
-    });
-
-    it('モック関数が設定されている', () => {
-      expect(jest.isMockFunction(console.log)).toBe(true);
-      expect(jest.isMockFunction(console.warn)).toBe(true);
-      expect(jest.isMockFunction(console.error)).toBe(true);
-    });
-  });
-
-  describe('基本的なログ機能', () => {
-    beforeEach(() => {
-      process.env.NODE_ENV = 'development';
-      delete require.cache[require.resolve('../../../utils/logger')];
-      require('../../../utils/logger');
-    });
-
-    it('ログが呼び出される', () => {
-      console.log('test message');
-      expect(console.log).toHaveBeenCalled();
-    });
-
-    it('エラーログが呼び出される', () => {
-      console.error('test error');
-      expect(console.error).toHaveBeenCalled();
-    });
-
-    it('警告ログが呼び出される', () => {
-      console.warn('test warning');
-      expect(console.warn).toHaveBeenCalled();
-    });
-  });
-
-  describe('環境別の動作', () => {
-    it('本番環境でもエラーが発生しない', () => {
+    it('logs non-sensitive info in production', () => {
       process.env.NODE_ENV = 'production';
-      delete require.cache[require.resolve('../../../utils/logger')];
+      const consoleSpy = jest.spyOn(console, 'log');
       
-      expect(() => {
-        require('../../../utils/logger');
-        console.log('production test');
-        console.error('production error');
-        console.warn('production warning');
-      }).not.toThrow();
-    });
-
-    it('開発環境でもエラーが発生しない', () => {
-      process.env.NODE_ENV = 'development';
-      delete require.cache[require.resolve('../../../utils/logger')];
+      logger.log('Safe message');
       
-      expect(() => {
-        require('../../../utils/logger');
-        console.log('development test');
-        console.error('development error');
-        console.warn('development warning');
-      }).not.toThrow();
-    });
-
-    it('テスト環境でもエラーが発生しない', () => {
-      process.env.NODE_ENV = 'test';
-      delete require.cache[require.resolve('../../../utils/logger')];
+      expect(consoleSpy).toHaveBeenCalledWith('Safe message');
       
-      expect(() => {
-        require('../../../utils/logger');
-        console.log('test message');
-        console.error('test error');
-        console.warn('test warning');
-      }).not.toThrow();
+      consoleSpy.mockRestore();
     });
   });
 
-  describe('複数回の初期化', () => {
-    it('複数回requireしてもエラーが発生しない', () => {
-      process.env.NODE_ENV = 'development';
+  describe('info method', () => {
+    it('logs info messages in test environment', () => {
+      const consoleSpy = jest.spyOn(console, 'info');
       
-      expect(() => {
-        require('../../../utils/logger');
-        require('../../../utils/logger');
-        require('../../../utils/logger');
-      }).not.toThrow();
+      logger.info('Info message');
+      
+      expect(consoleSpy).toHaveBeenCalledWith('Info message');
+      
+      consoleSpy.mockRestore();
     });
 
-    it('環境を変更して複数回requireしてもエラーが発生しない', () => {
-      expect(() => {
-        process.env.NODE_ENV = 'development';
-        delete require.cache[require.resolve('../../../utils/logger')];
-        require('../../../utils/logger');
-        
-        process.env.NODE_ENV = 'production';
-        delete require.cache[require.resolve('../../../utils/logger')];
-        require('../../../utils/logger');
-        
-        process.env.NODE_ENV = 'test';
-        delete require.cache[require.resolve('../../../utils/logger')];
-        require('../../../utils/logger');
-      }).not.toThrow();
+    it('masks sensitive info in development', () => {
+      process.env.NODE_ENV = 'development';
+      const consoleSpy = jest.spyOn(console, 'info');
+      
+      logger.info({ authorization: 'Bearer token' });
+      
+      expect(consoleSpy).toHaveBeenCalledWith({ authorization: '[MASKED]' });
+      
+      consoleSpy.mockRestore();
     });
   });
 
-  describe('パフォーマンステスト', () => {
-    beforeEach(() => {
-      process.env.NODE_ENV = 'development';
-      delete require.cache[require.resolve('../../../utils/logger')];
-      require('../../../utils/logger');
+  describe('warn method', () => {
+    it('always logs warnings with masking', () => {
+      process.env.NODE_ENV = 'production';
+      const consoleSpy = jest.spyOn(console, 'warn');
+      
+      logger.warn('Warning with token');
+      
+      expect(consoleSpy).toHaveBeenCalledWith('Warning with token');
+      
+      consoleSpy.mockRestore();
     });
 
-    it('大量のログを高速で処理できる', () => {
-      const startTime = Date.now();
+    it('masks sensitive data in warnings', () => {
+      const consoleSpy = jest.spyOn(console, 'warn');
       
-      for (let i = 0; i < 100; i++) {
-        console.log(`Log message ${i}`, { data: `value${i}` });
-        console.warn(`Warning ${i}`);
-        console.error(`Error ${i}`);
-      }
+      logger.warn({ secret: 'mysecret' });
       
-      const endTime = Date.now();
-      expect(endTime - startTime).toBeLessThan(1000); // 1秒以内
-    });
-
-    it('複雑なオブジェクトも効率的に処理できる', () => {
-      const complexObj = {
-        level1: Array.from({ length: 10 }, (_, i) => ({
-          id: i,
-          data: Array.from({ length: 5 }, (_, j) => ({
-            nested: `value${j}`
-          }))
-        }))
-      };
+      expect(consoleSpy).toHaveBeenCalledWith({ secret: '[MASKED]' });
       
-      const startTime = Date.now();
-      console.log('Complex object:', complexObj);
-      const endTime = Date.now();
-      
-      expect(endTime - startTime).toBeLessThan(500); // 500ms以内
+      consoleSpy.mockRestore();
     });
   });
 
-  describe('エラーハンドリング', () => {
-    it('undefinedを渡してもエラーが発生しない', () => {
-      process.env.NODE_ENV = 'development';
-      delete require.cache[require.resolve('../../../utils/logger')];
-      require('../../../utils/logger');
+  describe('error method', () => {
+    it('always logs errors with masking', () => {
+      process.env.NODE_ENV = 'production';
+      const consoleSpy = jest.spyOn(console, 'error');
       
-      expect(() => {
-        console.log(undefined);
-        console.warn(null);
-        console.error();
-      }).not.toThrow();
+      logger.error('Error message');
+      
+      expect(consoleSpy).toHaveBeenCalledWith('Error message');
+      
+      consoleSpy.mockRestore();
     });
 
-    it('循環参照オブジェクトでもエラーが発生しない', () => {
+    it('masks sensitive data in errors', () => {
+      const consoleSpy = jest.spyOn(console, 'error');
+      
+      logger.error({ credential: 'secret123' });
+      
+      expect(consoleSpy).toHaveBeenCalledWith({ credential: '[MASKED]' });
+      
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('debug method', () => {
+    it('logs debug messages in development', () => {
       process.env.NODE_ENV = 'development';
-      delete require.cache[require.resolve('../../../utils/logger')];
-      require('../../../utils/logger');
+      const consoleSpy = jest.spyOn(console, 'log');
       
-      const obj = { name: 'test' };
-      obj.self = obj;
+      logger.debug('Debug message');
       
-      expect(() => console.log('Circular:', obj)).not.toThrow();
+      expect(consoleSpy).toHaveBeenCalledWith('[DEBUG]', 'Debug message');
+      
+      consoleSpy.mockRestore();
     });
 
-    it('関数オブジェクトでもエラーが発生しない', () => {
+    it('does not log debug messages in production', () => {
+      process.env.NODE_ENV = 'production';
+      const consoleSpy = jest.spyOn(console, 'log');
+      
+      logger.debug('Debug message');
+      
+      expect(consoleSpy).not.toHaveBeenCalled();
+      
+      consoleSpy.mockRestore();
+    });
+
+    it('masks sensitive data in debug logs', () => {
       process.env.NODE_ENV = 'development';
-      delete require.cache[require.resolve('../../../utils/logger')];
-      require('../../../utils/logger');
+      const consoleSpy = jest.spyOn(console, 'log');
       
-      const func = function() { return 'test'; };
+      logger.debug({ session: 'sessionid' });
       
-      expect(() => console.log('Function:', func)).not.toThrow();
+      expect(consoleSpy).toHaveBeenCalledWith('[DEBUG]', { session: '[MASKED]' });
+      
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('sensitive data masking', () => {
+    it('masks array data with sensitive keys', () => {
+      const consoleSpy = jest.spyOn(console, 'log');
+      
+      logger.log([{ auth: 'value' }, { safe: 'value' }]);
+      
+      expect(consoleSpy).toHaveBeenCalledWith([{ auth: '[MASKED]' }, { safe: 'value' }]);
+      
+      consoleSpy.mockRestore();
+    });
+
+    it('preserves boolean values for sensitive keys', () => {
+      const consoleSpy = jest.spyOn(console, 'log');
+      
+      logger.log({ authenticated: true });
+      
+      expect(consoleSpy).toHaveBeenCalledWith({ authenticated: true });
+      
+      consoleSpy.mockRestore();
+    });
+
+    it('handles nested objects', () => {
+      const consoleSpy = jest.spyOn(console, 'log');
+      
+      logger.log({
+        user: {
+          name: 'John',
+          token: 'secret123'
+        }
+      });
+      
+      expect(consoleSpy).toHaveBeenCalledWith({
+        user: {
+          name: 'John',
+          token: '[MASKED]'
+        }
+      });
+      
+      consoleSpy.mockRestore();
+    });
+
+    it('handles null and undefined values', () => {
+      const consoleSpy = jest.spyOn(console, 'log');
+      
+      logger.log(null, undefined, { token: null, password: undefined });
+      
+      expect(consoleSpy).toHaveBeenCalledWith(null, undefined, { token: '[MASKED]', password: '[MASKED]' });
+      
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('replaceConsoleLog', () => {
+    it('replaces console.log in production', () => {
+      process.env.NODE_ENV = 'production';
+      const originalLog = console.log;
+      
+      replaceConsoleLog();
+      
+      expect(console.log).not.toBe(originalLog);
+      
+      // Restore original
+      console.log = originalLog;
+    });
+
+    it('does not replace console.log in development', () => {
+      process.env.NODE_ENV = 'development';
+      const originalLog = console.log;
+      
+      replaceConsoleLog();
+      
+      expect(console.log).toBe(originalLog);
+    });
+  });
+
+  describe('edge cases', () => {
+    it('handles empty arguments', () => {
+      const consoleSpy = jest.spyOn(console, 'log');
+      
+      logger.log();
+      
+      expect(consoleSpy).toHaveBeenCalledWith();
+      
+      consoleSpy.mockRestore();
+    });
+
+    it('handles mixed argument types', () => {
+      const consoleSpy = jest.spyOn(console, 'log');
+      
+      logger.log('string', 123, true, { key: 'value' }, ['array']);
+      
+      expect(consoleSpy).toHaveBeenCalledWith('string', 123, true, { key: 'value' }, ['array']);
+      
+      consoleSpy.mockRestore();
+    });
+
+    it('handles functions and symbols', () => {
+      const consoleSpy = jest.spyOn(console, 'log');
+      const fn = () => {};
+      const sym = Symbol('test');
+      
+      logger.log(fn, sym);
+      
+      expect(consoleSpy).toHaveBeenCalledWith(fn, sym);
+      
+      consoleSpy.mockRestore();
     });
   });
 });

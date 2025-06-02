@@ -58,7 +58,26 @@ const AppInitializer = ({ children }) => {
   }, []);
   
   if (!initialized) {
-    return <div className="flex items-center justify-center h-screen">PortfolioWise 設定を読み込み中...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-dark-100 px-4">
+        <div className="text-center">
+          <div className="w-16 h-16 mx-auto mb-6 relative">
+            <div className="absolute inset-0 bg-primary-500/20 rounded-full blur-xl animate-pulse"></div>
+            <div className="relative w-16 h-16 bg-dark-300 rounded-full flex items-center justify-center border border-dark-400">
+              <svg className="w-8 h-8 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+          </div>
+          <p className="text-gray-300 text-sm sm:text-base font-medium">PortfolioWise を起動しています...</p>
+          <div className="mt-4 flex items-center justify-center space-x-1">
+            <div className="w-2 h-2 bg-primary-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+            <div className="w-2 h-2 bg-primary-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+            <div className="w-2 h-2 bg-primary-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+          </div>
+        </div>
+      </div>
+    );
   }
   
   return (
@@ -108,13 +127,20 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-100">
-          <div className="bg-white p-6 rounded-lg shadow-md max-w-md">
-            <h2 className="text-red-600 text-xl mb-4">エラーが発生しました</h2>
-            <p className="mb-2">申し訳ありませんが、アプリケーションにエラーが発生しました。</p>
-            <p className="text-gray-700 mb-4">詳細: {this.state.error?.message || '不明なエラー'}</p>
+        <div className="min-h-screen flex items-center justify-center bg-dark-100 px-4">
+          <div className="bg-dark-200 border border-dark-400 p-6 sm:p-8 rounded-2xl max-w-md w-full text-center">
+            <div className="w-16 h-16 mx-auto mb-4 bg-danger-500/10 rounded-full flex items-center justify-center border border-danger-500/20">
+              <svg className="w-8 h-8 text-danger-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <h2 className="text-gray-100 text-xl sm:text-2xl font-bold mb-4">エラーが発生しました</h2>
+            <p className="text-gray-300 mb-2 text-sm sm:text-base">申し訳ありませんが、アプリケーションにエラーが発生しました。</p>
+            <p className="text-gray-400 mb-6 text-xs sm:text-sm bg-dark-300 border border-dark-400 p-3 rounded-lg font-mono">
+              {this.state.error?.message || '不明なエラー'}
+            </p>
             <button
-              className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+              className="w-full sm:w-auto bg-primary-500 text-white px-6 py-3 rounded-xl hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-dark-100 transition-all duration-200 font-medium shadow-lg hover:shadow-glow"
               onClick={() => window.location.reload()}
             >
               リロードする
@@ -138,10 +164,10 @@ const App = () => {
             <ContextConnector />
             
             <Router>
-              <div className="min-h-screen bg-gray-100">
+              <div className="min-h-screen bg-dark-100 text-gray-100">
                 <Header />
-                {/* iOS用のパディング調整したメインコンテンツ */}
-                <main className="container mx-auto px-4 py-6 ios-content-margin">
+                {/* Mobile-optimized main content with dark theme */}
+                <main className="max-w-7xl mx-auto pt-2 sm:pt-4 lg:pt-6 pb-20 sm:pb-6">
                   <Routes>
                     <Route path="/" element={<Dashboard />} />
                     <Route path="/settings" element={<Settings />} />
@@ -150,7 +176,7 @@ const App = () => {
                     <Route path="/auth/google/callback" element={<Dashboard />} />
                   </Routes>
                 </main>
-                {/* iOS風のタブバー */}
+                {/* Mobile-friendly tab navigation */}
                 <TabNavigation />
               </div>
             </Router>

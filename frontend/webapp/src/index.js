@@ -17,20 +17,29 @@
  */
 
 import React from 'react';
-import { createRoot } from 'react-dom/client';
+import ReactDOM from 'react-dom';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
-import './utils/resetCircuitBreaker'; // サーキットブレーカーリセット機能
-import './utils/fixExchangeRate'; // 為替レート修復機能
+// import './utils/resetCircuitBreaker'; // サーキットブレーカーリセット機能
+// import './utils/fixExchangeRate'; // 為替レート修復機能
 import { replaceConsoleLog } from './utils/logger'; // ログフィルタリング
-import { setupGlobalErrorHandlers } from './utils/errorHandler'; // エラーハンドリング
+// import { setupGlobalErrorHandlers } from './utils/errorHandler'; // エラーハンドリング
 
 // 開発環境でのテスト機能の現代化
 const loadDevelopmentFeatures = async () => {
   if (process.env.NODE_ENV === 'development') {
     try {
-      await import('./services/testJapaneseTickers');
+      // 遅延読み込みで循環依存を回避
+      setTimeout(async () => {
+        try {
+          await import('./services/testJapaneseTickers');
+          await import('./utils/resetCircuitBreaker');
+          await import('./utils/fixExchangeRate');
+        } catch (error) {
+          console.warn('開発機能の読み込みに失敗しました:', error);
+        }
+      }, 2000);
     } catch (error) {
       console.warn('開発機能の読み込みに失敗しました:', error);
     }
@@ -38,19 +47,27 @@ const loadDevelopmentFeatures = async () => {
 };
 
 // 本番環境でログをフィルタリング
-replaceConsoleLog();
+try {
+  replaceConsoleLog();
+} catch (error) {
+  console.warn('Logger setup failed:', error);
+}
 
 // グローバルエラーハンドラーの設定
-setupGlobalErrorHandlers();
+// try {
+//   setupGlobalErrorHandlers();
+// } catch (error) {
+//   console.warn('Error handler setup failed:', error);
+// }
 
-// React 18の現代的なRoot APIを使用
+// React 18の安定したレンダリング方法を使用
 const container = document.getElementById('root');
-const root = createRoot(container);
 
-root.render(
+ReactDOM.render(
   <React.StrictMode>
     <App />
-  </React.StrictMode>
+  </React.StrictMode>,
+  container
 );
 
 // 開発機能の非同期読み込み

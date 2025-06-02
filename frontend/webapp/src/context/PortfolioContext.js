@@ -22,8 +22,7 @@ import {
   fetchFundInfo,
   fetchDividendData,
   loadFromGoogleDrive as apiLoadFromGoogleDrive,
-  saveToGoogleDrive as apiSaveToGoogleDrive,
-  initGoogleDriveAPI
+  saveToGoogleDrive as apiSaveToGoogleDrive
 } from '../services/api';
 import { fetchMultipleStocks } from '../services/marketDataService';
 import { 
@@ -1411,9 +1410,6 @@ export const PortfolioProvider = ({ children }) => {
     }
     
     try {
-      // Google Drive APIの初期化を確認
-      await initGoogleDriveAPI();
-      
       // 保存するデータを準備
       const portfolioData = {
         baseCurrency,
@@ -1460,9 +1456,6 @@ export const PortfolioProvider = ({ children }) => {
     }
     
     try {
-      // Google Drive APIの初期化を確認
-      await initGoogleDriveAPI();
-      
       // 実際のGoogleドライブAPI呼び出し
       console.log('Googleドライブから読み込み中');
       const result = await apiLoadFromGoogleDrive(user);

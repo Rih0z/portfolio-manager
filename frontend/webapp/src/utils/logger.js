@@ -115,7 +115,8 @@ const logger = {
 
 // console.logを置き換える関数
 export function replaceConsoleLog() {
-    if (!isDevelopment) {
+    const currentEnv = process.env.NODE_ENV;
+    if (currentEnv !== 'development') {
         const originalLog = console.log;
         console.log = (...args) => {
             if (!containsSensitiveInfo(args)) {

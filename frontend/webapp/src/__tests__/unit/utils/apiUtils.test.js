@@ -1,343 +1,568 @@
-/**
- * apiUtils.js のユニットテスト
- * API関連のユーティリティ関数とサーキットブレーカーのテスト
- */
-
 import {
-  withRetry,
-  withExponentialBackoff,
-  withTimeout,
-  resetCircuitBreaker
+  createApiClient,
+  marketDataClient,
+  authApiClient,
+  fetchWithRetry,
+  authFetch,
+  formatErrorResponse,
+  generateFallbackData,
+  setAuthToken,
+  getAuthToken,
+  clearAuthToken,
+  resetCircuitBreaker,
+  resetAllCircuitBreakers,
+  wait,
+  TIMEOUT,
+  RETRY
 } from '../../../utils/apiUtils';
+import axios from 'axios';
 
-// モック用のタイマー
-jest.useFakeTimers();
+// Mock dependencies
+jest.mock('axios');
+jest.mock('../../../utils/envUtils', () => ({
+  getApiEndpoint: jest.fn((endpoint) => `http://localhost:3000/${endpoint}`),
+  isLocalDevelopment: jest.fn(() => true)
+}));
+jest.mock('../../../utils/csrfManager', () => ({
+  addTokenToRequest: jest.fn()
+}));
+jest.mock('../../../utils/errorHandler', () => ({
+  handleApiError: jest.fn((error) => error)
+}));
+jest.mock('../../../utils/japaneseStockNames', () => ({
+  getJapaneseStockName: jest.fn((ticker) => ticker === '7203.T' ? 'トヨタ自動車' : ticker)
+}));
+jest.mock('../../../utils/fundUtils', () => ({
+  guessFundType: jest.fn(() => 'STOCK'),
+  FUND_TYPES: {
+    STOCK: 'STOCK',
+    MUTUAL_FUND: 'MUTUAL_FUND',
+    BOND: 'BOND',
+    REIT: 'REIT'
+  }
+}));
+
+const mockedAxios = axios;
+// Ensure axios.create is a mock function
+mockedAxios.create = jest.fn();
 
 describe('apiUtils', () => {
+  const mockAxiosInstance = {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
+    interceptors: {
+      request: { use: jest.fn() },
+      response: { use: jest.fn() }
+    },
+    defaults: {
+      withCredentials: true,
+      timeout: 10000,
+      headers: {}
+    }
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.clearAllTimers();
-    // サーキットブレーカーをリセット
-    resetCircuitBreaker('test-api');
-  });
-
-  afterEach(() => {
-    jest.runOnlyPendingTimers();
-    jest.useRealTimers();
-    jest.useFakeTimers();
-  });
-
-  describe('withRetry', () => {
-    it('成功した関数をそのまま実行する', async () => {
-      const mockFn = jest.fn().mockResolvedValue('success');
-      
-      const result = await withRetry(mockFn, { maxRetries: 3 });
-      
-      expect(result).toBe('success');
-      expect(mockFn).toHaveBeenCalledTimes(1);
-    });
-
-    it('失敗した関数を指定回数リトライする', async () => {
-      const mockFn = jest.fn()
-        .mockRejectedValueOnce(new Error('fail 1'))
-        .mockRejectedValueOnce(new Error('fail 2'))
-        .mockResolvedValue('success');
-      
-      const result = await withRetry(mockFn, { maxRetries: 3 });
-      
-      expect(result).toBe('success');
-      expect(mockFn).toHaveBeenCalledTimes(3);
-    });
-
-    it('最大リトライ回数を超えた場合はエラーを投げる', async () => {
-      const mockFn = jest.fn().mockRejectedValue(new Error('persistent failure'));
-      
-      await expect(withRetry(mockFn, { maxRetries: 2 }))
-        .rejects.toThrow('persistent failure');
-      
-      expect(mockFn).toHaveBeenCalledTimes(3); // 初回 + 2回リトライ
-    });
-
-    it('デフォルトパラメータで動作する', async () => {
-      const mockFn = jest.fn()
-        .mockRejectedValueOnce(new Error('fail'))
-        .mockResolvedValue('success');
-      
-      const result = await withRetry(mockFn);
-      
-      expect(result).toBe('success');
-      expect(mockFn).toHaveBeenCalledTimes(2);
-    });
-
-    it('delayが正しく動作する', async () => {
-      const mockFn = jest.fn()
-        .mockRejectedValueOnce(new Error('fail'))
-        .mockResolvedValue('success');
-      
-      const promise = withRetry(mockFn, { maxRetries: 1, delay: 1000 });
-      
-      // 最初の実行は即座に失敗
-      await jest.advanceTimersByTimeAsync(0);
-      expect(mockFn).toHaveBeenCalledTimes(1);
-      
-      // 1秒後にリトライ
-      await jest.advanceTimersByTimeAsync(1000);
-      
-      const result = await promise;
-      expect(result).toBe('success');
-      expect(mockFn).toHaveBeenCalledTimes(2);
+    clearAuthToken();
+    resetAllCircuitBreakers();
+    mockedAxios.create.mockReturnValue(mockAxiosInstance);
+    
+    // Reset mock instance
+    Object.keys(mockAxiosInstance).forEach(key => {
+      if (typeof mockAxiosInstance[key].mockClear === 'function') {
+        mockAxiosInstance[key].mockClear();
+      }
     });
   });
 
-  describe('withExponentialBackoff', () => {
-    it('成功した関数をそのまま実行する', async () => {
-      const mockFn = jest.fn().mockResolvedValue('success');
-      
-      const result = await withExponentialBackoff(mockFn);
-      
-      expect(result).toBe('success');
-      expect(mockFn).toHaveBeenCalledTimes(1);
+  describe('Constants', () => {
+    it('exports TIMEOUT constants', () => {
+      expect(TIMEOUT.DEFAULT).toBe(10000);
+      expect(TIMEOUT.EXCHANGE_RATE).toBe(5000);
+      expect(TIMEOUT.US_STOCK).toBe(10000);
+      expect(TIMEOUT.JP_STOCK).toBe(20000);
+      expect(TIMEOUT.MUTUAL_FUND).toBe(20000);
     });
 
-    it('指数バックオフでリトライする', async () => {
-      const mockFn = jest.fn()
-        .mockRejectedValueOnce(new Error('fail 1'))
-        .mockRejectedValueOnce(new Error('fail 2'))
-        .mockResolvedValue('success');
-      
-      const promise = withExponentialBackoff(mockFn, { maxRetries: 3, baseDelay: 100 });
-      
-      // 最初の実行
-      await jest.advanceTimersByTimeAsync(0);
-      expect(mockFn).toHaveBeenCalledTimes(1);
-      
-      // 100ms後に1回目のリトライ
-      await jest.advanceTimersByTimeAsync(100);
-      expect(mockFn).toHaveBeenCalledTimes(2);
-      
-      // 200ms後に2回目のリトライ
-      await jest.advanceTimersByTimeAsync(200);
-      
-      const result = await promise;
-      expect(result).toBe('success');
-      expect(mockFn).toHaveBeenCalledTimes(3);
+    it('exports RETRY constants', () => {
+      expect(RETRY.MAX_ATTEMPTS).toBe(2);
+      expect(RETRY.INITIAL_DELAY).toBe(500);
+      expect(RETRY.BACKOFF_FACTOR).toBe(2);
+      expect(RETRY.MAX_DELAY).toBe(60000);
+      expect(RETRY.CIRCUIT_BREAKER_THRESHOLD).toBe(5);
+      expect(RETRY.CIRCUIT_BREAKER_TIMEOUT).toBe(300000);
+    });
+  });
+
+  describe('Auth Token Management', () => {
+    it('sets and gets auth token', () => {
+      const token = 'test-token-123';
+      setAuthToken(token);
+      expect(getAuthToken()).toBe(token);
     });
 
-    it('最大遅延時間を超えない', async () => {
-      const mockFn = jest.fn()
-        .mockRejectedValue(new Error('fail'));
+    it('clears auth token', () => {
+      setAuthToken('test-token');
+      clearAuthToken();
+      expect(getAuthToken()).toBe(null);
+    });
+
+    it('handles null token', () => {
+      setAuthToken(null);
+      expect(getAuthToken()).toBe(null);
+    });
+
+    it('handles undefined token', () => {
+      setAuthToken(undefined);
+      expect(getAuthToken()).toBe(undefined);
+    });
+  });
+
+  describe('Circuit Breaker', () => {
+    it('resets circuit breaker by name', () => {
+      expect(() => resetCircuitBreaker('test-service')).not.toThrow();
+    });
+
+    it('resets all circuit breakers', () => {
+      expect(() => resetAllCircuitBreakers()).not.toThrow();
+    });
+
+    it('handles non-existent circuit breaker reset', () => {
+      expect(() => resetCircuitBreaker('non-existent')).not.toThrow();
+    });
+  });
+
+  describe('Wait function', () => {
+    it('resolves after specified time', async () => {
+      const startTime = Date.now();
+      await wait(50);
+      const endTime = Date.now();
+      expect(endTime - startTime).toBeGreaterThanOrEqual(45);
+    });
+
+    it('handles zero delay', async () => {
+      const startTime = Date.now();
+      await wait(0);
+      const endTime = Date.now();
+      expect(endTime - startTime).toBeLessThan(50);
+    });
+  });
+
+  describe('createApiClient', () => {
+    it('creates API client without auth', () => {
+      const client = createApiClient(false);
       
-      const promise = withExponentialBackoff(mockFn, { 
-        maxRetries: 10, 
-        baseDelay: 1000, 
-        maxDelay: 5000 
+      expect(mockedAxios.create).toHaveBeenCalledWith({
+        timeout: TIMEOUT.DEFAULT,
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
       });
-      
-      // 大きな指数でも maxDelay を超えないことを確認
-      await jest.advanceTimersByTimeAsync(0);
-      await jest.advanceTimersByTimeAsync(1000); // 1回目: 1000ms
-      await jest.advanceTimersByTimeAsync(2000); // 2回目: 2000ms  
-      await jest.advanceTimersByTimeAsync(4000); // 3回目: 4000ms
-      await jest.advanceTimersByTimeAsync(5000); // 4回目: 5000ms (maxDelay)
-      await jest.advanceTimersByTimeAsync(5000); // 5回目: 5000ms (maxDelay)
-      
-      await expect(promise).rejects.toThrow('fail');
-      expect(mockFn).toHaveBeenCalledTimes(6); // 初回 + 5回リトライ
+      expect(client).toBeDefined();
     });
 
-    it('ジッターが適用される', async () => {
-      const mockFn = jest.fn()
-        .mockRejectedValueOnce(new Error('fail'))
-        .mockResolvedValue('success');
+    it('creates API client with auth', () => {
+      const client = createApiClient(true);
       
-      // Math.randomをモック
-      const originalRandom = Math.random;
-      Math.random = jest.fn().mockReturnValue(0.5);
+      expect(mockedAxios.create).toHaveBeenCalled();
+      expect(client).toBeDefined();
+    });
+
+    it('sets up request interceptors', () => {
+      createApiClient(false);
       
-      const promise = withExponentialBackoff(mockFn, { 
-        maxRetries: 1, 
-        baseDelay: 1000, 
-        jitter: true 
+      expect(mockAxiosInstance.interceptors.request.use).toHaveBeenCalled();
+    });
+
+    it('sets up response interceptors', () => {
+      createApiClient(false);
+      
+      expect(mockAxiosInstance.interceptors.response.use).toHaveBeenCalled();
+    });
+
+    it('creates instances with proper defaults', () => {
+      createApiClient(true);
+      
+      expect(mockAxiosInstance.defaults.withCredentials).toBe(true);
+    });
+  });
+
+  describe('fetchWithRetry', () => {
+    it('makes successful request on first attempt', async () => {
+      const mockResponse = { data: { ticker: 'AAPL', price: 150 } };
+      mockAxiosInstance.get.mockResolvedValueOnce(mockResponse);
+      
+      const result = await fetchWithRetry('market-data', { symbol: 'AAPL' });
+      
+      expect(result).toEqual(mockResponse.data);
+      expect(mockAxiosInstance.get).toHaveBeenCalledTimes(1);
+    });
+
+    it('retries on failure and succeeds', async () => {
+      const mockError = new Error('Network error');
+      const mockResponse = { data: { ticker: 'AAPL', price: 150 } };
+      
+      mockAxiosInstance.get
+        .mockRejectedValueOnce(mockError)
+        .mockResolvedValueOnce(mockResponse);
+      
+      const mockDelay = jest.fn().mockResolvedValue(undefined);
+      const result = await fetchWithRetry('market-data', { symbol: 'AAPL' }, TIMEOUT.DEFAULT, 2, mockDelay);
+      
+      expect(result).toEqual(mockResponse.data);
+      expect(mockAxiosInstance.get).toHaveBeenCalledTimes(2);
+      expect(mockDelay).toHaveBeenCalled();
+    });
+
+    it('throws error after max retries', async () => {
+      const mockError = new Error('Persistent error');
+      mockAxiosInstance.get.mockRejectedValue(mockError);
+      
+      const mockDelay = jest.fn().mockResolvedValue(undefined);
+      
+      await expect(
+        fetchWithRetry('market-data', { symbol: 'AAPL' }, TIMEOUT.DEFAULT, 1, mockDelay)
+      ).rejects.toThrow('Persistent error');
+      
+      expect(mockAxiosInstance.get).toHaveBeenCalledTimes(2);
+    });
+
+    it('handles URL generation for different endpoint types', async () => {
+      const mockResponse = { data: {} };
+      mockAxiosInstance.get.mockResolvedValue(mockResponse);
+      
+      // Test with relative endpoint
+      await fetchWithRetry('market-data');
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+        'http://localhost:3000/market-data',
+        expect.any(Object)
+      );
+      
+      // Test with absolute URL
+      await fetchWithRetry('https://api.example.com/data');
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+        'https://api.example.com/data',
+        expect.any(Object)
+      );
+    });
+
+    it('uses exponential backoff with jitter', async () => {
+      const mockError = new Error('Error');
+      mockAxiosInstance.get.mockRejectedValue(mockError);
+      
+      const mockDelay = jest.fn().mockResolvedValue(undefined);
+      
+      try {
+        await fetchWithRetry('market-data', {}, TIMEOUT.DEFAULT, 2, mockDelay);
+      } catch (error) {
+        // Expected to fail
+      }
+      
+      expect(mockDelay).toHaveBeenCalledTimes(2);
+      // Check that delay increases (with jitter, should be around 500ms, then 1000ms)
+      const call1Delay = mockDelay.mock.calls[0][0];
+      const call2Delay = mockDelay.mock.calls[1][0];
+      expect(call1Delay).toBeGreaterThan(400);
+      expect(call2Delay).toBeGreaterThan(call1Delay);
+    });
+  });
+
+  describe('authFetch', () => {
+    beforeEach(() => {
+      // Setup DOM environment for cookies
+      Object.defineProperty(document, 'cookie', {
+        writable: true,
+        value: 'test=value'
       });
+    });
+
+    it('makes GET request successfully', async () => {
+      const mockResponse = { data: { success: true } };
+      mockAxiosInstance.get.mockResolvedValueOnce(mockResponse);
       
-      await jest.advanceTimersByTimeAsync(0);
-      // ジッター適用で遅延は 500ms (1000 * 0.5)
-      await jest.advanceTimersByTimeAsync(500);
+      const result = await authFetch('auth/session', 'get');
       
-      const result = await promise;
-      expect(result).toBe('success');
+      expect(result).toEqual(mockResponse.data);
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+        'http://localhost:3000/auth/session',
+        expect.objectContaining({
+          params: null,
+          withCredentials: true
+        })
+      );
+    });
+
+    it('makes POST request successfully', async () => {
+      const mockResponse = { data: { success: true } };
+      const postData = { username: 'test' };
+      mockAxiosInstance.post.mockResolvedValueOnce(mockResponse);
       
-      Math.random = originalRandom;
+      const result = await authFetch('auth/login', 'post', postData);
+      
+      expect(result).toEqual(mockResponse.data);
+      expect(mockAxiosInstance.post).toHaveBeenCalledWith(
+        'http://localhost:3000/auth/login',
+        postData,
+        expect.objectContaining({
+          withCredentials: true
+        })
+      );
+    });
+
+    it('makes PUT request successfully', async () => {
+      const mockResponse = { data: { success: true } };
+      const putData = { id: 1, name: 'updated' };
+      mockAxiosInstance.put.mockResolvedValueOnce(mockResponse);
+      
+      const result = await authFetch('auth/update', 'put', putData);
+      
+      expect(result).toEqual(mockResponse.data);
+      expect(mockAxiosInstance.put).toHaveBeenCalledWith(
+        'http://localhost:3000/auth/update',
+        putData,
+        expect.objectContaining({
+          withCredentials: true
+        })
+      );
+    });
+
+    it('makes DELETE request successfully', async () => {
+      const mockResponse = { data: { success: true } };
+      const deleteData = { id: 1 };
+      mockAxiosInstance.delete.mockResolvedValueOnce(mockResponse);
+      
+      const result = await authFetch('auth/delete', 'delete', deleteData);
+      
+      expect(result).toEqual(mockResponse.data);
+      expect(mockAxiosInstance.delete).toHaveBeenCalledWith(
+        'http://localhost:3000/auth/delete',
+        expect.objectContaining({
+          data: deleteData,
+          withCredentials: true
+        })
+      );
+    });
+
+    it('throws error for unsupported HTTP method', async () => {
+      await expect(
+        authFetch('auth/test', 'patch')
+      ).rejects.toThrow('未対応のHTTPメソッド: patch');
+    });
+
+    it('handles 400 error responses gracefully', async () => {
+      const errorResponse = {
+        response: {
+          status: 400,
+          data: { error: 'Bad request', details: 'Invalid input' }
+        }
+      };
+      mockAxiosInstance.get.mockRejectedValueOnce(errorResponse);
+      
+      const result = await authFetch('auth/bad-request');
+      
+      expect(result).toEqual(errorResponse.response.data);
+    });
+
+    it('logs network error details', async () => {
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      const networkError = {
+        message: 'Network Error',
+        config: {
+          url: 'http://localhost:3000/auth/test',
+          method: 'get'
+        }
+      };
+      mockAxiosInstance.get.mockRejectedValueOnce(networkError);
+      
+      await expect(authFetch('auth/test')).rejects.toThrow();
+      
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Network Error詳細:',
+        expect.any(Object)
+      );
+      
+      consoleSpy.mockRestore();
     });
   });
 
-  describe('withTimeout', () => {
-    it('タイムアウト前に完了した場合は結果を返す', async () => {
-      const mockFn = jest.fn().mockResolvedValue('success');
+  describe('formatErrorResponse', () => {
+    it('formats generic error', () => {
+      const error = new Error('Generic error');
+      const result = formatErrorResponse(error, 'AAPL');
       
-      const result = await withTimeout(mockFn(), 5000);
-      
-      expect(result).toBe('success');
-    });
-
-    it('タイムアウトした場合はエラーを投げる', async () => {
-      const mockFn = jest.fn().mockImplementation(() => 
-        new Promise(resolve => setTimeout(resolve, 10000))
-      );
-      
-      const promise = withTimeout(mockFn(), 1000);
-      
-      // 1秒経過でタイムアウト
-      jest.advanceTimersByTime(1000);
-      
-      await expect(promise).rejects.toThrow('Operation timed out');
-    });
-
-    it('カスタムタイムアウトメッセージを使用できる', async () => {
-      const mockFn = jest.fn().mockImplementation(() => 
-        new Promise(resolve => setTimeout(resolve, 10000))
-      );
-      
-      const promise = withTimeout(mockFn(), 1000, 'Custom timeout message');
-      
-      jest.advanceTimersByTime(1000);
-      
-      await expect(promise).rejects.toThrow('Custom timeout message');
-    });
-
-    it('タイムアウト後も元のPromiseは継続する', async () => {
-      let resolveOriginal;
-      const mockFn = jest.fn().mockImplementation(() => 
-        new Promise(resolve => { resolveOriginal = resolve; })
-      );
-      
-      const promise = withTimeout(mockFn(), 1000);
-      
-      jest.advanceTimersByTime(1000);
-      await expect(promise).rejects.toThrow('Operation timed out');
-      
-      // 元のPromiseを解決してもエラーは発生しない
-      expect(() => resolveOriginal('late success')).not.toThrow();
-    });
-  });
-
-  describe('resetCircuitBreaker', () => {
-    it('存在するサーキットブレーカーをリセットできる', () => {
-      // リセット処理は内部的に動作するため、エラーが発生しないことを確認
-      expect(() => resetCircuitBreaker('test-api')).not.toThrow();
-    });
-
-    it('存在しないサーキットブレーカーをリセットしてもエラーが発生しない', () => {
-      expect(() => resetCircuitBreaker('non-existent-api')).not.toThrow();
-    });
-
-    it('空の名前でもエラーが発生しない', () => {
-      expect(() => resetCircuitBreaker('')).not.toThrow();
-      expect(() => resetCircuitBreaker(null)).not.toThrow();
-      expect(() => resetCircuitBreaker(undefined)).not.toThrow();
-    });
-  });
-
-  describe('統合テスト', () => {
-    it('withRetryとwithTimeoutを組み合わせて使用できる', async () => {
-      const mockFn = jest.fn()
-        .mockRejectedValueOnce(new Error('fail'))
-        .mockResolvedValue('success');
-      
-      const result = await withRetry(
-        () => withTimeout(mockFn(), 5000),
-        { maxRetries: 2, delay: 100 }
-      );
-      
-      expect(result).toBe('success');
-    });
-
-    it('withExponentialBackoffとwithTimeoutを組み合わせて使用できる', async () => {
-      const mockFn = jest.fn()
-        .mockRejectedValueOnce(new Error('fail'))
-        .mockResolvedValue('success');
-      
-      const promise = withExponentialBackoff(
-        () => withTimeout(mockFn(), 5000),
-        { maxRetries: 2, baseDelay: 100 }
-      );
-      
-      await jest.advanceTimersByTimeAsync(0);
-      await jest.advanceTimersByTimeAsync(100);
-      
-      const result = await promise;
-      expect(result).toBe('success');
-    });
-
-    it('複雑なエラーケースを正しく処理する', async () => {
-      const mockFn = jest.fn()
-        .mockRejectedValue(new Error('persistent failure'));
-      
-      const promise = withExponentialBackoff(
-        () => withTimeout(mockFn(), 1000),
-        { maxRetries: 2, baseDelay: 100 }
-      );
-      
-      await jest.advanceTimersByTimeAsync(0);
-      await jest.advanceTimersByTimeAsync(100);
-      await jest.advanceTimersByTimeAsync(200);
-      
-      await expect(promise).rejects.toThrow('persistent failure');
-    });
-  });
-
-  describe('エラーハンドリング', () => {
-    it('関数が同期的にエラーを投げた場合も正しく処理する', async () => {
-      const mockFn = jest.fn().mockImplementation(() => {
-        throw new Error('sync error');
+      expect(result).toEqual({
+        success: false,
+        error: true,
+        message: 'データの取得に失敗しました',
+        errorType: 'UNKNOWN',
+        errorDetail: 'Generic error',
+        ticker: 'AAPL'
       });
-      
-      await expect(withRetry(mockFn, { maxRetries: 1 }))
-        .rejects.toThrow('sync error');
     });
 
-    it('非関数を渡した場合は適切にエラーハンドリングする', async () => {
-      await expect(withRetry(null, { maxRetries: 1 }))
-        .rejects.toThrow();
+    it('formats API error with response', () => {
+      const error = {
+        response: {
+          status: 500,
+          data: { message: 'Internal server error' }
+        }
+      };
+      const result = formatErrorResponse(error);
+      
+      expect(result.status).toBe(500);
+      expect(result.errorType).toBe('API_ERROR');
+      expect(result.message).toBe('Internal server error');
     });
 
-    it('負の値のパラメータを正しく処理する', async () => {
-      const mockFn = jest.fn().mockResolvedValue('success');
+    it('formats rate limit error', () => {
+      const error = {
+        response: {
+          status: 429,
+          data: { message: 'Rate limit exceeded' }
+        }
+      };
+      const result = formatErrorResponse(error);
       
-      // 負の値は0として扱われる
-      const result = await withRetry(mockFn, { maxRetries: -1 });
-      expect(result).toBe('success');
-      expect(mockFn).toHaveBeenCalledTimes(1);
+      expect(result.errorType).toBe('RATE_LIMIT');
+    });
+
+    it('formats timeout error', () => {
+      const error = { code: 'ECONNABORTED' };
+      const result = formatErrorResponse(error);
+      
+      expect(result.errorType).toBe('TIMEOUT');
+      expect(result.message).toBe('リクエストがタイムアウトしました');
+    });
+
+    it('formats network error', () => {
+      const error = { message: 'Network Error' };
+      const result = formatErrorResponse(error);
+      
+      expect(result.errorType).toBe('NETWORK');
+      expect(result.message).toBe('ネットワーク接続に問題があります');
+    });
+
+    it('works without ticker', () => {
+      const error = new Error('Test');
+      const result = formatErrorResponse(error);
+      
+      expect(result.ticker).toBeUndefined();
+      expect(result.success).toBe(false);
     });
   });
 
-  describe('パフォーマンステスト', () => {
-    it('大量の並行リクエストを処理できる', async () => {
-      const mockFn = jest.fn().mockResolvedValue('success');
+  describe('generateFallbackData', () => {
+    it('generates fallback for Japanese stock', () => {
+      const result = generateFallbackData('7203.T');
       
-      const promises = Array.from({ length: 100 }, () => 
-        withRetry(mockFn, { maxRetries: 1 })
-      );
-      
-      const results = await Promise.all(promises);
-      
-      expect(results).toHaveLength(100);
-      expect(results.every(result => result === 'success')).toBe(true);
-      expect(mockFn).toHaveBeenCalledTimes(100);
+      expect(result).toEqual({
+        ticker: '7203.T',
+        price: 1000,
+        name: 'トヨタ自動車',
+        currency: 'JPY',
+        lastUpdated: expect.any(String),
+        source: 'Fallback',
+        isStock: true,
+        isMutualFund: false,
+        fundType: 'STOCK'
+      });
     });
 
-    it('メモリリークが発生しない', async () => {
-      // 大量の失敗するリクエストでもメモリが蓄積されないことを確認
-      const mockFn = jest.fn().mockRejectedValue(new Error('fail'));
+    it('generates fallback for US stock', () => {
+      const result = generateFallbackData('AAPL');
       
-      const promises = Array.from({ length: 10 }, () => 
-        withRetry(mockFn, { maxRetries: 1, delay: 1 }).catch(() => 'failed')
+      expect(result).toEqual({
+        ticker: 'AAPL',
+        price: 100,
+        name: 'AAPL (フォールバック)',
+        currency: 'USD',
+        lastUpdated: expect.any(String),
+        source: 'Fallback',
+        isStock: true,
+        isMutualFund: false,
+        fundType: 'STOCK'
+      });
+    });
+
+    it('generates fallback for mutual fund', () => {
+      const result = generateFallbackData('12345678');
+      
+      expect(result).toEqual({
+        ticker: '12345678',
+        price: 10000,
+        name: '12345678 (フォールバック)',
+        currency: 'JPY',
+        lastUpdated: expect.any(String),
+        source: 'Fallback',
+        isStock: false,
+        isMutualFund: true,
+        fundType: 'STOCK'
+      });
+    });
+
+    it('generates fallback for 4-digit JP stock without .T', () => {
+      const result = generateFallbackData('7203');
+      
+      expect(result.currency).toBe('JPY');
+      expect(result.price).toBe(1000);
+      expect(result.isStock).toBe(true);
+    });
+
+    it('generates fallback for fund with letters', () => {
+      const result = generateFallbackData('1234567A');
+      
+      expect(result.currency).toBe('JPY');
+      expect(result.isMutualFund).toBe(true);
+    });
+
+    it('includes valid ISO date string', () => {
+      const result = generateFallbackData('TEST');
+      const date = new Date(result.lastUpdated);
+      
+      expect(date).toBeInstanceOf(Date);
+      expect(date.getTime()).not.toBeNaN();
+    });
+  });
+
+  describe('Client instances', () => {
+    it('exports marketDataClient', () => {
+      expect(marketDataClient).toBeDefined();
+    });
+
+    it('exports authApiClient', () => {
+      expect(authApiClient).toBeDefined();
+    });
+  });
+
+  describe('Edge cases', () => {
+    it('handles empty endpoint in fetchWithRetry', async () => {
+      const mockResponse = { data: {} };
+      mockAxiosInstance.get.mockResolvedValue(mockResponse);
+      
+      await fetchWithRetry('');
+      
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith(
+        'http://localhost:3000/',
+        expect.any(Object)
       );
+    });
+
+    it('handles special characters in ticker for fallback', () => {
+      const result = generateFallbackData('TICKER-WITH-DASH');
       
-      await jest.advanceTimersByTimeAsync(10);
-      const results = await Promise.all(promises);
+      expect(result.ticker).toBe('TICKER-WITH-DASH');
+      expect(result.source).toBe('Fallback');
+    });
+
+    it('handles very long ticker names', () => {
+      const longTicker = 'A'.repeat(50);
+      const result = generateFallbackData(longTicker);
       
-      expect(results.every(result => result === 'failed')).toBe(true);
+      expect(result.ticker).toBe(longTicker);
     });
   });
 });
