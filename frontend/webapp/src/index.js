@@ -17,7 +17,7 @@
  */
 
 import React from 'react';
-import ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
@@ -60,14 +60,14 @@ try {
 //   console.warn('Error handler setup failed:', error);
 // }
 
-// React 18の安定したレンダリング方法を使用
+// React 18の推奨レンダリング方法を使用
 const container = document.getElementById('root');
+const root = createRoot(container);
 
-ReactDOM.render(
+root.render(
   <React.StrictMode>
     <App />
-  </React.StrictMode>,
-  container
+  </React.StrictMode>
 );
 
 // 開発機能の非同期読み込み

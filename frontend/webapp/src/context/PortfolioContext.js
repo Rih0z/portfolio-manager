@@ -21,7 +21,6 @@ import {
   fetchExchangeRate, 
   fetchFundInfo,
   fetchDividendData,
-  loadFromGoogleDrive as apiLoadFromGoogleDrive,
   saveToGoogleDrive as apiSaveToGoogleDrive
 } from '../services/api';
 import { fetchMultipleStocks } from '../services/marketDataService';
@@ -1456,9 +1455,10 @@ export const PortfolioProvider = ({ children }) => {
     }
     
     try {
-      // 実際のGoogleドライブAPI呼び出し
-      console.log('Googleドライブから読み込み中');
-      const result = await apiLoadFromGoogleDrive(user);
+      // Google Drive API の loadFromGoogleDrive 関数は削除されました
+      // ダミーのエラーレスポンスを返してフォールバック処理を実行
+      console.log('Google Drive読み込み機能は現在無効です');
+      const result = { success: false, message: 'Google Drive読み込み機能は現在無効です' };
       
       // API呼び出し結果を確認
       if (result.success && result.data) {
