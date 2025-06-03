@@ -278,7 +278,14 @@ export const PortfolioProvider = ({ children }) => {
       if (!asset.ticker) return asset;
       
       const ticker = asset.ticker.toUpperCase();
-      const name = asset.name || '';
+      let name = asset.name || '';
+      
+      // 日本の投資信託名を取得
+      const { getJapaneseStockName } = require('../utils/japaneseStockNames');
+      const japaneseName = getJapaneseStockName(ticker);
+      if (japaneseName !== ticker && (!name || name === ticker)) {
+        name = japaneseName;
+      }
 
       // 特別なケース：VXUSや他の米国ETFが個別株として誤って登録されていないか確認
       const isInETFList = US_ETF_LIST.includes(ticker);
@@ -361,10 +368,14 @@ export const PortfolioProvider = ({ children }) => {
         console.log(`銘柄 ${ticker} (${asset.name}) の配当情報を修正: 利回り ${asset.dividendYield}% -> ${correctDividendYield}%, 配当${asset.hasDividend ? 'あり' : 'なし'} -> ${correctHasDividend ? 'あり' : 'なし'}`);
       }
       
+      // 名前が更新されたかチェック
+      const nameIsWrong = name !== asset.name;
+      
       // 修正した情報で銘柄を更新
-      if (fundTypeIsWrong || feeIsWrong || dividendIsWrong) {
+      if (fundTypeIsWrong || feeIsWrong || dividendIsWrong || nameIsWrong) {
         return {
           ...asset,
+          name: name, // 日本の投資信託名に更新
           fundType: correctFundType,
           isStock: correctIsStock,
           annualFee: correctFee,
@@ -735,6 +746,13 @@ export const PortfolioProvider = ({ children }) => {
       
       // 銘柄データ
       const tickerData = tickerResult.data;
+      
+      // 日本の投資信託名を取得してnameを更新
+      const { getJapaneseStockName } = require('../utils/japaneseStockNames');
+      const japaneseName = getJapaneseStockName(ticker);
+      if (japaneseName !== ticker) {
+        tickerData.name = japaneseName;
+      }
 
       // ファンド情報を取得（手数料率など）
       const fundInfoResult = await requestManager.request(
