@@ -13,7 +13,21 @@
 
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FaGlobeAmericas, FaYenSign, FaGlobeAsia, FaChartLine, FaBitcoin, FaChartBar } from 'react-icons/fa';
+import { 
+  FaGlobeAmericas, 
+  FaYenSign, 
+  FaGlobeAsia, 
+  FaChartLine, 
+  FaBitcoin, 
+  FaChartBar,
+  FaFlag,
+  FaHome,
+  FaGem,
+  FaTrophy,
+  FaMedal,
+  FaAward
+} from 'react-icons/fa';
+import { HiGlobeAlt } from 'react-icons/hi';
 
 // 投資対象市場の定義
 export const INVESTMENT_MARKETS = {
@@ -21,7 +35,7 @@ export const INVESTMENT_MARKETS = {
     id: 'US',
     name: '米国市場',
     nameEn: 'US Market',
-    icon: '🇺🇸',
+    icon: <FaGlobeAmericas className="text-2xl text-blue-500" />,
     examples: ['S&P500', 'NASDAQ', '個別米国株'],
     examplesEn: ['S&P500', 'NASDAQ', 'Individual US Stocks'],
     japanAvailable: true,
@@ -31,7 +45,7 @@ export const INVESTMENT_MARKETS = {
     id: 'JAPAN',
     name: '日本市場',
     nameEn: 'Japan Market',
-    icon: '🇯🇵',
+    icon: <FaFlag className="text-2xl text-red-500" />,
     examples: ['日経225', 'TOPIX', '個別日本株'],
     examplesEn: ['Nikkei 225', 'TOPIX', 'Individual Japanese Stocks'],
     japanAvailable: true,
@@ -41,7 +55,7 @@ export const INVESTMENT_MARKETS = {
     id: 'GLOBAL',
     name: '全世界',
     nameEn: 'Global Markets',
-    icon: '🌐',
+    icon: <HiGlobeAlt className="text-2xl text-green-500" />,
     examples: ['オルカン', 'VTI', '新興国含む'],
     examplesEn: ['All Country', 'VTI', 'Including Emerging Markets'],
     japanAvailable: true,
@@ -51,7 +65,7 @@ export const INVESTMENT_MARKETS = {
     id: 'REIT',
     name: 'REIT',
     nameEn: 'REIT',
-    icon: '🏠',
+    icon: <FaHome className="text-2xl text-orange-500" />,
     examples: ['J-REIT', '米国REIT', '不動産投資'],
     examplesEn: ['J-REIT', 'US REIT', 'Real Estate Investment'],
     japanAvailable: true,
@@ -61,7 +75,7 @@ export const INVESTMENT_MARKETS = {
     id: 'CRYPTO',
     name: '仮想通貨',
     nameEn: 'Cryptocurrency',
-    icon: '💎',
+    icon: <FaBitcoin className="text-2xl text-purple-500" />,
     examples: ['ビットコイン', 'イーサリアム', 'その他暗号資産'],
     examplesEn: ['Bitcoin', 'Ethereum', 'Other Crypto Assets'],
     japanAvailable: true,
@@ -71,7 +85,7 @@ export const INVESTMENT_MARKETS = {
     id: 'BONDS',
     name: '債券',
     nameEn: 'Bonds',
-    icon: '📊',
+    icon: <FaChartBar className="text-2xl text-gray-500" />,
     examples: ['国債・社債', '先進国債券', '新興国債券'],
     examplesEn: ['Government/Corporate Bonds', 'Developed Market Bonds', 'Emerging Market Bonds'],
     japanAvailable: true,
@@ -191,7 +205,7 @@ const MarketSelectionWizard = ({
 
               {/* Market content */}
               <div className="text-center space-y-2">
-                <div className="text-3xl mb-2">{market.icon}</div>
+                <div className="flex justify-center mb-2">{market.icon}</div>
                 <h4 className="font-semibold text-white text-sm">
                   {isJapanese ? market.name : market.nameEn}
                 </h4>
@@ -229,9 +243,11 @@ const MarketSelectionWizard = ({
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
-                    <span className="text-yellow-400 font-bold">
-                      {combination.percentage === 68 ? '🥇' : combination.percentage === 23 ? '🥈' : '🥉'}
-                    </span>
+                    <div className="text-yellow-400 font-bold">
+                      {combination.percentage === 68 ? <FaTrophy className="text-lg" /> : 
+                       combination.percentage === 23 ? <FaMedal className="text-lg" /> : 
+                       <FaAward className="text-lg" />}
+                    </div>
                     <span className="text-white font-medium">
                       {isJapanese ? combination.name : combination.nameEn}
                     </span>
@@ -260,7 +276,7 @@ const MarketSelectionWizard = ({
                   key={marketId}
                   className={`inline-flex items-center px-3 py-1 rounded-full text-sm bg-gradient-to-r ${market.color} text-white`}
                 >
-                  <span className="mr-1">{market.icon}</span>
+                  <div className="mr-1 text-xs">{market.icon}</div>
                   {isJapanese ? market.name : market.nameEn}
                 </span>
               );

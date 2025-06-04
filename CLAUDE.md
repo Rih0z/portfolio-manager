@@ -2,6 +2,12 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Claude Code Approach Guidelines
+
+**Ultrathink.**
+**Don't hold back. give it your all！**
+**日本語で回答して。**
+
 ## Important Workflow Guidelines
 
 ### Completion of Work

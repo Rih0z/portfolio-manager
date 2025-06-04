@@ -16,7 +16,17 @@ import React, { useState, useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PortfolioContext } from '../context/PortfolioContext';
 import ScreenshotAnalyzer from '../components/ai/ScreenshotAnalyzer';
-import { FaFileAlt, FaFileCode, FaCheckCircle, FaExclamationCircle } from 'react-icons/fa';
+import { 
+  FaFileAlt, 
+  FaFileCode, 
+  FaCheckCircle, 
+  FaExclamationCircle,
+  FaChartBar,
+  FaChartLine,
+  FaGem,
+  FaClipboardList,
+  FaLightbulb
+} from 'react-icons/fa';
 import { HiDocumentText } from 'react-icons/hi';
 
 const DataImport = () => {
@@ -358,9 +368,10 @@ const DataImport = () => {
 
             {/* Export Info */}
             <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
-              <h5 className="text-green-400 font-medium mb-2">
-                📄 {isJapanese ? 'エクスポート内容' : 'Export Contents'}
-              </h5>
+              <div className="flex items-center gap-2 text-green-400 font-medium mb-2">
+                <FaFileAlt />
+                <h5>{isJapanese ? 'エクスポート内容' : 'Export Contents'}</h5>
+              </div>
               <div className="space-y-1 text-sm text-gray-300">
                 <div>
                   • {isJapanese 
@@ -401,9 +412,10 @@ const DataImport = () => {
       <div className="container mx-auto px-4 py-8 pb-20">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-4">
-            📊 {isJapanese ? 'データ取り込み' : 'Data Import'}
-          </h1>
+          <div className="flex items-center justify-center gap-3 text-3xl font-bold mb-4">
+            <FaChartBar className="text-primary-400" />
+            <h1>{isJapanese ? 'データ取り込み' : 'Data Import'}</h1>
+          </div>
           <p className="text-gray-400 max-w-2xl mx-auto">
             {isJapanese 
               ? '外部AIで分析されたデータの受け取りや、JSONファイルでのデータ交換が行えます。プライバシーを保護しながら安全にデータを管理します。'
@@ -424,7 +436,7 @@ const DataImport = () => {
                   {isJapanese ? 'インポート回数' : 'Total Imports'}
                 </div>
               </div>
-              <div className="text-3xl">📈</div>
+              <FaChartLine className="text-3xl text-primary-400" />
             </div>
           </div>
 
@@ -438,7 +450,7 @@ const DataImport = () => {
                   {isJapanese ? '成功インポート' : 'Successful Imports'}
                 </div>
               </div>
-              <div className="text-3xl">✅</div>
+              <FaCheckCircle className="text-3xl text-green-400" />
             </div>
           </div>
 
@@ -452,7 +464,7 @@ const DataImport = () => {
                   {isJapanese ? '追加された資産' : 'Assets Added'}
                 </div>
               </div>
-              <div className="text-3xl">💎</div>
+              <FaGem className="text-3xl text-blue-400" />
             </div>
           </div>
         </div>
@@ -490,9 +502,10 @@ const DataImport = () => {
         {/* Import History */}
         {importHistory.length > 0 && (
           <div className="bg-dark-200 rounded-lg p-6">
-            <h3 className="text-xl font-semibold text-white mb-4">
-              📋 {isJapanese ? 'インポート履歴' : 'Import History'}
-            </h3>
+            <div className="flex items-center gap-2 text-xl font-semibold text-white mb-4">
+              <FaClipboardList className="text-primary-400" />
+              <h3>{isJapanese ? 'インポート履歴' : 'Import History'}</h3>
+            </div>
             <div className="space-y-3">
               {importHistory.map(record => (
                 <div
@@ -502,10 +515,11 @@ const DataImport = () => {
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="text-lg">
-                          {record.type === 'screenshot_portfolio' ? '📊' :
-                           record.type === 'market_data_screenshot' ? '📈' : '📋'}
-                        </span>
+                        <div className="text-lg">
+                          {record.type === 'screenshot_portfolio' ? <FaChartBar className="text-primary-400" /> :
+                           record.type === 'market_data_screenshot' ? <FaChartLine className="text-green-400" /> : 
+                           <FaClipboardList className="text-blue-400" />}
+                        </div>
                         <span className="font-medium text-white">
                           {record.type === 'screenshot_portfolio' ? 
                             (isJapanese ? 'ポートフォリオ' : 'Portfolio') :
@@ -543,9 +557,10 @@ const DataImport = () => {
 
         {/* Help Section */}
         <div className="mt-8 bg-primary-500/10 border border-primary-500/30 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-primary-400 mb-3">
-            💡 {isJapanese ? '使い方のヒント' : 'Usage Tips'}
-          </h3>
+          <div className="flex items-center gap-2 text-lg font-semibold text-primary-400 mb-3">
+            <FaLightbulb />
+            <h3>{isJapanese ? '使い方のヒント' : 'Usage Tips'}</h3>
+          </div>
           <div className="space-y-2 text-sm text-gray-300">
             <div>
               • {isJapanese 
