@@ -74,7 +74,12 @@ const AIAdvisor = () => {
     concerns: [],
     concernsCustom: [],
     idealPortfolio: '',
-    currentAssetsDescription: ''
+    currentAssetsDescription: '',
+    // 各ステップの自由記載欄
+    step0FreeText: '', // 基本情報の補足
+    step1FreeText: '', // 投資対象市場の補足
+    step2FreeText: '', // 投資経験の補足
+    step3FreeText: '' // 目標と価値観の補足（既存のものを統合）
   });
   const [generatedPrompt, setGeneratedPrompt] = useState('');
   const [showPrompt, setShowPrompt] = useState(false);
@@ -271,6 +276,14 @@ ${userData.currentAssetsDescription ? `【現在の資産状況】
 ${userData.currentAssetsDescription}
 ` : ''}${userData.idealPortfolio ? `【理想のポートフォリオ】
 ${userData.idealPortfolio}
+` : ''}${userData.step0FreeText ? `【基本情報の補足】
+${userData.step0FreeText}
+` : ''}${userData.step1FreeText ? `【投資対象に関する補足】
+${userData.step1FreeText}
+` : ''}${userData.step2FreeText ? `【投資経験に関する補足】
+${userData.step2FreeText}
+` : ''}${userData.step3FreeText ? `【目標・価値観に関する補足】
+${userData.step3FreeText}
 ` : ''}
 
 上記の情報を基に、以下について教えてください：
@@ -316,6 +329,14 @@ ${userData.currentAssetsDescription ? `【Current Asset Situation】
 ${userData.currentAssetsDescription}
 ` : ''}${userData.idealPortfolio ? `【Ideal Portfolio】
 ${userData.idealPortfolio}
+` : ''}${userData.step0FreeText ? `【Additional Basic Information】
+${userData.step0FreeText}
+` : ''}${userData.step1FreeText ? `【Additional Investment Preferences】
+${userData.step1FreeText}
+` : ''}${userData.step2FreeText ? `【Additional Investment Experience Details】
+${userData.step2FreeText}
+` : ''}${userData.step3FreeText ? `【Additional Goals and Values Information】
+${userData.step3FreeText}
 ` : ''}
 
 Based on the above information, please advise me on:
@@ -583,16 +604,52 @@ Based on the above information, please advise me on:
                   )}
                 </div>
               </div>
+              
+              {/* 基本情報の自由記載欄 */}
+              <div className="mt-6">
+                <label className="block text-sm font-medium mb-2">
+                  {isJapanese ? 'その他、補足したいこと（任意）' : 'Additional Information (Optional)'}
+                </label>
+                <textarea
+                  value={userData.step0FreeText}
+                  onChange={(e) => setUserData(prev => ({ ...prev, step0FreeText: e.target.value }))}
+                  placeholder={isJapanese 
+                    ? '基本情報について補足があれば自由にご記入ください...' 
+                    : 'Feel free to add any additional information about yourself...'
+                  }
+                  className="w-full p-3 bg-dark-300 border border-dark-400 rounded-lg focus:ring-2 focus:ring-primary-400 focus:border-transparent resize-none"
+                  rows={3}
+                />
+              </div>
             </div>
           )}
 
           {/* Step 1: Market Selection */}
           {currentStep === 1 && (
-            <MarketSelectionWizard
-              selectedMarkets={userData.targetMarkets}
-              onMarketsChange={(markets) => setUserData(prev => ({ ...prev, targetMarkets: markets }))}
-              showTitle={false}
-            />
+            <div className="space-y-6">
+              <MarketSelectionWizard
+                selectedMarkets={userData.targetMarkets}
+                onMarketsChange={(markets) => setUserData(prev => ({ ...prev, targetMarkets: markets }))}
+                showTitle={false}
+              />
+              
+              {/* 投資対象市場の自由記載欄 */}
+              <div className="mt-6">
+                <label className="block text-sm font-medium mb-2">
+                  {isJapanese ? 'その他、投資について補足したいこと（任意）' : 'Additional Investment Preferences (Optional)'}
+                </label>
+                <textarea
+                  value={userData.step1FreeText}
+                  onChange={(e) => setUserData(prev => ({ ...prev, step1FreeText: e.target.value }))}
+                  placeholder={isJapanese 
+                    ? '投資対象や市場について補足があれば自由にご記入ください...' 
+                    : 'Feel free to add any additional information about your investment preferences...'
+                  }
+                  className="w-full p-3 bg-dark-300 border border-dark-400 rounded-lg focus:ring-2 focus:ring-primary-400 focus:border-transparent resize-none"
+                  rows={3}
+                />
+              </div>
+            </div>
           )}
 
           {/* Step 2: Investment Experience */}
@@ -678,6 +735,23 @@ Based on the above information, please advise me on:
                     {isJapanese ? '円単位で入力してください' : 'Enter amount in Japanese Yen'}
                   </p>
                 </div>
+              </div>
+              
+              {/* 投資経験の自由記載欄 */}
+              <div className="mt-6">
+                <label className="block text-sm font-medium mb-2">
+                  {isJapanese ? 'その他、投資経験について補足したいこと（任意）' : 'Additional Investment Experience Details (Optional)'}
+                </label>
+                <textarea
+                  value={userData.step2FreeText}
+                  onChange={(e) => setUserData(prev => ({ ...prev, step2FreeText: e.target.value }))}
+                  placeholder={isJapanese 
+                    ? '投資経験やリスク許容度について補足があれば自由にご記入ください...' 
+                    : 'Feel free to add any additional information about your investment experience or risk tolerance...'
+                  }
+                  className="w-full p-3 bg-dark-300 border border-dark-400 rounded-lg focus:ring-2 focus:ring-primary-400 focus:border-transparent resize-none"
+                  rows={3}
+                />
               </div>
             </div>
           )}
@@ -797,6 +871,29 @@ Based on the above information, please advise me on:
                     {isJapanese 
                       ? '理想とする資産配分や投資戦略を自由に記述してください' 
                       : 'Describe your ideal asset allocation and investment strategy freely'
+                    }
+                  </p>
+                </div>
+                
+                {/* 目標と価値観の自由記載欄 */}
+                <div className="mt-6">
+                  <h3 className="text-lg font-medium mb-4">
+                    {isJapanese ? 'その他、目標や価値観について補足したいこと（任意）' : 'Additional Goals and Values Information (Optional)'}
+                  </h3>
+                  <textarea
+                    value={userData.step3FreeText}
+                    onChange={(e) => setUserData(prev => ({ ...prev, step3FreeText: e.target.value }))}
+                    placeholder={isJapanese 
+                      ? '価値観、不安、目標、投資スタイルなどについて補足があれば自由にご記入ください...' 
+                      : 'Feel free to add any additional information about your goals, values, concerns, or investment style...'
+                    }
+                    className="w-full p-4 bg-dark-300 border border-dark-400 rounded-lg focus:ring-2 focus:ring-primary-400 focus:border-transparent resize-none"
+                    rows={4}
+                  />
+                  <p className="text-sm text-gray-400 mt-2">
+                    {isJapanese 
+                      ? '投資に対する考え方や特別な要望などがあれば記入してください' 
+                      : 'Share your investment philosophy or any special requirements'
                     }
                   </p>
                 </div>
