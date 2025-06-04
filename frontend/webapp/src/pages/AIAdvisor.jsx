@@ -57,7 +57,9 @@ const AIAdvisor = () => {
     values: [],
     valuesCustom: [],
     concerns: [],
-    concernsCustom: []
+    concernsCustom: [],
+    idealPortfolio: '',
+    currentAssetsDescription: ''
   });
   const [generatedPrompt, setGeneratedPrompt] = useState('');
   const [showPrompt, setShowPrompt] = useState(false);
@@ -250,6 +252,12 @@ ${portfolioSummary}
 【不安に思っていること】
 - ${concernsText}
 
+${userData.currentAssetsDescription ? `【現在の資産状況】
+${userData.currentAssetsDescription}
+` : ''}${userData.idealPortfolio ? `【理想のポートフォリオ】
+${userData.idealPortfolio}
+` : ''}
+
 上記の情報を基に、以下について教えてください：
 
 1. 私の年齢と状況に合った投資戦略は？
@@ -288,6 +296,12 @@ Total Assets: ¥${totalValue.toLocaleString()}
 
 【My Concerns】
 - ${concernsText}
+
+${userData.currentAssetsDescription ? `【Current Asset Situation】
+${userData.currentAssetsDescription}
+` : ''}${userData.idealPortfolio ? `【Ideal Portfolio】
+${userData.idealPortfolio}
+` : ''}
 
 Based on the above information, please advise me on:
 
@@ -723,6 +737,53 @@ Based on the above information, please advise me on:
                   </div>
                 )}
               </div>
+
+              {/* 現在の資産と理想のポートフォリオ */}
+              <div className="mt-8 space-y-6">
+                <div>
+                  <h3 className="text-lg font-medium mb-4">
+                    {isJapanese ? '現在の資産状況（任意）' : 'Current Assets (Optional)'}
+                  </h3>
+                  <textarea
+                    value={userData.currentAssetsDescription}
+                    onChange={(e) => setUserData(prev => ({ ...prev, currentAssetsDescription: e.target.value }))}
+                    placeholder={isJapanese 
+                      ? '例: 現金 500万円、日本株 300万円（トヨタ、ソニー等）、米国ETF 200万円（VTI、VOO）...' 
+                      : 'e.g. Cash 5M JPY, Japanese stocks 3M JPY (Toyota, Sony, etc.), US ETFs 2M JPY (VTI, VOO)...'
+                    }
+                    className="w-full p-4 bg-dark-300 border border-dark-400 rounded-lg focus:ring-2 focus:ring-primary-400 focus:border-transparent resize-none"
+                    rows={4}
+                  />
+                  <p className="text-sm text-gray-400 mt-2">
+                    {isJapanese 
+                      ? '現在保有している資産の内訳を自由に記述してください' 
+                      : 'Describe your current asset allocation freely'
+                    }
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-medium mb-4">
+                    {isJapanese ? 'あなたが考える理想のポートフォリオ（任意）' : 'Your Ideal Portfolio (Optional)'}
+                  </h3>
+                  <textarea
+                    value={userData.idealPortfolio}
+                    onChange={(e) => setUserData(prev => ({ ...prev, idealPortfolio: e.target.value }))}
+                    placeholder={isJapanese 
+                      ? '例: 日本株 40%（高配当株中心）、米国株 30%（グロース株）、債券 20%、現金 10%...' 
+                      : 'e.g. Japanese stocks 40% (focus on high dividend), US stocks 30% (growth stocks), Bonds 20%, Cash 10%...'
+                    }
+                    className="w-full p-4 bg-dark-300 border border-dark-400 rounded-lg focus:ring-2 focus:ring-primary-400 focus:border-transparent resize-none"
+                    rows={4}
+                  />
+                  <p className="text-sm text-gray-400 mt-2">
+                    {isJapanese 
+                      ? '理想とする資産配分や投資戦略を自由に記述してください' 
+                      : 'Describe your ideal asset allocation and investment strategy freely'
+                    }
+                  </p>
+                </div>
+              </div>
             </div>
           )}
 
@@ -918,7 +979,9 @@ Based on the above information, please advise me on:
                   monthlyBudget: parseInt(userData.monthlyInvestment) || 0,
                   values: userData.values,
                   concerns: userData.concerns,
-                  portfolio: portfolio
+                  portfolio: portfolio,
+                  currentAssetsDescription: userData.currentAssetsDescription,
+                  idealPortfolio: userData.idealPortfolio
                 }}
                 onPromptGenerated={(prompt) => {
                   setGeneratedPrompt(prompt.content);
@@ -933,7 +996,9 @@ Based on the above information, please advise me on:
                     riskTolerance: userData.riskTolerance,
                     monthlyBudget: parseInt(userData.monthlyInvestment) || 0,
                     values: userData.values,
-                    concerns: userData.concerns
+                    concerns: userData.concerns,
+                    currentAssetsDescription: userData.currentAssetsDescription,
+                    idealPortfolio: userData.idealPortfolio
                   });
                 }}
               />
