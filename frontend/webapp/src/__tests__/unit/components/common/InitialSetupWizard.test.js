@@ -9,6 +9,14 @@ import '@testing-library/jest-dom';
 import InitialSetupWizard from '../../../../components/common/InitialSetupWizard';
 import { PortfolioContext } from '../../../../context/PortfolioContext';
 
+// i18next のモック
+jest.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key) => key,
+    i18n: { language: 'ja' }
+  })
+}));
+
 // モックコンテキスト値を作成するヘルパー関数
 const createMockContext = (overrides = {}) => ({
   setBaseCurrency: jest.fn(),
@@ -223,15 +231,15 @@ describe('InitialSetupWizard', () => {
 
       goToStep3();
 
-      expect(screen.getByText('投資スタイルの選択')).toBeInTheDocument();
-      expect(screen.getByText('あなたの投資スタイルを教えてください。')).toBeInTheDocument();
-      expect(screen.getByText('安定重視')).toBeInTheDocument();
-      expect(screen.getByText('バランス型')).toBeInTheDocument();
-      expect(screen.getByText('成長重視')).toBeInTheDocument();
-      expect(screen.getByText('積極型')).toBeInTheDocument();
+      expect(screen.getByText('投資対象の選択')).toBeInTheDocument();
+      expect(screen.getByText('どの市場に投資したいですか？複数選択可能です。')).toBeInTheDocument();
+      expect(screen.getByText('米国市場')).toBeInTheDocument();
+      expect(screen.getByText('日本市場')).toBeInTheDocument();
+      expect(screen.getByText('全世界')).toBeInTheDocument();
+      expect(screen.getByText('REIT')).toBeInTheDocument();
     });
 
-    it('投資スタイルを選択せずに完了をクリックすると警告が表示される', () => {
+    it('投資対象を選択せずに完了をクリックすると警告が表示される', () => {
       const mockContext = createMockContext();
 
       render(
@@ -242,16 +250,16 @@ describe('InitialSetupWizard', () => {
 
       goToStep3();
 
-      // 投資スタイルを選択せずに完了
+      // 投資対象を選択せずに完了
       fireEvent.click(screen.getByRole('button', { name: '設定を完了' }));
 
       expect(mockContext.addNotification).toHaveBeenCalledWith(
-        '投資スタイルを選択してください',
+        '投資対象を選択してください',
         'warning'
       );
     });
 
-    it('投資スタイルを選択できる', () => {
+    it('投資対象を選択できる', () => {
       const mockContext = createMockContext();
 
       render(
@@ -262,18 +270,12 @@ describe('InitialSetupWizard', () => {
 
       goToStep3();
 
-      // 異なるスタイルを試す
-      const conservativeButton = screen.getByText('安定重視').closest('button');
-      const balancedButton = screen.getByText('バランス型').closest('button');
+      // 米国市場を選択
+      const usButton = screen.getByText('米国市場').closest('button');
+      fireEvent.click(usButton);
       
-      // 安定重視を選択
-      fireEvent.click(conservativeButton);
-      expect(conservativeButton).toHaveClass('border-blue-500', 'bg-blue-50');
-      
-      // バランス型に変更
-      fireEvent.click(balancedButton);
-      expect(balancedButton).toHaveClass('border-blue-500', 'bg-blue-50');
-      expect(conservativeButton).not.toHaveClass('border-blue-500', 'bg-blue-50');
+      // 選択状態の確認（MarketSelectionWizardの動作）
+      expect(usButton).toHaveClass('scale-105');
     });
 
     it('完了ボタンで設定が完了する', () => {
@@ -287,8 +289,8 @@ describe('InitialSetupWizard', () => {
 
       goToStep3();
 
-      // 投資スタイルを選択
-      fireEvent.click(screen.getByText('バランス型').closest('button'));
+      // 投資対象を選択
+      fireEvent.click(screen.getByText('米国市場').closest('button'));
 
       // 完了
       fireEvent.click(screen.getByRole('button', { name: '設定を完了' }));
@@ -340,7 +342,7 @@ describe('InitialSetupWizard', () => {
       // ステップ1
       expect(screen.getByText('基本設定')).toHaveClass('text-blue-600', 'font-semibold');
       expect(screen.getByText('投資予算')).toHaveClass('text-gray-400');
-      expect(screen.getByText('投資スタイル')).toHaveClass('text-gray-400');
+      expect(screen.getByText('投資対象')).toHaveClass('text-gray-400');
     });
   });
 
@@ -398,7 +400,7 @@ describe('InitialSetupWizard', () => {
       );
     });
 
-    it('アイコンが正しく表示される', () => {
+    it('市場アイコンが正しく表示される', () => {
       const mockContext = createMockContext();
 
       render(
@@ -413,11 +415,11 @@ describe('InitialSetupWizard', () => {
       fireEvent.change(input, { target: { value: '500000' } });
       fireEvent.click(screen.getByRole('button', { name: '次へ' }));
 
-      // アイコンが表示される
-      expect(screen.getByText('🛡️')).toBeInTheDocument();
-      expect(screen.getByText('⚖️')).toBeInTheDocument();
-      expect(screen.getByText('📈')).toBeInTheDocument();
-      expect(screen.getByText('🚀')).toBeInTheDocument();
+      // 市場アイコンが表示される
+      expect(screen.getByText('🇺🇸')).toBeInTheDocument();
+      expect(screen.getByText('🇯🇵')).toBeInTheDocument();
+      expect(screen.getByText('🌐')).toBeInTheDocument();
+      expect(screen.getByText('🏠')).toBeInTheDocument();
     });
   });
 });

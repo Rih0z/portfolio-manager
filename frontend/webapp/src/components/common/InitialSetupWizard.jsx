@@ -16,12 +16,13 @@ import { PortfolioContext } from '../../context/PortfolioContext';
 import ModernButton from './ModernButton';
 import ModernCard from './ModernCard';
 import ModernInput from './ModernInput';
+import MarketSelectionWizard from '../settings/MarketSelectionWizard';
 
 const InitialSetupWizard = ({ onComplete }) => {
   const [step, setStep] = useState(1);
   const [baseCurrency, setBaseCurrency] = useState('JPY');
   const [budgetAmount, setBudgetAmount] = useState('');
-  const [investmentStyle, setInvestmentStyle] = useState('');
+  const [selectedMarkets, setSelectedMarkets] = useState([]);
   
   const { 
     setBaseCurrency: updateBaseCurrency,
@@ -41,8 +42,8 @@ const InitialSetupWizard = ({ onComplete }) => {
       setAdditionalBudget(parseFloat(budgetAmount), baseCurrency);
       setStep(3);
     } else if (step === 3) {
-      if (!investmentStyle) {
-        addNotification('投資スタイルを選択してください', 'warning');
+      if (selectedMarkets.length === 0) {
+        addNotification('投資対象を選択してください', 'warning');
         return;
       }
       // 設定完了
@@ -69,7 +70,7 @@ const InitialSetupWizard = ({ onComplete }) => {
                 投資予算
               </span>
               <span className={`text-sm ${step >= 3 ? 'text-blue-600 font-semibold' : 'text-gray-400'}`}>
-                投資スタイル
+                投資対象
               </span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
@@ -155,59 +156,21 @@ const InitialSetupWizard = ({ onComplete }) => {
             </div>
           )}
 
-          {/* ステップ3: 投資スタイル */}
+          {/* ステップ3: 投資対象選択 */}
           {step === 3 && (
             <div>
-              <h2 className="text-2xl font-bold mb-2">投資スタイルの選択</h2>
+              <h2 className="text-2xl font-bold mb-2">投資対象の選択</h2>
               <p className="text-gray-600 mb-6">
-                あなたの投資スタイルを教えてください。
+                どの市場に投資したいですか？複数選択可能です。
               </p>
               
-              <div className="space-y-4">
-                {[
-                  {
-                    value: 'conservative',
-                    title: '安定重視',
-                    description: '債券や安定した配当株を中心に、リスクを抑えた運用',
-                    icon: '🛡️'
-                  },
-                  {
-                    value: 'balanced',
-                    title: 'バランス型',
-                    description: '株式と債券をバランスよく組み合わせた運用',
-                    icon: '⚖️'
-                  },
-                  {
-                    value: 'growth',
-                    title: '成長重視',
-                    description: '成長株を中心に、高いリターンを目指す運用',
-                    icon: '📈'
-                  },
-                  {
-                    value: 'aggressive',
-                    title: '積極型',
-                    description: 'ハイリスク・ハイリターンの積極的な運用',
-                    icon: '🚀'
-                  }
-                ].map((style) => (
-                  <button
-                    key={style.value}
-                    onClick={() => setInvestmentStyle(style.value)}
-                    className={`p-4 rounded-lg border-2 transition-all text-left w-full ${
-                      investmentStyle === style.value 
-                        ? 'border-blue-500 bg-blue-50' 
-                        : 'border-gray-300 hover:border-gray-400'
-                    }`}
-                  >
-                    <div className="flex items-start space-x-3">
-                      <span className="text-2xl">{style.icon}</span>
-                      <div className="flex-1">
-                        <div className="font-semibold">{style.title}</div>
-                        <div className="text-sm text-gray-600">{style.description}</div>
-                      </div>
-                    </div>
-                  </button>
-                ))}
+              <div className="bg-gray-900 p-4 rounded-lg">
+                <MarketSelectionWizard
+                  selectedMarkets={selectedMarkets}
+                  onMarketsChange={setSelectedMarkets}
+                  showTitle={false}
+                  showPopularCombinations={true}
+                />
               </div>
             </div>
           )}
