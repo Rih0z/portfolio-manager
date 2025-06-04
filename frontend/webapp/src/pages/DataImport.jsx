@@ -16,6 +16,8 @@ import React, { useState, useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PortfolioContext } from '../context/PortfolioContext';
 import ScreenshotAnalyzer from '../components/ai/ScreenshotAnalyzer';
+import { FaFileAlt, FaFileCode, FaCheckCircle, FaExclamationCircle } from 'react-icons/fa';
+import { HiDocumentText } from 'react-icons/hi';
 
 const DataImport = () => {
   const { t, i18n } = useTranslation();
@@ -36,7 +38,7 @@ const DataImport = () => {
     {
       id: 'ai-result',
       name: isJapanese ? 'AI分析結果' : 'AI Results',
-      icon: '📄',
+      icon: <HiDocumentText className="w-5 h-5" />,
       description: isJapanese 
         ? '外部AIで分析された結果をテキストで受け取り'
         : 'Receive AI analysis results as text'
@@ -44,7 +46,7 @@ const DataImport = () => {
     {
       id: 'json',
       name: isJapanese ? 'JSONインポート' : 'JSON Import',
-      icon: '📁',
+      icon: <FaFileCode className="w-5 h-5" />,
       description: isJapanese 
         ? 'JSONファイルからポートフォリオデータを読み込み'
         : 'Import portfolio data from JSON files'
@@ -52,7 +54,7 @@ const DataImport = () => {
     {
       id: 'export',
       name: isJapanese ? 'データエクスポート' : 'Data Export',
-      icon: '💾',
+      icon: <FaFileAlt className="w-5 h-5" />,
       description: isJapanese 
         ? '現在のポートフォリオデータをエクスポート'
         : 'Export current portfolio data'
@@ -216,9 +218,12 @@ const DataImport = () => {
       case 'json':
         return (
           <div className="bg-dark-200 rounded-lg p-6">
-            <h3 className="text-xl font-semibold text-white mb-4">
-              📁 {isJapanese ? 'JSONインポート' : 'JSON Import'}
-            </h3>
+            <div className="flex items-center gap-2 mb-4">
+              <FaFileCode className="text-primary-400 text-xl" />
+              <h3 className="text-xl font-semibold text-white">
+                {isJapanese ? 'JSONインポート' : 'JSON Import'}
+              </h3>
+            </div>
             
             {/* File Import */}
             <div className="mb-6">
@@ -271,9 +276,10 @@ const DataImport = () => {
 
             {/* Format Help */}
             <div className="bg-primary-500/10 border border-primary-500/30 rounded-lg p-4">
-              <h5 className="text-primary-400 font-medium mb-2">
-                💡 {isJapanese ? 'JSONフォーマットについて' : 'JSON Format Info'}
-              </h5>
+              <div className="flex items-center gap-2 text-primary-400 font-medium mb-2">
+                <FaExclamationCircle />
+                <h5>{isJapanese ? 'JSONフォーマットについて' : 'JSON Format Info'}</h5>
+              </div>
               <div className="space-y-1 text-sm text-gray-300">
                 <div>
                   • {isJapanese 
@@ -301,9 +307,12 @@ const DataImport = () => {
       case 'export':
         return (
           <div className="bg-dark-200 rounded-lg p-6">
-            <h3 className="text-xl font-semibold text-white mb-4">
-              💾 {isJapanese ? 'データエクスポート' : 'Data Export'}
-            </h3>
+            <div className="flex items-center gap-2 mb-4">
+              <FaFileAlt className="text-primary-400 text-xl" />
+              <h3 className="text-xl font-semibold text-white">
+                {isJapanese ? 'データエクスポート' : 'Data Export'}
+              </h3>
+            </div>
             
             {/* Current Portfolio Summary */}
             <div className="mb-6">

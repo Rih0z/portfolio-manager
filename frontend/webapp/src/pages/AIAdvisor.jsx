@@ -20,6 +20,21 @@ import MarketSelectionWizard, { INVESTMENT_MARKETS } from '../components/setting
 import PromptOrchestrator from '../components/ai/PromptOrchestrator';
 import promptOrchestrationService from '../services/PromptOrchestrationService';
 import ModernButton from '../components/common/ModernButton';
+import { 
+  FaRobot, 
+  FaCamera, 
+  FaShieldAlt, 
+  FaClipboardList,
+  FaLightbulb,
+  FaCheckCircle,
+  FaCopy,
+  FaExternalLinkAlt
+} from 'react-icons/fa';
+import { 
+  HiSparkles,
+  HiChartBar,
+  HiDocumentText
+} from 'react-icons/hi';
 
 const AIAdvisor = () => {
   const { t, i18n } = useTranslation();
@@ -144,19 +159,19 @@ const AIAdvisor = () => {
       id: 'screenshot_portfolio',
       name: isJapanese ? 'ポートフォリオ画面' : 'Portfolio Screen',
       description: isJapanese ? '証券会社の保有残高画面など' : 'Brokerage holdings screen',
-      icon: '📊'
+      icon: <HiChartBar className="w-8 h-8" />
     },
     {
       id: 'market_data_screenshot',
       name: isJapanese ? '株価・市場データ' : 'Market Data',
       description: isJapanese ? '株価表示画面やチャート' : 'Stock prices or charts',
-      icon: '📈'
+      icon: <HiChartBar className="w-8 h-8" />
     },
     {
       id: 'transaction_history',
       name: isJapanese ? '取引履歴' : 'Transaction History',
       description: isJapanese ? '売買履歴や約定情報' : 'Trading history',
-      icon: '📋'
+      icon: <HiDocumentText className="w-8 h-8" />
     }
   ];
 
@@ -393,9 +408,10 @@ Based on the above information, please advise me on:
       <div className={`container mx-auto px-4 py-8 pb-20 ${isFirstTimeUser ? 'max-w-6xl' : ''}`}>
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className={`font-bold mb-4 ${isFirstTimeUser ? 'text-4xl lg:text-5xl' : 'text-3xl'}`}>
-            🤖 {isJapanese ? 'AIアドバイザー' : 'AI Advisor'}
-          </h1>
+          <div className={`flex items-center justify-center gap-3 font-bold mb-4 ${isFirstTimeUser ? 'text-4xl lg:text-5xl' : 'text-3xl'}`}>
+            <FaRobot className="text-primary-400" />
+            <h1>{isJapanese ? 'AIアドバイザー' : 'AI Advisor'}</h1>
+          </div>
           <p className={`text-gray-400 mx-auto ${isFirstTimeUser ? 'max-w-4xl text-lg' : 'max-w-2xl'}`}>
             {isFirstTimeUser ? (
               isJapanese 
@@ -409,8 +425,9 @@ Based on the above information, please advise me on:
           </p>
           {isFirstTimeUser && (
             <div className="mt-6 p-4 bg-primary-500/10 border border-primary-500/30 rounded-lg max-w-3xl mx-auto">
-              <div className="text-primary-400 text-sm font-medium mb-2">
-                ✨ {isJapanese ? '初回セットアップ' : 'Initial Setup'}
+              <div className="flex items-center gap-2 text-primary-400 text-sm font-medium mb-2">
+                <HiSparkles />
+                <span>{isJapanese ? '初回セットアップ' : 'Initial Setup'}</span>
               </div>
               <p className="text-sm text-gray-300">
                 {isJapanese 
@@ -791,9 +808,12 @@ Based on the above information, please advise me on:
           {currentStep === 4 && (
             <div className="space-y-6">
               <div className="text-center mb-6">
-                <h3 className="text-xl font-semibold mb-2">
-                  📸 {isJapanese ? 'スクリーンショット分析プロンプト' : 'Screenshot Analysis Prompts'}
-                </h3>
+                <div className="flex items-center justify-center gap-2">
+                  <FaCamera className="text-primary-400 text-2xl" />
+                  <h3 className="text-xl font-semibold">
+                    {isJapanese ? 'スクリーンショット分析プロンプト' : 'Screenshot Analysis Prompts'}
+                  </h3>
+                </div>
                 <p className="text-gray-400">
                   {isJapanese 
                     ? 'スクリーンショットをAIで分析するためのプロンプトを生成します。'
@@ -805,7 +825,7 @@ Based on the above information, please advise me on:
               {/* Privacy Notice */}
               <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-6">
                 <div className="flex items-start space-x-3">
-                  <div className="text-2xl">🔒</div>
+                  <FaShieldAlt className="text-blue-400 text-2xl mt-1" />
                   <div>
                     <h5 className="text-blue-400 font-medium mb-2">
                       {isJapanese ? 'プライバシー保護について' : 'Privacy Protection'}
@@ -905,7 +925,7 @@ Based on the above information, please advise me on:
                       onClick={() => openAIWithScreenshot('claude')}
                       className="p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all duration-200 text-white text-center"
                     >
-                      <div className="text-lg mb-1">🎯</div>
+                      <FaRobot className="text-2xl mb-1 mx-auto" />
                       <div className="font-medium">Claude</div>
                       <div className="text-xs opacity-80">
                         {isJapanese ? '画像分析対応' : 'Image Analysis'}
@@ -916,7 +936,7 @@ Based on the above information, please advise me on:
                       onClick={() => openAIWithScreenshot('gemini')}
                       className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 text-white text-center"
                     >
-                      <div className="text-lg mb-1">🔍</div>
+                      <FaRobot className="text-2xl mb-1 mx-auto" />
                       <div className="font-medium">Gemini</div>
                       <div className="text-xs opacity-80">
                         {isJapanese ? '画像分析対応' : 'Image Analysis'}
@@ -927,7 +947,7 @@ Based on the above information, please advise me on:
                       onClick={() => openAIWithScreenshot('chatgpt')}
                       className="p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 text-white text-center"
                     >
-                      <div className="text-lg mb-1">💬</div>
+                      <FaRobot className="text-2xl mb-1 mx-auto" />
                       <div className="font-medium">ChatGPT</div>
                       <div className="text-xs opacity-80">
                         {isJapanese ? '画像分析対応' : 'Image Analysis'}
@@ -936,8 +956,9 @@ Based on the above information, please advise me on:
                   </div>
                   
                   <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-                    <div className="text-blue-400 text-sm mb-2">
-                      💡 {isJapanese ? '使い方' : 'How to Use'}
+                    <div className="flex items-center gap-2 text-blue-400 text-sm mb-2">
+                      <FaLightbulb />
+                      <span>{isJapanese ? '使い方' : 'How to Use'}</span>
                     </div>
                     <ol className="text-xs text-gray-300 space-y-1">
                       <li>1. {isJapanese ? '上記プロンプトをコピー' : 'Copy the prompt above'}</li>
@@ -1007,9 +1028,10 @@ Based on the above information, please advise me on:
               {isFirstTimeUser && currentStep === 5 && (
                 <div className="mt-8 text-center">
                   <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-6">
-                    <h4 className="text-green-400 font-medium mb-3">
-                      🎉 {isJapanese ? '初期設定完了準備' : 'Initial Setup Ready'}
-                    </h4>
+                    <div className="flex items-center gap-2 text-green-400 font-medium mb-3">
+                      <FaCheckCircle className="text-xl" />
+                      <h4>{isJapanese ? '初期設定完了準備' : 'Initial Setup Ready'}</h4>
+                    </div>
                     <p className="text-gray-300 mb-4">
                       {isJapanese 
                         ? 'AIプロンプトの準備ができました。設定を完了してポートフォリオ管理を始めましょう。'

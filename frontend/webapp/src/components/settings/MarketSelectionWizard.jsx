@@ -13,6 +13,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { FaGlobeAmericas, FaYenSign, FaGlobeAsia, FaChartLine, FaBitcoin, FaChartBar } from 'react-icons/fa';
 
 // 投資対象市場の定義
 export const INVESTMENT_MARKETS = {
