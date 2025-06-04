@@ -21,6 +21,7 @@ import PopularTickers from '../components/settings/PopularTickers';
 import HoldingsEditor from '../components/settings/HoldingsEditor';
 import AllocationEditor from '../components/settings/AllocationEditor';
 import AiPromptSettings from '../components/settings/AiPromptSettings';
+import ResetSettings from '../components/settings/ResetSettings';
 
 const Settings = () => {
   return (
@@ -51,6 +52,9 @@ const Settings = () => {
       
       {/* AI分析プロンプト設定を追加 */}
       <AiPromptSettings />
+      
+      {/* 設定のリセット */}
+      <ResetSettings />
     </div>
   );
 };

@@ -29,6 +29,9 @@ import Dashboard from './pages/Dashboard';
 import Settings from './pages/Settings';
 import Simulation from './pages/Simulation';
 import DataIntegration from './pages/DataIntegration';
+import DataImport from './pages/DataImport';
+import AIAdvisor from './pages/AIAdvisor';
+import SettingsChecker from './components/common/SettingsChecker';
 import { useAuth } from './hooks/useAuth';
 import { usePortfolioContext } from './hooks/usePortfolioContext';
 import { initializeApiConfig, getGoogleClientId } from './utils/envUtils';
@@ -163,23 +166,26 @@ const App = () => {
             {/* コンテキスト間の接続を処理するコンポーネント */}
             <ContextConnector />
             
-            <Router>
-              <div className="min-h-screen bg-dark-100 text-gray-100">
-                <Header />
-                {/* Mobile-optimized main content with dark theme */}
-                <main className="max-w-7xl mx-auto pt-2 sm:pt-4 lg:pt-6 pb-20 sm:pb-6">
-                  <Routes>
-                    <Route path="/" element={<Dashboard />} />
-                    <Route path="/settings" element={<Settings />} />
-                    <Route path="/simulation" element={<Simulation />} />
-                    <Route path="/data" element={<DataIntegration />} />
-                    <Route path="/auth/google/callback" element={<Dashboard />} />
-                  </Routes>
-                </main>
-                {/* Mobile-friendly tab navigation */}
-                <TabNavigation />
-              </div>
-            </Router>
+            <SettingsChecker>
+              <Router>
+                <div className="min-h-screen bg-dark-100 text-gray-100">
+                  <Header />
+                  {/* Mobile-optimized main content with dark theme */}
+                  <main className="max-w-7xl mx-auto pt-2 sm:pt-4 lg:pt-6 pb-20 sm:pb-6">
+                    <Routes>
+                      <Route path="/" element={<Dashboard />} />
+                      <Route path="/ai-advisor" element={<AIAdvisor />} />
+                      <Route path="/settings" element={<Settings />} />
+                      <Route path="/data" element={<DataIntegration />} />
+                      <Route path="/data-import" element={<DataImport />} />
+                      <Route path="/auth/google/callback" element={<Dashboard />} />
+                    </Routes>
+                  </main>
+                  {/* Mobile-friendly tab navigation */}
+                  <TabNavigation />
+                </div>
+              </Router>
+            </SettingsChecker>
           </PortfolioProvider>
         </AuthProvider>
       </AppInitializer>
