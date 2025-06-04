@@ -27,6 +27,7 @@
   "navigation": {
     "dashboard": "Dashboard",
     "aiAdvisor": "AIアドバイザー",
+    "aiPlan": "AI投資戦略",
     "portfolio": "Portfolio",
     "simulation": "Simulation",
     "data": "Data",
