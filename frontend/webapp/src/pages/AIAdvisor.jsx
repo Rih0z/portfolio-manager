@@ -43,14 +43,21 @@ const AIAdvisor = () => {
   const [userData, setUserData] = useState({
     age: 35,
     occupation: '',
+    occupationCustom: '',
     familyStatus: '',
+    familyStatusCustom: '',
     dream: '',
+    dreamCustom: '',
     targetMarkets: [],
     investmentExperience: '',
+    investmentExperienceCustom: '',
     riskTolerance: '',
+    riskToleranceCustom: '',
     monthlyInvestment: '',
     values: [],
-    concerns: []
+    valuesCustom: [],
+    concerns: [],
+    concernsCustom: []
   });
   const [generatedPrompt, setGeneratedPrompt] = useState('');
   const [showPrompt, setShowPrompt] = useState(false);
@@ -91,20 +98,23 @@ const AIAdvisor = () => {
     { value: '子供の教育費を準備したい', label: isJapanese ? '子供の教育費を準備したい' : 'Prepare for Children\'s Education' },
     { value: '早期リタイアしたい', label: isJapanese ? '早期リタイアしたい' : 'Retire Early' },
     { value: '住宅購入資金を貯めたい', label: isJapanese ? '住宅購入資金を貯めたい' : 'Save for Home Purchase' },
-    { value: '世界中を旅行したい', label: isJapanese ? '世界中を旅行したい' : 'Travel the World' }
+    { value: '世界中を旅行したい', label: isJapanese ? '世界中を旅行したい' : 'Travel the World' },
+    { value: 'その他', label: isJapanese ? 'その他' : 'Other' }
   ];
 
   const experienceOptions = [
     { value: '初心者', label: isJapanese ? '初心者（1年未満）' : 'Beginner (Less than 1 year)' },
     { value: '初級者', label: isJapanese ? '初級者（1-3年）' : 'Novice (1-3 years)' },
     { value: '中級者', label: isJapanese ? '中級者（3-5年）' : 'Intermediate (3-5 years)' },
-    { value: '上級者', label: isJapanese ? '上級者（5年以上）' : 'Advanced (5+ years)' }
+    { value: '上級者', label: isJapanese ? '上級者（5年以上）' : 'Advanced (5+ years)' },
+    { value: 'その他', label: isJapanese ? 'その他' : 'Other' }
   ];
 
   const riskToleranceOptions = [
     { value: '保守的', label: isJapanese ? '保守的（リスクを避けたい）' : 'Conservative (Avoid Risk)' },
     { value: 'バランス型', label: isJapanese ? 'バランス型（適度なリスクは取れる）' : 'Balanced (Moderate Risk)' },
-    { value: '積極的', label: isJapanese ? '積極的（高いリターンのためならリスクを取る）' : 'Aggressive (Take Risk for High Returns)' }
+    { value: '積極的', label: isJapanese ? '積極的（高いリターンのためならリスクを取る）' : 'Aggressive (Take Risk for High Returns)' },
+    { value: 'その他', label: isJapanese ? 'その他' : 'Other' }
   ];
 
   const valueOptions = [
@@ -113,7 +123,8 @@ const AIAdvisor = () => {
     { value: '高いリターン', label: isJapanese ? '高いリターンを狙いたい' : 'Target High Returns' },
     { value: '分散投資', label: isJapanese ? '分散投資でリスクを分散' : 'Diversify Risk' },
     { value: '長期投資', label: isJapanese ? '長期投資で時間を味方に' : 'Long-term Investment' },
-    { value: '定期積立', label: isJapanese ? '定期積立で習慣化' : 'Regular Investment Habit' }
+    { value: '定期積立', label: isJapanese ? '定期積立で習慣化' : 'Regular Investment Habit' },
+    { value: 'その他', label: isJapanese ? 'その他' : 'Other' }
   ];
 
   const concernOptions = [
@@ -122,7 +133,8 @@ const AIAdvisor = () => {
     { value: '詐欺やリスク', label: isJapanese ? '詐欺や予想外のリスク' : 'Fraud or Unexpected Risks' },
     { value: '時間がない', label: isJapanese ? '管理する時間がない' : 'No Time to Manage' },
     { value: 'タイミング', label: isJapanese ? '始めるタイミングがわからない' : 'Don\'t Know When to Start' },
-    { value: '金額設定', label: isJapanese ? '適切な投資金額がわからない' : 'Don\'t Know Appropriate Amount' }
+    { value: '金額設定', label: isJapanese ? '適切な投資金額がわからない' : 'Don\'t Know Appropriate Amount' },
+    { value: 'その他', label: isJapanese ? 'その他' : 'Other' }
   ];
 
   const screenshotAnalysisTypes = [
@@ -169,14 +181,53 @@ const AIAdvisor = () => {
 
     const totalValue = portfolio?.totalValue || 0;
 
+    // 職業の表示（カスタム入力があれば使用）
+    const occupationDisplay = userData.occupation === 'その他' && userData.occupationCustom 
+      ? userData.occupationCustom 
+      : userData.occupation;
+    
+    // 家族構成の表示（カスタム入力があれば使用）
+    const familyStatusDisplay = userData.familyStatus === 'その他' && userData.familyStatusCustom 
+      ? userData.familyStatusCustom 
+      : userData.familyStatus;
+    
+    // 夢の表示（カスタム入力があれば使用）
+    const dreamDisplay = userData.dream === 'その他' && userData.dreamCustom 
+      ? userData.dreamCustom 
+      : userData.dream;
+    
+    // 投資経験の表示（カスタム入力があれば使用）
+    const experienceDisplay = userData.investmentExperience === 'その他' && userData.investmentExperienceCustom 
+      ? userData.investmentExperienceCustom 
+      : userData.investmentExperience;
+    
+    // リスク許容度の表示（カスタム入力があれば使用）
+    const riskToleranceDisplay = userData.riskTolerance === 'その他' && userData.riskToleranceCustom 
+      ? userData.riskToleranceCustom 
+      : userData.riskTolerance;
+    
+    // 価値観の表示（カスタム入力があれば含める）
+    const allValues = [...userData.values];
+    if (userData.values.includes('その他') && userData.valuesCustom.length > 0) {
+      allValues.push(...userData.valuesCustom);
+    }
+    const valuesText = allValues.filter(val => val !== 'その他').join('\n- ');
+    
+    // 不安の表示（カスタム入力があれば含める）
+    const allConcerns = [...userData.concerns];
+    if (userData.concerns.includes('その他') && userData.concernsCustom.length > 0) {
+      allConcerns.push(...userData.concernsCustom);
+    }
+    const concernsText = allConcerns.filter(concern => concern !== 'その他').join('\n- ');
+
     if (isJapanese) {
-      return `私は${userData.age}歳の${userData.occupation}です。
-${userData.dream}を実現したいと考えています。
+      return `私は${userData.age}歳の${occupationDisplay}です。
+${dreamDisplay}を実現したいと考えています。
 
 【基本情報】
 - 年齢: ${userData.age}歳
-- 職業: ${userData.occupation}
-- 家族構成: ${userData.familyStatus}
+- 職業: ${occupationDisplay}
+- 家族構成: ${familyStatusDisplay}
 - 退職まで: 約${remainingYears}年
 - ライフステージ: ${lifeStage}
 
@@ -189,15 +240,15 @@ ${portfolioSummary}
 総資産額: ${totalValue.toLocaleString()}円
 
 【投資経験と考え方】
-- 投資経験: ${userData.investmentExperience}
-- リスク許容度: ${userData.riskTolerance}
+- 投資経験: ${experienceDisplay}
+- リスク許容度: ${riskToleranceDisplay}
 - 毎月の投資可能額: ${userData.monthlyInvestment}円
 
 【私の価値観】
-- ${userData.values.join('\n- ')}
+- ${valuesText}
 
 【不安に思っていること】
-- ${userData.concerns.join('\n- ')}
+- ${concernsText}
 
 上記の情報を基に、以下について教えてください：
 
@@ -210,13 +261,13 @@ ${portfolioSummary}
 ※日本在住のため、日本で購入可能な商品での提案をお願いします。
 ※できるだけ具体的で実行可能なアドバイスをお願いします。`;
     } else {
-      return `I am a ${userData.age}-year-old ${userData.occupation}.
-I want to achieve: ${userData.dream}
+      return `I am a ${userData.age}-year-old ${occupationDisplay}.
+I want to achieve: ${dreamDisplay}
 
 【Basic Information】
 - Age: ${userData.age}
-- Occupation: ${userData.occupation}
-- Family Status: ${userData.familyStatus}
+- Occupation: ${occupationDisplay}
+- Family Status: ${familyStatusDisplay}
 - Years to Retirement: approximately ${remainingYears} years
 
 【Investment Preferences】
@@ -228,15 +279,15 @@ ${portfolioSummary}
 Total Assets: ¥${totalValue.toLocaleString()}
 
 【Investment Experience & Philosophy】
-- Investment Experience: ${userData.investmentExperience}
-- Risk Tolerance: ${userData.riskTolerance}
+- Investment Experience: ${experienceDisplay}
+- Risk Tolerance: ${riskToleranceDisplay}
 - Monthly Investment Budget: ¥${userData.monthlyInvestment}
 
 【My Values】
-- ${userData.values.join('\n- ')}
+- ${valuesText}
 
 【My Concerns】
-- ${userData.concerns.join('\n- ')}
+- ${concernsText}
 
 Based on the above information, please advise me on:
 
@@ -430,6 +481,17 @@ Based on the above information, please advise me on:
                       </option>
                     ))}
                   </select>
+                  {userData.occupation === 'その他' && (
+                    <div className="mt-3">
+                      <input
+                        type="text"
+                        value={userData.occupationCustom}
+                        onChange={(e) => setUserData(prev => ({ ...prev, occupationCustom: e.target.value }))}
+                        placeholder={isJapanese ? '職業を入力してください' : 'Enter your occupation'}
+                        className="w-full p-3 bg-dark-300 border border-dark-400 rounded-lg focus:ring-2 focus:ring-primary-400 focus:border-transparent"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -448,6 +510,17 @@ Based on the above information, please advise me on:
                       </option>
                     ))}
                   </select>
+                  {userData.familyStatus === 'その他' && (
+                    <div className="mt-3">
+                      <input
+                        type="text"
+                        value={userData.familyStatusCustom}
+                        onChange={(e) => setUserData(prev => ({ ...prev, familyStatusCustom: e.target.value }))}
+                        placeholder={isJapanese ? '家族構成を入力してください' : 'Enter your family status'}
+                        className="w-full p-3 bg-dark-300 border border-dark-400 rounded-lg focus:ring-2 focus:ring-primary-400 focus:border-transparent"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -466,6 +539,17 @@ Based on the above information, please advise me on:
                       </option>
                     ))}
                   </select>
+                  {userData.dream === 'その他' && (
+                    <div className="mt-3">
+                      <input
+                        type="text"
+                        value={userData.dreamCustom}
+                        onChange={(e) => setUserData(prev => ({ ...prev, dreamCustom: e.target.value }))}
+                        placeholder={isJapanese ? '実現したい夢を入力してください' : 'Enter your dream to achieve'}
+                        className="w-full p-3 bg-dark-300 border border-dark-400 rounded-lg focus:ring-2 focus:ring-primary-400 focus:border-transparent"
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -503,6 +587,17 @@ Based on the above information, please advise me on:
                       </button>
                     ))}
                   </div>
+                  {userData.investmentExperience === 'その他' && (
+                    <div className="mt-3">
+                      <input
+                        type="text"
+                        value={userData.investmentExperienceCustom}
+                        onChange={(e) => setUserData(prev => ({ ...prev, investmentExperienceCustom: e.target.value }))}
+                        placeholder={isJapanese ? '投資経験を入力してください' : 'Enter your investment experience'}
+                        className="w-full p-3 bg-dark-300 border border-dark-400 rounded-lg focus:ring-2 focus:ring-primary-400 focus:border-transparent"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -524,6 +619,17 @@ Based on the above information, please advise me on:
                       </button>
                     ))}
                   </div>
+                  {userData.riskTolerance === 'その他' && (
+                    <div className="mt-3">
+                      <input
+                        type="text"
+                        value={userData.riskToleranceCustom}
+                        onChange={(e) => setUserData(prev => ({ ...prev, riskToleranceCustom: e.target.value }))}
+                        placeholder={isJapanese ? 'リスク許容度を入力してください' : 'Enter your risk tolerance'}
+                        className="w-full p-3 bg-dark-300 border border-dark-400 rounded-lg focus:ring-2 focus:ring-primary-400 focus:border-transparent"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div className="md:col-span-2">
@@ -567,6 +673,20 @@ Based on the above information, please advise me on:
                     </button>
                   ))}
                 </div>
+                {userData.values.includes('その他') && (
+                  <div className="mt-4">
+                    <input
+                      type="text"
+                      value={userData.valuesCustom.join(', ')}
+                      onChange={(e) => setUserData(prev => ({ 
+                        ...prev, 
+                        valuesCustom: e.target.value.split(', ').filter(val => val.trim() !== '') 
+                      }))}
+                      placeholder={isJapanese ? 'その他の価値観を入力してください（カンマ区切り）' : 'Enter other values (comma separated)'}
+                      className="w-full p-3 bg-dark-300 border border-dark-400 rounded-lg focus:ring-2 focus:ring-primary-400 focus:border-transparent"
+                    />
+                  </div>
+                )}
               </div>
 
               <div>
@@ -588,6 +708,20 @@ Based on the above information, please advise me on:
                     </button>
                   ))}
                 </div>
+                {userData.concerns.includes('その他') && (
+                  <div className="mt-4">
+                    <input
+                      type="text"
+                      value={userData.concernsCustom.join(', ')}
+                      onChange={(e) => setUserData(prev => ({ 
+                        ...prev, 
+                        concernsCustom: e.target.value.split(', ').filter(val => val.trim() !== '') 
+                      }))}
+                      placeholder={isJapanese ? 'その他の不安を入力してください（カンマ区切り）' : 'Enter other concerns (comma separated)'}
+                      className="w-full p-3 bg-dark-300 border border-dark-400 rounded-lg focus:ring-2 focus:ring-primary-400 focus:border-transparent"
+                    />
+                  </div>
+                )}
               </div>
             </div>
           )}
