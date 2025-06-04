@@ -49,9 +49,9 @@
     "assetAllocation": "Asset Allocation",
     "performance": "Performance",
     "recentTransactions": "Recent Transactions",
-    "noPortfolio": "No Portfolio Set",
-    "setupInstructions": "Add holdings and set your target allocation from Settings.",
-    "goToSettings": "Go to Settings"
+    "noPortfolio": "投資を始めましょう",
+    "setupInstructions": "AIがあなたに最適な投資戦略を提案します。まずはAI投資戦略で理想的なポートフォリオを設計しましょう。",
+    "goToAiStrategy": "AI投資戦略を始める"
   },
   "portfolio": {
     "title": "ポートフォリオ管理",

@@ -49,9 +49,9 @@
     "assetAllocation": "Asset Allocation",
     "performance": "Performance",
     "recentTransactions": "Recent Transactions",
-    "noPortfolio": "No portfolio configured",
-    "setupInstructions": "Go to the Settings tab to add holdings and configure your target allocation.",
-    "goToSettings": "Go to Settings"
+    "noPortfolio": "Start Your Investment Journey",
+    "setupInstructions": "Let AI design your optimal investment strategy. Start with AI-powered portfolio recommendations tailored to your goals.",
+    "goToAiStrategy": "Start AI Investment Strategy"
   },
   "portfolio": {
     "title": "Portfolio Management",
