@@ -14,10 +14,11 @@
  * アプリ名の表示、通貨切り替えボタン、データ更新ボタン、最終更新日時の表示、
  * および認証状態に応じたユーザープロフィールまたはログインボタンを表示する。
  */
-import React from 'react';
+import React, { useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../hooks/useAuth';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
+import { PortfolioContext } from '../../context/PortfolioContext';
 import UserProfile from '../auth/UserProfile';
 import OAuthLoginButton from '../auth/OAuthLoginButton';
 import LanguageSwitcher from '../common/LanguageSwitcher';
@@ -32,6 +33,56 @@ const Header = () => {
     lastUpdated, 
     isLoading: dataLoading 
   } = usePortfolioContext();
+
+  const { 
+    currentAssets,
+    targetPortfolio,
+    additionalBudget
+  } = useContext(PortfolioContext);
+
+  // 設定がない場合の判定
+  const hasNoSettings = 
+    currentAssets.length === 0 && 
+    targetPortfolio.length === 0 &&
+    (!additionalBudget || additionalBudget.amount === 0);
+  
+  const initialSetupCompleted = localStorage.getItem('initialSetupCompleted');
+
+  // 設定がない場合はシンプルなヘッダーを表示
+  if (hasNoSettings && !initialSetupCompleted) {
+    return (
+      <header className="bg-dark-200/90 backdrop-blur-xl border-b border-dark-400 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-14 sm:h-16">
+            {/* Logo */}
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-primary-400 to-primary-600 rounded-lg flex items-center justify-center">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+              </div>
+              <h1 className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-primary-400 to-primary-500 bg-clip-text text-transparent">
+                {t('app.name')}
+              </h1>
+            </div>
+            
+            {/* Language Switcher and Auth */}
+            <div className="flex items-center space-x-3">
+              <LanguageSwitcher />
+              
+              {authLoading ? (
+                <div className="w-8 h-8 rounded-full bg-dark-300 animate-pulse"></div>
+              ) : isAuthenticated ? (
+                <UserProfile />
+              ) : (
+                <OAuthLoginButton />
+              )}
+            </div>
+          </div>
+        </div>
+      </header>
+    );
+  }
 
   return (
     <header className="bg-dark-200/90 backdrop-blur-xl border-b border-dark-400 sticky top-0 z-50">

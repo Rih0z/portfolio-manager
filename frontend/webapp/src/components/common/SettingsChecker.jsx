@@ -10,12 +10,15 @@
  */
 
 import React, { useState, useEffect, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { PortfolioContext } from '../../context/PortfolioContext';
-import InitialSetupWizard from './InitialSetupWizard';
 
 const SettingsChecker = ({ children }) => {
-  const [showWizard, setShowWizard] = useState(false);
   const [hasChecked, setHasChecked] = useState(false);
+  
+  const { t } = useTranslation();
+  const navigate = useNavigate();
   
   const { 
     currentAssets,
@@ -26,27 +29,31 @@ const SettingsChecker = ({ children }) => {
   useEffect(() => {
     // 初回チェック時のみ実行
     if (!hasChecked) {
-      // 設定が何もない場合はウィザードを表示
-      const hasNoSettings = 
-        currentAssets.length === 0 && 
-        targetPortfolio.length === 0 &&
-        (!additionalBudget || additionalBudget.amount === 0);
-      
-      setShowWizard(hasNoSettings);
-      setHasChecked(true);
+      try {
+        // 設定が何もない場合はAIアドバイザーを表示
+        const hasNoSettings = 
+          currentAssets.length === 0 && 
+          targetPortfolio.length === 0 &&
+          (!additionalBudget || additionalBudget.amount === 0);
+        
+        // 初期設定完了フラグもチェック
+        const initialSetupCompleted = localStorage.getItem('initialSetupCompleted');
+        
+        if (hasNoSettings && !initialSetupCompleted) {
+          // AIアドバイザーページに直接遷移
+          navigate('/ai-advisor');
+        }
+        
+        setHasChecked(true);
+      } catch (error) {
+        console.error('SettingsChecker error:', error);
+        setHasChecked(true);
+      }
     }
-  }, [currentAssets, targetPortfolio, additionalBudget, hasChecked]);
+  }, [currentAssets, targetPortfolio, additionalBudget, hasChecked, navigate]);
 
-  const handleWizardComplete = () => {
-    setShowWizard(false);
-  };
-
-  return (
-    <>
-      {showWizard && <InitialSetupWizard onComplete={handleWizardComplete} />}
-      {children}
-    </>
-  );
+  // 設定がある場合は通常のアプリを表示
+  return children;
 };
 
 export default SettingsChecker;

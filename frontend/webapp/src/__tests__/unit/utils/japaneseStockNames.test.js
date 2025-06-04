@@ -368,9 +368,12 @@ describe('japaneseStockNames', () => {
       });
     });
 
-    it('すべての日本株名が日本語を含む', () => {
+    it('ほとんどの日本株名が日本語を含む', () => {
+      const nonJapaneseExceptions = ['TDK', 'HOYA', 'KDDI']; // ローマ字表記の会社名
       Object.values(JAPAN_STOCK_NAMES).forEach(name => {
-        expect(name).toMatch(/[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/);
+        if (!nonJapaneseExceptions.includes(name)) {
+          expect(name).toMatch(/[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/);
+        }
       });
     });
   });

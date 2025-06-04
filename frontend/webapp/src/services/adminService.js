@@ -54,11 +54,12 @@ export const getStatus = async () => {
   } catch (error) {
     console.error('ステータス取得エラー:', error);
     
+    const errorMessage = error?.message || String(error) || 'Unknown error';
     return {
       success: false,
-      error: error.message,
-      status: error.response?.status,
-      message: `ステータス取得に失敗しました: ${error.message}`
+      error: errorMessage,
+      status: error?.response?.status,
+      message: `ステータス取得に失敗しました: ${errorMessage}`
     };
   }
 };
@@ -80,11 +81,12 @@ export const resetUsage = async () => {
   } catch (error) {
     console.error('使用量リセットエラー:', error);
     
+    const errorMessage = error?.message || String(error) || 'Unknown error';
     return {
       success: false,
-      error: error.message,
-      status: error.response?.status,
-      message: `使用量のリセットに失敗しました: ${error.message}`
+      error: errorMessage,
+      status: error?.response?.status,
+      message: `使用量のリセットに失敗しました: ${errorMessage}`
     };
   }
 };

@@ -166,8 +166,8 @@ const App = () => {
             {/* コンテキスト間の接続を処理するコンポーネント */}
             <ContextConnector />
             
-            <SettingsChecker>
-              <Router>
+            <Router>
+              <SettingsChecker>
                 <div className="min-h-screen bg-dark-100 text-gray-100">
                   <Header />
                   {/* Mobile-optimized main content with dark theme */}
@@ -184,8 +184,8 @@ const App = () => {
                   {/* Mobile-friendly tab navigation */}
                   <TabNavigation />
                 </div>
-              </Router>
-            </SettingsChecker>
+              </SettingsChecker>
+            </Router>
           </PortfolioProvider>
         </AuthProvider>
       </AppInitializer>

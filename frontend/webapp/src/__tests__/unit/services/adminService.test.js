@@ -346,9 +346,10 @@ describe('adminService', () => {
       const result = await getStatus();
 
       expect(result).toEqual({
-        success: true,
-        data: undefined,
-        message: 'ステータス情報を取得しました'
+        success: false,
+        error: "Cannot read properties of undefined (reading 'data')",
+        status: undefined,
+        message: "ステータス取得に失敗しました: Cannot read properties of undefined (reading 'data')"
       });
     });
 

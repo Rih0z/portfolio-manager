@@ -24,6 +24,7 @@ describe('csrfManager', () => {
   let originalEnv;
   let consoleErrorSpy;
   let consoleWarnSpy;
+  let consoleDebugSpy;
 
   beforeEach(() => {
     // 環境変数をバックアップ
@@ -32,6 +33,7 @@ describe('csrfManager', () => {
     // コンソールメソッドをモック
     consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    consoleDebugSpy = jest.spyOn(console, 'debug').mockImplementation(() => {});
     
     // モックをクリア
     jest.clearAllMocks();
@@ -43,7 +45,7 @@ describe('csrfManager', () => {
     // localStorageのデフォルトモック
     localStorageMock.getItem.mockReturnValue('test-session-id');
     
-    // axiosのデフォルトモック
+    // axiosのデフォルトモック（使用されないが念のため）
     mockedAxios.post.mockResolvedValue({
       data: {
         csrfToken: 'test-csrf-token',
@@ -59,60 +61,31 @@ describe('csrfManager', () => {
     // コンソールモックを復元
     consoleErrorSpy.mockRestore();
     consoleWarnSpy.mockRestore();
+    consoleDebugSpy.mockRestore();
     
     // csrfManagerの状態をクリア
     csrfManager.clearToken();
   });
 
   describe('getToken', () => {
-    it('初回取得時に新しいトークンを取得する', async () => {
+    it('セッションベース認証でダミートークンを返す', async () => {
       const token = await csrfManager.getToken();
       
-      expect(token).toBe('test-csrf-token');
-      expect(mockedAxios.post).toHaveBeenCalledWith(
-        'http://localhost:4000/auth/csrf-token',
-        {},
-        {
-          headers: {
-            'X-Session-Id': 'test-session-id'
-          },
-          withCredentials: true
-        }
-      );
+      expect(token).toBe('dummy-csrf-token');
+      // セッションベース認証では実際のAPI呼び出しは行わない
+      expect(mockedAxios.post).not.toHaveBeenCalled();
     });
 
-    it('有効なトークンがある場合はキャッシュされたトークンを返す', async () => {
-      // 最初の取得
+    it('キャッシュされたダミートークンを返す', async () => {
       const token1 = await csrfManager.getToken();
-      
-      // 2回目の取得（キャッシュから）
       const token2 = await csrfManager.getToken();
       
-      expect(token1).toBe('test-csrf-token');
-      expect(token2).toBe('test-csrf-token');
-      expect(mockedAxios.post).toHaveBeenCalledTimes(1); // 1回だけ呼ばれる
+      expect(token1).toBe('dummy-csrf-token');
+      expect(token2).toBe('dummy-csrf-token');
+      expect(mockedAxios.post).not.toHaveBeenCalled();
     });
 
-    it('トークンが期限切れの場合は新しいトークンを取得する', async () => {
-      // 最初の取得
-      await csrfManager.getToken();
-      
-      // 時間を進める（期限切れにする）
-      const originalNow = Date.now;
-      Date.now = jest.fn(() => originalNow() + 4000000); // 4000秒後
-      
-      try {
-        // 2回目の取得（期限切れのため新しいトークンを取得）
-        const token = await csrfManager.getToken();
-        
-        expect(token).toBe('test-csrf-token');
-        expect(mockedAxios.post).toHaveBeenCalledTimes(2);
-      } finally {
-        Date.now = originalNow;
-      }
-    });
-
-    it('並行リクエストでも同じトークンを返す', async () => {
+    it('並行リクエストでも同じダミートークンを返す', async () => {
       const promises = [
         csrfManager.getToken(),
         csrfManager.getToken(),
@@ -121,372 +94,116 @@ describe('csrfManager', () => {
       
       const tokens = await Promise.all(promises);
       
-      expect(tokens).toEqual(['test-csrf-token', 'test-csrf-token', 'test-csrf-token']);
-      expect(mockedAxios.post).toHaveBeenCalledTimes(1); // 1回だけ呼ばれる
+      expect(tokens).toEqual(['dummy-csrf-token', 'dummy-csrf-token', 'dummy-csrf-token']);
+      expect(mockedAxios.post).not.toHaveBeenCalled();
     });
 
-    it('環境変数でAPIベースURLを設定できる', async () => {
+    it('環境変数に関係なくダミートークンを返す', async () => {
       process.env.REACT_APP_API_BASE_URL = 'https://api.example.com';
+      const token = await csrfManager.getToken();
       
-      await csrfManager.getToken();
-      
-      expect(mockedAxios.post).toHaveBeenCalledWith(
-        'https://api.example.com/auth/csrf-token',
-        {},
-        expect.any(Object)
-      );
+      expect(token).toBe('dummy-csrf-token');
+      expect(mockedAxios.post).not.toHaveBeenCalled();
     });
 
-    it('セッションIDがない場合はエラーを投げる', async () => {
+    it('セッションIDがなくてもダミートークンを返す', async () => {
       localStorageMock.getItem.mockReturnValue(null);
       
-      await expect(csrfManager.getToken()).rejects.toThrow('No session found');
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Failed to refresh CSRF token:',
-        expect.any(Error)
-      );
-    });
-
-    it('APIエラー時は適切にエラーを処理する', async () => {
-      mockedAxios.post.mockRejectedValue(new Error('Network error'));
-      
-      await expect(csrfManager.getToken()).rejects.toThrow('Network error');
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Failed to refresh CSRF token:',
-        expect.any(Error)
-      );
-    });
-
-    it('無効なレスポンス形式の場合はエラーを投げる', async () => {
-      mockedAxios.post.mockResolvedValue({
-        data: {
-          // csrfTokenがない無効なレスポンス
-          message: 'success'
-        }
-      });
-      
-      await expect(csrfManager.getToken()).rejects.toThrow('Invalid CSRF token response');
-    });
-  });
-
-  describe('refreshToken', () => {
-    it('正常にトークンを更新する', async () => {
-      const token = await csrfManager.refreshToken();
-      
-      expect(token).toBe('test-csrf-token');
-      expect(mockedAxios.post).toHaveBeenCalledWith(
-        'http://localhost:4000/auth/csrf-token',
-        {},
-        {
-          headers: {
-            'X-Session-Id': 'test-session-id'
-          },
-          withCredentials: true
-        }
-      );
-    });
-
-    it('トークンの有効期限を正しく設定する', async () => {
-      const originalNow = Date.now;
-      const mockNow = 1000000;
-      Date.now = jest.fn(() => mockNow);
-      
-      try {
-        mockedAxios.post.mockResolvedValue({
-          data: {
-            csrfToken: 'new-token',
-            expiresIn: 1800 // 30分
-          }
-        });
-        
-        await csrfManager.refreshToken();
-        
-        // 有効期限が正しく設定されているかテスト
-        // expiresIn(1800) - 60秒のマージンを計算
-        const expectedExpiry = mockNow + (1800 - 60) * 1000;
-        
-        // 期限前なのでキャッシュされたトークンが返される
-        const cachedToken = await csrfManager.getToken();
-        expect(cachedToken).toBe('new-token');
-        expect(mockedAxios.post).toHaveBeenCalledTimes(1); // refreshTokenでの1回のみ
-      } finally {
-        Date.now = originalNow;
-      }
-    });
-
-    it('expiresInが未定義の場合も処理する', async () => {
-      mockedAxios.post.mockResolvedValue({
-        data: {
-          csrfToken: 'token-without-expiry'
-          // expiresInがない
-        }
-      });
-      
-      const token = await csrfManager.refreshToken();
-      
-      expect(token).toBe('token-without-expiry');
+      const token = await csrfManager.getToken();
+      expect(token).toBe('dummy-csrf-token');
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
     });
   });
 
   describe('clearToken', () => {
-    it('トークンとその他の状態をクリアする', async () => {
-      // まずトークンを取得
-      await csrfManager.getToken();
-      
-      // クリア実行
+    it('トークンとキャッシュをクリアする', () => {
       csrfManager.clearToken();
       
-      // 再度取得すると新しいAPIコールが発生する
-      await csrfManager.getToken();
-      
-      expect(mockedAxios.post).toHaveBeenCalledTimes(2);
-    });
-
-    it('複数回呼び出してもエラーが発生しない', () => {
-      expect(() => {
-        csrfManager.clearToken();
-        csrfManager.clearToken();
-        csrfManager.clearToken();
-      }).not.toThrow();
+      // プライベートプロパティのテストは困難だが、エラーが出ないことを確認
+      expect(() => csrfManager.clearToken()).not.toThrow();
     });
   });
 
   describe('addTokenToRequest', () => {
-    it('GETリクエストにはトークンを追加しない', async () => {
-      const config = {
-        method: 'get',
-        url: '/api/test',
-        headers: {}
-      };
-      
+    it('GETリクエストには何も追加しない', async () => {
+      const config = { method: 'get', headers: {} };
       const result = await csrfManager.addTokenToRequest(config);
       
+      expect(result).toEqual(config);
       expect(result.headers['X-CSRF-Token']).toBeUndefined();
-      expect(mockedAxios.post).not.toHaveBeenCalled();
     });
 
-    it('POSTリクエストにトークンを追加する', async () => {
-      const config = {
-        method: 'post',
-        url: '/api/test',
-        headers: {}
-      };
-      
+    it('POSTリクエストにCSRFトークンを追加する', async () => {
+      const config = { method: 'post', headers: {} };
       const result = await csrfManager.addTokenToRequest(config);
       
-      expect(result.headers['X-CSRF-Token']).toBe('test-csrf-token');
-      expect(mockedAxios.post).toHaveBeenCalled();
+      expect(result.headers['X-CSRF-Token']).toBe('dummy-csrf-token');
     });
 
-    it('PUTリクエストにトークンを追加する', async () => {
-      const config = {
-        method: 'put',
-        url: '/api/test',
-        headers: {}
-      };
-      
+    it('PUTリクエストにCSRFトークンを追加する', async () => {
+      const config = { method: 'put', headers: {} };
       const result = await csrfManager.addTokenToRequest(config);
       
-      expect(result.headers['X-CSRF-Token']).toBe('test-csrf-token');
+      expect(result.headers['X-CSRF-Token']).toBe('dummy-csrf-token');
     });
 
-    it('DELETEリクエストにトークンを追加する', async () => {
-      const config = {
-        method: 'delete',
-        url: '/api/test',
-        headers: {}
-      };
-      
+    it('DELETEリクエストにCSRFトークンを追加する', async () => {
+      const config = { method: 'delete', headers: {} };
       const result = await csrfManager.addTokenToRequest(config);
       
-      expect(result.headers['X-CSRF-Token']).toBe('test-csrf-token');
+      expect(result.headers['X-CSRF-Token']).toBe('dummy-csrf-token');
     });
 
-    it('ヘッダーが未定義の場合は新しいヘッダーオブジェクトを作成する', async () => {
-      const config = {
-        method: 'post',
-        url: '/api/test'
-        // headersが未定義
-      };
-      
+    it('既存のヘッダーがない場合はヘッダーオブジェクトを作成する', async () => {
+      const config = { method: 'post' };
       const result = await csrfManager.addTokenToRequest(config);
       
       expect(result.headers).toBeDefined();
-      expect(result.headers['X-CSRF-Token']).toBe('test-csrf-token');
+      expect(result.headers['X-CSRF-Token']).toBe('dummy-csrf-token');
     });
 
-    it('既存のヘッダーを保持してトークンを追加する', async () => {
-      const config = {
-        method: 'post',
-        url: '/api/test',
-        headers: {
+    it('既存のヘッダーを保持する', async () => {
+      const config = { 
+        method: 'post', 
+        headers: { 
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer existing-token'
+          'Authorization': 'Bearer token'
         }
       };
-      
       const result = await csrfManager.addTokenToRequest(config);
       
       expect(result.headers['Content-Type']).toBe('application/json');
-      expect(result.headers['Authorization']).toBe('Bearer existing-token');
-      expect(result.headers['X-CSRF-Token']).toBe('test-csrf-token');
+      expect(result.headers['Authorization']).toBe('Bearer token');
+      expect(result.headers['X-CSRF-Token']).toBe('dummy-csrf-token');
     });
 
-    it('トークン取得に失敗した場合でもリクエスト設定を返す', async () => {
-      // トークン取得を失敗させる
-      localStorageMock.getItem.mockReturnValue(null);
+    it('開発環境でデバッグメッセージを出力する（トークン取得エラー時）', async () => {
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'development';
       
-      const config = {
-        method: 'post',
-        url: '/api/test',
-        headers: {}
-      };
-      
-      const result = await csrfManager.addTokenToRequest(config);
-      
-      expect(result).toBe(config);
-      expect(result.headers['X-CSRF-Token']).toBeUndefined();
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        'Failed to add CSRF token:',
-        expect.any(Error)
-      );
-    });
-  });
-
-  describe('エラーハンドリング', () => {
-    it('ネットワークエラーを適切に処理する', async () => {
-      mockedAxios.post.mockRejectedValue(new Error('Network Error'));
-      
-      await expect(csrfManager.getToken()).rejects.toThrow('Network Error');
-    });
-
-    it('HTTPエラーレスポンスを適切に処理する', async () => {
-      const error = new Error('Request failed with status code 401');
-      error.response = { status: 401 };
-      mockedAxios.post.mockRejectedValue(error);
-      
-      await expect(csrfManager.getToken()).rejects.toThrow('Request failed with status code 401');
-    });
-
-    it('タイムアウトエラーを適切に処理する', async () => {
-      const error = new Error('timeout');
-      error.code = 'ECONNABORTED';
-      mockedAxios.post.mockRejectedValue(error);
-      
-      await expect(csrfManager.getToken()).rejects.toThrow('timeout');
-    });
-
-    it('空のレスポンスを適切に処理する', async () => {
-      mockedAxios.post.mockResolvedValue({});
-      
-      await expect(csrfManager.getToken()).rejects.toThrow('Invalid CSRF token response');
-    });
-
-    it('nullレスポンスを適切に処理する', async () => {
-      mockedAxios.post.mockResolvedValue(null);
-      
-      await expect(csrfManager.getToken()).rejects.toThrow();
+      try {
+        // トークン取得を強制的に失敗させる
+        const originalRefreshToken = csrfManager.refreshToken;
+        csrfManager.refreshToken = jest.fn().mockRejectedValue(new Error('Test error'));
+        
+        const config = { method: 'post', headers: {} };
+        const result = await csrfManager.addTokenToRequest(config);
+        
+        expect(result).toEqual(config);
+        expect(consoleDebugSpy).toHaveBeenCalledWith('CSRF token not required for this request');
+        
+        // 元の関数を復元
+        csrfManager.refreshToken = originalRefreshToken;
+      } finally {
+        process.env.NODE_ENV = originalEnv;
+      }
     });
   });
 
-  describe('パフォーマンステスト', () => {
-    it('大量の並行リクエストを効率的に処理する', async () => {
-      const startTime = Date.now();
-      
-      const promises = Array.from({ length: 100 }, () => csrfManager.getToken());
-      const results = await Promise.all(promises);
-      
-      const endTime = Date.now();
-      
-      expect(results).toHaveLength(100);
-      expect(endTime - startTime).toBeLessThan(1000); // 1秒以内
-      expect(mockedAxios.post).toHaveBeenCalledTimes(1); // 1回だけ呼ばれる
-      
-      results.forEach(result => {
-        expect(result).toBe('test-csrf-token');
-      });
-    });
-
-    it('設定オブジェクトの処理が高速', async () => {
-      const startTime = Date.now();
-      
-      const configs = Array.from({ length: 1000 }, (_, i) => ({
-        method: i % 2 === 0 ? 'post' : 'get',
-        url: `/api/test${i}`,
-        headers: {}
-      }));
-      
-      const results = await Promise.all(
-        configs.map(config => csrfManager.addTokenToRequest(config))
-      );
-      
-      const endTime = Date.now();
-      
-      expect(results).toHaveLength(1000);
-      expect(endTime - startTime).toBeLessThan(500); // 500ms以内
-    });
-  });
-
-  describe('統合テスト', () => {
-    it('完全なライフサイクルテスト', async () => {
-      // 1. トークン取得
-      const token1 = await csrfManager.getToken();
-      expect(token1).toBe('test-csrf-token');
-      
-      // 2. リクエスト設定にトークン追加
-      const config = {
-        method: 'post',
-        url: '/api/test',
-        headers: {}
-      };
-      const updatedConfig = await csrfManager.addTokenToRequest(config);
-      expect(updatedConfig.headers['X-CSRF-Token']).toBe('test-csrf-token');
-      
-      // 3. トークンクリア
-      csrfManager.clearToken();
-      
-      // 4. 新しいトークン取得
-      const token2 = await csrfManager.getToken();
-      expect(token2).toBe('test-csrf-token');
-      expect(mockedAxios.post).toHaveBeenCalledTimes(2); // 初回 + クリア後
-    });
-
-    it('セッション管理との連携テスト', async () => {
-      // セッションIDが変更される場合
-      localStorageMock.getItem.mockReturnValueOnce('session-1');
-      const token1 = await csrfManager.getToken();
-      
-      // セッションクリア
-      csrfManager.clearToken();
-      
-      // 新しいセッション
-      localStorageMock.getItem.mockReturnValueOnce('session-2');
-      const token2 = await csrfManager.getToken();
-      
-      expect(mockedAxios.post).toHaveBeenCalledTimes(2);
-      expect(mockedAxios.post).toHaveBeenNthCalledWith(1, 
-        expect.any(String),
-        {},
-        expect.objectContaining({
-          headers: { 'X-Session-Id': 'session-1' }
-        })
-      );
-      expect(mockedAxios.post).toHaveBeenNthCalledWith(2,
-        expect.any(String),
-        {},
-        expect.objectContaining({
-          headers: { 'X-Session-Id': 'session-2' }
-        })
-      );
-    });
-  });
-
-  describe('シングルトンパターン', () => {
-    it('同じインスタンスを返す', () => {
-      const instance1 = require('../../../utils/csrfManager').default;
-      const instance2 = require('../../../utils/csrfManager').default;
-      
-      expect(instance1).toBe(instance2);
+  describe('refreshToken', () => {
+    it('常にダミートークンを返す', async () => {
+      const token = await csrfManager.refreshToken();
+      expect(token).toBe('dummy-csrf-token');
     });
   });
 });

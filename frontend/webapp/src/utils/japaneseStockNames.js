@@ -163,6 +163,11 @@ export const JAPAN_STOCK_NAMES = {
  * @returns {string} 銘柄名（見つからない場合は元のコードを返す）
  */
 export const getJapaneseStockName = (ticker) => {
+  // null, undefined, 空文字の場合はそのまま返す
+  if (!ticker) {
+    return ticker;
+  }
+  
   // .Tサフィックスを除去
   const cleanTicker = ticker.replace('.T', '');
   

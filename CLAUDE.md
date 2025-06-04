@@ -2,6 +2,53 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Important Workflow Guidelines
+
+### Completion of Work
+1. **GitHub Commit**: 作業が完了したらGitHubに追加すること
+   - 変更内容を必ずコミットしてプッシュする
+   - コミットメッセージは日本語でも英語でも可
+
+2. **Build and Deploy**: 作業が完了したらClaude環境でビルドしデプロイすること
+   ```bash
+   # frontendディレクトリの場合
+   cd frontend/webapp
+   npm run build
+   wrangler pages deploy build --project-name=pfwise-portfolio-manager
+   ```
+
+3. **Update README**: READMEにデプロイ先を記載して
+   - 本番環境URL: https://portfolio-wise.com/
+   - 開発環境URL: プレビューURLは毎回変わるため記載不要
+
+### Security Considerations
+- **セキュリティチェック**: GitHubへのプッシュ前にセキュリティ上の問題がないか確認すること
+  - APIキーや秘密情報が含まれていないか確認
+  - .envファイルがコミットされていないか確認
+  - console.logでセンシティブな情報を出力していないか確認
+
+### Documentation Updates
+- **ドキュメント更新**: 実装を変更したらそれに合わせてドキュメントも更新すること
+  - 技術的な変更はCLAUDE.mdに記載
+  - ユーザー向けの変更はREADME.mdに記載
+  - API仕様の変更は該当するドキュメントファイルに記載
+
+### Production Deployment
+- **固定URL使用**: 必ずURLが固定の本番環境にデプロイするようにして
+  - 本番環境: https://portfolio-wise.com/
+  - Cloudflare Pagesのカスタムドメインを使用
+  - プレビューURLは開発確認用のみ
+
+### API Configuration
+- **固定API使用**: フロントエンドとバックエンドの通信が必ず成功するように固定のAPIを指定して
+  - 本番API: https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod
+  - ビルド時に環境変数で指定:
+    ```bash
+    REACT_APP_API_BASE_URL='https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod' \
+    REACT_APP_DEFAULT_EXCHANGE_RATE='150.0' \
+    npm run build
+    ```
+
 ## Commands
 
 ### Development

@@ -3,16 +3,25 @@
  * センシティブな情報を含まないエラーメッセージを返す
  */
 
-const isDevelopment = process.env.NODE_ENV === 'development';
-
 /**
  * エラーをサニタイズ
  */
 export function sanitizeError(error) {
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    
+    // null/undefinedチェック
+    if (!error) {
+        return {
+            message: 'エラーが発生しました。しばらくしてから再度お試しください。',
+            code: 'UNKNOWN_ERROR',
+            userFriendly: true
+        };
+    }
+    
     if (isDevelopment) {
         // 開発環境では詳細なエラー情報を返す
         return {
-            message: error.message,
+            message: error.message || 'Unknown error',
             code: error.code || 'UNKNOWN_ERROR',
             stack: error.stack,
             details: error.details || {}
@@ -105,8 +114,14 @@ export function handleApiError(error) {
  * グローバルエラーハンドラーの設定
  */
 export function setupGlobalErrorHandlers() {
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    
+    // Check if window is available (for tests and SSR)
+    const globalWindow = (typeof window !== 'undefined') ? window : (typeof global !== 'undefined' && global.window) ? global.window : null;
+    if (!globalWindow) return;
+    
     // 未処理の Promise rejection
-    window.addEventListener('unhandledrejection', (event) => {
+    globalWindow.addEventListener('unhandledrejection', (event) => {
         const error = event.reason;
         const sanitized = sanitizeError(error);
         
@@ -120,7 +135,7 @@ export function setupGlobalErrorHandlers() {
     });
     
     // 未処理のエラー
-    window.addEventListener('error', (event) => {
+    globalWindow.addEventListener('error', (event) => {
         const error = event.error || new Error(event.message);
         const sanitized = sanitizeError(error);
         
@@ -138,6 +153,8 @@ export function setupGlobalErrorHandlers() {
  * エラー境界で使用するエラーログ
  */
 export function logErrorToService(error, errorInfo) {
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    
     if (isDevelopment) {
         console.error('Error caught by boundary:', error, errorInfo);
     } else {

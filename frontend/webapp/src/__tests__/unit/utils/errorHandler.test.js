@@ -6,19 +6,22 @@
 import {
   sanitizeError,
   handleApiError,
-  createError,
-  logError,
-  ErrorReporter,
-  NetworkError,
-  ValidationError,
-  AuthenticationError,
-  RateLimitError
+  setupGlobalErrorHandlers,
+  logErrorToService
 } from '../../../utils/errorHandler';
 
 describe('errorHandler', () => {
   let originalEnv;
   let consoleErrorSpy;
-  let consoleWarnSpy;
+  let originalWindow;
+  let mockEventListeners;
+  
+  // Helper function to get the current event listeners
+  const getEventListener = (eventName) => {
+    const calls = global.window.addEventListener.mock.calls;
+    const call = calls.find(c => c[0] === eventName);
+    return call ? call[1] : undefined;
+  };
 
   beforeEach(() => {
     // 環境変数をバックアップ
@@ -26,7 +29,19 @@ describe('errorHandler', () => {
     
     // コンソールメソッドをモック
     consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    
+    // windowオブジェクトをバックアップ
+    originalWindow = global.window;
+    
+    // イベントリスナーをモック
+    mockEventListeners = {};
+    global.window = {
+      addEventListener: jest.fn((event, handler) => {
+        mockEventListeners[event] = handler;
+      })
+    };
+    // Make window available globally for the errorHandler module
+    window = global.window;
   });
 
   afterEach(() => {
@@ -35,205 +50,221 @@ describe('errorHandler', () => {
     
     // コンソールモックを復元
     consoleErrorSpy.mockRestore();
-    consoleWarnSpy.mockRestore();
+    
+    // windowオブジェクトを復元
+    global.window = originalWindow;
+    window = originalWindow;
   });
 
   describe('sanitizeError', () => {
-    it('開発環境では詳細なエラー情報を返す', () => {
-      process.env.NODE_ENV = 'development';
-      
-      const error = new Error('Detailed error message');
-      error.code = 'TEST_ERROR';
-      error.stack = 'Error stack trace';
-      error.details = { context: 'test' };
-      
-      const result = sanitizeError(error);
-      
-      expect(result).toEqual({
-        message: 'Detailed error message',
-        code: 'TEST_ERROR',
-        stack: 'Error stack trace',
-        details: { context: 'test' }
+    describe('開発環境での動作', () => {
+      beforeEach(() => {
+        process.env.NODE_ENV = 'development';
       });
-    });
 
-    it('開発環境でコードが未設定の場合はUNKNOWN_ERRORを設定', () => {
-      process.env.NODE_ENV = 'development';
-      
-      const error = new Error('Error without code');
-      
-      const result = sanitizeError(error);
-      
-      expect(result.code).toBe('UNKNOWN_ERROR');
-      expect(result.details).toEqual({});
-    });
-
-    it('本番環境でネットワークエラーを適切にマッピングする', () => {
-      process.env.NODE_ENV = 'production';
-      
-      const networkErrors = [
-        { code: 'ECONNREFUSED', expected: 'サーバーに接続できません。しばらくしてから再度お試しください。' },
-        { code: 'ETIMEDOUT', expected: 'リクエストがタイムアウトしました。' },
-        { code: 'ENETUNREACH', expected: 'ネットワークに接続できません。' }
-      ];
-      
-      networkErrors.forEach(({ code, expected }) => {
-        const error = new Error('Network error');
-        error.code = code;
+      it('詳細なエラー情報を返す', () => {
+        const error = new Error('Detailed error message');
+        error.code = 'TEST_ERROR';
+        error.stack = 'Error stack trace';
+        error.details = { context: 'test' };
         
         const result = sanitizeError(error);
         
         expect(result).toEqual({
-          message: expected,
-          code: code,
-          safe: true
+          message: 'Detailed error message',
+          code: 'TEST_ERROR',
+          stack: 'Error stack trace',
+          details: { context: 'test' }
         });
+      });
+
+      it('コードが未設定の場合はUNKNOWN_ERRORを設定', () => {
+        const error = new Error('Error without code');
+        
+        const result = sanitizeError(error);
+        
+        expect(result.code).toBe('UNKNOWN_ERROR');
+        expect(result.details).toEqual({});
+      });
+
+      it('detailsが未設定の場合は空オブジェクトを設定', () => {
+        const error = new Error('Error without details');
+        error.code = 'TEST_ERROR';
+        
+        const result = sanitizeError(error);
+        
+        expect(result.details).toEqual({});
       });
     });
 
-    it('本番環境で認証エラーを適切にマッピングする', () => {
-      process.env.NODE_ENV = 'production';
-      
-      const authErrors = [
-        { code: 'AUTH_FAILED', expected: 'ログインに失敗しました。' },
-        { code: 'UNAUTHORIZED', expected: 'アクセス権限がありません。' },
-        { code: 'FORBIDDEN', expected: 'このリソースへのアクセスは禁止されています。' },
-        { code: 'SESSION_EXPIRED', expected: 'セッションの有効期限が切れました。再度ログインしてください。' }
-      ];
-      
-      authErrors.forEach(({ code, expected }) => {
-        const error = new Error('Auth error');
-        error.code = code;
+    describe('本番環境での動作', () => {
+      beforeEach(() => {
+        process.env.NODE_ENV = 'production';
+      });
+
+      it('ネットワークエラーを適切にマッピングする', () => {
+        const networkErrors = [
+          { code: 'ECONNREFUSED', expected: 'サーバーに接続できません。しばらくしてから再度お試しください。' },
+          { code: 'ETIMEDOUT', expected: 'リクエストがタイムアウトしました。' },
+          { code: 'ENETUNREACH', expected: 'ネットワークに接続できません。' }
+        ];
+        
+        networkErrors.forEach(({ code, expected }) => {
+          const error = new Error('Network error');
+          error.code = code;
+          
+          const result = sanitizeError(error);
+          
+          expect(result).toEqual({
+            message: expected,
+            code: code,
+            userFriendly: true
+          });
+        });
+      });
+
+      it('認証エラーを適切にマッピングする', () => {
+        const authErrors = [
+          { code: 'AUTH_FAILED', expected: 'ログインに失敗しました。' },
+          { code: 'UNAUTHORIZED', expected: 'アクセス権限がありません。' },
+          { code: 'FORBIDDEN', expected: 'このリソースへのアクセスは禁止されています。' },
+          { code: 'SESSION_EXPIRED', expected: 'セッションの有効期限が切れました。再度ログインしてください。' }
+        ];
+        
+        authErrors.forEach(({ code, expected }) => {
+          const error = new Error('Auth error');
+          error.code = code;
+          
+          const result = sanitizeError(error);
+          
+          expect(result).toEqual({
+            message: expected,
+            code: code,
+            userFriendly: true
+          });
+        });
+      });
+
+      it('バリデーションエラーを適切にマッピングする', () => {
+        const validationErrors = [
+          { code: 'VALIDATION_ERROR', expected: '入力内容に誤りがあります。' },
+          { code: 'INVALID_REQUEST', expected: '無効なリクエストです。' }
+        ];
+        
+        validationErrors.forEach(({ code, expected }) => {
+          const error = new Error('Validation error');
+          error.code = code;
+          
+          const result = sanitizeError(error);
+          
+          expect(result).toEqual({
+            message: expected,
+            code: code,
+            userFriendly: true
+          });
+        });
+      });
+
+      it('リソースエラーを適切にマッピングする', () => {
+        const resourceErrors = [
+          { code: 'NOT_FOUND', expected: 'リソースが見つかりません。' },
+          { code: 'RESOURCE_CONFLICT', expected: 'リソースの競合が発生しました。' }
+        ];
+        
+        resourceErrors.forEach(({ code, expected }) => {
+          const error = new Error('Resource error');
+          error.code = code;
+          
+          const result = sanitizeError(error);
+          
+          expect(result).toEqual({
+            message: expected,
+            code: code,
+            userFriendly: true
+          });
+        });
+      });
+
+      it('レート制限エラーを適切にマッピングする', () => {
+        const error = new Error('Rate limit error');
+        error.code = 'RATE_LIMIT_EXCEEDED';
         
         const result = sanitizeError(error);
         
         expect(result).toEqual({
-          message: expected,
-          code: code,
-          safe: true
+          message: 'リクエスト数が上限に達しました。しばらくしてから再度お試しください。',
+          code: 'RATE_LIMIT_EXCEEDED',
+          userFriendly: true
         });
       });
-    });
 
-    it('本番環境でバリデーションエラーを適切にマッピングする', () => {
-      process.env.NODE_ENV = 'production';
-      
-      const validationErrors = [
-        { code: 'VALIDATION_ERROR', expected: '入力内容に誤りがあります。' },
-        { code: 'INVALID_REQUEST', expected: '無効なリクエストです。' }
-      ];
-      
-      validationErrors.forEach(({ code, expected }) => {
-        const error = new Error('Validation error');
-        error.code = code;
+      it('サーバーエラーを適切にマッピングする', () => {
+        const serverErrors = [
+          { code: 'INTERNAL_SERVER_ERROR', expected: 'サーバーエラーが発生しました。' },
+          { code: 'SERVICE_UNAVAILABLE', expected: 'サービスが一時的に利用できません。' }
+        ];
+        
+        serverErrors.forEach(({ code, expected }) => {
+          const error = new Error('Server error');
+          error.code = code;
+          
+          const result = sanitizeError(error);
+          
+          expect(result).toEqual({
+            message: expected,
+            code: code,
+            userFriendly: true
+          });
+        });
+      });
+
+      it('未知のエラーコードは一般的なメッセージを返す', () => {
+        const error = new Error('Unknown error');
+        error.code = 'UNKNOWN_CUSTOM_ERROR';
         
         const result = sanitizeError(error);
         
         expect(result).toEqual({
-          message: expected,
-          code: code,
-          safe: true
+          message: 'エラーが発生しました。しばらくしてから再度お試しください。',
+          code: 'UNKNOWN_CUSTOM_ERROR',
+          userFriendly: true
         });
       });
-    });
 
-    it('本番環境でリソースエラーを適切にマッピングする', () => {
-      process.env.NODE_ENV = 'production';
-      
-      const resourceErrors = [
-        { code: 'NOT_FOUND', expected: 'リソースが見つかりません。' },
-        { code: 'RESOURCE_CONFLICT', expected: 'リソースの競合が発生しました。' }
-      ];
-      
-      resourceErrors.forEach(({ code, expected }) => {
-        const error = new Error('Resource error');
-        error.code = code;
+      it('error.nameをコードとして使用する', () => {
+        const error = new Error('Error with name');
+        error.name = 'CustomError';
+        
+        const result = sanitizeError(error);
+        
+        expect(result.code).toBe('CustomError');
+      });
+
+      it('コードが未設定の場合はUNKNOWN_ERRORを使用', () => {
+        const error = new Error('Error without code');
         
         const result = sanitizeError(error);
         
         expect(result).toEqual({
-          message: expected,
-          code: code,
-          safe: true
+          message: 'エラーが発生しました。しばらくしてから再度お試しください。',
+          code: 'Error', // Error objects have name='Error' by default
+          userFriendly: true
         });
-      });
-    });
-
-    it('本番環境でレート制限エラーを適切にマッピングする', () => {
-      process.env.NODE_ENV = 'production';
-      
-      const error = new Error('Rate limit error');
-      error.code = 'RATE_LIMIT_EXCEEDED';
-      
-      const result = sanitizeError(error);
-      
-      expect(result).toEqual({
-        message: 'リクエスト数が上限に達しました。しばらくしてから再度お試しください。',
-        code: 'RATE_LIMIT_EXCEEDED',
-        safe: true
-      });
-    });
-
-    it('本番環境でサーバーエラーを適切にマッピングする', () => {
-      process.env.NODE_ENV = 'production';
-      
-      const serverErrors = [
-        { code: 'INTERNAL_SERVER_ERROR', expected: 'サーバーエラーが発生しました。' },
-        { code: 'SERVICE_UNAVAILABLE', expected: 'サービスが一時的に利用できません。' }
-      ];
-      
-      serverErrors.forEach(({ code, expected }) => {
-        const error = new Error('Server error');
-        error.code = code;
-        
-        const result = sanitizeError(error);
-        
-        expect(result).toEqual({
-          message: expected,
-          code: code,
-          safe: true
-        });
-      });
-    });
-
-    it('本番環境で未知のエラーコードは一般的なメッセージを返す', () => {
-      process.env.NODE_ENV = 'production';
-      
-      const error = new Error('Unknown error');
-      error.code = 'UNKNOWN_CUSTOM_ERROR';
-      
-      const result = sanitizeError(error);
-      
-      expect(result).toEqual({
-        message: '予期しないエラーが発生しました。',
-        code: 'UNKNOWN_CUSTOM_ERROR',
-        safe: true
-      });
-    });
-
-    it('本番環境でコードが未設定の場合は一般的なメッセージを返す', () => {
-      process.env.NODE_ENV = 'production';
-      
-      const error = new Error('Error without code');
-      
-      const result = sanitizeError(error);
-      
-      expect(result).toEqual({
-        message: '予期しないエラーが発生しました。',
-        code: 'UNKNOWN_ERROR',
-        safe: true
       });
     });
   });
 
   describe('handleApiError', () => {
-    it('HTTPステータスコードを適切に処理する', () => {
+    beforeEach(() => {
+      process.env.NODE_ENV = 'production';
+    });
+
+    it('レスポンスエラーのHTTPステータスコードを適切に処理する', () => {
       const testCases = [
         { status: 400, expected: 'INVALID_REQUEST' },
         { status: 401, expected: 'UNAUTHORIZED' },
         { status: 403, expected: 'FORBIDDEN' },
         { status: 404, expected: 'NOT_FOUND' },
-        { status: 409, expected: 'RESOURCE_CONFLICT' },
         { status: 429, expected: 'RATE_LIMIT_EXCEEDED' },
         { status: 500, expected: 'INTERNAL_SERVER_ERROR' },
         { status: 503, expected: 'SERVICE_UNAVAILABLE' }
@@ -250,22 +281,48 @@ describe('errorHandler', () => {
         const result = handleApiError(apiError);
         
         expect(result.code).toBe(expected);
+        expect(result.userFriendly).toBe(true);
       });
     });
 
-    it('ネットワークエラーを適切に処理する', () => {
-      const networkError = {
-        code: 'ECONNREFUSED',
-        message: 'Connection refused'
+    it('ユーザーフレンドリーなAPIエラーレスポンスを返す', () => {
+      const apiError = {
+        response: {
+          status: 400,
+          data: {
+            error: {
+              message: 'User friendly error',
+              userFriendly: true,
+              code: 'USER_ERROR'
+            }
+          }
+        }
       };
       
-      const result = handleApiError(networkError);
+      const result = handleApiError(apiError);
       
-      expect(result.code).toBe('ECONNREFUSED');
-      expect(result.isNetworkError).toBe(true);
+      expect(result).toEqual({
+        message: 'User friendly error',
+        userFriendly: true,
+        code: 'USER_ERROR'
+      });
     });
 
-    it('タイムアウトエラーを適切に処理する', () => {
+    it('未知のHTTPステータスコードはsanitizeErrorに渡す', () => {
+      const apiError = {
+        response: {
+          status: 418, // I'm a teapot
+          data: { message: 'Unknown status' }
+        }
+      };
+      
+      const result = handleApiError(apiError);
+      
+      expect(result.userFriendly).toBe(true);
+      expect(result.message).toBe('エラーが発生しました。しばらくしてから再度お試しください。');
+    });
+
+    it('ECONNABORTED エラーをタイムアウトとして処理する', () => {
       const timeoutError = {
         code: 'ECONNABORTED',
         message: 'timeout of 5000ms exceeded'
@@ -274,215 +331,308 @@ describe('errorHandler', () => {
       const result = handleApiError(timeoutError);
       
       expect(result.code).toBe('ETIMEDOUT');
-      expect(result.isTimeout).toBe(true);
+      expect(result.message).toBe('リクエストがタイムアウトしました。');
     });
 
-    it('レスポンスデータからエラー情報を抽出する', () => {
-      const apiError = {
-        response: {
-          status: 400,
-          data: {
-            error: 'Validation failed',
-            details: { field: 'email' }
-          }
-        }
+    it('Network Error をタイムアウトとして処理する', () => {
+      const networkError = {
+        message: 'Network Error'
       };
       
-      const result = handleApiError(apiError);
+      const result = handleApiError(networkError);
       
-      expect(result.serverMessage).toBe('Validation failed');
-      expect(result.details).toEqual({ field: 'email' });
+      expect(result.code).toBe('ETIMEDOUT');
+      expect(result.message).toBe('リクエストがタイムアウトしました。');
     });
 
-    it('一般的なエラーオブジェクトを適切に処理する', () => {
+    it('一般的なエラーをsanitizeErrorに渡す', () => {
       const genericError = new Error('Generic error message');
+      genericError.code = 'GENERIC_ERROR';
       
       const result = handleApiError(genericError);
       
-      expect(result.message).toBe('Generic error message');
-      expect(result.code).toBe('UNKNOWN_ERROR');
+      expect(result.message).toBe('エラーが発生しました。しばらくしてから再度お試しください。');
+      expect(result.code).toBe('GENERIC_ERROR');
+      expect(result.userFriendly).toBe(true);
     });
   });
 
-  describe('createError', () => {
-    it('指定されたコードとメッセージでエラーを作成する', () => {
-      const error = createError('TEST_ERROR', 'Test error message', { context: 'test' });
+  describe('setupGlobalErrorHandlers', () => {
+    
+    it('unhandledrejection イベントリスナーを設定する', () => {
+      setupGlobalErrorHandlers();
       
-      expect(error.message).toBe('Test error message');
-      expect(error.code).toBe('TEST_ERROR');
-      expect(error.details).toEqual({ context: 'test' });
-    });
-
-    it('詳細情報なしでエラーを作成する', () => {
-      const error = createError('SIMPLE_ERROR', 'Simple message');
-      
-      expect(error.message).toBe('Simple message');
-      expect(error.code).toBe('SIMPLE_ERROR');
-      expect(error.details).toBeUndefined();
-    });
-  });
-
-  describe('logError', () => {
-    it('開発環境では詳細なエラーログを出力する', () => {
-      process.env.NODE_ENV = 'development';
-      
-      const error = new Error('Test error');
-      error.code = 'TEST_ERROR';
-      
-      logError(error, 'test-context');
-      
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '[ERROR] test-context:',
-        expect.objectContaining({
-          message: 'Test error',
-          code: 'TEST_ERROR'
-        })
+      expect(global.window.addEventListener).toHaveBeenCalledWith(
+        'unhandledrejection',
+        expect.any(Function)
       );
     });
 
-    it('本番環境では簡潔なエラーログを出力する', () => {
+    it('error イベントリスナーを設定する', () => {
+      setupGlobalErrorHandlers();
+      
+      expect(global.window.addEventListener).toHaveBeenCalledWith(
+        'error',
+        expect.any(Function)
+      );
+    });
+
+    describe('unhandledrejection ハンドラー', () => {
+      beforeEach(() => {
+        process.env.NODE_ENV = 'production';
+        // イベントリスナーをリセット
+        mockEventListeners = {};
+        global.window = {
+          addEventListener: jest.fn((event, handler) => {
+            mockEventListeners[event] = handler;
+          })
+        };
+        window = global.window;
+        setupGlobalErrorHandlers();
+      });
+
+      it('本番環境でunhandled rejectionを処理する', () => {
+        const error = new Error('Unhandled promise rejection');
+        error.code = 'PROMISE_ERROR';
+        
+        const mockEvent = {
+          reason: error,
+          preventDefault: jest.fn()
+        };
+        
+        mockEventListeners['unhandledrejection'](mockEvent);
+        
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+          'Unhandled promise rejection:',
+          'PROMISE_ERROR'
+        );
+        expect(mockEvent.preventDefault).toHaveBeenCalled();
+      });
+
+      it('開発環境ではpreventDefaultを呼ばない', () => {
+        process.env.NODE_ENV = 'development';
+        mockEventListeners = {};
+        global.window = {
+          addEventListener: jest.fn((event, handler) => {
+            mockEventListeners[event] = handler;
+          })
+        };
+        window = global.window;
+        setupGlobalErrorHandlers();
+        
+        const error = new Error('Dev unhandled rejection');
+        const mockEvent = {
+          reason: error,
+          preventDefault: jest.fn()
+        };
+        
+        mockEventListeners['unhandledrejection'](mockEvent);
+        
+        expect(mockEvent.preventDefault).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('error ハンドラー', () => {
+      beforeEach(() => {
+        process.env.NODE_ENV = 'production';
+        mockEventListeners = {};
+        global.window = {
+          addEventListener: jest.fn((event, handler) => {
+            mockEventListeners[event] = handler;
+          })
+        };
+        window = global.window;
+        setupGlobalErrorHandlers();
+      });
+
+      it('本番環境でglobal errorを処理する', () => {
+        const error = new Error('Global error');
+        error.code = 'GLOBAL_ERROR';
+        
+        const mockEvent = {
+          error: error,
+          preventDefault: jest.fn()
+        };
+        
+        mockEventListeners['error'](mockEvent);
+        
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+          'Global error:',
+          'GLOBAL_ERROR'
+        );
+        expect(mockEvent.preventDefault).toHaveBeenCalled();
+      });
+
+      it('event.errorが存在しない場合はevent.messageからエラーを作成', () => {
+        const mockEvent = {
+          message: 'Error message from event',
+          preventDefault: jest.fn()
+        };
+        
+        mockEventListeners['error'](mockEvent);
+        
+        expect(consoleErrorSpy).toHaveBeenCalledWith(
+          'Global error:',
+          'UNKNOWN_ERROR'
+        );
+      });
+
+      it('開発環境ではpreventDefaultを呼ばない', () => {
+        process.env.NODE_ENV = 'development';
+        mockEventListeners = {};
+        global.window = {
+          addEventListener: jest.fn((event, handler) => {
+            mockEventListeners[event] = handler;
+          })
+        };
+        window = global.window;
+        setupGlobalErrorHandlers();
+        
+        const mockEvent = {
+          error: new Error('Dev global error'),
+          preventDefault: jest.fn()
+        };
+        
+        mockEventListeners['error'](mockEvent);
+        
+        expect(mockEvent.preventDefault).not.toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe('logErrorToService', () => {
+    const errorInfo = { componentStack: 'Component stack trace' };
+
+    it('開発環境で詳細なエラーログを出力する', () => {
+      process.env.NODE_ENV = 'development';
+      
+      const error = new Error('Test error for boundary');
+      
+      logErrorToService(error, errorInfo);
+      
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'Error caught by boundary:',
+        error,
+        errorInfo
+      );
+    });
+
+    it('本番環境で簡潔なエラーログを出力する', () => {
       process.env.NODE_ENV = 'production';
       
-      const error = new Error('Test error');
-      error.code = 'TEST_ERROR';
+      const error = new Error('Test error for boundary');
+      error.code = 'BOUNDARY_ERROR';
       
-      logError(error, 'test-context');
+      logErrorToService(error, errorInfo);
       
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '[ERROR] test-context: TEST_ERROR'
+        'Error boundary:',
+        'BOUNDARY_ERROR'
       );
     });
 
-    it('コンテキストなしでもエラーログを出力する', () => {
-      process.env.NODE_ENV = 'development';
+    it('エラーコードが設定されていない場合', () => {
+      process.env.NODE_ENV = 'production';
       
-      const error = new Error('Test error without context');
+      const error = new Error('Error without code');
       
-      logError(error);
+      logErrorToService(error, errorInfo);
       
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '[ERROR] unknown:',
-        expect.objectContaining({
-          message: 'Test error without context'
-        })
+        'Error boundary:',
+        'Error' // Error objects have name='Error' by default
       );
     });
   });
 
-  describe('ErrorReporter', () => {
-    it('エラーを報告できる', () => {
-      const error = new Error('Reportable error');
-      
-      const result = ErrorReporter.report(error, 'user-action');
-      
-      expect(result.reported).toBe(true);
-      expect(result.timestamp).toBeDefined();
-      expect(result.context).toBe('user-action');
+  describe('エラーケースの処理', () => {
+    beforeEach(() => {
+      process.env.NODE_ENV = 'production';
     });
 
-    it('エラー統計を追跡できる', () => {
-      ErrorReporter.clearStats();
-      
-      const error1 = new Error('Error 1');
-      error1.code = 'ERROR_TYPE_1';
-      
-      const error2 = new Error('Error 2');
-      error2.code = 'ERROR_TYPE_2';
-      
-      const error3 = new Error('Error 3');
-      error3.code = 'ERROR_TYPE_1';
-      
-      ErrorReporter.report(error1);
-      ErrorReporter.report(error2);
-      ErrorReporter.report(error3);
-      
-      const stats = ErrorReporter.getStats();
-      
-      expect(stats.total).toBe(3);
-      expect(stats.byCode['ERROR_TYPE_1']).toBe(2);
-      expect(stats.byCode['ERROR_TYPE_2']).toBe(1);
-    });
-
-    it('統計をクリアできる', () => {
-      ErrorReporter.report(new Error('Test error'));
-      
-      expect(ErrorReporter.getStats().total).toBeGreaterThan(0);
-      
-      ErrorReporter.clearStats();
-      
-      expect(ErrorReporter.getStats().total).toBe(0);
-    });
-  });
-
-  describe('カスタムエラークラス', () => {
-    it('NetworkErrorが正しく動作する', () => {
-      const error = new NetworkError('Connection failed', 'ECONNREFUSED');
-      
-      expect(error.name).toBe('NetworkError');
-      expect(error.message).toBe('Connection failed');
-      expect(error.code).toBe('ECONNREFUSED');
-      expect(error.isNetworkError).toBe(true);
-    });
-
-    it('ValidationErrorが正しく動作する', () => {
-      const error = new ValidationError('Invalid input', { field: 'email' });
-      
-      expect(error.name).toBe('ValidationError');
-      expect(error.message).toBe('Invalid input');
-      expect(error.code).toBe('VALIDATION_ERROR');
-      expect(error.details).toEqual({ field: 'email' });
-    });
-
-    it('AuthenticationErrorが正しく動作する', () => {
-      const error = new AuthenticationError('Login failed');
-      
-      expect(error.name).toBe('AuthenticationError');
-      expect(error.message).toBe('Login failed');
-      expect(error.code).toBe('AUTH_FAILED');
-      expect(error.isAuthError).toBe(true);
-    });
-
-    it('RateLimitErrorが正しく動作する', () => {
-      const error = new RateLimitError('Too many requests', 60);
-      
-      expect(error.name).toBe('RateLimitError');
-      expect(error.message).toBe('Too many requests');
-      expect(error.code).toBe('RATE_LIMIT_EXCEEDED');
-      expect(error.retryAfter).toBe(60);
-    });
-  });
-
-  describe('エラーケース', () => {
     it('nullエラーを適切に処理する', () => {
       const result = sanitizeError(null);
       
-      expect(result.message).toContain('予期しないエラー');
       expect(result.code).toBe('UNKNOWN_ERROR');
+      expect(result.message).toBe('エラーが発生しました。しばらくしてから再度お試しください。');
     });
 
     it('undefinedエラーを適切に処理する', () => {
       const result = sanitizeError(undefined);
       
-      expect(result.message).toContain('予期しないエラー');
       expect(result.code).toBe('UNKNOWN_ERROR');
+      expect(result.message).toBe('エラーが発生しました。しばらくしてから再度お試しください。');
     });
 
     it('文字列エラーを適切に処理する', () => {
       const result = sanitizeError('String error message');
       
-      expect(result.message).toContain('String error message');
+      expect(result.code).toBe('UNKNOWN_ERROR');
+      expect(result.message).toBe('エラーが発生しました。しばらくしてから再度お試しください。');
     });
 
-    it('オブジェクトエラーを適切に処理する', () => {
-      const errorObj = {
-        message: 'Object error',
-        code: 'OBJECT_ERROR'
+    it('プロパティが不完全なオブジェクトを処理する', () => {
+      const incompleteError = { someProperty: 'value' };
+      
+      const result = sanitizeError(incompleteError);
+      
+      expect(result.code).toBe('UNKNOWN_ERROR');
+      expect(result.userFriendly).toBe(true);
+    });
+  });
+
+  describe('統合テスト', () => {
+    it('API呼び出しエラーの完全なフローを処理する', () => {
+      process.env.NODE_ENV = 'production';
+      
+      // Axiosエラーをシミュレート
+      const apiError = {
+        response: {
+          status: 401,
+          data: {
+            error: 'Token expired',
+            code: 'TOKEN_EXPIRED'
+          }
+        }
       };
       
-      const result = sanitizeError(errorObj);
+      // エラーを処理
+      const result = handleApiError(apiError);
       
-      expect(result.message).toBe('Object error');
-      expect(result.code).toBe('OBJECT_ERROR');
+      expect(result.code).toBe('UNAUTHORIZED');
+      expect(result.message).toBe('アクセス権限がありません。');
+      expect(result.userFriendly).toBe(true);
+    });
+
+    it('グローバルエラーハンドラーとerrorBoundaryの統合', () => {
+      process.env.NODE_ENV = 'production';
+      
+      // セットアップ
+      mockEventListeners = {};
+      global.window = {
+        addEventListener: jest.fn((event, handler) => {
+          mockEventListeners[event] = handler;
+        })
+      };
+      setupGlobalErrorHandlers();
+      
+      // エラー境界でのエラー
+      const boundaryError = new Error('Component error');
+      boundaryError.code = 'COMPONENT_ERROR';
+      logErrorToService(boundaryError, { componentStack: 'test' });
+      
+      // グローバルエラー
+      const globalError = new Error('Global error');
+      globalError.code = 'GLOBAL_ERROR';
+      const mockEvent = {
+        error: globalError,
+        preventDefault: jest.fn()
+      };
+      const handler = getEventListener('error');
+      handler(mockEvent);
+      
+      expect(consoleErrorSpy).toHaveBeenCalledWith('Error boundary:', 'COMPONENT_ERROR');
+      expect(consoleErrorSpy).toHaveBeenCalledWith('Global error:', 'GLOBAL_ERROR');
     });
   });
 
@@ -502,51 +652,21 @@ describe('errorHandler', () => {
       expect(endTime - startTime).toBeLessThan(100); // 100ms以内
     });
 
-    it('ErrorReporterのパフォーマンステスト', () => {
-      ErrorReporter.clearStats();
-      
+    it('APIエラー処理のパフォーマンステスト', () => {
       const startTime = Date.now();
       
       for (let i = 0; i < 100; i++) {
-        const error = new Error(`Performance test ${i}`);
-        error.code = `ERROR_${i % 10}`;
-        ErrorReporter.report(error);
+        const apiError = {
+          response: {
+            status: 500,
+            data: { message: `Error ${i}` }
+          }
+        };
+        handleApiError(apiError);
       }
       
       const endTime = Date.now();
-      const stats = ErrorReporter.getStats();
-      
       expect(endTime - startTime).toBeLessThan(50); // 50ms以内
-      expect(stats.total).toBe(100);
-    });
-  });
-
-  describe('統合テスト', () => {
-    it('API呼び出しエラーの完全なフローを処理する', () => {
-      process.env.NODE_ENV = 'production';
-      
-      // API呼び出しエラーをシミュレート
-      const apiError = {
-        response: {
-          status: 401,
-          data: {
-            error: 'Token expired',
-            code: 'TOKEN_EXPIRED'
-          }
-        }
-      };
-      
-      // エラーを処理
-      const processedError = handleApiError(apiError);
-      const sanitizedError = sanitizeError(processedError);
-      ErrorReporter.report(processedError, 'api-call');
-      
-      expect(processedError.code).toBe('UNAUTHORIZED');
-      expect(sanitizedError.message).toBe('アクセス権限がありません。');
-      expect(sanitizedError.safe).toBe(true);
-      
-      const stats = ErrorReporter.getStats();
-      expect(stats.byCode['UNAUTHORIZED']).toBeGreaterThan(0);
     });
   });
 });

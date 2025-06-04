@@ -25,9 +25,12 @@ const mockXHR = {
 global.XMLHttpRequest = jest.fn(() => mockXHR);
 
 // documentのモック
+let documentCookieValue = '';
 Object.defineProperty(document, 'cookie', {
-  get: jest.fn(),
-  set: jest.fn(),
+  get: () => documentCookieValue,
+  set: (value) => {
+    documentCookieValue = value;
+  },
   configurable: true
 });
 
@@ -60,6 +63,9 @@ describe('cookieDebugUtils', () => {
     originalDateNow = Date.now;
     Date.now = jest.fn(() => 1234567890);
     
+    // documentCookieValueをリセット
+    documentCookieValue = '';
+    
     // モックをクリア
     jest.clearAllMocks();
   });
@@ -78,7 +84,7 @@ describe('cookieDebugUtils', () => {
 
   describe('analyzeCookies', () => {
     it('空のCookie文字列を正しく解析する', () => {
-      document.cookie = '';
+      documentCookieValue = '';
       
       const result = analyzeCookies();
       
@@ -92,7 +98,7 @@ describe('cookieDebugUtils', () => {
     });
 
     it('単一のCookieを正しく解析する', () => {
-      document.cookie = 'test_cookie=test_value';
+      documentCookieValue = 'test_cookie=test_value';
       
       const result = analyzeCookies();
       
@@ -111,7 +117,7 @@ describe('cookieDebugUtils', () => {
     });
 
     it('複数のCookieを正しく解析する', () => {
-      document.cookie = 'cookie1=value1; cookie2=value2; cookie3=value3';
+      documentCookieValue = 'cookie1=value1; cookie2=value2; cookie3=value3';
       
       const result = analyzeCookies();
       
@@ -127,7 +133,7 @@ describe('cookieDebugUtils', () => {
     });
 
     it('セッション関連のCookieを正しく識別する', () => {
-      document.cookie = 'session_id=abc123; connect.sid=def456; auth_token=ghi789; normal_cookie=xyz';
+      documentCookieValue = 'session_id=abc123; connect.sid=def456; auth_token=ghi789; normal_cookie=xyz';
       
       const result = analyzeCookies();
       
@@ -141,7 +147,7 @@ describe('cookieDebugUtils', () => {
 
     it('長いCookie値のプレビューを正しく作成する', () => {
       const longValue = 'a'.repeat(50);
-      document.cookie = `long_cookie=${longValue}`;
+      documentCookieValue = `long_cookie=${longValue}`;
       
       const result = analyzeCookies();
       
@@ -150,7 +156,7 @@ describe('cookieDebugUtils', () => {
     });
 
     it('空の値を持つCookieを正しく処理する', () => {
-      document.cookie = 'empty_cookie=; normal_cookie=value';
+      documentCookieValue = 'empty_cookie=; normal_cookie=value';
       
       const result = analyzeCookies();
       
@@ -163,7 +169,7 @@ describe('cookieDebugUtils', () => {
     });
 
     it('値がないCookieを正しく処理する', () => {
-      document.cookie = 'no_value_cookie; normal_cookie=value';
+      documentCookieValue = 'no_value_cookie; normal_cookie=value';
       
       const result = analyzeCookies();
       
@@ -176,7 +182,7 @@ describe('cookieDebugUtils', () => {
     });
 
     it('特殊文字を含むCookieを正しく処理する', () => {
-      document.cookie = 'special=hello%20world; encoded=%3D%3E%3C';
+      documentCookieValue = 'special=hello%20world; encoded=%3D%3E%3C';
       
       const result = analyzeCookies();
       
@@ -185,7 +191,7 @@ describe('cookieDebugUtils', () => {
     });
 
     it('スペースを含むCookie名と値を正しく処理する', () => {
-      document.cookie = ' spaced_name = spaced_value ; normal=value';
+      documentCookieValue = ' spaced_name = spaced_value ; normal=value';
       
       const result = analyzeCookies();
       
@@ -196,7 +202,7 @@ describe('cookieDebugUtils', () => {
 
   describe('logCookieStatus', () => {
     it('コンテキストなしでCookie状態をログ出力する', () => {
-      document.cookie = 'test=value';
+      documentCookieValue = 'test=value';
       
       const result = logCookieStatus();
       
@@ -208,7 +214,7 @@ describe('cookieDebugUtils', () => {
     });
 
     it('コンテキスト付きでCookie状態をログ出力する', () => {
-      document.cookie = 'session=abc123';
+      documentCookieValue = 'session=abc123';
       
       const result = logCookieStatus('API Call');
       
@@ -218,7 +224,7 @@ describe('cookieDebugUtils', () => {
     });
 
     it('空のCookieでも正常にログ出力する', () => {
-      document.cookie = '';
+      documentCookieValue = '';
       
       const result = logCookieStatus();
       
@@ -228,7 +234,7 @@ describe('cookieDebugUtils', () => {
     });
 
     it('すべてのCookie情報を正しくログ出力する', () => {
-      document.cookie = 'auth=token123; session=session456';
+      documentCookieValue = 'auth=token123; session=session456';
       
       logCookieStatus('Test');
       
@@ -247,7 +253,7 @@ describe('cookieDebugUtils', () => {
     });
 
     it('Google Drive認証のデバッグ情報を表示する', async () => {
-      document.cookie = 'session=test_session';
+      documentCookieValue = 'session=test_session';
       
       await debugDriveAuth(mockAuthFetch, mockGetApiEndpoint);
       
@@ -282,7 +288,7 @@ describe('cookieDebugUtils', () => {
     });
 
     it('Cookie情報をXHRテストでログ出力する', async () => {
-      document.cookie = 'auth=secret_token';
+      documentCookieValue = 'auth=secret_token';
       
       await debugDriveAuth(mockAuthFetch, mockGetApiEndpoint);
       
@@ -312,12 +318,8 @@ describe('cookieDebugUtils', () => {
 
   describe('testCookieSettings', () => {
     beforeEach(() => {
-      // document.cookieのsetterをモック
-      Object.defineProperty(document, 'cookie', {
-        get: jest.fn(() => 'test_cookie_1234567890=test_value'),
-        set: jest.fn(),
-        configurable: true
-      });
+      // Cookie設定をシミュレート（テストCookieが設定されたように見せる）
+      documentCookieValue = 'test_cookie_1234567890=test_value';
     });
 
     it('テスト用Cookieの設定をテストする', () => {
@@ -348,6 +350,7 @@ describe('cookieDebugUtils', () => {
 
     it('SameSiteテストでエラーが発生した場合の処理', () => {
       // document.cookieでエラーを発生させる
+      const originalCookieDescriptor = Object.getOwnPropertyDescriptor(document, 'cookie');
       Object.defineProperty(document, 'cookie', {
         get: jest.fn(),
         set: jest.fn(() => {
@@ -359,9 +362,13 @@ describe('cookieDebugUtils', () => {
       testCookieSettings();
       
       expect(consoleErrorSpy).toHaveBeenCalledWith('SameSite test failed:', expect.any(Error));
+      
+      // プロパティを復元
+      Object.defineProperty(document, 'cookie', originalCookieDescriptor);
     });
 
     it('テストCookieのクリーンアップが実行される', () => {
+      const originalCookieDescriptor = Object.getOwnPropertyDescriptor(document, 'cookie');
       const cookieSetter = jest.fn();
       Object.defineProperty(document, 'cookie', {
         get: jest.fn(() => 'test_cookie_1234567890=test_value'),
@@ -374,9 +381,13 @@ describe('cookieDebugUtils', () => {
       // 設定とクリーンアップの両方が呼ばれる
       expect(cookieSetter).toHaveBeenCalledWith('test_cookie_1234567890=test_value; path=/');
       expect(cookieSetter).toHaveBeenCalledWith('test_cookie_1234567890=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/');
+      
+      // プロパティを復元
+      Object.defineProperty(document, 'cookie', originalCookieDescriptor);
     });
 
     it('Cookie設定失敗時もテストを継続する', () => {
+      const originalCookieDescriptor = Object.getOwnPropertyDescriptor(document, 'cookie');
       Object.defineProperty(document, 'cookie', {
         get: jest.fn(() => ''), // テストCookieが見つからない
         set: jest.fn(),
@@ -387,6 +398,9 @@ describe('cookieDebugUtils', () => {
       
       expect(consoleLogSpy).toHaveBeenCalledWith('Test cookie set successfully:', false);
       expect(consoleGroupEndSpy).toHaveBeenCalled();
+      
+      // プロパティを復元
+      Object.defineProperty(document, 'cookie', originalCookieDescriptor);
     });
   });
 
@@ -497,7 +511,7 @@ describe('cookieDebugUtils', () => {
 
     it('デフォルトエクスポートの関数が正常に動作する', () => {
       const defaultExport = require('../../../utils/cookieDebugUtils').default;
-      document.cookie = 'test=value';
+      documentCookieValue = 'test=value';
       
       const result = defaultExport.analyzeCookies();
       
@@ -509,7 +523,7 @@ describe('cookieDebugUtils', () => {
   describe('統合テスト', () => {
     it('完全なデバッグフローをテストする', async () => {
       // セットアップ
-      document.cookie = 'session_id=abc123; auth_token=xyz789';
+      documentCookieValue = 'session_id=abc123; auth_token=xyz789';
       window.location.protocol = 'https:';
       
       const mockAuthFetch = jest.fn();

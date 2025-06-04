@@ -13,12 +13,32 @@
  * ホーム、設定、シミュレーション、データの各タブを表示し、現在のページを強調表示する。
  * モバイル対応のタブナビゲーションで、画面下部に固定表示される。
  */
-import React from 'react';
+import React, { useContext } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { PortfolioContext } from '../../context/PortfolioContext';
 
 const TabNavigation = () => {
   const { t } = useTranslation();
+  
+  const { 
+    currentAssets,
+    targetPortfolio,
+    additionalBudget
+  } = useContext(PortfolioContext);
+
+  // 設定がない場合は判定
+  const hasNoSettings = 
+    currentAssets.length === 0 && 
+    targetPortfolio.length === 0 &&
+    (!additionalBudget || additionalBudget.amount === 0);
+
+  const initialSetupCompleted = localStorage.getItem('initialSetupCompleted');
+
+  // 設定がない場合はAIアドバイザーのみ表示
+  if (hasNoSettings && !initialSetupCompleted) {
+    return null; // タブナビゲーションを非表示
+  }
   
   const tabs = [
     { 
@@ -27,6 +47,15 @@ const TabNavigation = () => {
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+        </svg>
+      )
+    },
+    { 
+      path: '/ai-advisor', 
+      labelKey: 'navigation.aiAdvisor', 
+      icon: (
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
         </svg>
       )
     },
@@ -41,20 +70,11 @@ const TabNavigation = () => {
       )
     },
     { 
-      path: '/simulation', 
-      labelKey: 'navigation.simulation', 
+      path: '/data-import', 
+      labelKey: 'navigation.dataImport', 
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
-        </svg>
-      )
-    },
-    { 
-      path: '/data', 
-      labelKey: 'navigation.data', 
-      icon: (
-        <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
         </svg>
       )
     }

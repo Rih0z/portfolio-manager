@@ -26,9 +26,11 @@
   },
   "navigation": {
     "dashboard": "Dashboard",
+    "aiAdvisor": "AI Advisor",
     "portfolio": "Portfolio",
     "simulation": "Simulation",
     "data": "Data Management",
+    "dataImport": "Data Import",
     "settings": "Settings"
   },
   "auth": {

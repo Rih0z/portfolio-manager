@@ -439,6 +439,11 @@ const containsFundIndicators = (name) => {
 
 // ETFかどうかを判定
 const isETF = (name, ticker) => {
+  // eMAXISファンドはETFではなくインデックスファンド
+  if (name.toLowerCase().includes('emaxis')) {
+    return false;
+  }
+  
   return name.includes('etf') || 
          name.includes('exchange traded fund') || 
          name.includes('上場投信') || 
@@ -758,7 +763,7 @@ export const estimateDividendYield = (ticker, name = '') => {
   }
   
   // 金ETFは特に配当がない
-  if (ticker === 'GLD' || name.includes('gold') || name.includes('ゴールド') || name.includes('金')) {
+  if (ticker === 'GLD' || (name && (name.includes('gold') || name.includes('ゴールド') || name.includes('金')))) {
     hasDividend = false;
     estimatedYield = 0;
   }

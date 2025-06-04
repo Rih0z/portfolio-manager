@@ -1,17 +1,19 @@
 import React from 'react';
 
-const ModernButton = ({
+const ModernButton = React.forwardRef(({
   children,
   variant = 'primary',
   size = 'md',
   rounded = 'full',
   loading = false,
   disabled = false,
+  fullWidth = false,
+  loadingText = 'Loading...',
   icon,
   iconPosition = 'left',
   className = '',
   ...props
-}) => {
+}, ref) => {
   const baseClasses = 'inline-flex items-center justify-center font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
 
   const variants = {
@@ -101,7 +103,7 @@ const ModernButton = ({
       {!loading && icon && iconPosition === 'left' && (
         <span className="mr-2">{icon}</span>
       )}
-      {!loading && children}
+      {loading ? loadingText : children}
       {!loading && icon && iconPosition === 'right' && (
         <span className="ml-2">{icon}</span>
       )}
@@ -113,12 +115,14 @@ const ModernButton = ({
     ${variants[variant]}
     ${sizes[size]}
     ${roundedClasses[rounded]}
+    ${fullWidth ? 'w-full' : ''}
     ${loading ? 'cursor-wait' : ''}
     ${className}
-  `;
+  `.replace(/\s+/g, ' ').trim();
 
   return (
     <button
+      ref={ref}
       className={classes}
       disabled={disabled || loading}
       {...props}
@@ -126,6 +130,8 @@ const ModernButton = ({
       {buttonContent}
     </button>
   );
-};
+});
+
+ModernButton.displayName = 'ModernButton';
 
 export default ModernButton;
