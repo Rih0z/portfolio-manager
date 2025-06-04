@@ -16,6 +16,7 @@ import React, { useState, useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PortfolioContext } from '../context/PortfolioContext';
 import ScreenshotAnalyzer from '../components/ai/ScreenshotAnalyzer';
+import portfolioPromptService from '../services/PortfolioPromptService';
 import { 
   FaFileAlt, 
   FaFileCode, 
@@ -41,6 +42,7 @@ const DataImport = () => {
   });
   const [jsonImportData, setJsonImportData] = useState('');
   const [isImporting, setIsImporting] = useState(false);
+  const [validationResult, setValidationResult] = useState(null);
 
   const isJapanese = i18n.language === 'ja';
 
@@ -144,12 +146,21 @@ const DataImport = () => {
     try {
       const importedData = JSON.parse(jsonImportData);
       
+      // AIからのポートフォリオJSONを検証
+      const validation = portfolioPromptService.validatePortfolioJSON(importedData);
+      setValidationResult(validation);
+      
+      if (!validation.isValid) {
+        throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
+      }
+      
       // ポートフォリオデータの構造を検証
-      if (importedData.assets && Array.isArray(importedData.assets)) {
+      const portfolioData = importedData.portfolio || importedData;
+      if (portfolioData.assets && Array.isArray(portfolioData.assets)) {
         // 既存のポートフォリオと統合
         const updatedPortfolio = {
           ...portfolio,
-          ...importedData,
+          ...portfolioData,
           lastImportAt: new Date().toISOString()
         };
         
@@ -160,7 +171,7 @@ const DataImport = () => {
           ...prev,
           totalImports: prev.totalImports + 1,
           successfulImports: prev.successfulImports + 1,
-          assetsAdded: prev.assetsAdded + importedData.assets.length
+          assetsAdded: prev.assetsAdded + portfolioData.assets.length
         }));
 
         // インポート履歴に追加
@@ -255,17 +266,81 @@ const DataImport = () => {
               </h4>
               <textarea
                 value={jsonImportData}
-                onChange={(e) => setJsonImportData(e.target.value)}
+                onChange={(e) => {
+                  setJsonImportData(e.target.value);
+                  // リアルタイム検証
+                  if (e.target.value.trim()) {
+                    try {
+                      const parsedData = JSON.parse(e.target.value);
+                      const validation = portfolioPromptService.validatePortfolioJSON(parsedData);
+                      setValidationResult(validation);
+                    } catch (error) {
+                      setValidationResult({
+                        isValid: false,
+                        errors: [`JSON parsing error: ${error.message}`],
+                        warnings: []
+                      });
+                    }
+                  } else {
+                    setValidationResult(null);
+                  }
+                }}
                 placeholder={isJapanese 
-                  ? 'JSONデータをここに貼り付けてください...'
-                  : 'Paste JSON data here...'
+                  ? 'AIで生成されたポートフォリオJSONデータをここに貼り付けてください...'
+                  : 'Paste AI-generated portfolio JSON data here...'
                 }
                 className="w-full p-3 bg-dark-300 border border-dark-400 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-primary-400 focus:border-transparent resize-none"
                 rows={10}
               />
               
               {jsonImportData && (
-                <div className="mt-3">
+                <div className="mt-3 space-y-3">
+                  {/* Validation Results */}
+                  {validationResult && (
+                    <div className={`p-3 rounded-lg border ${
+                      validationResult.isValid 
+                        ? 'bg-green-500/10 border-green-500/30'
+                        : 'bg-red-500/10 border-red-500/30'
+                    }`}>
+                      <div className="flex items-center gap-2 mb-2">
+                        {validationResult.isValid ? (
+                          <FaCheckCircle className="text-green-400" />
+                        ) : (
+                          <FaExclamationCircle className="text-red-400" />
+                        )}
+                        <span className={`font-medium ${
+                          validationResult.isValid ? 'text-green-400' : 'text-red-400'
+                        }`}>
+                          {isJapanese ? 
+                            (validationResult.isValid ? 'データ検証成功' : 'データ検証エラー') :
+                            (validationResult.isValid ? 'Validation Successful' : 'Validation Error')
+                          }
+                        </span>
+                      </div>
+                      
+                      {validationResult.isValid ? (
+                        <div className="text-sm text-gray-300">
+                          <div>• {isJapanese ? '資産数' : 'Assets'}: {validationResult.assetsCount}</div>
+                          <div>• {isJapanese ? '総評価額' : 'Total Value'}: ¥{validationResult.totalValue?.toLocaleString() || '0'}</div>
+                          {validationResult.warnings.length > 0 && (
+                            <div className="mt-2">
+                              <div className="text-yellow-400 text-xs">{isJapanese ? '警告:' : 'Warnings:'}</div>
+                              {validationResult.warnings.map((warning, index) => (
+                                <div key={index} className="text-xs text-yellow-300">• {warning}</div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-sm text-red-300">
+                          {validationResult.errors.map((error, index) => (
+                            <div key={index}>• {error}</div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
                   <button
                     onClick={handleJsonImport}
                     disabled={isImporting}

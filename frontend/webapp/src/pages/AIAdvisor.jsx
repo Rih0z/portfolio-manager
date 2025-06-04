@@ -19,6 +19,7 @@ import { PortfolioContext } from '../context/PortfolioContext';
 import MarketSelectionWizard, { INVESTMENT_MARKETS } from '../components/settings/MarketSelectionWizard';
 import PromptOrchestrator from '../components/ai/PromptOrchestrator';
 import promptOrchestrationService from '../services/PromptOrchestrationService';
+import portfolioPromptService from '../services/PortfolioPromptService';
 import ModernButton from '../components/common/ModernButton';
 import { 
   FaRobot, 
@@ -28,7 +29,9 @@ import {
   FaLightbulb,
   FaCheckCircle,
   FaCopy,
-  FaExternalLinkAlt
+  FaExternalLinkAlt,
+  FaWallet,
+  FaChartPie
 } from 'react-icons/fa';
 import { 
   HiSparkles,
@@ -86,6 +89,8 @@ const AIAdvisor = () => {
   const [screenshotPromptType, setScreenshotPromptType] = useState('screenshot_portfolio');
   const [screenshotInstructions, setScreenshotInstructions] = useState('');
   const [generatedScreenshotPrompt, setGeneratedScreenshotPrompt] = useState(null);
+  const [portfolioPromptType, setPortfolioPromptType] = useState('full_portfolio');
+  const [generatedPortfolioPrompt, setGeneratedPortfolioPrompt] = useState(null);
 
   const isJapanese = i18n.language === 'ja';
 
@@ -94,6 +99,7 @@ const AIAdvisor = () => {
     { key: 'markets', titleJa: '投資対象市場', titleEn: 'Investment Markets' },
     { key: 'experience', titleJa: '投資経験', titleEn: 'Investment Experience' },
     { key: 'goals', titleJa: '目標と価値観', titleEn: 'Goals & Values' },
+    { key: 'portfolio', titleJa: 'ポートフォリオ取得', titleEn: 'Portfolio Collection' },
     { key: 'screenshot', titleJa: 'スクリーンショット分析', titleEn: 'Screenshot Analysis' },
     { key: 'prompt', titleJa: 'AIプロンプト', titleEn: 'AI Prompt' }
   ];
@@ -404,6 +410,25 @@ Based on the above information, please advise me on:
       chatgpt: 'https://chat.openai.com'
     };
     window.open(urls[aiType], '_blank');
+  };
+
+  const generatePortfolioPrompt = () => {
+    const promptData = portfolioPromptService.generatePortfolioDataPrompt(
+      i18n.language,
+      { type: portfolioPromptType }
+    );
+    setGeneratedPortfolioPrompt(promptData);
+  };
+
+  const copyPortfolioPromptToClipboard = async () => {
+    if (generatedPortfolioPrompt) {
+      try {
+        await navigator.clipboard.writeText(generatedPortfolioPrompt.content);
+        // Success feedback could be added here
+      } catch (error) {
+        console.error('コピー失敗:', error);
+      }
+    }
   };
 
   const handleToggleValue = (value) => {
@@ -901,8 +926,163 @@ Based on the above information, please advise me on:
             </div>
           )}
 
-          {/* Step 4: Screenshot Analysis Prompt Generation */}
+          {/* Step 4: Portfolio Collection Prompt Generation */}
           {currentStep === 4 && (
+            <div className="space-y-6">
+              <div className="text-center mb-6">
+                <div className="flex items-center justify-center gap-2">
+                  <FaWallet className="text-primary-400 text-2xl" />
+                  <h3 className="text-xl font-semibold">
+                    {isJapanese ? 'ポートフォリオデータ取得' : 'Portfolio Data Collection'}
+                  </h3>
+                </div>
+                <p className="text-gray-400">
+                  {isJapanese 
+                    ? '保有資産をAIで整理・構造化するためのプロンプトを生成します。'
+                    : 'Generate prompts to organize and structure your portfolio with AI.'
+                  }
+                </p>
+              </div>
+
+              {/* Privacy Notice */}
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-6">
+                <div className="flex items-start space-x-3">
+                  <FaShieldAlt className="text-blue-400 text-2xl mt-1" />
+                  <div>
+                    <h5 className="text-blue-400 font-medium mb-2">
+                      {isJapanese ? 'プライバシー保護について' : 'Privacy Protection'}
+                    </h5>
+                    <p className="text-sm text-gray-300">
+                      {isJapanese 
+                        ? 'このアプリでは保有資産の詳細データを保存しません。生成されたプロンプトをコピーして、外部AI（Claude、Gemini等）で資産情報を整理してください。口座番号等の個人情報は入力しないでください。'
+                        : 'This app does not store detailed asset data. Copy the generated prompt and organize your asset information with external AI (Claude, Gemini, etc.). Do not enter personal information like account numbers.'
+                      }
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Portfolio Prompt Type Selection */}
+              <div>
+                <h4 className="font-medium text-white mb-3">
+                  {isJapanese ? '収集タイプを選択' : 'Select Collection Type'}
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {portfolioPromptService.getAvailablePromptTypes().map(type => (
+                    <button
+                      key={type.id}
+                      onClick={() => setPortfolioPromptType(type.id)}
+                      className={`p-4 rounded-lg border transition-all duration-200 text-left ${
+                        portfolioPromptType === type.id
+                          ? 'bg-primary-500/20 border-primary-400 text-white'
+                          : 'bg-dark-300 border-dark-400 text-gray-300 hover:bg-dark-200'
+                      }`}
+                    >
+                      <div className="text-2xl mb-2">
+                        {type.id === 'full_portfolio' ? <FaChartPie /> :
+                         type.id === 'stocks_only' ? <HiChartBar /> :
+                         <FaWallet />}
+                      </div>
+                      <div className="font-medium mb-1">{isJapanese ? type.name : type.nameEn}</div>
+                      <div className="text-sm opacity-80">{isJapanese ? type.description : type.descriptionEn}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Generate Prompt Button */}
+              <div>
+                <button
+                  onClick={generatePortfolioPrompt}
+                  className="w-full py-3 px-4 bg-primary-500 hover:bg-primary-600 text-white font-medium rounded-lg transition-colors duration-200"
+                >
+                  {isJapanese ? 'ポートフォリオ収集プロンプトを生成' : 'Generate Portfolio Collection Prompt'}
+                </button>
+              </div>
+
+              {/* Generated Prompt Display */}
+              {generatedPortfolioPrompt && (
+                <div className="bg-dark-300 rounded-lg p-4 border border-dark-400">
+                  <div className="flex justify-between items-center mb-3">
+                    <h4 className="font-medium text-white">
+                      {isJapanese ? '生成されたポートフォリオ収集プロンプト' : 'Generated Portfolio Collection Prompt'}
+                    </h4>
+                    <button
+                      onClick={copyPortfolioPromptToClipboard}
+                      className="px-3 py-1 bg-primary-500 hover:bg-primary-600 text-white text-sm rounded transition-colors duration-200"
+                    >
+                      {isJapanese ? 'コピー' : 'Copy'}
+                    </button>
+                  </div>
+                  
+                  <div className="bg-dark-100 rounded p-4 max-h-64 overflow-y-auto">
+                    <pre className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">
+                      {generatedPortfolioPrompt.content}
+                    </pre>
+                  </div>
+                </div>
+              )}
+
+              {/* AI Service Links */}
+              {generatedPortfolioPrompt && (
+                <div>
+                  <h4 className="font-medium text-white mb-3">
+                    {isJapanese ? 'AIでポートフォリオを整理' : 'Organize Portfolio with AI'}
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                    <button
+                      onClick={() => openAIWithScreenshot('claude')}
+                      className="p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all duration-200 text-white text-center"
+                    >
+                      <FaRobot className="text-2xl mb-1 mx-auto" />
+                      <div className="font-medium">Claude</div>
+                      <div className="text-xs opacity-80">
+                        {isJapanese ? 'データ整理対応' : 'Data Organization'}
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => openAIWithScreenshot('gemini')}
+                      className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 text-white text-center"
+                    >
+                      <FaRobot className="text-2xl mb-1 mx-auto" />
+                      <div className="font-medium">Gemini</div>
+                      <div className="text-xs opacity-80">
+                        {isJapanese ? 'データ整理対応' : 'Data Organization'}
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => openAIWithScreenshot('chatgpt')}
+                      className="p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 text-white text-center"
+                    >
+                      <FaRobot className="text-2xl mb-1 mx-auto" />
+                      <div className="font-medium">ChatGPT</div>
+                      <div className="text-xs opacity-80">
+                        {isJapanese ? 'データ整理対応' : 'Data Organization'}
+                      </div>
+                    </button>
+                  </div>
+                  
+                  <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                    <div className="flex items-center gap-2 text-blue-400 text-sm mb-2">
+                      <FaLightbulb />
+                      <span>{isJapanese ? '使い方' : 'How to Use'}</span>
+                    </div>
+                    <ol className="text-xs text-gray-300 space-y-1">
+                      <li>1. {isJapanese ? '上記プロンプトをコピー' : 'Copy the prompt above'}</li>
+                      <li>2. {isJapanese ? 'AIサービスを開く' : 'Open AI service'}</li>
+                      <li>3. {isJapanese ? 'プロンプトを貼り付け、保有資産データを入力' : 'Paste prompt and enter your portfolio data'}</li>
+                      <li>4. {isJapanese ? 'AI出力のJSONを「データ取り込み」タブに貼り付け' : 'Paste AI JSON output in "Data Import" tab'}</li>
+                    </ol>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Step 5: Screenshot Analysis Prompt Generation */}
+          {currentStep === 5 && (
             <div className="space-y-6">
               <div className="text-center mb-6">
                 <div className="flex items-center justify-center gap-2">
@@ -1069,8 +1249,8 @@ Based on the above information, please advise me on:
             </div>
           )}
 
-          {/* Step 5: Advanced Prompt Orchestration */}
-          {currentStep === 5 && (
+          {/* Step 6: Advanced Prompt Orchestration */}
+          {currentStep === 6 && (
             <div className="space-y-6">
               <div className="text-center mb-6">
                 <h3 className="text-xl font-semibold mb-2">
@@ -1122,7 +1302,7 @@ Based on the above information, please advise me on:
               />
               
               {/* 初期設定完了ボタン（設定がない場合のみ表示） */}
-              {isFirstTimeUser && currentStep === 5 && (
+              {isFirstTimeUser && currentStep === 6 && (
                 <div className="mt-8 text-center">
                   <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-6">
                     <div className="flex items-center gap-2 text-green-400 font-medium mb-3">
