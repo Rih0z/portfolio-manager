@@ -279,3 +279,51 @@ API configurations are fetched dynamically from AWS. The following environment v
     REACT_APP_DEFAULT_EXCHANGE_RATE='150.0' \
     npm run build
     ```
+
+## SOLID Principles
+
+このプロジェクトではSOLID原則に従った実装を心がけています：
+
+### S - Single Responsibility Principle (単一責任の原則)
+- **コンポーネント**: 各コンポーネントは単一の責任を持つ
+  - 例: `MarketSelectionWizard` は市場選択のUIのみ担当
+  - 例: `PortfolioPromptService` はプロンプト生成のみ担当
+- **サービス層**: 各サービスは特定のドメインロジックのみを扱う
+  - `api.js`: API通信のみ
+  - `marketDataService.js`: 市場データ取得のみ
+  - `adminService.js`: 管理機能のみ
+
+### O - Open/Closed Principle (開放閉鎖の原則)
+- **拡張性**: 新機能追加時は既存コードを変更せずに拡張
+  - プロンプトタイプの追加は `getAvailablePromptTypes()` に追加するだけ
+  - 新しい市場の追加は `INVESTMENT_MARKETS` オブジェクトに追加するだけ
+- **設定駆動**: ハードコーディングを避け、設定オブジェクトで拡張可能
+
+### L - Liskov Substitution Principle (リスコフの置換原則)
+- **インターフェース準拠**: すべてのサービスは一貫したインターフェースを提供
+- **Context API**: AuthContextとPortfolioContextは交換可能な実装を提供
+
+### I - Interface Segregation Principle (インターフェース分離の原則)
+- **Props最小化**: コンポーネントは必要最小限のpropsのみ受け取る
+- **オプショナルプロパティ**: 必須でない機能はオプショナルとして定義
+  ```jsx
+  // Good
+  <MarketSelectionWizard 
+    selectedMarkets={markets}
+    onMarketsChange={handleChange}
+    showTitle={false}  // オプショナル
+  />
+  ```
+
+### D - Dependency Inversion Principle (依存性逆転の原則)
+- **Context依存**: 具体的な実装ではなくContextに依存
+- **サービス層**: コンポーネントは直接APIを呼ばず、サービス層を通じて通信
+- **抽象化**: 外部ライブラリは可能な限りラップして使用
+
+### コードレビューチェックリスト
+新しいコードを追加する際は以下を確認：
+- [ ] 各関数/コンポーネントは単一の責任を持っているか？
+- [ ] 新機能は既存コードを変更せずに追加できるか？
+- [ ] インターフェースは最小限か？
+- [ ] 具体的な実装ではなく抽象に依存しているか？
+- [ ] テストが書きやすい設計になっているか？
