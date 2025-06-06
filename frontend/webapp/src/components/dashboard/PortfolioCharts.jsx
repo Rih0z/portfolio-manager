@@ -21,6 +21,15 @@ import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 const PortfolioCharts = () => {
   const { currentAssets, targetPortfolio, baseCurrency, totalAssets, exchangeRate } = usePortfolioContext();
 
+  // デバッグログ
+  console.log('PortfolioCharts Debug:', {
+    currentAssets,
+    targetPortfolio,
+    totalAssets,
+    baseCurrency,
+    exchangeRate
+  });
+
   // 理想ポートフォリオデータ生成（targetPercentage > 0 のもののみ）
   const targetData = targetPortfolio
     .filter(item => item.targetPercentage > 0)
@@ -59,6 +68,13 @@ const PortfolioCharts = () => {
     });
   }
 
+  // デバッグログ：現在のデータ
+  console.log('Current portfolio data:', {
+    currentData,
+    totalAssets,
+    currentAssetsLength: currentAssets.length
+  });
+
   // チャート用カラーパレット
   const COLORS = [
     '#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8',
@@ -70,9 +86,9 @@ const PortfolioCharts = () => {
   const CustomTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white p-2 border border-gray-200 shadow-sm text-sm">
-          <p className="font-medium">{payload[0].payload.name}</p>
-          <p className="text-gray-700">
+        <div className="bg-dark-300 border border-dark-400 p-3 rounded-lg shadow-lg text-sm">
+          <p className="font-medium text-white">{payload[0].payload.name}</p>
+          <p className="text-gray-300">
             {payload[0].payload.ticker}: {payload[0].value.toFixed(2)}%
           </p>
         </div>
@@ -82,62 +98,80 @@ const PortfolioCharts = () => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow p-6 mb-6">
-      <h2 className="text-xl font-semibold mb-4">ポートフォリオ配分</h2>
+    <div className="bg-dark-200 rounded-lg shadow-xl p-6 mb-6 border border-dark-400">
+      <h2 className="text-xl font-semibold mb-4 text-white">ポートフォリオ配分</h2>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <h3 className="text-center text-lg font-medium mb-4">理想配分</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={targetData}
-                cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={80}
-                paddingAngle={1}
-                dataKey="value"
-                label={({ name, value }) => `${name} (${value.toFixed(1)}%)`}
-                labelLine={false}
-              >
-                {targetData.map((entry, index) => (
-                  <Cell 
-                    key={`cell-${index}`} 
-                    fill={COLORS[index % COLORS.length]} 
-                  />
-                ))}
-              </Pie>
-              <Tooltip content={<CustomTooltip />} />
-            </PieChart>
-          </ResponsiveContainer>
+          <h3 className="text-center text-lg font-medium mb-4 text-gray-200">理想配分</h3>
+          {targetData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={targetData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={1}
+                  dataKey="value"
+                  label={({ name, value }) => `${name} (${value.toFixed(1)}%)`}
+                  labelLine={false}
+                >
+                  {targetData.map((entry, index) => (
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={COLORS[index % COLORS.length]} 
+                    />
+                  ))}
+                </Pie>
+                <Tooltip content={<CustomTooltip />} />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-[300px] flex items-center justify-center">
+              <div className="text-center text-gray-400">
+                <p className="mb-2">理想配分データがありません</p>
+                <p className="text-sm">設定タブから目標配分を設定してください</p>
+              </div>
+            </div>
+          )}
         </div>
         
         <div>
-          <h3 className="text-center text-lg font-medium mb-4">現在配分</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={currentData}
-                cx="50%"
-                cy="50%"
-                innerRadius={60}
-                outerRadius={80}
-                paddingAngle={1}
-                dataKey="value"
-                label={({ name, value }) => `${name} (${value.toFixed(1)}%)`}
-                labelLine={false}
-              >
-                {currentData.map((entry, index) => (
-                  <Cell 
-                    key={`cell-${index}`} 
-                    fill={COLORS[index % COLORS.length]} 
-                  />
-                ))}
-              </Pie>
-              <Tooltip content={<CustomTooltip />} />
-            </PieChart>
-          </ResponsiveContainer>
+          <h3 className="text-center text-lg font-medium mb-4 text-gray-200">現在配分</h3>
+          {currentData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={currentData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={1}
+                  dataKey="value"
+                  label={({ name, value }) => `${name} (${value.toFixed(1)}%)`}
+                  labelLine={false}
+                >
+                  {currentData.map((entry, index) => (
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={COLORS[index % COLORS.length]} 
+                    />
+                  ))}
+                </Pie>
+                <Tooltip content={<CustomTooltip />} />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-[300px] flex items-center justify-center">
+              <div className="text-center text-gray-400">
+                <p className="mb-2">現在の保有資産データがありません</p>
+                <p className="text-sm">設定タブから保有資産を登録してください</p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
