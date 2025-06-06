@@ -91,8 +91,86 @@ const AIAdvisor = () => {
   const [generatedScreenshotPrompt, setGeneratedScreenshotPrompt] = useState(null);
   const [portfolioPromptType, setPortfolioPromptType] = useState('full_portfolio');
   const [generatedPortfolioPrompt, setGeneratedPortfolioPrompt] = useState(null);
+  
+  // カスタム分析項目の状態
+  const [selectedAnalysisItems, setSelectedAnalysisItems] = useState([]);
+  const [customAnalysisItems, setCustomAnalysisItems] = useState('');
 
   const isJapanese = i18n.language === 'ja';
+
+  // 追加分析項目のオプション
+  const additionalAnalysisOptions = [
+    {
+      id: 'esg_analysis',
+      labelJa: 'ESG投資観点での評価',
+      labelEn: 'ESG Investment Perspective Analysis',
+      descriptionJa: '環境・社会・ガバナンス要素からポートフォリオを評価',
+      descriptionEn: 'Evaluate portfolio from environmental, social, and governance factors'
+    },
+    {
+      id: 'tax_optimization',
+      labelJa: '税金最適化戦略',
+      labelEn: 'Tax Optimization Strategy',
+      descriptionJa: '税効率を考慮した投資戦略と損益通算の提案',
+      descriptionEn: 'Tax-efficient investment strategies and loss harvesting proposals'
+    },
+    {
+      id: 'inflation_protection',
+      labelJa: 'インフレヘッジ分析',
+      labelEn: 'Inflation Hedge Analysis',
+      descriptionJa: 'インフレ対策としての資産配分の有効性評価',
+      descriptionEn: 'Evaluate effectiveness of asset allocation for inflation protection'
+    },
+    {
+      id: 'dividend_strategy',
+      labelJa: '配当戦略分析',
+      labelEn: 'Dividend Strategy Analysis',
+      descriptionJa: '配当収入を重視した投資戦略の提案',
+      descriptionEn: 'Investment strategy proposals focusing on dividend income'
+    },
+    {
+      id: 'recession_resilience',
+      labelJa: '不況耐性評価',
+      labelEn: 'Recession Resilience Assessment',
+      descriptionJa: '経済不況時のポートフォリオの安定性評価',
+      descriptionEn: 'Portfolio stability assessment during economic downturns'
+    },
+    {
+      id: 'currency_risk',
+      labelJa: '為替リスク分析',
+      labelEn: 'Currency Risk Analysis',
+      descriptionJa: '通貨変動がポートフォリオに与える影響の分析',
+      descriptionEn: 'Analysis of currency fluctuation impact on portfolio'
+    },
+    {
+      id: 'alternative_investments',
+      labelJa: 'オルタナティブ投資検討',
+      labelEn: 'Alternative Investment Consideration',
+      descriptionJa: 'REIT、コモディティ、仮想通貨等の追加投資機会',
+      descriptionEn: 'Additional investment opportunities in REITs, commodities, crypto, etc.'
+    },
+    {
+      id: 'life_stage_planning',
+      labelJa: 'ライフステージ別戦略',
+      labelEn: 'Life Stage Strategy',
+      descriptionJa: '年齢や人生の段階に応じた投資戦略の調整',
+      descriptionEn: 'Investment strategy adjustments based on age and life stage'
+    },
+    {
+      id: 'market_timing',
+      labelJa: 'マーケットタイミング分析',
+      labelEn: 'Market Timing Analysis',
+      descriptionJa: '市場サイクルを考慮した投資タイミングの提案',
+      descriptionEn: 'Investment timing proposals considering market cycles'
+    },
+    {
+      id: 'stress_testing',
+      labelJa: 'ストレステスト',
+      labelEn: 'Stress Testing',
+      descriptionJa: '極端な市場状況でのポートフォリオのシミュレーション',
+      descriptionEn: 'Portfolio simulation under extreme market conditions'
+    }
+  ];
 
   const steps = [
     { key: 'basic', titleJa: '基本情報', titleEn: 'Basic Information' },
@@ -446,6 +524,15 @@ Based on the above information, please advise me on:
         ? prev.concerns.filter(c => c !== concern)
         : [...prev.concerns, concern]
     }));
+  };
+
+  // 追加分析項目の選択/解除
+  const handleToggleAnalysisItem = (itemId) => {
+    setSelectedAnalysisItems(prev => 
+      prev.includes(itemId)
+        ? prev.filter(id => id !== itemId)
+        : [...prev, itemId]
+    );
   };
 
   return (
@@ -874,73 +961,238 @@ Based on the above information, please advise me on:
                   <div className="flex items-center gap-2 mb-3">
                     <FaChartPie className="text-primary-400" />
                     <h4 className="font-medium text-white">
-                      {isJapanese ? 'ポートフォリオ分析用プロンプト' : 'Portfolio Analysis Prompt'}
+                      {isJapanese ? 'カスタマイズ可能AI分析プロンプト' : 'Customizable AI Analysis Prompt'}
                     </h4>
                   </div>
-                  <p className="text-gray-400 text-sm mb-3">
+                  <p className="text-gray-400 text-sm mb-4">
                     {isJapanese 
-                      ? '以下のプロンプトをClaudeに送信して、包括的なポートフォリオ分析を依頼してください。'
-                      : 'Send the following prompt to Claude for comprehensive portfolio analysis.'
+                      ? 'ベースプロンプトに加えて、あなたが知りたい項目を追加で選択できます。'
+                      : 'You can select additional items you want to know about, in addition to the base prompt.'
                     }
                   </p>
+
+                  {/* 追加分析項目の選択 */}
+                  <div className="mb-4">
+                    <h5 className="font-medium text-white mb-3">
+                      {isJapanese ? '追加で分析したい項目（複数選択可）' : 'Additional Analysis Items (Multiple Selection)'}
+                    </h5>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {additionalAnalysisOptions.map(option => (
+                        <button
+                          key={option.id}
+                          onClick={() => handleToggleAnalysisItem(option.id)}
+                          className={`p-3 text-left rounded-lg border transition-all duration-200 text-sm ${
+                            selectedAnalysisItems.includes(option.id)
+                              ? 'bg-blue-500/20 border-blue-400 text-white'
+                              : 'bg-dark-400 border-dark-500 text-gray-300 hover:bg-dark-300'
+                          }`}
+                        >
+                          <div className="font-medium mb-1">
+                            {isJapanese ? option.labelJa : option.labelEn}
+                          </div>
+                          <div className="text-xs opacity-80">
+                            {isJapanese ? option.descriptionJa : option.descriptionEn}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 自由記述での追加項目 */}
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium mb-2 text-white">
+                      {isJapanese ? 'その他の分析希望項目（自由記述）' : 'Other Analysis Requests (Free Text)'}
+                    </label>
+                    <textarea
+                      value={customAnalysisItems}
+                      onChange={(e) => setCustomAnalysisItems(e.target.value)}
+                      placeholder={isJapanese 
+                        ? '例: 特定のセクターへの集中リスク、米中関係が投資に与える影響、新興技術への投資機会など...'
+                        : 'e.g. Sector concentration risk, impact of US-China relations on investments, emerging technology investment opportunities, etc...'
+                      }
+                      className="w-full p-3 bg-dark-400 border border-dark-500 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-transparent resize-none text-white placeholder-gray-500"
+                      rows={3}
+                    />
+                  </div>
+
                   <div className="bg-dark-200 rounded-lg p-3 border border-dark-400">
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-sm text-gray-300">
-                        {isJapanese ? '統合分析プロンプト' : 'Comprehensive Analysis Prompt'}
+                        {isJapanese ? 'カスタマイズ済み分析プロンプト' : 'Customized Analysis Prompt'}
                       </span>
                       <button
                         onClick={() => {
-                          const comprehensivePrompt = isJapanese 
-                            ? `私のポートフォリオを包括的に分析してください。以下の形式で回答をお願いします：
+                          // ベースプロンプト
+                          const basePrompt = `# 投資ポートフォリオ分析AIプロンプト
 
-【現在の保有資産】
-- 現在保有している全ての資産（株式、ETF、投資信託、現金等）の詳細
-- 各資産の評価額と構成比率
-- 投資地域・セクター・通貨の分散状況
+あなたは投資分析に特化した AI アシスタントです。
+目的: ユーザーの投資ポートフォリオを分析し、最適な配分戦略と具体的な投資プランを提案すること。
 
-【理想のポートフォリオ】  
-- 私の年齢、リスク許容度、投資目標に適した理想的な資産配分
-- 具体的な銘柄とその推奨比率
-- リバランシングの提案
+### 初期情報収集
+最初に以下の情報を確認してください：
+- 現在の総資産額（ドル、円など、通貨単位を明記）
+- 毎月の新規投資予定額
+- 現状の投資ポートフォリオ構成（変更がなければ例のデータを利用します。）
+- 理想的と考えるポートフォリオ構成（変更がなければ例のデータを利用します。）
 
-【投資戦略・アドバイス】
-- 今後の投資方針と具体的なアクションプラン
-- リスク管理とリターン最適化の提案
-- 投資期間と目標金額に基づく戦略
+### 投資ポートフォリオ構成の例
+現状の投資ポートフォリオ構成：
+- VOO: 43.7%（S&P 500 ETF）
+- QQQ: 15%（ナスダック100 ETF）
+- GLD: 8.6%（金ETF）
+- LQD: 7.4%（投資適格社債ETF）
+- VXUS: 3.5%（米国外株式ETF）
+- VWO: 1.18%（新興国市場ETF）
+- EIDO: 8.7%（インドネシアETF）
+- INDIA: 7.9%（インドETF）
+- IBIT: 4.1%（ビットコインETF）
 
-画像がある場合は、ポートフォリオ画面のスクリーンショットも併せて分析してください。数値や銘柄名も正確に読み取って分析に反映してください。`
-                            : `Please provide a comprehensive analysis of my portfolio. Format your response as follows:
+理想的なポートフォリオ構成：
+- VOO: 40%（S&P 500 ETF）
+- QQQ: 13%（ナスダック100 ETF）
+- GLD: 8.5%（金ETF）
+- LQD: 8%（投資適格社債ETF）
+- VXUS: 8%（米国外株式ETF）
+- VWO: 6%（新興国市場ETF）
+- EIDO: 6%（インドネシアETF）
+- INDIA: 6%（インドETF）
+- IBIT: 4.5%（ビットコインETF）
 
-【Current Holdings】
-- Details of all currently held assets (stocks, ETFs, mutual funds, cash, etc.)
-- Valuation and composition ratio of each asset
-- Diversification across regions, sectors, and currencies
+▼ 分析ガイドライン
+各銘柄について：
+1. 直近の市場パフォーマンスと価格動向を調査
+2. マクロ経済環境と当該資産クラスへの影響を考慮
+3. 今後12ヶ月の見通しを分析
+4. 現状の配分比率と理想的な配分比率の両方について妥当性を評価
+5. 現状比率から理想比率への移行について具体的な提案（タイミングや段階的な調整方法など）
 
-【Ideal Portfolio】
-- Optimal asset allocation suited to my age, risk tolerance, and investment goals
-- Specific securities and their recommended ratios
-- Rebalancing recommendations
+ポートフォリオ全体について：
+1. 現状比率と理想比率それぞれにおける資産クラス間の相関性とリスク分散の評価
+2. 現状比率と理想比率それぞれにおける地域分散とセクター分散の分析
+3. 現在の市場環境における現状ポートフォリオと理想ポートフォリオのリスク評価
+4. 両ポートフォリオ構成のパフォーマンス予測と比較`;
 
-【Investment Strategy & Advice】
-- Future investment policy and specific action plan
-- Risk management and return optimization proposals
-- Strategy based on investment period and target amounts
+                          // 選択された追加分析項目を追加
+                          let additionalSections = '';
+                          if (selectedAnalysisItems.length > 0) {
+                            additionalSections += '\n\n### 追加分析項目\n';
+                            selectedAnalysisItems.forEach(itemId => {
+                              const item = additionalAnalysisOptions.find(opt => opt.id === itemId);
+                              if (item) {
+                                additionalSections += `- **${item.labelJa}**: ${item.descriptionJa}\n`;
+                              }
+                            });
+                          }
 
-If you have images, please analyze portfolio screenshots as well. Please accurately read and incorporate numerical values and security names into your analysis.`;
+                          // カスタム分析項目を追加
+                          if (customAnalysisItems.trim()) {
+                            additionalSections += '\n### カスタム分析要求\n';
+                            additionalSections += customAnalysisItems.trim() + '\n';
+                          }
+
+                          const outputFormat = `\n\n▼ 出力フォーマット（Markdown）
+### 投資ポートフォリオ分析
+#### 個別銘柄分析
+| ETF | 現状比率 | 理想比率 | 最新動向と見通し | 配分評価とコメント |
+|-----|---------|---------|------------------|------------------|
+| VOO | 43.7% | 40% | 記入例：S&P500は直近3ヶ月で5%上昇。テクノロジーセクターが牽引し、今後も堅調な成長が期待される。 | 現状比率について：（評価コメント）<br>理想比率について：（評価コメント）<br>調整提案：（具体的な提案） |
+
+#### ポートフォリオ全体評価
+- **リスク分散**: 
+  - 現状比率のリスク分散評価：（コメント）
+  - 理想比率のリスク分散評価：（コメント）
+  - 比較と改善点：（コメント）
+- **地域分散**: 
+  - 現状比率の地域分散評価：（コメント）
+  - 理想比率の地域分散評価：（コメント）
+  - 比較と改善点：（コメント）
+- **セクター分散**: 
+  - 現状比率のセクター分散評価：（コメント）
+  - 理想比率のセクター分散評価：（コメント）
+  - 比較と改善点：（コメント）
+- **期待リターン**: 
+  - 現状比率の期待リターン評価：（コメント）
+  - 理想比率の期待リターン評価：（コメント）
+  - 比較と改善点：（コメント）
+
+#### 具体的な投資プラン
+- **現在の総資産額**：（ユーザー入力の総資産額）
+- **毎月の投資予定額**：（ユーザー入力の毎月投資額）
+
+##### 6ヶ月投資プラン
+各月の具体的な投資配分（金額と比率）：
+- 1ヶ月目：（詳細な配分）
+- 2ヶ月目：（詳細な配分）
+- ...
+- 6ヶ月目：（詳細な配分）
+
+##### 継続投資戦略
+- 毎月の定期投資における理想的な配分：（詳細）
+- リバランスの頻度と条件：（詳細）
+- 資産成長の予測：（1年後、3年後、5年後の予測）
+
+- **移行戦略**: 
+  - 段階的な移行プラン：（具体的なステップとタイミング）
+  - 市場環境に応じた調整方法：（コメント）
+  - 税金や取引コストの考慮：（コメント）`;
+
+                          const additionalAnalysisFormat = selectedAnalysisItems.length > 0 || customAnalysisItems.trim() 
+                            ? '\n\n#### 追加分析結果\n（選択された追加項目について詳細な分析を提供）'
+                            : '';
+
+                          const processingSteps = `\n\n▼ 処理手順
+1. ユーザーから現在の総資産額と毎月の投資予定額を確認
+2. 各ETFの直近のパフォーマンスデータと市場動向を収集
+3. マクロ経済指標と関連性を分析
+4. 個別銘柄の見通しを評価
+5. 現状比率と理想比率それぞれについて詳細な評価を行う
+6. 両ポートフォリオ構成の比較分析を実施
+7. 現状から理想比率への最適な移行戦略を立案
+8. 現在の総資産と毎月の投資額を考慮した具体的な投資プランを作成
+9. 指定フォーマットに整形し、分析結果を出力`;
+
+                          const notes = `\n\n▼ 注意
+- データは最新の情報を使用すること
+- 分析は客観的かつ根拠に基づいたものとする
+- 投資アドバイスではなく、情報提供を目的とした分析であることを明記
+- 現状比率と理想比率の両方について個別に詳細なコメントを提供すること
+- 両比率の違いがもたらす影響についても言及すること
+- 現在の総資産額と毎月の投資予定額に基づいた実用的な投資プランを提案すること
+- **すべての出力は日本語で行うこと**`;
+
+                          const fullPrompt = basePrompt + additionalSections + outputFormat + additionalAnalysisFormat + processingSteps + notes;
                           
-                          navigator.clipboard.writeText(comprehensivePrompt);
-                          alert(isJapanese ? 'プロンプトをクリップボードにコピーしました！' : 'Prompt copied to clipboard!');
+                          navigator.clipboard.writeText(fullPrompt);
+                          alert(isJapanese ? 'カスタマイズ済みプロンプトをクリップボードにコピーしました！' : 'Customized prompt copied to clipboard!');
                         }}
                         className="px-3 py-1 bg-primary-500 hover:bg-primary-600 text-white text-xs rounded transition-colors duration-200"
                       >
-                        {isJapanese ? 'コピー' : 'Copy'}
+                        {isJapanese ? 'プロンプト生成＆コピー' : 'Generate & Copy Prompt'}
                       </button>
                     </div>
-                    <div className="text-xs text-gray-300 leading-relaxed max-h-24 overflow-y-auto">
-                      {isJapanese 
-                        ? '私のポートフォリオを包括的に分析してください。【現在の保有資産】【理想のポートフォリオ】【投資戦略・アドバイス】の形式で、具体的な銘柄と比率、画像分析結果も含めて回答をお願いします。'
-                        : 'Please provide comprehensive portfolio analysis including 【Current Holdings】【Ideal Portfolio】【Investment Strategy & Advice】 with specific securities, ratios, and image analysis results.'
-                      }
+                    <div className="text-xs text-gray-300 leading-relaxed max-h-32 overflow-y-auto">
+                      <div className="mb-2">
+                        <strong>{isJapanese ? 'ベース分析：' : 'Base Analysis:'}</strong>
+                        {isJapanese 
+                          ? 'ポートフォリオ構成、個別銘柄分析、リスク評価、投資プラン'
+                          : 'Portfolio composition, individual security analysis, risk assessment, investment plan'
+                        }
+                      </div>
+                      {selectedAnalysisItems.length > 0 && (
+                        <div className="mb-2">
+                          <strong>{isJapanese ? '追加分析：' : 'Additional Analysis:'}</strong>
+                          {selectedAnalysisItems.map(itemId => {
+                            const item = additionalAnalysisOptions.find(opt => opt.id === itemId);
+                            return item ? (isJapanese ? item.labelJa : item.labelEn) : '';
+                          }).join('、')}
+                        </div>
+                      )}
+                      {customAnalysisItems.trim() && (
+                        <div className="mb-2">
+                          <strong>{isJapanese ? 'カスタム項目：' : 'Custom Items:'}</strong>
+                          {customAnalysisItems.slice(0, 100)}...
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1048,11 +1300,11 @@ If you have images, please analyze portfolio screenshots as well. Please accurat
                           <span>{isJapanese ? '使い方のコツ' : 'Usage Tips'}</span>
                         </div>
                         <ul className="text-xs text-gray-300 space-y-1">
-                          <li>• {isJapanese ? '上記の統合プロンプトをコピーしてClaudeに送信' : 'Copy the comprehensive prompt above and send to Claude'}</li>
-                          <li>• {isJapanese ? 'ポートフォリオ画面のスクリーンショットも一緒にアップロード' : 'Upload portfolio screenshots along with the prompt'}</li>
-                          <li>• {isJapanese ? '「現在の保有資産」と「理想ポートフォリオ」セクションを含む回答を依頼' : 'Ask for response including "Current Holdings" and "Ideal Portfolio" sections'}</li>
-                          <li>• {isJapanese ? '結果をそのまま貼り付けて「自動反映」ボタンをクリック' : 'Paste results directly and click "Auto-Apply" button'}</li>
-                          <li>• {isJapanese ? '自動解析により各項目が適切に設定されます' : 'Auto-parsing will properly populate all sections'}</li>
+                          <li>• {isJapanese ? '興味のある追加分析項目を選択（複数選択可）' : 'Select additional analysis items of interest (multiple selection)'}</li>
+                          <li>• {isJapanese ? '自由記述欄で独自の分析要求を追加' : 'Add custom analysis requests in the free text field'}</li>
+                          <li>• {isJapanese ? '「プロンプト生成＆コピー」でカスタマイズ済みプロンプトを取得' : 'Get customized prompt with "Generate & Copy Prompt"'}</li>
+                          <li>• {isJapanese ? 'Claudeに送信（ポートフォリオ画面のスクリーンショットも一緒に）' : 'Send to Claude (along with portfolio screenshots)'}</li>
+                          <li>• {isJapanese ? '分析結果を下の入力欄に貼り付けて「自動反映」をクリック' : 'Paste analysis results in the field below and click "Auto-Apply"'}</li>
                         </ul>
                       </div>
                     </div>
