@@ -853,72 +853,210 @@ Based on the above information, please advise me on:
                 )}
               </div>
 
-              {/* ポートフォリオデータ収集セクション */}
-              <div className="mt-8 bg-primary-500/10 border border-primary-500/30 rounded-lg p-6">
+
+              {/* Claude推奨：一括データ入力セクション */}
+              <div className="mt-8 bg-orange-500/10 border border-orange-500/30 rounded-lg p-6">
                 <div className="flex items-center gap-2 mb-4">
-                  <FaWallet className="text-primary-400 text-xl" />
+                  <FaRobot className="text-orange-400 text-xl" />
                   <h3 className="text-lg font-medium text-white">
-                    {isJapanese ? 'ポートフォリオデータ収集' : 'Portfolio Data Collection'}
+                    {isJapanese ? 'Claude推奨：AI分析結果一括設定' : 'Claude Recommended: Bulk AI Analysis Import'}
                   </h3>
                 </div>
                 <p className="text-gray-300 text-sm mb-4">
                   {isJapanese 
-                    ? '現在の保有資産をAIで整理するためのプロンプトを生成できます。手動で入力するか、AIプロンプトを使用してください。'
-                    : 'Generate prompts to organize your current holdings with AI, or enter manually below.'
+                    ? 'Claudeで分析した結果をそのまま貼り付けて、ポートフォリオ設定を一括で完了できます。画像による分析結果やスクリーンショット分析にも対応しています。'
+                    : 'Paste Claude analysis results directly to complete portfolio setup in one go. Supports image-based analysis results and screenshot analysis.'
                   }
                 </p>
 
-                {/* Portfolio Prompt Generation */}
+                {/* 統合プロンプト生成 */}
+                <div className="mb-6 bg-dark-300/50 rounded-lg p-4 border border-dark-400">
+                  <div className="flex items-center gap-2 mb-3">
+                    <FaChartPie className="text-primary-400" />
+                    <h4 className="font-medium text-white">
+                      {isJapanese ? 'ポートフォリオ分析用プロンプト' : 'Portfolio Analysis Prompt'}
+                    </h4>
+                  </div>
+                  <p className="text-gray-400 text-sm mb-3">
+                    {isJapanese 
+                      ? '以下のプロンプトをClaudeに送信して、包括的なポートフォリオ分析を依頼してください。'
+                      : 'Send the following prompt to Claude for comprehensive portfolio analysis.'
+                    }
+                  </p>
+                  <div className="bg-dark-200 rounded-lg p-3 border border-dark-400">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm text-gray-300">
+                        {isJapanese ? '統合分析プロンプト' : 'Comprehensive Analysis Prompt'}
+                      </span>
+                      <button
+                        onClick={() => {
+                          const comprehensivePrompt = isJapanese 
+                            ? `私のポートフォリオを包括的に分析してください。以下の形式で回答をお願いします：
+
+【現在の保有資産】
+- 現在保有している全ての資産（株式、ETF、投資信託、現金等）の詳細
+- 各資産の評価額と構成比率
+- 投資地域・セクター・通貨の分散状況
+
+【理想のポートフォリオ】  
+- 私の年齢、リスク許容度、投資目標に適した理想的な資産配分
+- 具体的な銘柄とその推奨比率
+- リバランシングの提案
+
+【投資戦略・アドバイス】
+- 今後の投資方針と具体的なアクションプラン
+- リスク管理とリターン最適化の提案
+- 投資期間と目標金額に基づく戦略
+
+画像がある場合は、ポートフォリオ画面のスクリーンショットも併せて分析してください。数値や銘柄名も正確に読み取って分析に反映してください。`
+                            : `Please provide a comprehensive analysis of my portfolio. Format your response as follows:
+
+【Current Holdings】
+- Details of all currently held assets (stocks, ETFs, mutual funds, cash, etc.)
+- Valuation and composition ratio of each asset
+- Diversification across regions, sectors, and currencies
+
+【Ideal Portfolio】
+- Optimal asset allocation suited to my age, risk tolerance, and investment goals
+- Specific securities and their recommended ratios
+- Rebalancing recommendations
+
+【Investment Strategy & Advice】
+- Future investment policy and specific action plan
+- Risk management and return optimization proposals
+- Strategy based on investment period and target amounts
+
+If you have images, please analyze portfolio screenshots as well. Please accurately read and incorporate numerical values and security names into your analysis.`;
+                          
+                          navigator.clipboard.writeText(comprehensivePrompt);
+                          alert(isJapanese ? 'プロンプトをクリップボードにコピーしました！' : 'Prompt copied to clipboard!');
+                        }}
+                        className="px-3 py-1 bg-primary-500 hover:bg-primary-600 text-white text-xs rounded transition-colors duration-200"
+                      >
+                        {isJapanese ? 'コピー' : 'Copy'}
+                      </button>
+                    </div>
+                    <div className="text-xs text-gray-300 leading-relaxed max-h-24 overflow-y-auto">
+                      {isJapanese 
+                        ? '私のポートフォリオを包括的に分析してください。【現在の保有資産】【理想のポートフォリオ】【投資戦略・アドバイス】の形式で、具体的な銘柄と比率、画像分析結果も含めて回答をお願いします。'
+                        : 'Please provide comprehensive portfolio analysis including 【Current Holdings】【Ideal Portfolio】【Investment Strategy & Advice】 with specific securities, ratios, and image analysis results.'
+                      }
+                    </div>
+                  </div>
+                </div>
+
                 <div className="space-y-4">
                   <div>
-                    <h4 className="font-medium text-white mb-3">
-                      {isJapanese ? 'AI収集プロンプト生成' : 'Generate AI Collection Prompt'}
-                    </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-                      {portfolioPromptService.getAvailablePromptTypes().map(type => (
-                        <button
-                          key={type.id}
-                          onClick={() => setPortfolioPromptType(type.id)}
-                          className={`p-3 rounded-lg border transition-all duration-200 text-left text-sm ${
-                            portfolioPromptType === type.id
-                              ? 'bg-primary-500/20 border-primary-400 text-white'
-                              : 'bg-dark-300 border-dark-400 text-gray-300 hover:bg-dark-200'
-                          }`}
-                        >
-                          <div className="font-medium mb-1">{isJapanese ? type.name : type.nameEn}</div>
-                          <div className="text-xs opacity-80">{isJapanese ? type.description : type.descriptionEn}</div>
-                        </button>
-                      ))}
-                    </div>
-
-                    <button
-                      onClick={generatePortfolioPrompt}
-                      className="w-full py-2 px-4 bg-primary-500 hover:bg-primary-600 text-white font-medium rounded-lg transition-colors duration-200"
-                    >
-                      {isJapanese ? 'プロンプト生成' : 'Generate Prompt'}
-                    </button>
-
-                    {generatedPortfolioPrompt && (
-                      <div className="mt-4 bg-dark-300 rounded-lg p-4 border border-dark-400">
-                        <div className="flex justify-between items-center mb-3">
-                          <h5 className="font-medium text-white text-sm">
-                            {isJapanese ? '生成されたプロンプト' : 'Generated Prompt'}
-                          </h5>
-                          <button
-                            onClick={copyPortfolioPromptToClipboard}
-                            className="px-3 py-1 bg-primary-500 hover:bg-primary-600 text-white text-xs rounded transition-colors duration-200"
-                          >
-                            {isJapanese ? 'コピー' : 'Copy'}
-                          </button>
-                        </div>
-                        <div className="bg-dark-100 rounded p-3 max-h-32 overflow-y-auto">
-                          <pre className="text-xs text-gray-300 whitespace-pre-wrap leading-relaxed">
-                            {generatedPortfolioPrompt.content}
-                          </pre>
-                        </div>
-                      </div>
-                    )}
+                    <label className="block text-sm font-medium mb-2 text-white">
+                      {isJapanese ? 'Claude分析結果（全体）' : 'Claude Analysis Results (Complete)'}
+                    </label>
+                    <textarea
+                      value={userData.claudeAnalysisResult || ''}
+                      onChange={(e) => setUserData(prev => ({ ...prev, claudeAnalysisResult: e.target.value }))}
+                      placeholder={isJapanese 
+                        ? 'Claudeで生成された分析結果をここに貼り付けてください。現在の保有資産、理想配分、投資方針、画像分析結果などが含まれた完全な結果を貼り付けると自動的に解析して各項目に反映されます。'
+                        : 'Paste complete Claude analysis results here. When you paste comprehensive results including current holdings, ideal allocation, investment strategy, and image analysis results, it will be automatically parsed and applied to all sections.'
+                      }
+                      className="w-full p-4 bg-dark-300 border border-dark-400 rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-transparent resize-none text-white placeholder-gray-500"
+                      rows={8}
+                    />
                   </div>
+
+                  {userData.claudeAnalysisResult && (
+                    <div className="space-y-3">
+                      <button
+                        onClick={() => {
+                          // Claude分析結果を解析して各項目に自動設定
+                          const analysisText = userData.claudeAnalysisResult;
+                          
+                          // より高度な解析パターン
+                          let currentAssetsExtracted = '';
+                          let idealPortfolioExtracted = '';
+                          
+                          // 現在の資産情報を抽出（複数パターンに対応）
+                          const currentPatterns = [
+                            /【現在の保有資産】([^【]*?)(?:【|$)/is,
+                            /(?:現在の保有|current holdings|保有銘柄|現在のポートフォリオ)[:\s]*([^【\n]*?)(?:【|理想|ideal|target|推奨|おすすめ|$)/is,
+                            /(?:資産構成|現在の構成|保有状況)[:\s]*([^【\n]*?)(?:【|理想|ideal|target|推奨|おすすめ|$)/is,
+                            /(?:現在.*資産|現在.*投資)[:\s]*([^【\n]*?)(?:【|理想|ideal|target|推奨|おすすめ|$)/is
+                          ];
+                          
+                          for (const pattern of currentPatterns) {
+                            const match = analysisText.match(pattern);
+                            if (match && match[1].trim().length > 10) {
+                              currentAssetsExtracted = match[1].trim();
+                              break;
+                            }
+                          }
+                          
+                          // 理想ポートフォリオ情報を抽出（複数パターンに対応）
+                          const idealPatterns = [
+                            /【理想のポートフォリオ】([^【]*?)(?:【|$)/is,
+                            /(?:理想|ideal|target|推奨|おすすめ|最適).*(?:ポートフォリオ|配分|構成)[:\s]*([^【\n]*?)(?:【|まとめ|結論|投資戦略|$)/is,
+                            /(?:目標|ターゲット).*(?:配分|構成)[:\s]*([^【\n]*?)(?:【|まとめ|結論|投資戦略|$)/is,
+                            /(?:提案|アドバイス).*(?:配分|構成)[:\s]*([^【\n]*?)(?:【|まとめ|結論|投資戦略|$)/is
+                          ];
+                          
+                          for (const pattern of idealPatterns) {
+                            const match = analysisText.match(pattern);
+                            if (match && match[1].trim().length > 10) {
+                              idealPortfolioExtracted = match[1].trim();
+                              break;
+                            }
+                          }
+                          
+                          // 画像分析結果から数値データを抽出
+                          const percentageMatches = analysisText.match(/(\d+(?:\.\d+)?)\s*%/g);
+                          const tickerMatches = analysisText.match(/([A-Z]{3,5})\s*[:：]\s*(\d+(?:\.\d+)?)\s*%/g);
+                          
+                          let extractedData = '';
+                          if (percentageMatches && tickerMatches) {
+                            extractedData = '\n\n【抽出された数値データ】\n';
+                            tickerMatches.forEach(match => {
+                              extractedData += `${match}\n`;
+                            });
+                          }
+                          
+                          // データを設定
+                          setUserData(prev => ({ 
+                            ...prev, 
+                            currentAssetsDescription: currentAssetsExtracted || prev.currentAssetsDescription,
+                            idealPortfolio: idealPortfolioExtracted || prev.idealPortfolio,
+                            step3FreeText: `Claude分析結果（${new Date().toLocaleString()}）:\n${analysisText}${extractedData}`
+                          }));
+                          
+                          // フィードバックメッセージを改善
+                          const extractionSummary = [];
+                          if (currentAssetsExtracted) extractionSummary.push('現在の保有資産');
+                          if (idealPortfolioExtracted) extractionSummary.push('理想ポートフォリオ');
+                          if (extractedData) extractionSummary.push('数値データ');
+                          
+                          const message = isJapanese 
+                            ? `Claude分析結果を反映しました！抽出項目: ${extractionSummary.join('、') || 'なし'}`
+                            : `Claude analysis applied! Extracted: ${extractionSummary.join(', ') || 'none'}`;
+                          
+                          alert(message);
+                        }}
+                        className="w-full py-3 px-4 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg transition-colors duration-200"
+                      >
+                        {isJapanese ? '分析結果を自動反映' : 'Auto-Apply Analysis Results'}
+                      </button>
+                      
+                      <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+                        <div className="flex items-center gap-2 text-blue-400 text-sm mb-2">
+                          <FaLightbulb />
+                          <span>{isJapanese ? '使い方のコツ' : 'Usage Tips'}</span>
+                        </div>
+                        <ul className="text-xs text-gray-300 space-y-1">
+                          <li>• {isJapanese ? '上記の統合プロンプトをコピーしてClaudeに送信' : 'Copy the comprehensive prompt above and send to Claude'}</li>
+                          <li>• {isJapanese ? 'ポートフォリオ画面のスクリーンショットも一緒にアップロード' : 'Upload portfolio screenshots along with the prompt'}</li>
+                          <li>• {isJapanese ? '「現在の保有資産」と「理想ポートフォリオ」セクションを含む回答を依頼' : 'Ask for response including "Current Holdings" and "Ideal Portfolio" sections'}</li>
+                          <li>• {isJapanese ? '結果をそのまま貼り付けて「自動反映」ボタンをクリック' : 'Paste results directly and click "Auto-Apply" button'}</li>
+                          <li>• {isJapanese ? '自動解析により各項目が適切に設定されます' : 'Auto-parsing will properly populate all sections'}</li>
+                        </ul>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
