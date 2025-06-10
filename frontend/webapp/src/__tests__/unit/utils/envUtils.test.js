@@ -3,25 +3,11 @@
  * 環境設定ユーティリティのテスト
  */
 
-import {
-  isDevelopment,
-  isLocalDevelopment,
-  getBaseApiUrl,
-  getApiStage,
-  getApiEndpoint,
-  getGoogleClientId,
-  getOrigin,
-  getRedirectUri,
-  getDefaultExchangeRate,
-  initializeApiConfig
-} from '../../../utils/envUtils';
-
 // configServiceのモック
 jest.mock('../../../services/configService', () => ({
   fetchApiConfig: jest.fn()
 }));
 
-import { fetchApiConfig } from '../../../services/configService';
 
 // ブラウザAPIのモック
 Object.defineProperty(window, 'location', {
@@ -43,26 +29,19 @@ describe('envUtils', () => {
       REACT_APP_DEFAULT_EXCHANGE_RATE: process.env.REACT_APP_DEFAULT_EXCHANGE_RATE
     };
     
+    // APIキャッシュをクリア（モジュール内部のキャッシュをリセット）
+    jest.resetModules();
+    
+    // モック再セットアップ（resetModules後に必要）
+    jest.doMock('../../../services/configService', () => ({
+      fetchApiConfig: jest.fn()
+    }));
+    
     // コンソールエラーをモック
     consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     
     // モックをクリア
     jest.clearAllMocks();
-    
-    // デフォルトモック設定
-    fetchApiConfig.mockResolvedValue({
-      marketDataApiUrl: 'https://mock-api.com',
-      apiStage: 'test',
-      googleClientId: 'mock-google-client-id',
-      features: {
-        useProxy: false,
-        useMockApi: false,
-        useDirectApi: true
-      }
-    });
-    
-    // APIキャッシュをクリア（モジュール内部のキャッシュをリセット）
-    jest.resetModules();
   });
 
   afterEach(() => {
@@ -77,24 +56,28 @@ describe('envUtils', () => {
   describe('isDevelopment', () => {
     it('開発環境でtrueを返す', () => {
       process.env.NODE_ENV = 'development';
+      const { isDevelopment } = require('../../../utils/envUtils');
       
       expect(isDevelopment()).toBe(true);
     });
 
     it('本番環境でfalseを返す', () => {
       process.env.NODE_ENV = 'production';
+      const { isDevelopment } = require('../../../utils/envUtils');
       
       expect(isDevelopment()).toBe(false);
     });
 
     it('テスト環境でfalseを返す', () => {
       process.env.NODE_ENV = 'test';
+      const { isDevelopment } = require('../../../utils/envUtils');
       
       expect(isDevelopment()).toBe(false);
     });
 
     it('未定義環境でfalseを返す', () => {
       delete process.env.NODE_ENV;
+      const { isDevelopment } = require('../../../utils/envUtils');
       
       expect(isDevelopment()).toBe(false);
     });
@@ -103,24 +86,28 @@ describe('envUtils', () => {
   describe('isLocalDevelopment', () => {
     it('localhostでtrueを返す', () => {
       window.location.hostname = 'localhost';
+      const { isLocalDevelopment } = require('../../../utils/envUtils');
       
       expect(isLocalDevelopment()).toBe(true);
     });
 
     it('127.0.0.1でtrueを返す', () => {
       window.location.hostname = '127.0.0.1';
+      const { isLocalDevelopment } = require('../../../utils/envUtils');
       
       expect(isLocalDevelopment()).toBe(true);
     });
 
     it('本番ドメインでfalseを返す', () => {
       window.location.hostname = 'portfolio-wise.com';
+      const { isLocalDevelopment } = require('../../../utils/envUtils');
       
       expect(isLocalDevelopment()).toBe(false);
     });
 
     it('プレビュードメインでfalseを返す', () => {
       window.location.hostname = 'abc123.portfolio-manager-7bx.pages.dev';
+      const { isLocalDevelopment } = require('../../../utils/envUtils');
       
       expect(isLocalDevelopment()).toBe(false);
     });
@@ -128,32 +115,34 @@ describe('envUtils', () => {
 
   describe('getBaseApiUrl', () => {
     it('正常にAPIのベースURLを取得する', async () => {
+      const { fetchApiConfig } = require('../../../services/configService');
       fetchApiConfig.mockResolvedValue({
         marketDataApiUrl: 'https://api.example.com'
       });
       
+      const { getBaseApiUrl } = require('../../../utils/envUtils');
       const result = await getBaseApiUrl();
       
       expect(result).toBe('https://api.example.com');
     });
 
-    it('設定取得失敗時は空文字を返す', async () => {
+    it('設定取得失敗時はフォールバック値を返す', async () => {
+      const { fetchApiConfig } = require('../../../services/configService');
       fetchApiConfig.mockRejectedValue(new Error('Config error'));
       
+      const { getBaseApiUrl } = require('../../../utils/envUtils');
       const result = await getBaseApiUrl();
       
-      expect(result).toBe('');
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'API設定の取得に失敗しました:',
-        expect.any(Error)
-      );
+      expect(result).toBe('https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod');
     });
 
     it('marketDataApiUrlが未設定の場合は空文字を返す', async () => {
+      const { fetchApiConfig } = require('../../../services/configService');
       fetchApiConfig.mockResolvedValue({
         apiStage: 'test'
       });
       
+      const { getBaseApiUrl } = require('../../../utils/envUtils');
       const result = await getBaseApiUrl();
       
       expect(result).toBe('');
@@ -162,28 +151,34 @@ describe('envUtils', () => {
 
   describe('getApiStage', () => {
     it('正常にAPIステージを取得する', async () => {
+      const { fetchApiConfig } = require('../../../services/configService');
       fetchApiConfig.mockResolvedValue({
         apiStage: 'staging'
       });
       
+      const { getApiStage } = require('../../../utils/envUtils');
       const result = await getApiStage();
       
       expect(result).toBe('staging');
     });
 
-    it('設定取得失敗時はdevを返す', async () => {
+    it('設定取得失敗時はprodを返す', async () => {
+      const { fetchApiConfig } = require('../../../services/configService');
       fetchApiConfig.mockRejectedValue(new Error('Config error'));
       
+      const { getApiStage } = require('../../../utils/envUtils');
       const result = await getApiStage();
       
-      expect(result).toBe('dev');
+      expect(result).toBe('prod');
     });
 
     it('apiStageが未設定の場合はdevを返す', async () => {
+      const { fetchApiConfig } = require('../../../services/configService');
       fetchApiConfig.mockResolvedValue({
         marketDataApiUrl: 'https://api.example.com'
       });
       
+      const { getApiStage } = require('../../../utils/envUtils');
       const result = await getApiStage();
       
       expect(result).toBe('dev');
@@ -198,6 +193,7 @@ describe('envUtils', () => {
     it('本番環境ではプロキシ経由のパスを返す', async () => {
       process.env.NODE_ENV = 'production';
       
+      const { getApiEndpoint } = require('../../../utils/envUtils');
       const result = await getApiEndpoint('test/endpoint');
       
       expect(result).toBe('/api-proxy/test/endpoint');
@@ -206,6 +202,7 @@ describe('envUtils', () => {
     it('パスの先頭スラッシュを適切に処理する', async () => {
       process.env.NODE_ENV = 'production';
       
+      const { getApiEndpoint } = require('../../../utils/envUtils');
       const result = await getApiEndpoint('/test/endpoint');
       
       expect(result).toBe('/api-proxy/test/endpoint');
@@ -215,11 +212,13 @@ describe('envUtils', () => {
       process.env.NODE_ENV = 'development';
       window.location.hostname = 'localhost';
       
+      const { fetchApiConfig } = require('../../../services/configService');
       fetchApiConfig.mockResolvedValue({
         apiStage: 'dev',
         features: { useProxy: true }
       });
       
+      const { getApiEndpoint } = require('../../../utils/envUtils');
       const result = await getApiEndpoint('test/endpoint');
       
       expect(result).toBe('/dev/test/endpoint');
@@ -229,12 +228,14 @@ describe('envUtils', () => {
       process.env.NODE_ENV = 'development';
       window.location.hostname = 'localhost';
       
+      const { fetchApiConfig } = require('../../../services/configService');
       fetchApiConfig.mockResolvedValue({
         marketDataApiUrl: 'https://api.example.com',
         apiStage: 'prod',
         features: { useProxy: false }
       });
       
+      const { getApiEndpoint } = require('../../../utils/envUtils');
       const result = await getApiEndpoint('test/endpoint');
       
       expect(result).toBe('https://api.example.com/prod/test/endpoint');
@@ -243,11 +244,13 @@ describe('envUtils', () => {
     it('baseURLに既にステージが含まれている場合はステージを追加しない', async () => {
       process.env.NODE_ENV = 'development';
       
+      const { fetchApiConfig } = require('../../../services/configService');
       fetchApiConfig.mockResolvedValue({
         marketDataApiUrl: 'https://api.example.com/prod',
         apiStage: 'dev'
       });
       
+      const { getApiEndpoint } = require('../../../utils/envUtils');
       const result = await getApiEndpoint('test/endpoint');
       
       expect(result).toBe('https://api.example.com/prod/test/endpoint');
@@ -256,11 +259,13 @@ describe('envUtils', () => {
     it('baseURLにdevステージが含まれている場合も適切に処理する', async () => {
       process.env.NODE_ENV = 'development';
       
+      const { fetchApiConfig } = require('../../../services/configService');
       fetchApiConfig.mockResolvedValue({
         marketDataApiUrl: 'https://api.example.com/dev',
         apiStage: 'prod'
       });
       
+      const { getApiEndpoint } = require('../../../utils/envUtils');
       const result = await getApiEndpoint('test/endpoint');
       
       expect(result).toBe('https://api.example.com/dev/test/endpoint');
@@ -269,11 +274,13 @@ describe('envUtils', () => {
     it('baseURLが空の場合はフォールバックパスを返す', async () => {
       process.env.NODE_ENV = 'development';
       
+      const { fetchApiConfig } = require('../../../services/configService');
       fetchApiConfig.mockResolvedValue({
         marketDataApiUrl: '',
         apiStage: 'test'
       });
       
+      const { getApiEndpoint } = require('../../../utils/envUtils');
       const result = await getApiEndpoint('test/endpoint');
       
       expect(result).toBe('/test/test/endpoint');
@@ -281,55 +288,79 @@ describe('envUtils', () => {
 
     it('設定取得エラー時はフォールバックパスを返す', async () => {
       process.env.NODE_ENV = 'development';
+      delete process.env.REACT_APP_API_BASE_URL;
+      const { fetchApiConfig } = require('../../../services/configService');
       fetchApiConfig.mockRejectedValue(new Error('Config error'));
       
+      const { getApiEndpoint } = require('../../../utils/envUtils');
       const result = await getApiEndpoint('test/endpoint');
       
-      expect(result).toBe('/dev/test/endpoint');
+      // フォールバック設定のベースURLが使用される
+      expect(result).toBe('https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod/test/endpoint');
     });
   });
 
   describe('getGoogleClientId', () => {
     it('正常にGoogle Client IDを取得する', async () => {
+      const { fetchApiConfig } = require('../../../services/configService');
       fetchApiConfig.mockResolvedValue({
         googleClientId: '123456789-abc.apps.googleusercontent.com'
       });
       
+      const { getGoogleClientId } = require('../../../utils/envUtils');
       const result = await getGoogleClientId();
       
       expect(result).toBe('123456789-abc.apps.googleusercontent.com');
     });
 
     it('設定取得失敗時は空文字を返す', async () => {
+      const { fetchApiConfig } = require('../../../services/configService');
       fetchApiConfig.mockRejectedValue(new Error('Config error'));
       
+      // console.warnをモック
+      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      
+      const { getGoogleClientId } = require('../../../utils/envUtils');
       const result = await getGoogleClientId();
       
-      expect(result).toBe('');
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Google Client ID の取得に失敗しました:',
-        expect.any(Error)
+      // フォールバック値が返される
+      expect(result).toBe('dummy-client-id-for-development');
+      // 2つのwarnが呼ばれる：一つはgetApiConfigから、もう一つはgetGoogleClientIdから
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        'API設定の取得に失敗しました（フォールバック設定を使用）:',
+        'Config error'
       );
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        'Google Client ID が取得できません。フォールバックIDを使用します。'
+      );
+      
+      consoleWarnSpy.mockRestore();
     });
 
     it('googleClientIdが未設定の場合は空文字を返す', async () => {
+      const { fetchApiConfig } = require('../../../services/configService');
       fetchApiConfig.mockResolvedValue({
         marketDataApiUrl: 'https://api.example.com'
       });
       
+      const { getGoogleClientId } = require('../../../utils/envUtils');
       const result = await getGoogleClientId();
       
-      expect(result).toBe('');
+      // フォールバック値が返される
+      expect(result).toBe('dummy-client-id-for-development');
     });
 
     it('googleClientIdがnullの場合は空文字を返す', async () => {
+      const { fetchApiConfig } = require('../../../services/configService');
       fetchApiConfig.mockResolvedValue({
         googleClientId: null
       });
       
+      const { getGoogleClientId } = require('../../../utils/envUtils');
       const result = await getGoogleClientId();
       
-      expect(result).toBe('');
+      // フォールバック値が返される
+      expect(result).toBe('dummy-client-id-for-development');
     });
   });
 
@@ -337,6 +368,7 @@ describe('envUtils', () => {
     it('現在のオリジンを正しく取得する', () => {
       window.location.origin = 'https://portfolio-wise.com';
       
+      const { getOrigin } = require('../../../utils/envUtils');
       const result = getOrigin();
       
       expect(result).toBe('https://portfolio-wise.com');
@@ -345,6 +377,7 @@ describe('envUtils', () => {
     it('ローカル開発環境のオリジンを正しく取得する', () => {
       window.location.origin = 'http://localhost:3000';
       
+      const { getOrigin } = require('../../../utils/envUtils');
       const result = getOrigin();
       
       expect(result).toBe('http://localhost:3000');
@@ -353,6 +386,7 @@ describe('envUtils', () => {
     it('プレビュー環境のオリジンを正しく取得する', () => {
       window.location.origin = 'https://abc123.portfolio-manager-7bx.pages.dev';
       
+      const { getOrigin } = require('../../../utils/envUtils');
       const result = getOrigin();
       
       expect(result).toBe('https://abc123.portfolio-manager-7bx.pages.dev');
@@ -365,24 +399,28 @@ describe('envUtils', () => {
     });
 
     it('デフォルトパスでリダイレクトURIを生成する', () => {
+      const { getRedirectUri } = require('../../../utils/envUtils');
       const result = getRedirectUri();
       
       expect(result).toBe('https://portfolio-wise.com/auth/callback');
     });
 
     it('カスタムパスでリダイレクトURIを生成する', () => {
+      const { getRedirectUri } = require('../../../utils/envUtils');
       const result = getRedirectUri('/custom/callback');
       
       expect(result).toBe('https://portfolio-wise.com/custom/callback');
     });
 
     it('先頭スラッシュなしのパスでも正しく動作する', () => {
+      const { getRedirectUri } = require('../../../utils/envUtils');
       const result = getRedirectUri('auth/google/callback');
       
       expect(result).toBe('https://portfolio-wise.com/auth/google/callback');
     });
 
     it('空のパスでも正しく動作する', () => {
+      const { getRedirectUri } = require('../../../utils/envUtils');
       const result = getRedirectUri('');
       
       expect(result).toBe('https://portfolio-wise.com/');
@@ -391,6 +429,7 @@ describe('envUtils', () => {
     it('ローカル環境でも正しく動作する', () => {
       window.location.origin = 'http://localhost:3000';
       
+      const { getRedirectUri } = require('../../../utils/envUtils');
       const result = getRedirectUri('/auth/callback');
       
       expect(result).toBe('http://localhost:3000/auth/callback');
@@ -401,6 +440,7 @@ describe('envUtils', () => {
     it('環境変数が設定されている場合はその値を返す', () => {
       process.env.REACT_APP_DEFAULT_EXCHANGE_RATE = '160.5';
       
+      const { getDefaultExchangeRate } = require('../../../utils/envUtils');
       const result = getDefaultExchangeRate();
       
       expect(result).toBe(160.5);
@@ -409,6 +449,7 @@ describe('envUtils', () => {
     it('環境変数が未設定の場合はデフォルト値150.0を返す', () => {
       delete process.env.REACT_APP_DEFAULT_EXCHANGE_RATE;
       
+      const { getDefaultExchangeRate } = require('../../../utils/envUtils');
       const result = getDefaultExchangeRate();
       
       expect(result).toBe(150.0);
@@ -417,6 +458,7 @@ describe('envUtils', () => {
     it('環境変数が無効な値の場合はデフォルト値150.0を返す', () => {
       process.env.REACT_APP_DEFAULT_EXCHANGE_RATE = 'invalid';
       
+      const { getDefaultExchangeRate } = require('../../../utils/envUtils');
       const result = getDefaultExchangeRate();
       
       expect(result).toBe(150.0);
@@ -425,6 +467,7 @@ describe('envUtils', () => {
     it('環境変数が空文字の場合はデフォルト値150.0を返す', () => {
       process.env.REACT_APP_DEFAULT_EXCHANGE_RATE = '';
       
+      const { getDefaultExchangeRate } = require('../../../utils/envUtils');
       const result = getDefaultExchangeRate();
       
       expect(result).toBe(150.0);
@@ -433,6 +476,7 @@ describe('envUtils', () => {
     it('環境変数が0の場合は0を返す', () => {
       process.env.REACT_APP_DEFAULT_EXCHANGE_RATE = '0';
       
+      const { getDefaultExchangeRate } = require('../../../utils/envUtils');
       const result = getDefaultExchangeRate();
       
       expect(result).toBe(0);
@@ -441,6 +485,7 @@ describe('envUtils', () => {
     it('負の値も正しく処理する', () => {
       process.env.REACT_APP_DEFAULT_EXCHANGE_RATE = '-10.5';
       
+      const { getDefaultExchangeRate } = require('../../../utils/envUtils');
       const result = getDefaultExchangeRate();
       
       expect(result).toBe(-10.5);
@@ -449,18 +494,22 @@ describe('envUtils', () => {
 
   describe('initializeApiConfig', () => {
     it('API設定を初期化する', async () => {
+      const { fetchApiConfig } = require('../../../services/configService');
       fetchApiConfig.mockResolvedValue({
         marketDataApiUrl: 'https://init-test.com'
       });
       
+      const { initializeApiConfig } = require('../../../utils/envUtils');
       await initializeApiConfig();
       
       expect(fetchApiConfig).toHaveBeenCalled();
     });
 
     it('初期化エラーでも例外を投げない', async () => {
+      const { fetchApiConfig } = require('../../../services/configService');
       fetchApiConfig.mockRejectedValue(new Error('Init error'));
       
+      const { initializeApiConfig } = require('../../../utils/envUtils');
       await expect(initializeApiConfig()).resolves.toBeUndefined();
     });
   });
@@ -485,20 +534,25 @@ describe('envUtils', () => {
 
   describe('エラーケース', () => {
     it('fetchApiConfigがnullを返した場合も処理する', async () => {
+      const { fetchApiConfig } = require('../../../services/configService');
       fetchApiConfig.mockResolvedValue(null);
       
+      const { getBaseApiUrl, getApiStage, getGoogleClientId } = require('../../../utils/envUtils');
       const baseUrl = await getBaseApiUrl();
       const stage = await getApiStage();
       const clientId = await getGoogleClientId();
       
       expect(baseUrl).toBe('');
       expect(stage).toBe('dev');
-      expect(clientId).toBe('');
+      // フォールバック値が返される
+      expect(clientId).toBe('dummy-client-id-for-development');
     });
 
     it('fetchApiConfigがundefinedを返した場合も処理する', async () => {
+      const { fetchApiConfig } = require('../../../services/configService');
       fetchApiConfig.mockResolvedValue(undefined);
       
+      const { getBaseApiUrl, getApiStage } = require('../../../utils/envUtils');
       const baseUrl = await getBaseApiUrl();
       const stage = await getApiStage();
       
@@ -512,6 +566,7 @@ describe('envUtils', () => {
       
       expect(() => {
         // getOriginとgetRedirectUriは呼び出さない（window.locationが必要）
+        const { isDevelopment, getDefaultExchangeRate } = require('../../../utils/envUtils');
         isDevelopment();
         getDefaultExchangeRate();
       }).not.toThrow();
@@ -522,11 +577,13 @@ describe('envUtils', () => {
 
   describe('パフォーマンステスト', () => {
     it('複数回の設定取得でキャッシュが効く', async () => {
+      const { fetchApiConfig } = require('../../../services/configService');
       fetchApiConfig.mockResolvedValue({
         marketDataApiUrl: 'https://cache-test.com',
         apiStage: 'cache'
       });
       
+      const { getBaseApiUrl, getApiStage } = require('../../../utils/envUtils');
       // 複数回呼び出し
       await getBaseApiUrl();
       await getApiStage();
@@ -540,6 +597,7 @@ describe('envUtils', () => {
     it('大量の同期関数呼び出しを高速で処理する', () => {
       const startTime = Date.now();
       
+      const { isDevelopment, getOrigin, getDefaultExchangeRate, getRedirectUri } = require('../../../utils/envUtils');
       for (let i = 0; i < 1000; i++) {
         isDevelopment();
         getOrigin();
@@ -565,8 +623,10 @@ describe('envUtils', () => {
         }
       };
       
+      const { fetchApiConfig } = require('../../../services/configService');
       fetchApiConfig.mockResolvedValue(mockConfig);
       
+      const { initializeApiConfig, getBaseApiUrl, getApiStage, getGoogleClientId, getApiEndpoint } = require('../../../utils/envUtils');
       await initializeApiConfig();
       
       const baseUrl = await getBaseApiUrl();

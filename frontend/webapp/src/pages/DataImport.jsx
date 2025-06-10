@@ -12,7 +12,7 @@
  * プロンプト生成機能はAIアドバイザータブに集約済み
  */
 
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PortfolioContext } from '../context/PortfolioContext';
 import ScreenshotAnalyzer from '../components/ai/ScreenshotAnalyzer';
@@ -45,6 +45,15 @@ const DataImport = () => {
   const [validationResult, setValidationResult] = useState(null);
 
   const isJapanese = i18n.language === 'ja';
+
+  // URLパラメータからタブを設定
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab');
+    if (tabParam === 'ai-analysis') {
+      setActiveTab('ai-result');
+    }
+  }, []);
 
   const tabs = [
     {

@@ -1198,118 +1198,33 @@ Based on the above information, please advise me on:
                 </div>
 
                 <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2 text-white">
-                      {isJapanese ? 'Claude分析結果（全体）' : 'Claude Analysis Results (Complete)'}
-                    </label>
-                    <textarea
-                      value={userData.claudeAnalysisResult || ''}
-                      onChange={(e) => setUserData(prev => ({ ...prev, claudeAnalysisResult: e.target.value }))}
-                      placeholder={isJapanese 
-                        ? 'Claudeで生成された分析結果をここに貼り付けてください。現在の保有資産、理想配分、投資方針、画像分析結果などが含まれた完全な結果を貼り付けると自動的に解析して各項目に反映されます。'
-                        : 'Paste complete Claude analysis results here. When you paste comprehensive results including current holdings, ideal allocation, investment strategy, and image analysis results, it will be automatically parsed and applied to all sections.'
-                      }
-                      className="w-full p-4 bg-dark-300 border border-dark-400 rounded-lg focus:ring-2 focus:ring-orange-400 focus:border-transparent resize-none text-white placeholder-gray-500"
-                      rows={8}
-                    />
-                  </div>
-
-                  {userData.claudeAnalysisResult && (
-                    <div className="space-y-3">
-                      <button
-                        onClick={() => {
-                          // Claude分析結果を解析して各項目に自動設定
-                          const analysisText = userData.claudeAnalysisResult;
-                          
-                          // より高度な解析パターン
-                          let currentAssetsExtracted = '';
-                          let idealPortfolioExtracted = '';
-                          
-                          // 現在の資産情報を抽出（複数パターンに対応）
-                          const currentPatterns = [
-                            /【現在の保有資産】([^【]*?)(?:【|$)/is,
-                            /(?:現在の保有|current holdings|保有銘柄|現在のポートフォリオ)[:\s]*([^【\n]*?)(?:【|理想|ideal|target|推奨|おすすめ|$)/is,
-                            /(?:資産構成|現在の構成|保有状況)[:\s]*([^【\n]*?)(?:【|理想|ideal|target|推奨|おすすめ|$)/is,
-                            /(?:現在.*資産|現在.*投資)[:\s]*([^【\n]*?)(?:【|理想|ideal|target|推奨|おすすめ|$)/is
-                          ];
-                          
-                          for (const pattern of currentPatterns) {
-                            const match = analysisText.match(pattern);
-                            if (match && match[1].trim().length > 10) {
-                              currentAssetsExtracted = match[1].trim();
-                              break;
-                            }
-                          }
-                          
-                          // 理想ポートフォリオ情報を抽出（複数パターンに対応）
-                          const idealPatterns = [
-                            /【理想のポートフォリオ】([^【]*?)(?:【|$)/is,
-                            /(?:理想|ideal|target|推奨|おすすめ|最適).*(?:ポートフォリオ|配分|構成)[:\s]*([^【\n]*?)(?:【|まとめ|結論|投資戦略|$)/is,
-                            /(?:目標|ターゲット).*(?:配分|構成)[:\s]*([^【\n]*?)(?:【|まとめ|結論|投資戦略|$)/is,
-                            /(?:提案|アドバイス).*(?:配分|構成)[:\s]*([^【\n]*?)(?:【|まとめ|結論|投資戦略|$)/is
-                          ];
-                          
-                          for (const pattern of idealPatterns) {
-                            const match = analysisText.match(pattern);
-                            if (match && match[1].trim().length > 10) {
-                              idealPortfolioExtracted = match[1].trim();
-                              break;
-                            }
-                          }
-                          
-                          // 画像分析結果から数値データを抽出
-                          const percentageMatches = analysisText.match(/(\d+(?:\.\d+)?)\s*%/g);
-                          const tickerMatches = analysisText.match(/([A-Z]{3,5})\s*[:：]\s*(\d+(?:\.\d+)?)\s*%/g);
-                          
-                          let extractedData = '';
-                          if (percentageMatches && tickerMatches) {
-                            extractedData = '\n\n【抽出された数値データ】\n';
-                            tickerMatches.forEach(match => {
-                              extractedData += `${match}\n`;
-                            });
-                          }
-                          
-                          // データを設定
-                          setUserData(prev => ({ 
-                            ...prev, 
-                            currentAssetsDescription: currentAssetsExtracted || prev.currentAssetsDescription,
-                            idealPortfolio: idealPortfolioExtracted || prev.idealPortfolio,
-                            step3FreeText: `Claude分析結果（${new Date().toLocaleString()}）:\n${analysisText}${extractedData}`
-                          }));
-                          
-                          // フィードバックメッセージを改善
-                          const extractionSummary = [];
-                          if (currentAssetsExtracted) extractionSummary.push('現在の保有資産');
-                          if (idealPortfolioExtracted) extractionSummary.push('理想ポートフォリオ');
-                          if (extractedData) extractionSummary.push('数値データ');
-                          
-                          const message = isJapanese 
-                            ? `Claude分析結果を反映しました！抽出項目: ${extractionSummary.join('、') || 'なし'}`
-                            : `Claude analysis applied! Extracted: ${extractionSummary.join(', ') || 'none'}`;
-                          
-                          alert(message);
-                        }}
-                        className="w-full py-3 px-4 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg transition-colors duration-200"
-                      >
-                        {isJapanese ? '分析結果を自動反映' : 'Auto-Apply Analysis Results'}
-                      </button>
-                      
-                      <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
-                        <div className="flex items-center gap-2 text-blue-400 text-sm mb-2">
-                          <FaLightbulb />
-                          <span>{isJapanese ? '使い方のコツ' : 'Usage Tips'}</span>
-                        </div>
-                        <ul className="text-xs text-gray-300 space-y-1">
-                          <li>• {isJapanese ? '興味のある追加分析項目を選択（複数選択可）' : 'Select additional analysis items of interest (multiple selection)'}</li>
-                          <li>• {isJapanese ? '自由記述欄で独自の分析要求を追加' : 'Add custom analysis requests in the free text field'}</li>
-                          <li>• {isJapanese ? '「プロンプト生成＆コピー」でカスタマイズ済みプロンプトを取得' : 'Get customized prompt with "Generate & Copy Prompt"'}</li>
-                          <li>• {isJapanese ? 'Claudeに送信（ポートフォリオ画面のスクリーンショットも一緒に）' : 'Send to Claude (along with portfolio screenshots)'}</li>
-                          <li>• {isJapanese ? '分析結果を下の入力欄に貼り付けて「自動反映」をクリック' : 'Paste analysis results in the field below and click "Auto-Apply"'}</li>
-                        </ul>
-                      </div>
+                  <div className="bg-dark-400 p-4 rounded-lg border border-dark-500">
+                    <div className="flex items-center space-x-2 mb-3">
+                      <svg className="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <h4 className="font-medium text-white">
+                        {isJapanese ? 'AI分析結果の取り込み' : 'Import AI Analysis Results'}
+                      </h4>
                     </div>
-                  )}
-                </div>
+                    <p className="text-gray-300 text-sm mb-3">
+                      {isJapanese 
+                        ? 'Claude分析結果を「データ取り込み」ページのAI分析結果タブで貼り付けて、自動的に各項目に反映できます。'
+                        : 'You can paste Claude analysis results in the "Data Import" page\'s AI Analysis Results tab to automatically populate all fields.'
+                      }
+                    </p>
+                    <button
+                      onClick={() => window.open('/data-import?tab=ai-analysis', '_blank')}
+                      className="w-full bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg transition-colors flex items-center justify-center space-x-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <span>
+                        {isJapanese ? 'データ取り込みページを開く' : 'Open Data Import Page'}
+                      </span>
+                    </button>
+                  </div>
               </div>
 
               {/* 現在の資産と理想のポートフォリオ */}
