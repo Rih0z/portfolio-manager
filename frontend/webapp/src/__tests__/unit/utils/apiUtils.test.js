@@ -538,6 +538,288 @@ describe('apiUtils', () => {
     });
   });
 
+  describe('サーキットブレーカーの高度なテスト', () => {
+    it('サーキットブレーカーがHALF_OPEN状態で動作する', async () => {
+      // 連続失敗を発生させてサーキットブレーカーを開く
+      const mockError = new Error('Circuit breaker test');
+      mockAxiosInstance.get.mockRejectedValue(mockError);
+      
+      const endpoint = 'test-circuit-breaker';
+      
+      // 閾値まで失敗させる
+      for (let i = 0; i < RETRY.CIRCUIT_BREAKER_THRESHOLD; i++) {
+        try {
+          await fetchWithRetry(endpoint, {}, 100, 1);
+        } catch (e) {
+          // Expected failures
+        }
+      }
+      
+      // サーキットブレーカーが開いた状態で即座に失敗することを確認
+      const start = Date.now();
+      try {
+        await fetchWithRetry(endpoint, {}, 100, 1);
+      } catch (e) {
+        const duration = Date.now() - start;
+        expect(duration).toBeLessThan(50); // サーキットブレーカーが即座に拒否
+      }
+    });
+
+    it('異なるエンドポイントで独立したサーキットブレーカーが動作する', async () => {
+      const mockError = new Error('Independent circuit test');
+      mockAxiosInstance.get.mockRejectedValue(mockError);
+      
+      const endpoint1 = 'service-1';
+      const endpoint2 = 'service-2';
+      
+      // service-1のサーキットブレーカーを開く
+      for (let i = 0; i < RETRY.CIRCUIT_BREAKER_THRESHOLD; i++) {
+        try {
+          await fetchWithRetry(endpoint1, {}, 100, 1);
+        } catch (e) {
+          // Expected
+        }
+      }
+      
+      // service-1は即座に失敗
+      const start1 = Date.now();
+      try {
+        await fetchWithRetry(endpoint1, {}, 100, 1);
+      } catch (e) {
+        const duration1 = Date.now() - start1;
+        expect(duration1).toBeLessThan(50);
+      }
+      
+      // service-2は通常通り試行される
+      const start2 = Date.now();
+      try {
+        await fetchWithRetry(endpoint2, {}, 200, 1);
+      } catch (e) {
+        const duration2 = Date.now() - start2;
+        expect(duration2).toBeGreaterThan(100); // 通常のタイムアウト
+      }
+    });
+  });
+
+  describe('レスポンスインターセプターの認証処理', () => {
+    let responseInterceptor;
+    
+    beforeEach(() => {
+      createApiClient(true);
+      const interceptorCall = mockAxiosInstance.interceptors.response.use.mock.calls[0];
+      responseInterceptor = interceptorCall[0]; // 成功時のインターセプター
+    });
+
+    it('Google Drive APIエンドポイントを正しく判定する', () => {
+      const driveResponse = {
+        config: { url: 'https://www.googleapis.com/drive/v3/files' },
+        data: { files: [] }
+      };
+      
+      const result = responseInterceptor(driveResponse);
+      expect(result).toBe(driveResponse);
+    });
+
+    it('認証APIエンドポイントでトークン処理をスキップする', () => {
+      const authResponse = {
+        config: { url: 'http://localhost:3000/auth/login' },
+        data: { success: true }
+      };
+      
+      const result = responseInterceptor(authResponse);
+      expect(result).toBe(authResponse);
+    });
+
+    it('一般APIエンドポイントでヘッダーからトークンを抽出する', () => {
+      const tokenSetSpy = jest.spyOn({ setAuthToken }, 'setAuthToken');
+      
+      const apiResponse = {
+        config: { url: 'http://localhost:3000/api/data' },
+        headers: { 'x-auth-token': 'new-token-123' },
+        data: { data: 'test' }
+      };
+      
+      responseInterceptor(apiResponse);
+      // トークン設定が呼ばれることは期待しないが、エラーが発生しないことを確認
+      expect(() => responseInterceptor(apiResponse)).not.toThrow();
+    });
+  });
+
+  describe('リクエストインターセプターの認証処理', () => {
+    let requestInterceptor;
+    
+    beforeEach(() => {
+      createApiClient(true);
+      const interceptorCall = mockAxiosInstance.interceptors.request.use.mock.calls[0];
+      requestInterceptor = interceptorCall[0]; // リクエストインターセプター
+    });
+
+    it('認証トークンがある場合にヘッダーに追加する', async () => {
+      setAuthToken('test-auth-token');
+      
+      const config = {
+        url: 'http://localhost:3000/api/data',
+        headers: {}
+      };
+      
+      const result = await requestInterceptor(config);
+      expect(result.headers.Authorization).toBe('Bearer test-auth-token');
+    });
+
+    it('認証トークンがない場合はヘッダーを追加しない', async () => {
+      clearAuthToken();
+      
+      const config = {
+        url: 'http://localhost:3000/api/data',
+        headers: {}
+      };
+      
+      const result = await requestInterceptor(config);
+      expect(result.headers.Authorization).toBeUndefined();
+    });
+
+    it('既存のヘッダーを保持する', async () => {
+      setAuthToken('test-token');
+      
+      const config = {
+        url: 'http://localhost:3000/api/data',
+        headers: {
+          'Content-Type': 'application/json',
+          'Custom-Header': 'custom-value'
+        }
+      };
+      
+      const result = await requestInterceptor(config);
+      expect(result.headers['Content-Type']).toBe('application/json');
+      expect(result.headers['Custom-Header']).toBe('custom-value');
+      expect(result.headers.Authorization).toBe('Bearer test-token');
+    });
+  });
+
+  describe('エラーレスポンスインターセプターの401処理', () => {
+    let errorInterceptor;
+    
+    beforeEach(() => {
+      createApiClient(true);
+      const interceptorCall = mockAxiosInstance.interceptors.response.use.mock.calls[0];
+      errorInterceptor = interceptorCall[1]; // エラー時のインターセプター
+    });
+
+    it('401エラーでトークンをクリアする', async () => {
+      setAuthToken('expired-token');
+      
+      const error = {
+        response: { status: 401 },
+        config: { url: 'http://localhost:3000/api/protected' }
+      };
+      
+      try {
+        await errorInterceptor(error);
+      } catch (e) {
+        // エラーは再スローされる
+      }
+      
+      expect(getAuthToken()).toBe(null);
+    });
+
+    it('認証API経由の401エラーではトークンをクリアしない', async () => {
+      setAuthToken('valid-token');
+      
+      const error = {
+        response: { status: 401 },
+        config: { url: 'http://localhost:3000/auth/login' }
+      };
+      
+      try {
+        await errorInterceptor(error);
+      } catch (e) {
+        // エラーは再スローされる
+      }
+      
+      expect(getAuthToken()).toBe('valid-token');
+    });
+
+    it('401以外のエラーではトークンを保持する', async () => {
+      setAuthToken('valid-token');
+      
+      const error = {
+        response: { status: 500 },
+        config: { url: 'http://localhost:3000/api/data' }
+      };
+      
+      try {
+        await errorInterceptor(error);
+      } catch (e) {
+        // エラーは再スローされる
+      }
+      
+      expect(getAuthToken()).toBe('valid-token');
+    });
+  });
+
+  describe('createApiClientの境界条件', () => {
+    it('interceptorsが未定義の場合でもエラーが発生しない', () => {
+      const mockInstanceWithoutInterceptors = {
+        get: jest.fn(),
+        post: jest.fn(),
+        defaults: { withCredentials: true, timeout: 10000, headers: {} }
+      };
+      
+      mockedAxios.create.mockReturnValue(mockInstanceWithoutInterceptors);
+      
+      expect(() => createApiClient(true)).not.toThrow();
+    });
+
+    it('timeout設定が正しく適用される', () => {
+      createApiClient(false);
+      
+      expect(mockedAxios.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          timeout: TIMEOUT.DEFAULT
+        })
+      );
+    });
+  });
+
+  describe('authFetchのデバッグ機能', () => {
+    it('ローカル開発環境でデバッグログを出力する', async () => {
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      const mockResponse = { data: { debug: true } };
+      mockAxiosInstance.get.mockResolvedValueOnce(mockResponse);
+      
+      await authFetch('auth/debug', 'get');
+      
+      expect(consoleSpy).toHaveBeenCalledWith(
+        '[authFetch] リクエスト:',
+        expect.any(Object)
+      );
+      expect(consoleSpy).toHaveBeenCalledWith(
+        '[authFetch] レスポンス:',
+        expect.any(Object)
+      );
+      
+      consoleSpy.mockRestore();
+    });
+
+    it('CORSエラーの詳細ログ出力', async () => {
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      const corsError = {
+        message: 'CORS error',
+        config: { url: 'http://localhost:3000/auth/cors-test' }
+      };
+      mockAxiosInstance.get.mockRejectedValueOnce(corsError);
+      
+      await expect(authFetch('auth/cors-test')).rejects.toThrow();
+      
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'CORS エラーが発生しました:',
+        expect.any(Object)
+      );
+      
+      consoleSpy.mockRestore();
+    });
+  });
+
   describe('Edge cases', () => {
     it('handles empty endpoint in fetchWithRetry', async () => {
       const mockResponse = { data: {} };
@@ -563,6 +845,47 @@ describe('apiUtils', () => {
       const result = generateFallbackData(longTicker);
       
       expect(result.ticker).toBe(longTicker);
+    });
+
+    it('formatErrorResponseが複雑なエラーオブジェクトを処理する', () => {
+      const complexError = {
+        response: {
+          status: 422,
+          data: {
+            message: 'Validation failed',
+            errors: [
+              { field: 'ticker', message: 'Invalid ticker' },
+              { field: 'amount', message: 'Must be positive' }
+            ]
+          }
+        },
+        config: {
+          url: 'http://localhost:3000/api/validate',
+          method: 'post'
+        }
+      };
+      
+      const result = formatErrorResponse(complexError, 'INVALID');
+      
+      expect(result.status).toBe(422);
+      expect(result.errorType).toBe('API_ERROR');
+      expect(result.message).toBe('Validation failed');
+      expect(result.ticker).toBe('INVALID');
+    });
+
+    it('generateFallbackDataが極端なケースを処理する', () => {
+      // 空文字
+      const emptyResult = generateFallbackData('');
+      expect(emptyResult.ticker).toBe('');
+      expect(emptyResult.source).toBe('Fallback');
+      
+      // null/undefined (文字列変換される)
+      const nullResult = generateFallbackData(null);
+      expect(nullResult.ticker).toBe('null');
+      
+      // 数値
+      const numberResult = generateFallbackData(123);
+      expect(numberResult.ticker).toBe(123);
     });
   });
 });

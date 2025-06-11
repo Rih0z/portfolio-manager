@@ -250,6 +250,10 @@ describe('cookieDebugUtils', () => {
     beforeEach(() => {
       mockGetApiEndpoint.mockReturnValue('https://api.example.com/auth/google/drive/initiate');
       jest.clearAllMocks();
+      // XMLHttpRequestのモックもクリア
+      mockXHR.open.mockClear();
+      mockXHR.send.mockClear();
+      mockXHR.setRequestHeader.mockClear();
     });
 
     it('Google Drive認証のデバッグ情報を表示する', async () => {
@@ -264,8 +268,12 @@ describe('cookieDebugUtils', () => {
     });
 
     it('XMLHttpRequestの設定を正しくテストする', async () => {
+      // getApiEndpointが正常に動作することを保証
+      mockGetApiEndpoint.mockReturnValue('https://api.example.com/auth/google/drive/initiate');
+      
       await debugDriveAuth(mockAuthFetch, mockGetApiEndpoint);
       
+      // XMLHttpRequestのメソッドが正しく呼ばれることを確認
       expect(mockXHR.open).toHaveBeenCalledWith(
         'GET',
         'https://api.example.com/auth/google/drive/initiate',

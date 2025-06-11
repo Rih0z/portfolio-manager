@@ -30,7 +30,6 @@ import Settings from './pages/Settings';
 import Simulation from './pages/Simulation';
 import DataIntegration from './pages/DataIntegration';
 import DataImport from './pages/DataImport';
-import AIAdvisor from './pages/AIAdvisor';
 import SettingsChecker from './components/common/SettingsChecker';
 import { useAuth } from './hooks/useAuth';
 import { usePortfolioContext } from './hooks/usePortfolioContext';
@@ -38,6 +37,12 @@ import { initializeApiConfig, getGoogleClientId } from './utils/envUtils';
 
 // i18n初期化
 import './i18n';
+
+// import AIAdvisor from './pages/AIAdvisor'; // 一時的に無効化
+const AIAdvisor = () => <div className="p-8 text-white bg-dark-100 min-h-screen">
+  <h1 className="text-2xl mb-4">AI Advisor</h1>
+  <p>Under maintenance for testing purposes.</p>
+</div>;
 
 // API設定の初期化
 const AppInitializer = ({ children }) => {

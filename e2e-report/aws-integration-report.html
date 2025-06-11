@@ -20,12 +20,12 @@
   <h1>AWS Integration Test Report</h1>
   <div class="summary">
     <h2>Summary</h2>
-    <p>Generated: 2025-05-29T06:19:48.613Z</p>
-    <p>Duration: 5041ms</p>
+    <p>Generated: 2025-06-11T02:43:16.233Z</p>
+    <p>Duration: 51485ms</p>
     <p>
-      Total: 39 | 
-      <span class="passed">Passed: 12</span> | 
-      <span class="failed">Failed: 27</span> | 
+      Total: 186 | 
+      <span class="passed">Passed: 75</span> | 
+      <span class="failed">Failed: 111</span> | 
       <span class="skipped">Skipped: 0</span>
     </p>
   </div>
@@ -43,90 +43,159 @@
     <tbody>
       
         <tr>
-          <td> > chromium > aws-integration.spec.js > AWS Integration Tests > Market data API - US stock</td>
-          <td class="passed">passed</td>
-          <td>331ms</td>
-          <td></td>
+          <td> > chromium > api-performance.spec.js > API Performance Tests > Cache performance</td>
+          <td class="failed">failed</td>
+          <td>320ms</td>
+          <td><div class="error">Error: apiRequestContext.get: connect ECONNREFUSED ::1:4000
+Call log:
+[2m  - → GET http://localhost:4000/api/market-data?symbols=CACHE_TEST&type=us-stock[22m
+[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.7204.15 Safari/537.36[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+</div></td>
         </tr>
       
         <tr>
-          <td> > chromium > aws-integration.spec.js > AWS Integration Tests > Exchange rate API</td>
-          <td class="passed">passed</td>
-          <td>330ms</td>
-          <td></td>
+          <td> > chromium > api-performance.spec.js > API Performance Tests > API response time measurement</td>
+          <td class="failed">failed</td>
+          <td>316ms</td>
+          <td><div class="error">Error: apiRequestContext.get: connect ECONNREFUSED ::1:4000
+Call log:
+[2m  - → GET http://localhost:4000/health[22m
+[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.7204.15 Safari/537.36[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+</div></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > api-performance.spec.js > API Performance Tests > Large payload handling</td>
+          <td class="failed">failed</td>
+          <td>315ms</td>
+          <td><div class="error">Error: apiRequestContext.get: connect ECONNREFUSED ::1:4000
+Call log:
+[2m  - → GET http://localhost:4000/api/market-data?symbols=SYM0,SYM1,SYM2,SYM3,SYM4,SYM5,SYM6,SYM7,SYM8,SYM9,SYM10,SYM11,SYM12,SYM13,SYM14,SYM15,SYM16,SYM17,SYM18,SYM19,SYM20,SYM21,SYM22,SYM23,SYM24,SYM25,SYM26,SYM27,SYM28,SYM29,SYM30,SYM31,SYM32,SYM33,SYM34,SYM35,SYM36,SYM37,SYM38,SYM39,SYM40,SYM41,SYM42,SYM43,SYM44,SYM45,SYM46,SYM47,SYM48,SYM49&type=us-stock[22m
+[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.7204.15 Safari/537.36[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+</div></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > api-performance.spec.js > API Performance Tests > Concurrent request handling</td>
+          <td class="failed">failed</td>
+          <td>325ms</td>
+          <td><div class="error">Error: apiRequestContext.get: connect ECONNREFUSED ::1:4000
+Call log:
+[2m  - → GET http://localhost:4000/api/market-data?symbols=TEST0&type=us-stock[22m
+[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.7204.15 Safari/537.36[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+</div></td>
         </tr>
       
         <tr>
           <td> > chromium > aws-integration.spec.js > AWS Integration Tests > API health check</td>
-          <td class="passed">passed</td>
-          <td>330ms</td>
-          <td></td>
+          <td class="failed">failed</td>
+          <td>565ms</td>
+          <td><div class="error">Error: apiRequestContext.get: connect ECONNREFUSED ::1:4000
+Call log:
+[2m  - → GET http://localhost:4000/health[22m
+[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.7204.15 Safari/537.36[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+</div></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > aws-integration.spec.js > AWS Integration Tests > Exchange rate API</td>
+          <td class="failed">failed</td>
+          <td>561ms</td>
+          <td><div class="error">Error: apiRequestContext.get: connect ECONNREFUSED ::1:4000
+Call log:
+[2m  - → GET http://localhost:4000/api/market-data?type=exchange-rate&base=USD&target=JPY[22m
+[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.7204.15 Safari/537.36[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+</div></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > aws-integration.spec.js > AWS Integration Tests > Market data API - US stock</td>
+          <td class="failed">failed</td>
+          <td>552ms</td>
+          <td><div class="error">Error: apiRequestContext.get: connect ECONNREFUSED ::1:4000
+Call log:
+[2m  - → GET http://localhost:4000/api/market-data?symbols=AAPL&type=us-stock[22m
+[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.7204.15 Safari/537.36[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+</div></td>
         </tr>
       
         <tr>
           <td> > chromium > aws-integration.spec.js > AWS Integration Tests > Market data API - Multiple symbols</td>
-          <td class="passed">passed</td>
-          <td>335ms</td>
-          <td></td>
+          <td class="failed">failed</td>
+          <td>561ms</td>
+          <td><div class="error">Error: apiRequestContext.get: connect ECONNREFUSED ::1:4000
+Call log:
+[2m  - → GET http://localhost:4000/api/market-data?symbols=AAPL%2CGOOGL%2CMSFT&type=us-stock[22m
+[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.7204.15 Safari/537.36[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+</div></td>
         </tr>
       
         <tr>
           <td> > chromium > aws-integration.spec.js > AWS Integration Tests > Error handling - Invalid symbol</td>
           <td class="failed">failed</td>
-          <td>357ms</td>
-          <td><div class="error">Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoHaveProperty[2m([22m[32mpath[39m[2m)[22m
-
-Expected path: [32m"error"[39m
-Received path: [31m[][39m
-
-Received value: [31m{"currency": "USD", "price": 211.241981760962, "source": "mock", "symbol": "INVALID_SYMBOL_12345", "timestamp": "2025-05-29T06:19:49.424Z"}[39m</div></td>
+          <td>471ms</td>
+          <td><div class="error">Error: apiRequestContext.get: connect ECONNREFUSED ::1:4000
+Call log:
+[2m  - → GET http://localhost:4000/api/market-data?symbols=INVALID_SYMBOL_12345&type=us-stock[22m
+[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.7204.15 Safari/537.36[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+</div></td>
         </tr>
       
         <tr>
           <td> > chromium > aws-integration.spec.js > AWS Integration Tests > CORS configuration</td>
-          <td class="passed">passed</td>
-          <td>104ms</td>
-          <td></td>
+          <td class="failed">failed</td>
+          <td>470ms</td>
+          <td><div class="error">Error: apiRequestContext.fetch: connect ECONNREFUSED ::1:4000
+Call log:
+[2m  - → OPTIONS http://localhost:4000/api/market-data[22m
+[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.7204.15 Safari/537.36[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+</div></td>
         </tr>
       
         <tr>
           <td> > chromium > aws-integration.spec.js > AWS Integration Tests > Rate limiting</td>
-          <td class="passed">passed</td>
-          <td>119ms</td>
-          <td></td>
+          <td class="failed">failed</td>
+          <td>485ms</td>
+          <td><div class="error">Error: apiRequestContext.get: connect ECONNREFUSED ::1:4000
+Call log:
+[2m  - → GET http://localhost:4000/api/market-data?symbols=AAPL&type=us-stock[22m
+[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.7204.15 Safari/537.36[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+</div></td>
         </tr>
       
         <tr>
           <td> > chromium > aws-integration.spec.js > Authentication Flow > Session persistence</td>
           <td class="failed">failed</td>
-          <td>130ms</td>
+          <td>179ms</td>
           <td><div class="error">Error: browserContext.addCookies: Cookie should have a url or a domain/path pair</div></td>
-        </tr>
-      
-        <tr>
-          <td> > chromium > aws-integration.spec.js > Authentication Flow > Login flow with mock Google auth</td>
-          <td class="failed">failed</td>
-          <td>176ms</td>
-          <td><div class="error">Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3000/
-Call log:
-[2m  - navigating to "http://localhost:3000/", waiting until "load"[22m
-</div></td>
-        </tr>
-      
-        <tr>
-          <td> > chromium > aws-integration.spec.js > Frontend-Backend Integration > Real-time data update</td>
-          <td class="failed">failed</td>
-          <td>154ms</td>
-          <td><div class="error">Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3000/
-Call log:
-[2m  - navigating to "http://localhost:3000/", waiting until "load"[22m
-</div></td>
         </tr>
       
         <tr>
           <td> > chromium > aws-integration.spec.js > Error Scenarios > Network error handling</td>
           <td class="failed">failed</td>
-          <td>150ms</td>
+          <td>224ms</td>
           <td><div class="error">Error: page.goto: net::ERR_INTERNET_DISCONNECTED at http://localhost:3000/
 Call log:
 [2m  - navigating to "http://localhost:3000/", waiting until "domcontentloaded"[22m
@@ -134,120 +203,590 @@ Call log:
         </tr>
       
         <tr>
-          <td> > chromium > aws-integration.spec.js > Frontend-Backend Integration > Portfolio data flow</td>
+          <td> > chromium > aws-integration.spec.js > Authentication Flow > Login flow with mock Google auth</td>
           <td class="failed">failed</td>
-          <td>176ms</td>
-          <td><div class="error">Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3000/
+          <td>5654ms</td>
+          <td><div class="error">Error: [31mTimed out 5000ms waiting for [39m[2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m()[22m
+
+Locator: locator('button.mock-google-button')
+Expected: visible
+Received: <element(s) not found>
 Call log:
-[2m  - navigating to "http://localhost:3000/", waiting until "load"[22m
+[2m  - Expect "toBeVisible" with timeout 5000ms[22m
+[2m  - waiting for locator('button.mock-google-button')[22m
 </div></td>
         </tr>
       
         <tr>
           <td> > chromium > aws-integration.spec.js > Error Scenarios > API error handling</td>
           <td class="failed">failed</td>
-          <td>184ms</td>
-          <td><div class="error">Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3000/
+          <td>5366ms</td>
+          <td><div class="error">Error: [31mTimed out 5000ms waiting for [39m[2mexpect([22m[31mpage[39m[2m).[22mtoHaveTitle[2m([22m[32mexpected[39m[2m)[22m
+
+Locator: locator(':root')
+Expected pattern: [32m/Portfolio/i[39m
+Received string:  [31m"Miru - AI恋愛オーケストレーションシステム"[39m
 Call log:
-[2m  - navigating to "http://localhost:3000/", waiting until "load"[22m
+[2m  - Expect "toHaveTitle" with timeout 5000ms[22m
+[2m  - waiting for locator(':root')[22m
+[2m    9 × locator resolved to <html lang="ja">…</html>[22m
+[2m      - unexpected value "Miru - AI恋愛オーケストレーションシステム"[22m
+</div></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > basic-flow.spec.js > Portfolio Manager - Basic Flow > アプリケーションが正常に読み込まれる</td>
+          <td class="failed">failed</td>
+          <td>5227ms</td>
+          <td><div class="error">Error: [31mTimed out 5000ms waiting for [39m[2mexpect([22m[31mpage[39m[2m).[22mtoHaveTitle[2m([22m[32mexpected[39m[2m)[22m
+
+Locator: locator(':root')
+Expected pattern: [32m/Portfolio Wise/[39m
+Received string:  [31m"Miru - AI恋愛オーケストレーションシステム"[39m
+Call log:
+[2m  - Expect "toHaveTitle" with timeout 5000ms[22m
+[2m  - waiting for locator(':root')[22m
+[2m    9 × locator resolved to <html lang="ja">…</html>[22m
+[2m      - unexpected value "Miru - AI恋愛オーケストレーションシステム"[22m
+</div></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > basic-flow.spec.js > Portfolio Manager - Basic Flow > ナビゲーションメニューが機能する</td>
+          <td class="passed">passed</td>
+          <td>1205ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > basic-flow.spec.js > Portfolio Manager - Basic Flow > レスポンシブデザインが正しく動作する</td>
+          <td class="passed">passed</td>
+          <td>173ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > basic-flow.spec.js > Portfolio Manager - Basic Flow > 基本的なフォーム操作が動作する</td>
+          <td class="passed">passed</td>
+          <td>141ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > basic-flow.spec.js > Portfolio Manager - Advanced Features > ローカルストレージの保存・読み込み</td>
+          <td class="passed">passed</td>
+          <td>150ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > basic-flow.spec.js > Portfolio Manager - Advanced Features > API呼び出しのモック</td>
+          <td class="passed">passed</td>
+          <td>1177ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > basic-flow.spec.js > Portfolio Manager - Advanced Features > パフォーマンス測定</td>
+          <td class="passed">passed</td>
+          <td>135ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > mock-test.spec.js > Mock Integration Tests > Mocked API health check</td>
+          <td class="failed">failed</td>
+          <td>103ms</td>
+          <td><div class="error">Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+Expected: [32m200[39m
+Received: [31m404[39m</div></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > mock-test.spec.js > Mock Integration Tests > Mocked market data API</td>
+          <td class="failed">failed</td>
+          <td>119ms</td>
+          <td><div class="error">Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+Expected: [32m200[39m
+Received: [31m404[39m</div></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > basic-flow.spec.js > Portfolio Manager - Basic Flow > エラーハンドリングが正しく動作する</td>
+          <td class="failed">failed</td>
+          <td>2147ms</td>
+          <td><div class="error">Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeLessThan[2m([22m[32mexpected[39m[2m)[22m
+
+Expected: < [32m5[39m
+Received:   [31m5[39m</div></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > aws-integration.spec.js > Frontend-Backend Integration > Portfolio data flow</td>
+          <td class="failed">failed</td>
+          <td>10698ms</td>
+          <td><div class="error">TimeoutError: page.click: Timeout 10000ms exceeded.
+Call log:
+[2m  - waiting for locator('text=保有銘柄を追加')[22m
+</div></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > mock-test.spec.js > Mock Integration Tests > Mocked exchange rate API</td>
+          <td class="failed">failed</td>
+          <td>156ms</td>
+          <td><div class="error">Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+Expected: [32m200[39m
+Received: [31m404[39m</div></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > mock-test.spec.js > Mock Integration Tests > Performance metrics collection</td>
+          <td class="failed">failed</td>
+          <td>178ms</td>
+          <td><div class="error">Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+Expected: [32m200[39m
+Received: [31m404[39m</div></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > basic-flow.spec.js > Portfolio Manager - Basic Flow > ダッシュボードページが表示される</td>
+          <td class="failed">failed</td>
+          <td>5286ms</td>
+          <td><div class="error">Error: [31mTimed out 5000ms waiting for [39m[2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m()[22m
+
+Locator: locator('header, .header, h1').first()
+Expected: visible
+Received: <element(s) not found>
+Call log:
+[2m  - Expect "toBeVisible" with timeout 5000ms[22m
+[2m  - waiting for locator('header, .header, h1').first()[22m
+</div></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > mock-test.spec.js > Mock Integration Tests > Error handling simulation</td>
+          <td class="failed">failed</td>
+          <td>167ms</td>
+          <td><div class="error">Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+Expected: [32m500[39m
+Received: [31m404[39m</div></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > mock-test.spec.js > Mock Integration Tests > CORS headers validation</td>
+          <td class="failed">failed</td>
+          <td>170ms</td>
+          <td><div class="error">Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+Received: [31mundefined[39m</div></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > aws-integration.spec.js > Frontend-Backend Integration > Real-time data update</td>
+          <td class="failed">failed</td>
+          <td>10587ms</td>
+          <td><div class="error">TimeoutError: page.click: Timeout 10000ms exceeded.
+Call log:
+[2m  - waiting for locator('text=ダッシュボード')[22m
+</div></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > performance.spec.js > Performance Tests > Bundle size check</td>
+          <td class="passed">passed</td>
+          <td>152ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > performance.spec.js > Stress Tests > Large data handling</td>
+          <td class="failed">failed</td>
+          <td>426ms</td>
+          <td><div class="error">Error: apiRequestContext.get: connect ECONNREFUSED ::1:4000
+Call log:
+[2m  - → GET http://localhost:4000/api/market-data?symbols=SYM0%2CSYM1%2CSYM2%2CSYM3%2CSYM4%2CSYM5%2CSYM6%2CSYM7%2CSYM8%2CSYM9%2CSYM10%2CSYM11%2CSYM12%2CSYM13%2CSYM14%2CSYM15%2CSYM16%2CSYM17%2CSYM18%2CSYM19%2CSYM20%2CSYM21%2CSYM22%2CSYM23%2CSYM24%2CSYM25%2CSYM26%2CSYM27%2CSYM28%2CSYM29%2CSYM30%2CSYM31%2CSYM32%2CSYM33%2CSYM34%2CSYM35%2CSYM36%2CSYM37%2CSYM38%2CSYM39%2CSYM40%2CSYM41%2CSYM42%2CSYM43%2CSYM44%2CSYM45%2CSYM46%2CSYM47%2CSYM48%2CSYM49&type=us-stock[22m
+[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.7204.15 Safari/537.36[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+</div></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > performance.spec.js > Stress Tests > Concurrent requests</td>
+          <td class="failed">failed</td>
+          <td>463ms</td>
+          <td><div class="error">Error: apiRequestContext.get: connect ECONNREFUSED ::1:4000
+Call log:
+[2m  - → GET http://localhost:4000/api/market-data?symbols=TEST0&type=us-stock[22m
+[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.7204.15 Safari/537.36[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+</div></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > portfolio-mcp.spec.js > Portfolio Management E2E Tests with MCP > Navigation between tabs works correctly</td>
+          <td class="passed">passed</td>
+          <td>656ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > performance.spec.js > Performance Tests > Page load performance</td>
+          <td class="failed">failed</td>
+          <td>2728ms</td>
+          <td><div class="error">Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeLessThan[2m([22m[32mexpected[39m[2m)[22m
+
+Expected: < [32m100[39m
+Received:   [31m100[39m</div></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > portfolio-mcp.spec.js > Portfolio Management E2E Tests with MCP > Settings page accessibility and functionality</td>
+          <td class="passed">passed</td>
+          <td>662ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > portfolio-mcp.spec.js > Portfolio Management E2E Tests with MCP > Responsive design on mobile viewport</td>
+          <td class="passed">passed</td>
+          <td>669ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > portfolio-mcp.spec.js > Portfolio Management E2E Tests with MCP > Portfolio data display and formatting</td>
+          <td class="passed">passed</td>
+          <td>646ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > portfolio-mcp.spec.js > Portfolio Management E2E Tests with MCP > Data integration functionality</td>
+          <td class="passed">passed</td>
+          <td>1736ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > portfolio-mcp.spec.js > Portfolio Management E2E Tests with MCP > Error handling and loading states</td>
+          <td class="passed">passed</td>
+          <td>984ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > portfolio-mcp.spec.js > Portfolio Management E2E Tests with MCP > Accessibility compliance</td>
+          <td class="passed">passed</td>
+          <td>659ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > portfolio-mcp.spec.js > Portfolio Management E2E Tests with MCP > Language switching functionality</td>
+          <td class="passed">passed</td>
+          <td>1688ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > test-summary.spec.js > E2E Test Summary > Test Infrastructure Validation</td>
+          <td class="passed">passed</td>
+          <td>0ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > test-summary.spec.js > E2E Test Summary > Mock Test Results</td>
+          <td class="passed">passed</td>
+          <td>0ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > test-summary.spec.js > E2E Test Summary > Performance Metrics</td>
+          <td class="passed">passed</td>
+          <td>0ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > test-summary.spec.js > E2E Test Summary > AWS Integration Status</td>
+          <td class="passed">passed</td>
+          <td>0ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > unit-mock.spec.js > Unit Mock Tests > API response mocking</td>
+          <td class="passed">passed</td>
+          <td>2ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > unit-mock.spec.js > Unit Mock Tests > Market data structure validation</td>
+          <td class="passed">passed</td>
+          <td>1ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > unit-mock.spec.js > Unit Mock Tests > Exchange rate validation</td>
+          <td class="passed">passed</td>
+          <td>0ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > unit-mock.spec.js > Unit Mock Tests > Error response structure</td>
+          <td class="passed">passed</td>
+          <td>0ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > unit-mock.spec.js > Unit Mock Tests > Performance metrics calculation</td>
+          <td class="passed">passed</td>
+          <td>0ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > unit-mock.spec.js > Unit Mock Tests > Rate limiting logic</td>
+          <td class="passed">passed</td>
+          <td>0ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > unit-mock.spec.js > Unit Mock Tests > Session validation</td>
+          <td class="passed">passed</td>
+          <td>0ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > unit-mock.spec.js > Unit Mock Tests > CORS headers validation</td>
+          <td class="passed">passed</td>
+          <td>1ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > unit-mock.spec.js > Unit Mock Tests > Data transformation</td>
+          <td class="passed">passed</td>
+          <td>1ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > unit-mock.spec.js > Unit Mock Tests > Integration test summary</td>
+          <td class="passed">passed</td>
+          <td>0ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > api-performance.spec.js > API Performance Tests > API response time measurement</td>
+          <td class="failed">failed</td>
+          <td>315ms</td>
+          <td><div class="error">Error: apiRequestContext.get: connect ECONNREFUSED ::1:4000
+Call log:
+[2m  - → GET http://localhost:4000/health[22m
+[2m    - user-agent: Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+</div></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > portfolio-mcp.spec.js > Portfolio Management E2E Tests with MCP > Dashboard loads and displays portfolio components</td>
+          <td class="failed">failed</td>
+          <td>5746ms</td>
+          <td><div class="error">Error: [31mTimed out 5000ms waiting for [39m[2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m()[22m
+
+Locator: locator('header')
+Expected: visible
+Received: <element(s) not found>
+Call log:
+[2m  - Expect "toBeVisible" with timeout 5000ms[22m
+[2m  - waiting for locator('header')[22m
+</div></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > api-performance.spec.js > API Performance Tests > Concurrent request handling</td>
+          <td class="failed">failed</td>
+          <td>325ms</td>
+          <td><div class="error">Error: apiRequestContext.get: connect ECONNREFUSED ::1:4000
+Call log:
+[2m  - → GET http://localhost:4000/api/market-data?symbols=TEST0&type=us-stock[22m
+[2m    - user-agent: Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+</div></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > api-performance.spec.js > API Performance Tests > Large payload handling</td>
+          <td class="failed">failed</td>
+          <td>312ms</td>
+          <td><div class="error">Error: apiRequestContext.get: connect ECONNREFUSED ::1:4000
+Call log:
+[2m  - → GET http://localhost:4000/api/market-data?symbols=SYM0,SYM1,SYM2,SYM3,SYM4,SYM5,SYM6,SYM7,SYM8,SYM9,SYM10,SYM11,SYM12,SYM13,SYM14,SYM15,SYM16,SYM17,SYM18,SYM19,SYM20,SYM21,SYM22,SYM23,SYM24,SYM25,SYM26,SYM27,SYM28,SYM29,SYM30,SYM31,SYM32,SYM33,SYM34,SYM35,SYM36,SYM37,SYM38,SYM39,SYM40,SYM41,SYM42,SYM43,SYM44,SYM45,SYM46,SYM47,SYM48,SYM49&type=us-stock[22m
+[2m    - user-agent: Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+</div></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > api-performance.spec.js > API Performance Tests > Cache performance</td>
+          <td class="failed">failed</td>
+          <td>313ms</td>
+          <td><div class="error">Error: apiRequestContext.get: connect ECONNREFUSED ::1:4000
+Call log:
+[2m  - → GET http://localhost:4000/api/market-data?symbols=CACHE_TEST&type=us-stock[22m
+[2m    - user-agent: Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+</div></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > aws-integration.spec.js > AWS Integration Tests > API health check</td>
+          <td class="failed">failed</td>
+          <td>739ms</td>
+          <td><div class="error">Error: apiRequestContext.get: connect ECONNREFUSED ::1:4000
+Call log:
+[2m  - → GET http://localhost:4000/health[22m
+[2m    - user-agent: Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
 </div></td>
         </tr>
       
         <tr>
           <td> > mobile > aws-integration.spec.js > AWS Integration Tests > Market data API - US stock</td>
-          <td class="passed">passed</td>
-          <td>384ms</td>
-          <td></td>
+          <td class="failed">failed</td>
+          <td>510ms</td>
+          <td><div class="error">Error: apiRequestContext.get: connect ECONNREFUSED ::1:4000
+Call log:
+[2m  - → GET http://localhost:4000/api/market-data?symbols=AAPL&type=us-stock[22m
+[2m    - user-agent: Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+</div></td>
         </tr>
       
         <tr>
-          <td> > mobile > aws-integration.spec.js > AWS Integration Tests > API health check</td>
+          <td> > chromium > portfolio-mcp.spec.js > Portfolio Management E2E Tests with MCP > Performance and load time</td>
           <td class="passed">passed</td>
-          <td>408ms</td>
+          <td>3203ms</td>
           <td></td>
         </tr>
       
         <tr>
           <td> > mobile > aws-integration.spec.js > AWS Integration Tests > Market data API - Multiple symbols</td>
-          <td class="passed">passed</td>
-          <td>336ms</td>
-          <td></td>
+          <td class="failed">failed</td>
+          <td>532ms</td>
+          <td><div class="error">Error: apiRequestContext.get: connect ECONNREFUSED ::1:4000
+Call log:
+[2m  - → GET http://localhost:4000/api/market-data?symbols=AAPL%2CGOOGL%2CMSFT&type=us-stock[22m
+[2m    - user-agent: Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+</div></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > aws-integration.spec.js > AWS Integration Tests > Exchange rate API</td>
+          <td class="failed">failed</td>
+          <td>532ms</td>
+          <td><div class="error">Error: apiRequestContext.get: connect ECONNREFUSED ::1:4000
+Call log:
+[2m  - → GET http://localhost:4000/api/market-data?type=exchange-rate&base=USD&target=JPY[22m
+[2m    - user-agent: Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+</div></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > aws-integration.spec.js > AWS Integration Tests > Error handling - Invalid symbol</td>
+          <td class="failed">failed</td>
+          <td>591ms</td>
+          <td><div class="error">Error: apiRequestContext.get: connect ECONNREFUSED ::1:4000
+Call log:
+[2m  - → GET http://localhost:4000/api/market-data?symbols=INVALID_SYMBOL_12345&type=us-stock[22m
+[2m    - user-agent: Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+</div></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > performance.spec.js > Performance Tests > API response time</td>
+          <td class="failed">failed</td>
+          <td>10416ms</td>
+          <td><div class="error">TimeoutError: page.waitForResponse: Timeout 10000ms exceeded while waiting for event "response"</div></td>
         </tr>
       
         <tr>
           <td> > mobile > aws-integration.spec.js > AWS Integration Tests > CORS configuration</td>
-          <td class="passed">passed</td>
-          <td>157ms</td>
-          <td></td>
+          <td class="failed">failed</td>
+          <td>595ms</td>
+          <td><div class="error">Error: apiRequestContext.fetch: connect ECONNREFUSED ::1:4000
+Call log:
+[2m  - → OPTIONS http://localhost:4000/api/market-data[22m
+[2m    - user-agent: Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+</div></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > performance.spec.js > Performance Tests > Memory usage</td>
+          <td class="failed">failed</td>
+          <td>10595ms</td>
+          <td><div class="error">TimeoutError: page.click: Timeout 10000ms exceeded.
+Call log:
+[2m  - waiting for locator('text=ダッシュボード')[22m
+</div></td>
         </tr>
       
         <tr>
           <td> > mobile > aws-integration.spec.js > AWS Integration Tests > Rate limiting</td>
-          <td class="passed">passed</td>
-          <td>179ms</td>
-          <td></td>
-        </tr>
-      
-        <tr>
-          <td> > mobile > aws-integration.spec.js > Authentication Flow > Login flow with mock Google auth</td>
           <td class="failed">failed</td>
-          <td>200ms</td>
-          <td><div class="error">Error: page.goto: Could not connect to the server.
+          <td>648ms</td>
+          <td><div class="error">Error: apiRequestContext.get: connect ECONNREFUSED ::1:4000
 Call log:
-[2m  - navigating to "http://localhost:3000/", waiting until "load"[22m
+[2m  - → GET http://localhost:4000/api/market-data?symbols=AAPL&type=us-stock[22m
+[2m    - user-agent: Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
 </div></td>
         </tr>
       
         <tr>
           <td> > mobile > aws-integration.spec.js > Authentication Flow > Session persistence</td>
           <td class="failed">failed</td>
-          <td>156ms</td>
+          <td>287ms</td>
           <td><div class="error">Error: browserContext.addCookies: Cookie should have a url or a domain/path pair</div></td>
-        </tr>
-      
-        <tr>
-          <td> > mobile > aws-integration.spec.js > Frontend-Backend Integration > Portfolio data flow</td>
-          <td class="failed">failed</td>
-          <td>157ms</td>
-          <td><div class="error">Error: page.goto: Could not connect to the server.
-Call log:
-[2m  - navigating to "http://localhost:3000/", waiting until "load"[22m
-</div></td>
-        </tr>
-      
-        <tr>
-          <td> > mobile > aws-integration.spec.js > AWS Integration Tests > Exchange rate API</td>
-          <td class="passed">passed</td>
-          <td>272ms</td>
-          <td></td>
-        </tr>
-      
-        <tr>
-          <td> > mobile > aws-integration.spec.js > AWS Integration Tests > Error handling - Invalid symbol</td>
-          <td class="failed">failed</td>
-          <td>253ms</td>
-          <td><div class="error">Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoHaveProperty[2m([22m[32mpath[39m[2m)[22m
-
-Expected path: [32m"error"[39m
-Received path: [31m[][39m
-
-Received value: [31m{"currency": "USD", "price": 103.21267932433233, "source": "mock", "symbol": "INVALID_SYMBOL_12345", "timestamp": "2025-05-29T06:19:51.452Z"}[39m</div></td>
-        </tr>
-      
-        <tr>
-          <td> > mobile > aws-integration.spec.js > Frontend-Backend Integration > Real-time data update</td>
-          <td class="failed">failed</td>
-          <td>331ms</td>
-          <td><div class="error">Error: page.goto: Could not connect to the server.
-Call log:
-[2m  - navigating to "http://localhost:3000/", waiting until "load"[22m
-</div></td>
         </tr>
       
         <tr>
           <td> > mobile > aws-integration.spec.js > Error Scenarios > Network error handling</td>
           <td class="failed">failed</td>
-          <td>300ms</td>
+          <td>271ms</td>
           <td><div class="error">Error: page.goto: WebKit encountered an internal error
 Call log:
 [2m  - navigating to "http://localhost:3000/", waiting until "domcontentloaded"[22m
@@ -255,27 +794,444 @@ Call log:
         </tr>
       
         <tr>
-          <td> > mobile > aws-integration.spec.js > Error Scenarios > API error handling</td>
+          <td> > mobile > aws-integration.spec.js > Authentication Flow > Login flow with mock Google auth</td>
           <td class="failed">failed</td>
-          <td>322ms</td>
-          <td><div class="error">Error: page.goto: Could not connect to the server.
+          <td>5407ms</td>
+          <td><div class="error">Error: [31mTimed out 5000ms waiting for [39m[2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m()[22m
+
+Locator: locator('button.mock-google-button')
+Expected: visible
+Received: <element(s) not found>
 Call log:
-[2m  - navigating to "http://localhost:3000/", waiting until "load"[22m
+[2m  - Expect "toBeVisible" with timeout 5000ms[22m
+[2m  - waiting for locator('button.mock-google-button')[22m
 </div></td>
         </tr>
       
         <tr>
-          <td> > authenticated > aws-integration.spec.js > AWS Integration Tests > API health check</td>
+          <td> > mobile > aws-integration.spec.js > Error Scenarios > API error handling</td>
           <td class="failed">failed</td>
-          <td>9ms</td>
-          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
-ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
+          <td>5318ms</td>
+          <td><div class="error">Error: [31mTimed out 5000ms waiting for [39m[2mexpect([22m[31mpage[39m[2m).[22mtoHaveTitle[2m([22m[32mexpected[39m[2m)[22m
+
+Locator: locator(':root')
+Expected pattern: [32m/Portfolio/i[39m
+Received string:  [31m"Miru - AI恋愛オーケストレーションシステム"[39m
+Call log:
+[2m  - Expect "toHaveTitle" with timeout 5000ms[22m
+[2m  - waiting for locator(':root')[22m
+[2m    9 × locator resolved to <html lang="ja">…</html>[22m
+[2m      - unexpected value "Miru - AI恋愛オーケストレーションシステム"[22m
+</div></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > basic-flow.spec.js > Portfolio Manager - Basic Flow > アプリケーションが正常に読み込まれる</td>
+          <td class="failed">failed</td>
+          <td>5290ms</td>
+          <td><div class="error">Error: [31mTimed out 5000ms waiting for [39m[2mexpect([22m[31mpage[39m[2m).[22mtoHaveTitle[2m([22m[32mexpected[39m[2m)[22m
+
+Locator: locator(':root')
+Expected pattern: [32m/Portfolio Wise/[39m
+Received string:  [31m"Miru - AI恋愛オーケストレーションシステム"[39m
+Call log:
+[2m  - Expect "toHaveTitle" with timeout 5000ms[22m
+[2m  - waiting for locator(':root')[22m
+[2m    9 × locator resolved to <html lang="ja">…</html>[22m
+[2m      - unexpected value "Miru - AI恋愛オーケストレーションシステム"[22m
+</div></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > basic-flow.spec.js > Portfolio Manager - Basic Flow > レスポンシブデザインが正しく動作する</td>
+          <td class="passed">passed</td>
+          <td>286ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > basic-flow.spec.js > Portfolio Manager - Basic Flow > 基本的なフォーム操作が動作する</td>
+          <td class="passed">passed</td>
+          <td>187ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > basic-flow.spec.js > Portfolio Manager - Basic Flow > ナビゲーションメニューが機能する</td>
+          <td class="passed">passed</td>
+          <td>1316ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > basic-flow.spec.js > Portfolio Manager - Advanced Features > ローカルストレージの保存・読み込み</td>
+          <td class="passed">passed</td>
+          <td>225ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > basic-flow.spec.js > Portfolio Manager - Advanced Features > API呼び出しのモック</td>
+          <td class="passed">passed</td>
+          <td>1232ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > basic-flow.spec.js > Portfolio Manager - Advanced Features > パフォーマンス測定</td>
+          <td class="passed">passed</td>
+          <td>192ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > mock-test.spec.js > Mock Integration Tests > Mocked API health check</td>
+          <td class="failed">failed</td>
+          <td>150ms</td>
+          <td><div class="error">Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+Expected: [32m200[39m
+Received: [31m404[39m</div></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > basic-flow.spec.js > Portfolio Manager - Basic Flow > エラーハンドリングが正しく動作する</td>
+          <td class="failed">failed</td>
+          <td>2190ms</td>
+          <td><div class="error">Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeLessThan[2m([22m[32mexpected[39m[2m)[22m
+
+Expected: < [32m5[39m
+Received:   [31m5[39m</div></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > mock-test.spec.js > Mock Integration Tests > Mocked exchange rate API</td>
+          <td class="failed">failed</td>
+          <td>280ms</td>
+          <td><div class="error">Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+Expected: [32m200[39m
+Received: [31m404[39m</div></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > mock-test.spec.js > Mock Integration Tests > Mocked market data API</td>
+          <td class="failed">failed</td>
+          <td>293ms</td>
+          <td><div class="error">Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+Expected: [32m200[39m
+Received: [31m404[39m</div></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > basic-flow.spec.js > Portfolio Manager - Basic Flow > ダッシュボードページが表示される</td>
+          <td class="failed">failed</td>
+          <td>5277ms</td>
+          <td><div class="error">Error: [31mTimed out 5000ms waiting for [39m[2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m()[22m
+
+Locator: locator('header, .header, h1').first()
+Expected: visible
+Received: <element(s) not found>
+Call log:
+[2m  - Expect "toBeVisible" with timeout 5000ms[22m
+[2m  - waiting for locator('header, .header, h1').first()[22m
+</div></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > aws-integration.spec.js > Frontend-Backend Integration > Portfolio data flow</td>
+          <td class="failed">failed</td>
+          <td>10482ms</td>
+          <td><div class="error">TimeoutError: page.click: Timeout 10000ms exceeded.
+Call log:
+[2m  - waiting for locator('text=保有銘柄を追加')[22m
+</div></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > aws-integration.spec.js > Frontend-Backend Integration > Real-time data update</td>
+          <td class="failed">failed</td>
+          <td>10345ms</td>
+          <td><div class="error">TimeoutError: page.click: Timeout 10000ms exceeded.
+Call log:
+[2m  - waiting for locator('text=ダッシュボード')[22m
+</div></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > mock-test.spec.js > Mock Integration Tests > Error handling simulation</td>
+          <td class="failed">failed</td>
+          <td>582ms</td>
+          <td><div class="error">Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+Expected: [32m500[39m
+Received: [31m404[39m</div></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > mock-test.spec.js > Mock Integration Tests > Performance metrics collection</td>
+          <td class="failed">failed</td>
+          <td>620ms</td>
+          <td><div class="error">Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+Expected: [32m200[39m
+Received: [31m404[39m</div></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > mock-test.spec.js > Mock Integration Tests > CORS headers validation</td>
+          <td class="failed">failed</td>
+          <td>460ms</td>
+          <td><div class="error">Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+Received: [31mundefined[39m</div></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > performance.spec.js > Performance Tests > Memory usage</td>
+          <td class="passed">passed</td>
+          <td>430ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > performance.spec.js > Performance Tests > Bundle size check</td>
+          <td class="passed">passed</td>
+          <td>436ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > performance.spec.js > Stress Tests > Concurrent requests</td>
+          <td class="failed">failed</td>
+          <td>773ms</td>
+          <td><div class="error">Error: apiRequestContext.get: connect ECONNREFUSED ::1:4000
+Call log:
+[2m  - → GET http://localhost:4000/api/market-data?symbols=TEST0&type=us-stock[22m
+[2m    - user-agent: Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+</div></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > performance.spec.js > Stress Tests > Large data handling</td>
+          <td class="failed">failed</td>
+          <td>570ms</td>
+          <td><div class="error">Error: apiRequestContext.get: connect ECONNREFUSED ::1:4000
+Call log:
+[2m  - → GET http://localhost:4000/api/market-data?symbols=SYM0%2CSYM1%2CSYM2%2CSYM3%2CSYM4%2CSYM5%2CSYM6%2CSYM7%2CSYM8%2CSYM9%2CSYM10%2CSYM11%2CSYM12%2CSYM13%2CSYM14%2CSYM15%2CSYM16%2CSYM17%2CSYM18%2CSYM19%2CSYM20%2CSYM21%2CSYM22%2CSYM23%2CSYM24%2CSYM25%2CSYM26%2CSYM27%2CSYM28%2CSYM29%2CSYM30%2CSYM31%2CSYM32%2CSYM33%2CSYM34%2CSYM35%2CSYM36%2CSYM37%2CSYM38%2CSYM39%2CSYM40%2CSYM41%2CSYM42%2CSYM43%2CSYM44%2CSYM45%2CSYM46%2CSYM47%2CSYM48%2CSYM49&type=us-stock[22m
+[2m    - user-agent: Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+</div></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > performance.spec.js > Performance Tests > Page load performance</td>
+          <td class="failed">failed</td>
+          <td>3006ms</td>
+          <td><div class="error">Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeLessThan[2m([22m[32mexpected[39m[2m)[22m
+
+Expected: < [32m100[39m
+Received:   [31m100[39m</div></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > portfolio-mcp.spec.js > Portfolio Management E2E Tests with MCP > Navigation between tabs works correctly</td>
+          <td class="passed">passed</td>
+          <td>860ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > portfolio-mcp.spec.js > Portfolio Management E2E Tests with MCP > Settings page accessibility and functionality</td>
+          <td class="passed">passed</td>
+          <td>879ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > portfolio-mcp.spec.js > Portfolio Management E2E Tests with MCP > Portfolio data display and formatting</td>
+          <td class="passed">passed</td>
+          <td>713ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > portfolio-mcp.spec.js > Portfolio Management E2E Tests with MCP > Responsive design on mobile viewport</td>
+          <td class="passed">passed</td>
+          <td>746ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > portfolio-mcp.spec.js > Portfolio Management E2E Tests with MCP > Error handling and loading states</td>
+          <td class="passed">passed</td>
+          <td>1081ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > portfolio-mcp.spec.js > Portfolio Management E2E Tests with MCP > Data integration functionality</td>
+          <td class="passed">passed</td>
+          <td>1787ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > portfolio-mcp.spec.js > Portfolio Management E2E Tests with MCP > Language switching functionality</td>
+          <td class="passed">passed</td>
+          <td>1732ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > test-summary.spec.js > E2E Test Summary > Test Infrastructure Validation</td>
+          <td class="passed">passed</td>
+          <td>0ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > test-summary.spec.js > E2E Test Summary > Mock Test Results</td>
+          <td class="passed">passed</td>
+          <td>0ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > test-summary.spec.js > E2E Test Summary > Performance Metrics</td>
+          <td class="passed">passed</td>
+          <td>0ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > test-summary.spec.js > E2E Test Summary > AWS Integration Status</td>
+          <td class="passed">passed</td>
+          <td>0ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > unit-mock.spec.js > Unit Mock Tests > API response mocking</td>
+          <td class="passed">passed</td>
+          <td>1ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > unit-mock.spec.js > Unit Mock Tests > Market data structure validation</td>
+          <td class="passed">passed</td>
+          <td>1ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > unit-mock.spec.js > Unit Mock Tests > Exchange rate validation</td>
+          <td class="passed">passed</td>
+          <td>0ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > unit-mock.spec.js > Unit Mock Tests > Error response structure</td>
+          <td class="passed">passed</td>
+          <td>1ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > unit-mock.spec.js > Unit Mock Tests > Performance metrics calculation</td>
+          <td class="passed">passed</td>
+          <td>2ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > unit-mock.spec.js > Unit Mock Tests > Rate limiting logic</td>
+          <td class="passed">passed</td>
+          <td>1ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > unit-mock.spec.js > Unit Mock Tests > Session validation</td>
+          <td class="passed">passed</td>
+          <td>0ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > unit-mock.spec.js > Unit Mock Tests > CORS headers validation</td>
+          <td class="passed">passed</td>
+          <td>2ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > unit-mock.spec.js > Unit Mock Tests > Data transformation</td>
+          <td class="passed">passed</td>
+          <td>0ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > unit-mock.spec.js > Unit Mock Tests > Integration test summary</td>
+          <td class="passed">passed</td>
+          <td>1ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > portfolio-mcp.spec.js > Portfolio Management E2E Tests with MCP > Accessibility compliance</td>
+          <td class="passed">passed</td>
+          <td>696ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > api-performance.spec.js > API Performance Tests > API response time measurement</td>
+          <td class="failed">failed</td>
+          <td>2ms</td>
+          <td><div class="error">Error: ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > api-performance.spec.js > API Performance Tests > Concurrent request handling</td>
+          <td class="failed">failed</td>
+          <td>2ms</td>
+          <td><div class="error">Error: ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > api-performance.spec.js > API Performance Tests > Cache performance</td>
+          <td class="failed">failed</td>
+          <td>1ms</td>
+          <td><div class="error">Error: ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > api-performance.spec.js > API Performance Tests > Large payload handling</td>
+          <td class="failed">failed</td>
+          <td>2ms</td>
+          <td><div class="error">Error: ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
         </tr>
       
         <tr>
           <td> > authenticated > aws-integration.spec.js > AWS Integration Tests > Market data API - US stock</td>
           <td class="failed">failed</td>
-          <td>10ms</td>
+          <td>3ms</td>
+          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
+ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > aws-integration.spec.js > AWS Integration Tests > API health check</td>
+          <td class="failed">failed</td>
+          <td>3ms</td>
           <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
 ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
         </tr>
@@ -283,7 +1239,7 @@ ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
         <tr>
           <td> > authenticated > aws-integration.spec.js > AWS Integration Tests > Market data API - Multiple symbols</td>
           <td class="failed">failed</td>
-          <td>5ms</td>
+          <td>3ms</td>
           <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
 ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
         </tr>
@@ -291,7 +1247,30 @@ ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
         <tr>
           <td> > authenticated > aws-integration.spec.js > AWS Integration Tests > Exchange rate API</td>
           <td class="failed">failed</td>
-          <td>5ms</td>
+          <td>3ms</td>
+          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
+ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > portfolio-mcp.spec.js > Portfolio Management E2E Tests with MCP > Dashboard loads and displays portfolio components</td>
+          <td class="failed">failed</td>
+          <td>5754ms</td>
+          <td><div class="error">Error: [31mTimed out 5000ms waiting for [39m[2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m()[22m
+
+Locator: locator('header')
+Expected: visible
+Received: <element(s) not found>
+Call log:
+[2m  - Expect "toBeVisible" with timeout 5000ms[22m
+[2m  - waiting for locator('header')[22m
+</div></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > aws-integration.spec.js > AWS Integration Tests > Error handling - Invalid symbol</td>
+          <td class="failed">failed</td>
+          <td>3ms</td>
           <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
 ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
         </tr>
@@ -299,15 +1278,7 @@ ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
         <tr>
           <td> > authenticated > aws-integration.spec.js > AWS Integration Tests > CORS configuration</td>
           <td class="failed">failed</td>
-          <td>4ms</td>
-          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
-ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
-        </tr>
-      
-        <tr>
-          <td> > authenticated > aws-integration.spec.js > AWS Integration Tests > Error handling - Invalid symbol</td>
-          <td class="failed">failed</td>
-          <td>5ms</td>
+          <td>7ms</td>
           <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
 ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
         </tr>
@@ -315,15 +1286,7 @@ ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
         <tr>
           <td> > authenticated > aws-integration.spec.js > AWS Integration Tests > Rate limiting</td>
           <td class="failed">failed</td>
-          <td>4ms</td>
-          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
-ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
-        </tr>
-      
-        <tr>
-          <td> > authenticated > aws-integration.spec.js > Frontend-Backend Integration > Real-time data update</td>
-          <td class="failed">failed</td>
-          <td>5ms</td>
+          <td>6ms</td>
           <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
 ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
         </tr>
@@ -331,7 +1294,7 @@ ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
         <tr>
           <td> > authenticated > aws-integration.spec.js > Frontend-Backend Integration > Portfolio data flow</td>
           <td class="failed">failed</td>
-          <td>4ms</td>
+          <td>5ms</td>
           <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
 ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
         </tr>
@@ -339,7 +1302,7 @@ ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
         <tr>
           <td> > authenticated > aws-integration.spec.js > Authentication Flow > Login flow with mock Google auth</td>
           <td class="failed">failed</td>
-          <td>7ms</td>
+          <td>5ms</td>
           <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
 ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
         </tr>
@@ -353,7 +1316,94 @@ ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
         </tr>
       
         <tr>
+          <td> > authenticated > aws-integration.spec.js > Error Scenarios > API error handling</td>
+          <td class="failed">failed</td>
+          <td>7ms</td>
+          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
+ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > aws-integration.spec.js > Frontend-Backend Integration > Real-time data update</td>
+          <td class="failed">failed</td>
+          <td>7ms</td>
+          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
+ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
+        </tr>
+      
+        <tr>
           <td> > authenticated > aws-integration.spec.js > Error Scenarios > Network error handling</td>
+          <td class="failed">failed</td>
+          <td>4ms</td>
+          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
+ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > portfolio-mcp.spec.js > Portfolio Management E2E Tests with MCP > Performance and load time</td>
+          <td class="passed">passed</td>
+          <td>3231ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > basic-flow.spec.js > Portfolio Manager - Basic Flow > ナビゲーションメニューが機能する</td>
+          <td class="failed">failed</td>
+          <td>4ms</td>
+          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
+ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > basic-flow.spec.js > Portfolio Manager - Basic Flow > アプリケーションが正常に読み込まれる</td>
+          <td class="failed">failed</td>
+          <td>7ms</td>
+          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
+ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > basic-flow.spec.js > Portfolio Manager - Basic Flow > ダッシュボードページが表示される</td>
+          <td class="failed">failed</td>
+          <td>5ms</td>
+          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
+ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > basic-flow.spec.js > Portfolio Manager - Basic Flow > レスポンシブデザインが正しく動作する</td>
+          <td class="failed">failed</td>
+          <td>6ms</td>
+          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
+ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > basic-flow.spec.js > Portfolio Manager - Basic Flow > エラーハンドリングが正しく動作する</td>
+          <td class="failed">failed</td>
+          <td>9ms</td>
+          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
+ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > basic-flow.spec.js > Portfolio Manager - Basic Flow > 基本的なフォーム操作が動作する</td>
+          <td class="failed">failed</td>
+          <td>8ms</td>
+          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
+ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > basic-flow.spec.js > Portfolio Manager - Advanced Features > API呼び出しのモック</td>
+          <td class="failed">failed</td>
+          <td>5ms</td>
+          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
+ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > basic-flow.spec.js > Portfolio Manager - Advanced Features > ローカルストレージの保存・読み込み</td>
           <td class="failed">failed</td>
           <td>3ms</td>
           <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
@@ -361,11 +1411,292 @@ ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
         </tr>
       
         <tr>
-          <td> > authenticated > aws-integration.spec.js > Error Scenarios > API error handling</td>
+          <td> > authenticated > mock-test.spec.js > Mock Integration Tests > Mocked exchange rate API</td>
+          <td class="failed">failed</td>
+          <td>15ms</td>
+          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
+ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > mock-test.spec.js > Mock Integration Tests > Mocked market data API</td>
+          <td class="failed">failed</td>
+          <td>4ms</td>
+          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
+ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > mock-test.spec.js > Mock Integration Tests > Mocked API health check</td>
+          <td class="failed">failed</td>
+          <td>4ms</td>
+          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
+ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > basic-flow.spec.js > Portfolio Manager - Advanced Features > パフォーマンス測定</td>
+          <td class="failed">failed</td>
+          <td>14ms</td>
+          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
+ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
+        </tr>
+      
+        <tr>
+          <td> > mobile > performance.spec.js > Performance Tests > API response time</td>
+          <td class="failed">failed</td>
+          <td>10412ms</td>
+          <td><div class="error">TimeoutError: page.waitForResponse: Timeout 10000ms exceeded while waiting for event "response"</div></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > mock-test.spec.js > Mock Integration Tests > Performance metrics collection</td>
+          <td class="failed">failed</td>
+          <td>5ms</td>
+          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
+ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > mock-test.spec.js > Mock Integration Tests > Error handling simulation</td>
+          <td class="failed">failed</td>
+          <td>11ms</td>
+          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
+ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > performance.spec.js > Performance Tests > Page load performance</td>
+          <td class="failed">failed</td>
+          <td>12ms</td>
+          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
+ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > mock-test.spec.js > Mock Integration Tests > CORS headers validation</td>
+          <td class="failed">failed</td>
+          <td>17ms</td>
+          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
+ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > performance.spec.js > Performance Tests > API response time</td>
+          <td class="failed">failed</td>
+          <td>3ms</td>
+          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
+ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > performance.spec.js > Performance Tests > Memory usage</td>
           <td class="failed">failed</td>
           <td>2ms</td>
           <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
 ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > performance.spec.js > Stress Tests > Concurrent requests</td>
+          <td class="failed">failed</td>
+          <td>5ms</td>
+          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
+ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > performance.spec.js > Stress Tests > Large data handling</td>
+          <td class="failed">failed</td>
+          <td>4ms</td>
+          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
+ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > performance.spec.js > Performance Tests > Bundle size check</td>
+          <td class="failed">failed</td>
+          <td>3ms</td>
+          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
+ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > portfolio-mcp.spec.js > Portfolio Management E2E Tests with MCP > Dashboard loads and displays portfolio components</td>
+          <td class="failed">failed</td>
+          <td>3ms</td>
+          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
+ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > portfolio-mcp.spec.js > Portfolio Management E2E Tests with MCP > Data integration functionality</td>
+          <td class="failed">failed</td>
+          <td>3ms</td>
+          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
+ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > portfolio-mcp.spec.js > Portfolio Management E2E Tests with MCP > Navigation between tabs works correctly</td>
+          <td class="failed">failed</td>
+          <td>11ms</td>
+          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
+ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > portfolio-mcp.spec.js > Portfolio Management E2E Tests with MCP > Settings page accessibility and functionality</td>
+          <td class="failed">failed</td>
+          <td>7ms</td>
+          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
+ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > portfolio-mcp.spec.js > Portfolio Management E2E Tests with MCP > Responsive design on mobile viewport</td>
+          <td class="failed">failed</td>
+          <td>5ms</td>
+          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
+ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > portfolio-mcp.spec.js > Portfolio Management E2E Tests with MCP > Portfolio data display and formatting</td>
+          <td class="failed">failed</td>
+          <td>2ms</td>
+          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
+ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > portfolio-mcp.spec.js > Portfolio Management E2E Tests with MCP > Accessibility compliance</td>
+          <td class="failed">failed</td>
+          <td>4ms</td>
+          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
+ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > portfolio-mcp.spec.js > Portfolio Management E2E Tests with MCP > Error handling and loading states</td>
+          <td class="failed">failed</td>
+          <td>6ms</td>
+          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
+ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > portfolio-mcp.spec.js > Portfolio Management E2E Tests with MCP > Language switching functionality</td>
+          <td class="failed">failed</td>
+          <td>5ms</td>
+          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
+ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > portfolio-mcp.spec.js > Portfolio Management E2E Tests with MCP > Performance and load time</td>
+          <td class="failed">failed</td>
+          <td>4ms</td>
+          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
+ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > test-summary.spec.js > E2E Test Summary > Test Infrastructure Validation</td>
+          <td class="passed">passed</td>
+          <td>3ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > unit-mock.spec.js > Unit Mock Tests > Market data structure validation</td>
+          <td class="passed">passed</td>
+          <td>8ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > unit-mock.spec.js > Unit Mock Tests > Exchange rate validation</td>
+          <td class="passed">passed</td>
+          <td>3ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > unit-mock.spec.js > Unit Mock Tests > Error response structure</td>
+          <td class="passed">passed</td>
+          <td>1ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > unit-mock.spec.js > Unit Mock Tests > Performance metrics calculation</td>
+          <td class="passed">passed</td>
+          <td>1ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > unit-mock.spec.js > Unit Mock Tests > Rate limiting logic</td>
+          <td class="passed">passed</td>
+          <td>0ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > unit-mock.spec.js > Unit Mock Tests > Session validation</td>
+          <td class="passed">passed</td>
+          <td>1ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > unit-mock.spec.js > Unit Mock Tests > CORS headers validation</td>
+          <td class="passed">passed</td>
+          <td>5ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > unit-mock.spec.js > Unit Mock Tests > Data transformation</td>
+          <td class="passed">passed</td>
+          <td>3ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > unit-mock.spec.js > Unit Mock Tests > Integration test summary</td>
+          <td class="passed">passed</td>
+          <td>0ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > test-summary.spec.js > E2E Test Summary > Mock Test Results</td>
+          <td class="passed">passed</td>
+          <td>3ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > unit-mock.spec.js > Unit Mock Tests > API response mocking</td>
+          <td class="passed">passed</td>
+          <td>4ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > test-summary.spec.js > E2E Test Summary > Performance Metrics</td>
+          <td class="passed">passed</td>
+          <td>2ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > authenticated > test-summary.spec.js > E2E Test Summary > AWS Integration Status</td>
+          <td class="passed">passed</td>
+          <td>3ms</td>
+          <td></td>
         </tr>
       
     </tbody>
@@ -389,33 +1720,356 @@ ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
     <h2>Errors</h2>
     
       <div class="error">
-        <h3>API error handling</h3>
-        <p>Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3000/
+        <h3>API response time measurement</h3>
+        <p>Error: apiRequestContext.get: connect ECONNREFUSED ::1:4000
 Call log:
-[2m  - navigating to "http://localhost:3000/", waiting until "load"[22m
+[2m  - → GET http://localhost:4000/health[22m
+[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.7204.15 Safari/537.36[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
 </p>
-        <pre>Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3000/
+        <pre>Error: apiRequestContext.get: connect ECONNREFUSED ::1:4000
 Call log:
-[2m  - navigating to "http://localhost:3000/", waiting until "load"[22m
+[2m  - → GET http://localhost:4000/health[22m
+[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.7204.15 Safari/537.36[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
 
-    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/aws-integration.spec.js:226:16</pre>
-      </div>
-    
-      <div class="error">
-        <h3>API error handling</h3>
-        <p>Error: page.goto: Could not connect to the server.
-Call log:
-[2m  - navigating to "http://localhost:3000/", waiting until "load"[22m
-</p>
-        <pre>Error: page.goto: Could not connect to the server.
-Call log:
-[2m  - navigating to "http://localhost:3000/", waiting until "load"[22m
-
-    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/aws-integration.spec.js:226:16</pre>
+    at apiRequestContext.get: connect ECONNREFUSED ::1:4000
+    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/api-performance.spec.js:18:38</pre>
       </div>
     
       <div class="error">
         <h3>API health check</h3>
+        <p>Error: apiRequestContext.get: connect ECONNREFUSED ::1:4000
+Call log:
+[2m  - → GET http://localhost:4000/health[22m
+[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.7204.15 Safari/537.36[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+</p>
+        <pre>Error: apiRequestContext.get: connect ECONNREFUSED ::1:4000
+Call log:
+[2m  - → GET http://localhost:4000/health[22m
+[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.7204.15 Safari/537.36[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+
+    at apiRequestContext.get: connect ECONNREFUSED ::1:4000
+    at AWSIntegrationHelper.checkAPIHealth (/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/helpers/aws-integration.js:16:46)
+    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/aws-integration.spec.js:15:36</pre>
+      </div>
+    
+      <div class="error">
+        <h3>Exchange rate API</h3>
+        <p>Error: apiRequestContext.get: connect ECONNREFUSED ::1:4000
+Call log:
+[2m  - → GET http://localhost:4000/api/market-data?type=exchange-rate&base=USD&target=JPY[22m
+[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.7204.15 Safari/537.36[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+</p>
+        <pre>Error: apiRequestContext.get: connect ECONNREFUSED ::1:4000
+Call log:
+[2m  - → GET http://localhost:4000/api/market-data?type=exchange-rate&base=USD&target=JPY[22m
+[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.7204.15 Safari/537.36[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+
+    at apiRequestContext.get: connect ECONNREFUSED ::1:4000
+    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/aws-integration.spec.js:47:41</pre>
+      </div>
+    
+      <div class="error">
+        <h3>Market data API - US stock</h3>
+        <p>Error: apiRequestContext.get: connect ECONNREFUSED ::1:4000
+Call log:
+[2m  - → GET http://localhost:4000/api/market-data?symbols=AAPL&type=us-stock[22m
+[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.7204.15 Safari/537.36[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+</p>
+        <pre>Error: apiRequestContext.get: connect ECONNREFUSED ::1:4000
+Call log:
+[2m  - → GET http://localhost:4000/api/market-data?symbols=AAPL&type=us-stock[22m
+[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.7204.15 Safari/537.36[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+
+    at apiRequestContext.get: connect ECONNREFUSED ::1:4000
+    at AWSIntegrationHelper.testMarketDataAPI (/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/helpers/aws-integration.js:47:46)
+    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/aws-integration.spec.js:20:39</pre>
+      </div>
+    
+      <div class="error">
+        <h3>Market data API - Multiple symbols</h3>
+        <p>Error: apiRequestContext.get: connect ECONNREFUSED ::1:4000
+Call log:
+[2m  - → GET http://localhost:4000/api/market-data?symbols=AAPL%2CGOOGL%2CMSFT&type=us-stock[22m
+[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.7204.15 Safari/537.36[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+</p>
+        <pre>Error: apiRequestContext.get: connect ECONNREFUSED ::1:4000
+Call log:
+[2m  - → GET http://localhost:4000/api/market-data?symbols=AAPL%2CGOOGL%2CMSFT&type=us-stock[22m
+[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.7204.15 Safari/537.36[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+
+    at apiRequestContext.get: connect ECONNREFUSED ::1:4000
+    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/aws-integration.spec.js:29:41</pre>
+      </div>
+    
+      <div class="error">
+        <h3>API error handling</h3>
+        <p>Error: [31mTimed out 5000ms waiting for [39m[2mexpect([22m[31mpage[39m[2m).[22mtoHaveTitle[2m([22m[32mexpected[39m[2m)[22m
+
+Locator: locator(':root')
+Expected pattern: [32m/Portfolio/i[39m
+Received string:  [31m"Miru - AI恋愛オーケストレーションシステム"[39m
+Call log:
+[2m  - Expect "toHaveTitle" with timeout 5000ms[22m
+[2m  - waiting for locator(':root')[22m
+[2m    9 × locator resolved to <html lang="ja">…</html>[22m
+[2m      - unexpected value "Miru - AI恋愛オーケストレーションシステム"[22m
+</p>
+        <pre>Error: [31mTimed out 5000ms waiting for [39m[2mexpect([22m[31mpage[39m[2m).[22mtoHaveTitle[2m([22m[32mexpected[39m[2m)[22m
+
+Locator: locator(':root')
+Expected pattern: [32m/Portfolio/i[39m
+Received string:  [31m"Miru - AI恋愛オーケストレーションシステム"[39m
+Call log:
+[2m  - Expect "toHaveTitle" with timeout 5000ms[22m
+[2m  - waiting for locator(':root')[22m
+[2m    9 × locator resolved to <html lang="ja">…</html>[22m
+[2m      - unexpected value "Miru - AI恋愛オーケストレーションシステム"[22m
+
+    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/aws-integration.spec.js:230:24</pre>
+      </div>
+    
+      <div class="error">
+        <h3>Mocked API health check</h3>
+        <p>Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+Expected: [32m200[39m
+Received: [31m404[39m</p>
+        <pre>Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+Expected: [32m200[39m
+Received: [31m404[39m
+    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/mock-test.spec.js:65:31</pre>
+      </div>
+    
+      <div class="error">
+        <h3>Mocked market data API</h3>
+        <p>Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+Expected: [32m200[39m
+Received: [31m404[39m</p>
+        <pre>Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+Expected: [32m200[39m
+Received: [31m404[39m
+    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/mock-test.spec.js:80:31</pre>
+      </div>
+    
+      <div class="error">
+        <h3>Mocked exchange rate API</h3>
+        <p>Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+Expected: [32m200[39m
+Received: [31m404[39m</p>
+        <pre>Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+Expected: [32m200[39m
+Received: [31m404[39m
+    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/mock-test.spec.js:98:31</pre>
+      </div>
+    
+      <div class="error">
+        <h3>API response time measurement</h3>
+        <p>Error: apiRequestContext.get: connect ECONNREFUSED ::1:4000
+Call log:
+[2m  - → GET http://localhost:4000/health[22m
+[2m    - user-agent: Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+</p>
+        <pre>Error: apiRequestContext.get: connect ECONNREFUSED ::1:4000
+Call log:
+[2m  - → GET http://localhost:4000/health[22m
+[2m    - user-agent: Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+
+    at apiRequestContext.get: connect ECONNREFUSED ::1:4000
+    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/api-performance.spec.js:18:38</pre>
+      </div>
+    
+      <div class="error">
+        <h3>API health check</h3>
+        <p>Error: apiRequestContext.get: connect ECONNREFUSED ::1:4000
+Call log:
+[2m  - → GET http://localhost:4000/health[22m
+[2m    - user-agent: Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+</p>
+        <pre>Error: apiRequestContext.get: connect ECONNREFUSED ::1:4000
+Call log:
+[2m  - → GET http://localhost:4000/health[22m
+[2m    - user-agent: Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+
+    at apiRequestContext.get: connect ECONNREFUSED ::1:4000
+    at AWSIntegrationHelper.checkAPIHealth (/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/helpers/aws-integration.js:16:46)
+    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/aws-integration.spec.js:15:36</pre>
+      </div>
+    
+      <div class="error">
+        <h3>Market data API - US stock</h3>
+        <p>Error: apiRequestContext.get: connect ECONNREFUSED ::1:4000
+Call log:
+[2m  - → GET http://localhost:4000/api/market-data?symbols=AAPL&type=us-stock[22m
+[2m    - user-agent: Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+</p>
+        <pre>Error: apiRequestContext.get: connect ECONNREFUSED ::1:4000
+Call log:
+[2m  - → GET http://localhost:4000/api/market-data?symbols=AAPL&type=us-stock[22m
+[2m    - user-agent: Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+
+    at apiRequestContext.get: connect ECONNREFUSED ::1:4000
+    at AWSIntegrationHelper.testMarketDataAPI (/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/helpers/aws-integration.js:47:46)
+    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/aws-integration.spec.js:20:39</pre>
+      </div>
+    
+      <div class="error">
+        <h3>Market data API - Multiple symbols</h3>
+        <p>Error: apiRequestContext.get: connect ECONNREFUSED ::1:4000
+Call log:
+[2m  - → GET http://localhost:4000/api/market-data?symbols=AAPL%2CGOOGL%2CMSFT&type=us-stock[22m
+[2m    - user-agent: Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+</p>
+        <pre>Error: apiRequestContext.get: connect ECONNREFUSED ::1:4000
+Call log:
+[2m  - → GET http://localhost:4000/api/market-data?symbols=AAPL%2CGOOGL%2CMSFT&type=us-stock[22m
+[2m    - user-agent: Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+
+    at apiRequestContext.get: connect ECONNREFUSED ::1:4000
+    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/aws-integration.spec.js:29:41</pre>
+      </div>
+    
+      <div class="error">
+        <h3>Exchange rate API</h3>
+        <p>Error: apiRequestContext.get: connect ECONNREFUSED ::1:4000
+Call log:
+[2m  - → GET http://localhost:4000/api/market-data?type=exchange-rate&base=USD&target=JPY[22m
+[2m    - user-agent: Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+</p>
+        <pre>Error: apiRequestContext.get: connect ECONNREFUSED ::1:4000
+Call log:
+[2m  - → GET http://localhost:4000/api/market-data?type=exchange-rate&base=USD&target=JPY[22m
+[2m    - user-agent: Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1[22m
+[2m    - accept: */*[22m
+[2m    - accept-encoding: gzip,deflate,br[22m
+
+    at apiRequestContext.get: connect ECONNREFUSED ::1:4000
+    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/aws-integration.spec.js:47:41</pre>
+      </div>
+    
+      <div class="error">
+        <h3>API response time</h3>
+        <p>TimeoutError: page.waitForResponse: Timeout 10000ms exceeded while waiting for event "response"</p>
+        <pre>TimeoutError: page.waitForResponse: Timeout 10000ms exceeded while waiting for event "response"
+    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/performance.spec.js:57:34</pre>
+      </div>
+    
+      <div class="error">
+        <h3>API error handling</h3>
+        <p>Error: [31mTimed out 5000ms waiting for [39m[2mexpect([22m[31mpage[39m[2m).[22mtoHaveTitle[2m([22m[32mexpected[39m[2m)[22m
+
+Locator: locator(':root')
+Expected pattern: [32m/Portfolio/i[39m
+Received string:  [31m"Miru - AI恋愛オーケストレーションシステム"[39m
+Call log:
+[2m  - Expect "toHaveTitle" with timeout 5000ms[22m
+[2m  - waiting for locator(':root')[22m
+[2m    9 × locator resolved to <html lang="ja">…</html>[22m
+[2m      - unexpected value "Miru - AI恋愛オーケストレーションシステム"[22m
+</p>
+        <pre>Error: [31mTimed out 5000ms waiting for [39m[2mexpect([22m[31mpage[39m[2m).[22mtoHaveTitle[2m([22m[32mexpected[39m[2m)[22m
+
+Locator: locator(':root')
+Expected pattern: [32m/Portfolio/i[39m
+Received string:  [31m"Miru - AI恋愛オーケストレーションシステム"[39m
+Call log:
+[2m  - Expect "toHaveTitle" with timeout 5000ms[22m
+[2m  - waiting for locator(':root')[22m
+[2m    9 × locator resolved to <html lang="ja">…</html>[22m
+[2m      - unexpected value "Miru - AI恋愛オーケストレーションシステム"[22m
+
+    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/aws-integration.spec.js:230:24</pre>
+      </div>
+    
+      <div class="error">
+        <h3>Mocked API health check</h3>
+        <p>Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+Expected: [32m200[39m
+Received: [31m404[39m</p>
+        <pre>Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+Expected: [32m200[39m
+Received: [31m404[39m
+    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/mock-test.spec.js:65:31</pre>
+      </div>
+    
+      <div class="error">
+        <h3>Mocked exchange rate API</h3>
+        <p>Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+Expected: [32m200[39m
+Received: [31m404[39m</p>
+        <pre>Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+Expected: [32m200[39m
+Received: [31m404[39m
+    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/mock-test.spec.js:98:31</pre>
+      </div>
+    
+      <div class="error">
+        <h3>Mocked market data API</h3>
+        <p>Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+Expected: [32m200[39m
+Received: [31m404[39m</p>
+        <pre>Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+Expected: [32m200[39m
+Received: [31m404[39m
+    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/mock-test.spec.js:80:31</pre>
+      </div>
+    
+      <div class="error">
+        <h3>API response time measurement</h3>
+        <p>Error: ENOENT: no such file or directory, open 'e2e/.auth/user.json'</p>
+        <pre>Error: ENOENT: no such file or directory, open 'e2e/.auth/user.json'</pre>
+      </div>
+    
+      <div class="error">
+        <h3>Market data API - US stock</h3>
         <p>Error: Error reading storage state from e2e/.auth/user.json:
 ENOENT: no such file or directory, open 'e2e/.auth/user.json'</p>
         <pre>Error: Error reading storage state from e2e/.auth/user.json:
@@ -423,7 +2077,7 @@ ENOENT: no such file or directory, open 'e2e/.auth/user.json'</pre>
       </div>
     
       <div class="error">
-        <h3>Market data API - US stock</h3>
+        <h3>API health check</h3>
         <p>Error: Error reading storage state from e2e/.auth/user.json:
 ENOENT: no such file or directory, open 'e2e/.auth/user.json'</p>
         <pre>Error: Error reading storage state from e2e/.auth/user.json:
@@ -448,6 +2102,53 @@ ENOENT: no such file or directory, open 'e2e/.auth/user.json'</pre>
     
       <div class="error">
         <h3>API error handling</h3>
+        <p>Error: Error reading storage state from e2e/.auth/user.json:
+ENOENT: no such file or directory, open 'e2e/.auth/user.json'</p>
+        <pre>Error: Error reading storage state from e2e/.auth/user.json:
+ENOENT: no such file or directory, open 'e2e/.auth/user.json'</pre>
+      </div>
+    
+      <div class="error">
+        <h3>API呼び出しのモック</h3>
+        <p>Error: Error reading storage state from e2e/.auth/user.json:
+ENOENT: no such file or directory, open 'e2e/.auth/user.json'</p>
+        <pre>Error: Error reading storage state from e2e/.auth/user.json:
+ENOENT: no such file or directory, open 'e2e/.auth/user.json'</pre>
+      </div>
+    
+      <div class="error">
+        <h3>Mocked exchange rate API</h3>
+        <p>Error: Error reading storage state from e2e/.auth/user.json:
+ENOENT: no such file or directory, open 'e2e/.auth/user.json'</p>
+        <pre>Error: Error reading storage state from e2e/.auth/user.json:
+ENOENT: no such file or directory, open 'e2e/.auth/user.json'</pre>
+      </div>
+    
+      <div class="error">
+        <h3>Mocked market data API</h3>
+        <p>Error: Error reading storage state from e2e/.auth/user.json:
+ENOENT: no such file or directory, open 'e2e/.auth/user.json'</p>
+        <pre>Error: Error reading storage state from e2e/.auth/user.json:
+ENOENT: no such file or directory, open 'e2e/.auth/user.json'</pre>
+      </div>
+    
+      <div class="error">
+        <h3>Mocked API health check</h3>
+        <p>Error: Error reading storage state from e2e/.auth/user.json:
+ENOENT: no such file or directory, open 'e2e/.auth/user.json'</p>
+        <pre>Error: Error reading storage state from e2e/.auth/user.json:
+ENOENT: no such file or directory, open 'e2e/.auth/user.json'</pre>
+      </div>
+    
+      <div class="error">
+        <h3>API response time</h3>
+        <p>TimeoutError: page.waitForResponse: Timeout 10000ms exceeded while waiting for event "response"</p>
+        <pre>TimeoutError: page.waitForResponse: Timeout 10000ms exceeded while waiting for event "response"
+    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/performance.spec.js:57:34</pre>
+      </div>
+    
+      <div class="error">
+        <h3>API response time</h3>
         <p>Error: Error reading storage state from e2e/.auth/user.json:
 ENOENT: no such file or directory, open 'e2e/.auth/user.json'</p>
         <pre>Error: Error reading storage state from e2e/.auth/user.json:

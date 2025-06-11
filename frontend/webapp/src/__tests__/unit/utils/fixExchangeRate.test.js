@@ -77,7 +77,14 @@ describe('fixExchangeRate', () => {
     });
 
     it('初期化時に使用方法を表示する', () => {
-      // モジュールを読み込み
+      // コンソールスパイをクリア
+      jest.clearAllMocks();
+      
+      // モジュールキャッシュをクリア
+      delete require.cache[require.resolve('../../../utils/fixExchangeRate')];
+      delete require.cache[require.resolve('../../../utils/exchangeRateDebounce')];
+      
+      // モジュールを読み込み（これで初期化メッセージが出力される）
       require('../../../utils/fixExchangeRate');
       
       expect(consoleLogSpy).toHaveBeenCalledWith(
@@ -226,7 +233,7 @@ describe('fixExchangeRate', () => {
         
         const result = fixExchangeRate();
         
-        expect(result).toBe(true); // 全体の処理は成功
+        expect(result).toBe(false); // 解析エラーで失敗
         expect(consoleErrorSpy).toHaveBeenCalledWith(
           'ポートフォリオデータの解析に失敗しました:',
           expect.any(Error)
@@ -239,7 +246,7 @@ describe('fixExchangeRate', () => {
         
         const result = fixExchangeRate();
         
-        expect(result).toBe(true);
+        expect(result).toBe(false); // JSONパースエラーで失敗
         expect(consoleErrorSpy).toHaveBeenCalledWith(
           'ポートフォリオデータの解析に失敗しました:',
           expect.any(Error)
@@ -343,8 +350,8 @@ describe('fixExchangeRate', () => {
         
         fixExchangeRate();
         
-        expect(consoleLogSpy).toHaveBeenCalledWith('為替レートは正常です。');
-        // 0は有効な数値として扱われる
+        expect(consoleLogSpy).toHaveBeenCalledWith('不正な為替レートを検出しました。修正します。');
+        // 0は無効な数値として扱われ修正される
       });
 
       it('rateが負の数値の場合', () => {
@@ -365,8 +372,8 @@ describe('fixExchangeRate', () => {
         
         fixExchangeRate();
         
-        expect(consoleLogSpy).toHaveBeenCalledWith('為替レートは正常です。');
-        // Infinityも数値型として扱われる
+        expect(consoleLogSpy).toHaveBeenCalledWith('不正な為替レートを検出しました。修正します。');
+        // Infinityは無効な数値として扱われ修正される
       });
     });
 

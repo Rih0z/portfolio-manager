@@ -48,6 +48,25 @@ describe('formatters', () => {
 
     it('非常に大きな値を正しくフォーマットする', () => {
       expect(formatCurrency(1000000000, 'JPY')).toBe('¥1,000,000,000');
+      expect(formatCurrency(1000000000, 'USD')).toBe('$1,000,000,000.00');
+    });
+
+    it('サポートされていない通貨コードを処理する', () => {
+      expect(formatCurrency(1000, 'EUR')).toBe('€1,000.00');
+      expect(formatCurrency(1000, 'GBP')).toBe('£1,000.00');
+      expect(formatCurrency(1000, 'INVALID')).toBe('INVALID1,000.00');
+    });
+
+    it('小数点以下の精度を正しく処理する', () => {
+      expect(formatCurrency(123.456789, 'USD')).toBe('$123.46');
+      expect(formatCurrency(123.454, 'USD')).toBe('$123.45');
+      expect(formatCurrency(123.999, 'JPY')).toBe('¥124');
+    });
+
+    it('ゼロと非常に小さな値を処理する', () => {
+      expect(formatCurrency(0.001, 'USD')).toBe('$0.00');
+      expect(formatCurrency(0.01, 'USD')).toBe('$0.01');
+      expect(formatCurrency(0.001, 'JPY')).toBe('¥0');
       expect(formatCurrency(1000000000.99, 'USD')).toBe('$1,000,000,000.99');
     });
 
@@ -166,6 +185,30 @@ describe('formatters', () => {
     it('ISO文字列を正しくフォーマットする', () => {
       const isoString = '2024-01-15T10:30:00Z';
       const result = formatDate(isoString);
+      expect(result).toMatch(/2024[-\/]01[-\/]15/);
+    });
+
+    it('yyyy/MM/dd形式でフォーマットする', () => {
+      const date = new Date('2024-01-15T10:30:00Z');
+      const result = formatDate(date, 'yyyy/MM/dd');
+      expect(result).toBe('2024/01/15');
+    });
+
+    it('yyyy-MM-dd形式でフォーマットする', () => {
+      const date = new Date('2024-01-15T10:30:00Z');
+      const result = formatDate(date, 'yyyy-MM-dd');
+      expect(result).toBe('2024-01-15');
+    });
+
+    it('無効な日付を適切に処理する', () => {
+      expect(formatDate(null)).toBe('Invalid Date');
+      expect(formatDate(undefined)).toBe('Invalid Date');
+      expect(formatDate('invalid')).toBe('Invalid Date');
+    });
+
+    it('数値のタイムスタンプを処理する', () => {
+      const timestamp = new Date('2024-01-15T10:30:00Z').getTime();
+      const result = formatDate(timestamp);
       expect(result).toMatch(/2024[-\/]01[-\/]15/);
     });
 

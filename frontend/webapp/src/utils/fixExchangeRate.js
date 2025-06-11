@@ -24,7 +24,8 @@ const fixExchangeRate = function() {
         const data = JSON.parse(atob(portfolioData));
         
         if (data.exchangeRate) {
-          if (!data.exchangeRate.rate || typeof data.exchangeRate.rate !== 'number') {
+          if (!data.exchangeRate.rate || typeof data.exchangeRate.rate !== 'number' || 
+              data.exchangeRate.rate <= 0 || !isFinite(data.exchangeRate.rate)) {
             console.log('不正な為替レートを検出しました。修正します。');
             data.exchangeRate = {
               rate: 150.0,
@@ -54,6 +55,7 @@ const fixExchangeRate = function() {
         }
       } catch (error) {
         console.error('ポートフォリオデータの解析に失敗しました:', error);
+        throw error; // エラーを外側のcatchに伝播
       }
     }
     

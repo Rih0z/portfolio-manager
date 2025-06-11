@@ -536,6 +536,7 @@ Based on the above information, please advise me on:
   };
 
   return (
+    <>
     <div className="min-h-screen bg-dark-100 text-white">
       <div className={`container mx-auto px-4 py-8 pb-20 ${isFirstTimeUser ? 'max-w-6xl' : ''}`}>
         {/* Header */}
@@ -1550,8 +1551,7 @@ Based on the above information, please advise me on:
             </div>
           )}
         </div>
-
-        {/* Navigation Buttons */}
+        
         <div className="flex justify-between mt-8 max-w-4xl mx-auto">
           <button
             onClick={handlePrevious}
@@ -1582,6 +1582,7 @@ Based on the above information, please advise me on:
         </div>
       </div>
     </div>
+    </>
   );
 };
 

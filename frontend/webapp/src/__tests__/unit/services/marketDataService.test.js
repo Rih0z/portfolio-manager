@@ -1,12 +1,18 @@
 import {
   fetchExchangeRate,
   fetchStockData,
-  fetchMultipleStocks
+  fetchMultipleStocks,
+  fetchApiStatus
 } from '../../../services/marketDataService';
 
 // Mock dependencies
 jest.mock('../../../utils/envUtils', () => ({
-  getApiEndpoint: jest.fn(() => Promise.resolve('http://localhost:3000/api/market-data'))
+  getApiEndpoint: jest.fn((endpoint) => {
+    if (endpoint === 'admin/status') {
+      return 'http://localhost:3000/admin/status';
+    }
+    return 'http://localhost:3000/api/market-data';
+  })
 }));
 
 jest.mock('../../../utils/apiUtils', () => ({
@@ -530,6 +536,273 @@ describe('marketDataService', () => {
       );
 
       consoleSpy.mockRestore();
+    });
+  });
+
+  describe('fetchApiStatus', () => {
+    it('successfully fetches API status', async () => {
+      const mockResponse = {
+        success: true,
+        status: 'operational',
+        endpoints: {
+          'market-data': 'up',
+          'exchange-rate': 'up'
+        },
+        cache: {
+          size: 1024,
+          hitRate: 0.95
+        },
+        lastUpdate: '2025-01-01T00:00:00Z'
+      };
+      fetchWithRetry.mockResolvedValue(mockResponse);
+
+      const result = await fetchApiStatus();
+
+      expect(result).toEqual(mockResponse);
+      expect(fetchWithRetry).toHaveBeenCalledWith(
+        'http://localhost:3000/admin/status',
+        {}
+      );
+    });
+
+    it('handles API status fetch error', async () => {
+      const error = new Error('Admin API error');
+      fetchWithRetry.mockRejectedValue(error);
+      formatErrorResponse.mockReturnValue({
+        success: false,
+        error: true,
+        message: 'Failed to fetch status',
+        errorType: 'ADMIN_ERROR'
+      });
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      const result = await fetchApiStatus();
+
+      expect(result).toEqual({
+        success: false,
+        error: {
+          success: false,
+          error: true,
+          message: 'Failed to fetch status',
+          errorType: 'ADMIN_ERROR'
+        }
+      });
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Error fetching API status:',
+        error
+      );
+
+      consoleSpy.mockRestore();
+    });
+
+    it('handles network connectivity issues for status', async () => {
+      const networkError = {
+        message: 'Network Error',
+        code: 'ECONNREFUSED'
+      };
+      fetchWithRetry.mockRejectedValue(networkError);
+      formatErrorResponse.mockReturnValue({
+        success: false,
+        errorType: 'NETWORK',
+        message: 'ネットワーク接続に問題があります'
+      });
+
+      const result = await fetchApiStatus();
+
+      expect(result.success).toBe(false);
+      expect(result.error.errorType).toBe('NETWORK');
+    });
+
+    it('handles authentication issues for admin status', async () => {
+      const authError = {
+        response: {
+          status: 403,
+          data: { message: 'Access denied' }
+        }
+      };
+      fetchWithRetry.mockRejectedValue(authError);
+      formatErrorResponse.mockReturnValue({
+        success: false,
+        errorType: 'AUTH_ERROR',
+        message: 'Access denied',
+        status: 403
+      });
+
+      const result = await fetchApiStatus();
+
+      expect(result.success).toBe(false);
+      expect(result.error.status).toBe(403);
+    });
+  });
+
+  describe('fetchMultipleStocks の詳細テスト', () => {
+    it('複数種類の銘柄を並列処理する', async () => {
+      // バッチ処理をモックするため、実際の実装に近い形でテスト
+      const tickers = ['AAPL', 'GOOGL', '7203.T', '6758.T', '12345678', '1234567A'];
+      const mockResponses = {
+        'us-stock': {
+          success: true,
+          data: {
+            'AAPL': { ticker: 'AAPL', price: 150.0 },
+            'GOOGL': { ticker: 'GOOGL', price: 2500.0 }
+          },
+          source: 'API'
+        },
+        'jp-stock': {
+          success: true,
+          data: {
+            '7203.T': { ticker: '7203.T', price: 2000 },
+            '6758.T': { ticker: '6758.T', price: 18000 }
+          },
+          source: 'API'
+        },
+        'mutual-fund': {
+          success: true,
+          data: {
+            '12345678': { ticker: '12345678', price: 10000 },
+            '1234567A': { ticker: '1234567A', price: 15000 }
+          },
+          source: 'API'
+        }
+      };
+
+      // fetchWithRetryのモックを設定
+      fetchWithRetry.mockImplementation(async (endpoint, params) => {
+        return mockResponses[params.type];
+      });
+
+      const result = await fetchMultipleStocks(tickers);
+
+      expect(result.success).toBe(true);
+      expect(Object.keys(result.data)).toHaveLength(6);
+      expect(result.sources.API).toBe(6);
+      expect(result.sourcesSummary).toBe('API: 6件');
+    });
+
+    it('一部のバッチ処理が失敗した場合のフォールバック', async () => {
+      const tickers = ['AAPL', '7203.T'];
+      
+      fetchWithRetry
+        .mockResolvedValueOnce({
+          success: true,
+          data: { 'AAPL': { ticker: 'AAPL', price: 150.0 } },
+          source: 'API'
+        })
+        .mockRejectedValueOnce(new Error('JP stock API failed'));
+
+      generateFallbackData.mockImplementation(ticker => ({
+        ticker,
+        price: 1000,
+        source: 'Fallback'
+      }));
+
+      const result = await fetchMultipleStocks(tickers);
+
+      expect(result.success).toBe(true);
+      expect(result.data['AAPL']).toBeDefined();
+      expect(result.data['7203.T']).toBeDefined();
+      expect(result.sources.API).toBe(1);
+      expect(result.sources.Fallback).toBe(1);
+    });
+
+    it('銘柄分類の境界ケースをテストする', async () => {
+      // 4桁の数字（日本株）
+      const fourDigit = '1234';
+      
+      fetchWithRetry.mockResolvedValue({
+        success: true,
+        data: { [fourDigit]: { ticker: fourDigit } },
+        source: 'API'
+      });
+
+      await fetchMultipleStocks([fourDigit]);
+
+      expect(fetchWithRetry).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          type: 'jp-stock',
+          symbols: fourDigit
+        }),
+        expect.any(Number)
+      );
+    });
+
+    it('エラーログが適切に出力される', async () => {
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      
+      fetchWithRetry.mockRejectedValue(new Error('Network failure'));
+      generateFallbackData.mockReturnValue({ ticker: 'AAPL', source: 'Fallback' });
+
+      await fetchMultipleStocks(['AAPL']);
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Error fetching US stocks:',
+        expect.any(Error)
+      );
+
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('高度なエラーハンドリング', () => {
+    it('APIレスポンスの形式が不正な場合', async () => {
+      const malformedResponse = {
+        success: true,
+        // dataプロパティがない
+      };
+      fetchWithRetry.mockResolvedValue(malformedResponse);
+
+      const result = await fetchStockData('AAPL');
+
+      expect(result).toEqual(malformedResponse);
+    });
+
+    it('APIレスポンスのdataがnullの場合', async () => {
+      const nullDataResponse = {
+        success: true,
+        data: null
+      };
+      fetchWithRetry.mockResolvedValue(nullDataResponse);
+
+      const result = await fetchStockData('AAPL');
+
+      expect(result).toEqual(nullDataResponse);
+    });
+
+    it('APIから空のdataオブジェクトが返される場合', async () => {
+      const emptyDataResponse = {
+        success: true,
+        data: {}
+      };
+      fetchWithRetry.mockResolvedValue(emptyDataResponse);
+
+      const result = await fetchStockData('AAPL');
+
+      expect(result).toEqual(emptyDataResponse);
+    });
+
+    it('極端に大きなレスポンスデータの処理', async () => {
+      const largeResponse = {
+        success: true,
+        data: {}
+      };
+      
+      // 1000個の銘柄データを生成
+      for (let i = 0; i < 1000; i++) {
+        largeResponse.data[`STOCK${i}`] = {
+          ticker: `STOCK${i}`,
+          price: Math.random() * 1000,
+          name: `Stock ${i}`
+        };
+      }
+      
+      fetchWithRetry.mockResolvedValue(largeResponse);
+
+      const result = await fetchStockData('STOCK0');
+
+      expect(result).toEqual(largeResponse);
+      expect(Object.keys(result.data)).toHaveLength(1000);
     });
   });
 });
