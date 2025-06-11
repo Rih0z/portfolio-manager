@@ -20,13 +20,13 @@
   <h1>AWS Integration Test Report</h1>
   <div class="summary">
     <h2>Summary</h2>
-    <p>Generated: 2025-06-11T20:29:40.300Z</p>
-    <p>Duration: 12333ms</p>
+    <p>Generated: 2025-06-11T20:46:35.459Z</p>
+    <p>Duration: 9111ms</p>
     <p>
       Total: 18 | 
-      <span class="passed">Passed: 7</span> | 
-      <span class="failed">Failed: 11</span> | 
-      <span class="skipped">Skipped: 0</span>
+      <span class="passed">Passed: 11</span> | 
+      <span class="failed">Failed: 5</span> | 
+      <span class="skipped">Skipped: 2</span>
     </p>
   </div>
 
@@ -43,9 +43,9 @@
     <tbody>
       
         <tr>
-          <td> > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Japanese Stock Market > TOPIX and Nikkei indices</td>
+          <td> > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Japanese Mutual Funds > Popular Japanese mutual fund</td>
           <td class="failed">failed</td>
-          <td>3041ms</td>
+          <td>3031ms</td>
           <td><div class="error">Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
 
 Expected: [32m200[39m
@@ -53,9 +53,59 @@ Received: [31m400[39m</div></td>
         </tr>
       
         <tr>
-          <td> > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Japanese Mutual Funds > Popular Japanese mutual fund</td>
+          <td> > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Japanese Stock Market > TOPIX and Nikkei indices</td>
           <td class="failed">failed</td>
-          <td>3363ms</td>
+          <td>3213ms</td>
+          <td><div class="error">Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+Expected: [32m200[39m
+Received: [31m400[39m</div></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Japanese Stock Market > Multiple Japanese stocks</td>
+          <td class="passed">passed</td>
+          <td>3265ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Market Hours and Trading Status > Japanese market hours check</td>
+          <td class="passed">passed</td>
+          <td>136ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Market Hours and Trading Status > Market holidays handling</td>
+          <td class="passed">passed</td>
+          <td>148ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Japanese Stock Market > Japanese stock with fallback handling</td>
+          <td class="passed">passed</td>
+          <td>3560ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Japanese Stock Market > Japanese stock data - 7203 (Toyota)</td>
+          <td class="failed">failed</td>
+          <td>3595ms</td>
+          <td><div class="error">Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoHaveProperty[2m([22m[32mpath[39m[2m)[22m
+
+Expected path: [32m"7203.T"[39m
+Received path: [31m[][39m
+
+Received value: [31m{"change": -1.5, "changePercent": -0.056444027, "currency": "JPY", "dayHigh": 2678, "dayLow": 2652, "isMutualFund": false, "isStock": true, "lastUpdated": "2025-06-11T20:29:47.170Z", "marketCap": 34634507223040, "name": "Toyota Motor Corporation", "previousClose": 2657.5, "price": 2656, "source": "Yahoo Finance2 (npm)", "ticker": "7203.T", "volume": 16367500, "week52High": 3399, "week52Low": 2183}[39m</div></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Currency and Exchange Rates > Multiple currency pairs with JPY</td>
+          <td class="failed">failed</td>
+          <td>193ms</td>
           <td><div class="error">Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
 
 Expected: [32m200[39m
@@ -65,7 +115,7 @@ Received: [31m400[39m</div></td>
         <tr>
           <td> > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Japanese Mutual Funds > Multiple Japanese mutual funds</td>
           <td class="failed">failed</td>
-          <td>276ms</td>
+          <td>317ms</td>
           <td><div class="error">Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
 
 Expected: [32m200[39m
@@ -75,130 +125,63 @@ Received: [31m400[39m</div></td>
         <tr>
           <td> > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Japanese Mutual Funds > Fund search by name pattern</td>
           <td class="passed">passed</td>
-          <td>193ms</td>
+          <td>235ms</td>
           <td></td>
-        </tr>
-      
-        <tr>
-          <td> > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Market Hours and Trading Status > Market holidays handling</td>
-          <td class="passed">passed</td>
-          <td>121ms</td>
-          <td></td>
-        </tr>
-      
-        <tr>
-          <td> > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Market Hours and Trading Status > Japanese market hours check</td>
-          <td class="passed">passed</td>
-          <td>249ms</td>
-          <td></td>
-        </tr>
-      
-        <tr>
-          <td> > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Currency and Exchange Rates > Multiple currency pairs with JPY</td>
-          <td class="failed">failed</td>
-          <td>176ms</td>
-          <td><div class="error">Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
-
-Expected: [32m200[39m
-Received: [31m400[39m</div></td>
-        </tr>
-      
-        <tr>
-          <td> > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Japanese Stock Market > Japanese stock data - 7203 (Toyota)</td>
-          <td class="failed">failed</td>
-          <td>4553ms</td>
-          <td><div class="error">Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoHaveProperty[2m([22m[32mpath[39m[2m)[22m
-
-Expected path: [32m"7203.T"[39m
-Received path: [31m[][39m
-
-Received value: [31m{"7203.T": {"change": -1.5, "changePercent": -0.056444027, "currency": "JPY", "dayHigh": 2678, "dayLow": 2652, "isMutualFund": false, "isStock": true, "lastUpdated": "2025-06-11T20:29:45.155Z", "marketCap": 34634507223040, "name": "Toyota Motor Corporation", "previousClose": 2657.5, "price": 2656, "source": "Yahoo Finance2 (npm)", "ticker": "7203.T", "volume": 16367500, "week52High": 3399, "week52Low": 2183}}[39m</div></td>
-        </tr>
-      
-        <tr>
-          <td> > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Japanese Stock Market > Multiple Japanese stocks</td>
-          <td class="failed">failed</td>
-          <td>4695ms</td>
-          <td><div class="error">Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoHaveProperty[2m([22m[32mpath[39m[2m)[22m
-
-Expected path: [32m"7203.T"[39m
-Received path: [31m[][39m
-
-Received value: [31m{"6758.T": {"change": -53, "changePercent": -1.3947369, "currency": "JPY", "dayHigh": 3827, "dayLow": 3733, "isMutualFund": false, "isStock": true, "lastUpdated": "2025-06-11T20:29:45.153Z", "marketCap": 22872961581056, "name": "Sony Group Corporation", "previousClose": 3800, "price": 3747, "source": "Yahoo Finance2 (npm)", "ticker": "6758.T", "volume": 9943000, "week52High": 4035, "week52Low": 2210}, "7203.T": {"change": -1.5, "changePercent": -0.056444027, "currency": "JPY", "dayHigh": 2678, "dayLow": 2652, "isMutualFund": false, "isStock": true, "lastUpdated": "2025-06-11T20:29:45.211Z", "marketCap": 34634507223040, "name": "Toyota Motor Corporation", "previousClose": 2657.5, "price": 2656, "source": "Yahoo Finance2 (npm)", "ticker": "7203.T", "volume": 16367500, "week52High": 3399, "week52Low": 2183}, "9984.T": {"change": 171, "changePercent": 2.1620939, "currency": "JPY", "dayHigh": 8085, "dayLow": 7951, "isMutualFund": false, "isStock": true, "lastUpdated": "2025-06-11T20:29:45.252Z", "marketCap": 11532260868096, "name": "SoftBank Group Corp.", "previousClose": 7909, "price": 8080, "source": "Yahoo Finance2 (npm)", "ticker": "9984.T", "volume": 10500600, "week52High": 12180, "week52Low": 5730}}[39m</div></td>
-        </tr>
-      
-        <tr>
-          <td> > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Currency and Exchange Rates > USD/JPY exchange rate</td>
-          <td class="passed">passed</td>
-          <td>1835ms</td>
-          <td></td>
-        </tr>
-      
-        <tr>
-          <td> > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Japanese Stock Market > Japanese stock with fallback handling</td>
-          <td class="failed">failed</td>
-          <td>6005ms</td>
-          <td><div class="error">Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeDefined[2m()[22m
-
-Received: [31mundefined[39m</div></td>
         </tr>
       
         <tr>
           <td> > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Data Quality and Validation > Data freshness validation</td>
           <td class="passed">passed</td>
-          <td>347ms</td>
+          <td>257ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Error Handling and Fallbacks > Invalid Japanese stock code</td>
+          <td class="passed">passed</td>
+          <td>383ms</td>
           <td></td>
         </tr>
       
         <tr>
           <td> > chromium > japanese-market-data.spec.js > Japanese Fund UI Integration > Search and add Japanese mutual fund</td>
-          <td class="failed">failed</td>
-          <td>108ms</td>
-          <td><div class="error">Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3000/
-Call log:
-[2m  - navigating to "http://localhost:3000/", waiting until "load"[22m
-</div></td>
-        </tr>
-      
-        <tr>
-          <td> > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Error Handling and Fallbacks > Invalid Japanese stock code</td>
-          <td class="failed">failed</td>
-          <td>1911ms</td>
-          <td><div class="error">Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
-
-Received: [31mundefined[39m</div></td>
-        </tr>
-      
-        <tr>
-          <td> > chromium > japanese-market-data.spec.js > Japanese Fund UI Integration > Display Japanese stock prices in UI</td>
-          <td class="failed">failed</td>
-          <td>146ms</td>
-          <td><div class="error">Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3000/
-Call log:
-[2m  - navigating to "http://localhost:3000/", waiting until "load"[22m
-</div></td>
+          <td class="skipped">skipped</td>
+          <td>77ms</td>
+          <td></td>
         </tr>
       
         <tr>
           <td> > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Data Quality and Validation > Price range validation</td>
           <td class="passed">passed</td>
-          <td>472ms</td>
+          <td>276ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > japanese-market-data.spec.js > Japanese Fund UI Integration > Display Japanese stock prices in UI</td>
+          <td class="skipped">skipped</td>
+          <td>87ms</td>
           <td></td>
         </tr>
       
         <tr>
           <td> > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Error Handling and Fallbacks > Mixed valid and invalid symbols</td>
-          <td class="failed">failed</td>
-          <td>2307ms</td>
-          <td><div class="error">Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
-
-Received: [31mundefined[39m</div></td>
+          <td class="passed">passed</td>
+          <td>378ms</td>
+          <td></td>
+        </tr>
+      
+        <tr>
+          <td> > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Currency and Exchange Rates > USD/JPY exchange rate</td>
+          <td class="passed">passed</td>
+          <td>1818ms</td>
+          <td></td>
         </tr>
       
         <tr>
           <td> > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Error Handling and Fallbacks > Rate limiting with Japanese market data</td>
           <td class="passed">passed</td>
-          <td>6655ms</td>
+          <td>4112ms</td>
           <td></td>
         </tr>
       

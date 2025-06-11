@@ -1,43 +1,20 @@
 {
   "summary": {
     "total": 18,
-    "passed": 7,
-    "failed": 11,
-    "skipped": 0,
-    "duration": 12333
+    "passed": 11,
+    "failed": 5,
+    "skipped": 2,
+    "duration": 9111
   },
   "tests": [
-    {
-      "title": "TOPIX and Nikkei indices",
-      "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Japanese Stock Market > TOPIX and Nikkei indices",
-      "status": "failed",
-      "duration": 3041,
-      "error": {
-        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m400\u001b[39m",
-        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m400\u001b[39m\n    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/japanese-market-data.spec.js:67:33"
-      },
-      "retry": 0,
-      "attachments": [
-        {
-          "name": "screenshot",
-          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/japanese-market-data-Japan-380e1-et-TOPIX-and-Nikkei-indices-chromium/test-failed-1.png",
-          "contentType": "image/png"
-        },
-        {
-          "name": "video",
-          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/japanese-market-data-Japan-380e1-et-TOPIX-and-Nikkei-indices-chromium/video.webm",
-          "contentType": "video/webm"
-        }
-      ]
-    },
     {
       "title": "Popular Japanese mutual fund",
       "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Japanese Mutual Funds > Popular Japanese mutual fund",
       "status": "failed",
-      "duration": 3363,
+      "duration": 3031,
       "error": {
         "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m400\u001b[39m",
-        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m400\u001b[39m\n    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/japanese-market-data.spec.js:116:33"
+        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m400\u001b[39m\n    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/japanese-market-data.spec.js:132:33"
       },
       "retry": 0,
       "attachments": [
@@ -54,13 +31,118 @@
       ]
     },
     {
+      "title": "TOPIX and Nikkei indices",
+      "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Japanese Stock Market > TOPIX and Nikkei indices",
+      "status": "failed",
+      "duration": 3213,
+      "error": {
+        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m400\u001b[39m",
+        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m400\u001b[39m\n    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/japanese-market-data.spec.js:68:33"
+      },
+      "retry": 0,
+      "attachments": [
+        {
+          "name": "screenshot",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/japanese-market-data-Japan-380e1-et-TOPIX-and-Nikkei-indices-chromium/test-failed-1.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "video",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/japanese-market-data-Japan-380e1-et-TOPIX-and-Nikkei-indices-chromium/video.webm",
+          "contentType": "video/webm"
+        }
+      ]
+    },
+    {
+      "title": "Multiple Japanese stocks",
+      "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Japanese Stock Market > Multiple Japanese stocks",
+      "status": "passed",
+      "duration": 3265,
+      "error": null,
+      "retry": 0,
+      "attachments": []
+    },
+    {
+      "title": "Japanese market hours check",
+      "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Market Hours and Trading Status > Japanese market hours check",
+      "status": "passed",
+      "duration": 136,
+      "error": null,
+      "retry": 0,
+      "attachments": []
+    },
+    {
+      "title": "Market holidays handling",
+      "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Market Hours and Trading Status > Market holidays handling",
+      "status": "passed",
+      "duration": 148,
+      "error": null,
+      "retry": 0,
+      "attachments": []
+    },
+    {
+      "title": "Japanese stock with fallback handling",
+      "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Japanese Stock Market > Japanese stock with fallback handling",
+      "status": "passed",
+      "duration": 3560,
+      "error": null,
+      "retry": 0,
+      "attachments": []
+    },
+    {
+      "title": "Japanese stock data - 7203 (Toyota)",
+      "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Japanese Stock Market > Japanese stock data - 7203 (Toyota)",
+      "status": "failed",
+      "duration": 3595,
+      "error": {
+        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveProperty\u001b[2m(\u001b[22m\u001b[32mpath\u001b[39m\u001b[2m)\u001b[22m\n\nExpected path: \u001b[32m\"7203.T\"\u001b[39m\nReceived path: \u001b[31m[]\u001b[39m\n\nReceived value: \u001b[31m{\"change\": -1.5, \"changePercent\": -0.056444027, \"currency\": \"JPY\", \"dayHigh\": 2678, \"dayLow\": 2652, \"isMutualFund\": false, \"isStock\": true, \"lastUpdated\": \"2025-06-11T20:29:47.170Z\", \"marketCap\": 34634507223040, \"name\": \"Toyota Motor Corporation\", \"previousClose\": 2657.5, \"price\": 2656, \"source\": \"Yahoo Finance2 (npm)\", \"ticker\": \"7203.T\", \"volume\": 16367500, \"week52High\": 3399, \"week52Low\": 2183}\u001b[39m",
+        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveProperty\u001b[2m(\u001b[22m\u001b[32mpath\u001b[39m\u001b[2m)\u001b[22m\n\nExpected path: \u001b[32m\"7203.T\"\u001b[39m\nReceived path: \u001b[31m[]\u001b[39m\n\nReceived value: \u001b[31m{\"change\": -1.5, \"changePercent\": -0.056444027, \"currency\": \"JPY\", \"dayHigh\": 2678, \"dayLow\": 2652, \"isMutualFund\": false, \"isStock\": true, \"lastUpdated\": \"2025-06-11T20:29:47.170Z\", \"marketCap\": 34634507223040, \"name\": \"Toyota Motor Corporation\", \"previousClose\": 2657.5, \"price\": 2656, \"source\": \"Yahoo Finance2 (npm)\", \"ticker\": \"7203.T\", \"volume\": 16367500, \"week52High\": 3399, \"week52Low\": 2183}\u001b[39m\n    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/japanese-market-data.spec.js:24:25"
+      },
+      "retry": 0,
+      "attachments": [
+        {
+          "name": "screenshot",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/japanese-market-data-Japan-a62b3-e-stock-data---7203-Toyota--chromium/test-failed-1.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "video",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/japanese-market-data-Japan-a62b3-e-stock-data---7203-Toyota--chromium/video.webm",
+          "contentType": "video/webm"
+        }
+      ]
+    },
+    {
+      "title": "Multiple currency pairs with JPY",
+      "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Currency and Exchange Rates > Multiple currency pairs with JPY",
+      "status": "failed",
+      "duration": 193,
+      "error": {
+        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m400\u001b[39m",
+        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m400\u001b[39m\n    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/japanese-market-data.spec.js:290:33"
+      },
+      "retry": 0,
+      "attachments": [
+        {
+          "name": "screenshot",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/japanese-market-data-Japan-04fe4-ple-currency-pairs-with-JPY-chromium/test-failed-1.png",
+          "contentType": "image/png"
+        },
+        {
+          "name": "video",
+          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/japanese-market-data-Japan-04fe4-ple-currency-pairs-with-JPY-chromium/video.webm",
+          "contentType": "video/webm"
+        }
+      ]
+    },
+    {
       "title": "Multiple Japanese mutual funds",
       "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Japanese Mutual Funds > Multiple Japanese mutual funds",
       "status": "failed",
-      "duration": 276,
+      "duration": 317,
       "error": {
         "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m400\u001b[39m",
-        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m400\u001b[39m\n    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/japanese-market-data.spec.js:143:33"
+        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m400\u001b[39m\n    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/japanese-market-data.spec.js:167:33"
       },
       "retry": 0,
       "attachments": [
@@ -80,135 +162,25 @@
       "title": "Fund search by name pattern",
       "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Japanese Mutual Funds > Fund search by name pattern",
       "status": "passed",
-      "duration": 193,
+      "duration": 235,
       "error": null,
       "retry": 0,
       "attachments": []
-    },
-    {
-      "title": "Market holidays handling",
-      "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Market Hours and Trading Status > Market holidays handling",
-      "status": "passed",
-      "duration": 121,
-      "error": null,
-      "retry": 0,
-      "attachments": []
-    },
-    {
-      "title": "Japanese market hours check",
-      "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Market Hours and Trading Status > Japanese market hours check",
-      "status": "passed",
-      "duration": 249,
-      "error": null,
-      "retry": 0,
-      "attachments": []
-    },
-    {
-      "title": "Multiple currency pairs with JPY",
-      "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Currency and Exchange Rates > Multiple currency pairs with JPY",
-      "status": "failed",
-      "duration": 176,
-      "error": {
-        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m400\u001b[39m",
-        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m400\u001b[39m\n    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/japanese-market-data.spec.js:261:33"
-      },
-      "retry": 0,
-      "attachments": [
-        {
-          "name": "screenshot",
-          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/japanese-market-data-Japan-04fe4-ple-currency-pairs-with-JPY-chromium/test-failed-1.png",
-          "contentType": "image/png"
-        },
-        {
-          "name": "video",
-          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/japanese-market-data-Japan-04fe4-ple-currency-pairs-with-JPY-chromium/video.webm",
-          "contentType": "video/webm"
-        }
-      ]
-    },
-    {
-      "title": "Japanese stock data - 7203 (Toyota)",
-      "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Japanese Stock Market > Japanese stock data - 7203 (Toyota)",
-      "status": "failed",
-      "duration": 4553,
-      "error": {
-        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveProperty\u001b[2m(\u001b[22m\u001b[32mpath\u001b[39m\u001b[2m)\u001b[22m\n\nExpected path: \u001b[32m\"7203.T\"\u001b[39m\nReceived path: \u001b[31m[]\u001b[39m\n\nReceived value: \u001b[31m{\"7203.T\": {\"change\": -1.5, \"changePercent\": -0.056444027, \"currency\": \"JPY\", \"dayHigh\": 2678, \"dayLow\": 2652, \"isMutualFund\": false, \"isStock\": true, \"lastUpdated\": \"2025-06-11T20:29:45.155Z\", \"marketCap\": 34634507223040, \"name\": \"Toyota Motor Corporation\", \"previousClose\": 2657.5, \"price\": 2656, \"source\": \"Yahoo Finance2 (npm)\", \"ticker\": \"7203.T\", \"volume\": 16367500, \"week52High\": 3399, \"week52Low\": 2183}}\u001b[39m",
-        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveProperty\u001b[2m(\u001b[22m\u001b[32mpath\u001b[39m\u001b[2m)\u001b[22m\n\nExpected path: \u001b[32m\"7203.T\"\u001b[39m\nReceived path: \u001b[31m[]\u001b[39m\n\nReceived value: \u001b[31m{\"7203.T\": {\"change\": -1.5, \"changePercent\": -0.056444027, \"currency\": \"JPY\", \"dayHigh\": 2678, \"dayLow\": 2652, \"isMutualFund\": false, \"isStock\": true, \"lastUpdated\": \"2025-06-11T20:29:45.155Z\", \"marketCap\": 34634507223040, \"name\": \"Toyota Motor Corporation\", \"previousClose\": 2657.5, \"price\": 2656, \"source\": \"Yahoo Finance2 (npm)\", \"ticker\": \"7203.T\", \"volume\": 16367500, \"week52High\": 3399, \"week52Low\": 2183}}\u001b[39m\n    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/japanese-market-data.spec.js:24:25"
-      },
-      "retry": 0,
-      "attachments": [
-        {
-          "name": "screenshot",
-          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/japanese-market-data-Japan-a62b3-e-stock-data---7203-Toyota--chromium/test-failed-1.png",
-          "contentType": "image/png"
-        },
-        {
-          "name": "video",
-          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/japanese-market-data-Japan-a62b3-e-stock-data---7203-Toyota--chromium/video.webm",
-          "contentType": "video/webm"
-        }
-      ]
-    },
-    {
-      "title": "Multiple Japanese stocks",
-      "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Japanese Stock Market > Multiple Japanese stocks",
-      "status": "failed",
-      "duration": 4695,
-      "error": {
-        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveProperty\u001b[2m(\u001b[22m\u001b[32mpath\u001b[39m\u001b[2m)\u001b[22m\n\nExpected path: \u001b[32m\"7203.T\"\u001b[39m\nReceived path: \u001b[31m[]\u001b[39m\n\nReceived value: \u001b[31m{\"6758.T\": {\"change\": -53, \"changePercent\": -1.3947369, \"currency\": \"JPY\", \"dayHigh\": 3827, \"dayLow\": 3733, \"isMutualFund\": false, \"isStock\": true, \"lastUpdated\": \"2025-06-11T20:29:45.153Z\", \"marketCap\": 22872961581056, \"name\": \"Sony Group Corporation\", \"previousClose\": 3800, \"price\": 3747, \"source\": \"Yahoo Finance2 (npm)\", \"ticker\": \"6758.T\", \"volume\": 9943000, \"week52High\": 4035, \"week52Low\": 2210}, \"7203.T\": {\"change\": -1.5, \"changePercent\": -0.056444027, \"currency\": \"JPY\", \"dayHigh\": 2678, \"dayLow\": 2652, \"isMutualFund\": false, \"isStock\": true, \"lastUpdated\": \"2025-06-11T20:29:45.211Z\", \"marketCap\": 34634507223040, \"name\": \"Toyota Motor Corporation\", \"previousClose\": 2657.5, \"price\": 2656, \"source\": \"Yahoo Finance2 (npm)\", \"ticker\": \"7203.T\", \"volume\": 16367500, \"week52High\": 3399, \"week52Low\": 2183}, \"9984.T\": {\"change\": 171, \"changePercent\": 2.1620939, \"currency\": \"JPY\", \"dayHigh\": 8085, \"dayLow\": 7951, \"isMutualFund\": false, \"isStock\": true, \"lastUpdated\": \"2025-06-11T20:29:45.252Z\", \"marketCap\": 11532260868096, \"name\": \"SoftBank Group Corp.\", \"previousClose\": 7909, \"price\": 8080, \"source\": \"Yahoo Finance2 (npm)\", \"ticker\": \"9984.T\", \"volume\": 10500600, \"week52High\": 12180, \"week52Low\": 5730}}\u001b[39m",
-        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveProperty\u001b[2m(\u001b[22m\u001b[32mpath\u001b[39m\u001b[2m)\u001b[22m\n\nExpected path: \u001b[32m\"7203.T\"\u001b[39m\nReceived path: \u001b[31m[]\u001b[39m\n\nReceived value: \u001b[31m{\"6758.T\": {\"change\": -53, \"changePercent\": -1.3947369, \"currency\": \"JPY\", \"dayHigh\": 3827, \"dayLow\": 3733, \"isMutualFund\": false, \"isStock\": true, \"lastUpdated\": \"2025-06-11T20:29:45.153Z\", \"marketCap\": 22872961581056, \"name\": \"Sony Group Corporation\", \"previousClose\": 3800, \"price\": 3747, \"source\": \"Yahoo Finance2 (npm)\", \"ticker\": \"6758.T\", \"volume\": 9943000, \"week52High\": 4035, \"week52Low\": 2210}, \"7203.T\": {\"change\": -1.5, \"changePercent\": -0.056444027, \"currency\": \"JPY\", \"dayHigh\": 2678, \"dayLow\": 2652, \"isMutualFund\": false, \"isStock\": true, \"lastUpdated\": \"2025-06-11T20:29:45.211Z\", \"marketCap\": 34634507223040, \"name\": \"Toyota Motor Corporation\", \"previousClose\": 2657.5, \"price\": 2656, \"source\": \"Yahoo Finance2 (npm)\", \"ticker\": \"7203.T\", \"volume\": 16367500, \"week52High\": 3399, \"week52Low\": 2183}, \"9984.T\": {\"change\": 171, \"changePercent\": 2.1620939, \"currency\": \"JPY\", \"dayHigh\": 8085, \"dayLow\": 7951, \"isMutualFund\": false, \"isStock\": true, \"lastUpdated\": \"2025-06-11T20:29:45.252Z\", \"marketCap\": 11532260868096, \"name\": \"SoftBank Group Corp.\", \"previousClose\": 7909, \"price\": 8080, \"source\": \"Yahoo Finance2 (npm)\", \"ticker\": \"9984.T\", \"volume\": 10500600, \"week52High\": 12180, \"week52Low\": 5730}}\u001b[39m\n    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/japanese-market-data.spec.js:47:25"
-      },
-      "retry": 0,
-      "attachments": [
-        {
-          "name": "screenshot",
-          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/japanese-market-data-Japan-12c44-et-Multiple-Japanese-stocks-chromium/test-failed-1.png",
-          "contentType": "image/png"
-        },
-        {
-          "name": "video",
-          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/japanese-market-data-Japan-12c44-et-Multiple-Japanese-stocks-chromium/video.webm",
-          "contentType": "video/webm"
-        }
-      ]
-    },
-    {
-      "title": "USD/JPY exchange rate",
-      "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Currency and Exchange Rates > USD/JPY exchange rate",
-      "status": "passed",
-      "duration": 1835,
-      "error": null,
-      "retry": 0,
-      "attachments": []
-    },
-    {
-      "title": "Japanese stock with fallback handling",
-      "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Japanese Stock Market > Japanese stock with fallback handling",
-      "status": "failed",
-      "duration": 6005,
-      "error": {
-        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeDefined\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mundefined\u001b[39m",
-        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeDefined\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mundefined\u001b[39m\n    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/japanese-market-data.spec.js:102:45"
-      },
-      "retry": 0,
-      "attachments": [
-        {
-          "name": "screenshot",
-          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/japanese-market-data-Japan-07327-tock-with-fallback-handling-chromium/test-failed-1.png",
-          "contentType": "image/png"
-        },
-        {
-          "name": "video",
-          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/japanese-market-data-Japan-07327-tock-with-fallback-handling-chromium/video.webm",
-          "contentType": "video/webm"
-        }
-      ]
     },
     {
       "title": "Data freshness validation",
       "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Data Quality and Validation > Data freshness validation",
       "status": "passed",
-      "duration": 347,
+      "duration": 257,
+      "error": null,
+      "retry": 0,
+      "attachments": []
+    },
+    {
+      "title": "Invalid Japanese stock code",
+      "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Error Handling and Fallbacks > Invalid Japanese stock code",
+      "status": "passed",
+      "duration": 383,
       "error": null,
       "retry": 0,
       "attachments": []
@@ -216,77 +188,26 @@
     {
       "title": "Search and add Japanese mutual fund",
       "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Fund UI Integration > Search and add Japanese mutual fund",
-      "status": "failed",
-      "duration": 108,
-      "error": {
-        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3000/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/\", waiting until \"load\"\u001b[22m\n",
-        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3000/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/\", waiting until \"load\"\u001b[22m\n\n    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/japanese-market-data.spec.js:416:16"
-      },
+      "status": "skipped",
+      "duration": 77,
+      "error": null,
       "retry": 0,
-      "attachments": [
-        {
-          "name": "screenshot",
-          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/japanese-market-data-Japan-fb0d7-nd-add-Japanese-mutual-fund-chromium/test-failed-1.png",
-          "contentType": "image/png"
-        },
-        {
-          "name": "video",
-          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/japanese-market-data-Japan-fb0d7-nd-add-Japanese-mutual-fund-chromium/video.webm",
-          "contentType": "video/webm"
-        }
-      ]
-    },
-    {
-      "title": "Invalid Japanese stock code",
-      "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Error Handling and Fallbacks > Invalid Japanese stock code",
-      "status": "failed",
-      "duration": 1911,
-      "error": {
-        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mundefined\u001b[39m",
-        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mundefined\u001b[39m\n    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/japanese-market-data.spec.js:291:47"
-      },
-      "retry": 0,
-      "attachments": [
-        {
-          "name": "screenshot",
-          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/japanese-market-data-Japan-ebea5-Invalid-Japanese-stock-code-chromium/test-failed-1.png",
-          "contentType": "image/png"
-        },
-        {
-          "name": "video",
-          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/japanese-market-data-Japan-ebea5-Invalid-Japanese-stock-code-chromium/video.webm",
-          "contentType": "video/webm"
-        }
-      ]
-    },
-    {
-      "title": "Display Japanese stock prices in UI",
-      "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Fund UI Integration > Display Japanese stock prices in UI",
-      "status": "failed",
-      "duration": 146,
-      "error": {
-        "message": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3000/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/\", waiting until \"load\"\u001b[22m\n",
-        "stack": "Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3000/\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000/\", waiting until \"load\"\u001b[22m\n\n    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/japanese-market-data.spec.js:448:16"
-      },
-      "retry": 0,
-      "attachments": [
-        {
-          "name": "screenshot",
-          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/japanese-market-data-Japan-00a68-Japanese-stock-prices-in-UI-chromium/test-failed-1.png",
-          "contentType": "image/png"
-        },
-        {
-          "name": "video",
-          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/japanese-market-data-Japan-00a68-Japanese-stock-prices-in-UI-chromium/video.webm",
-          "contentType": "video/webm"
-        }
-      ]
+      "attachments": []
     },
     {
       "title": "Price range validation",
       "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Data Quality and Validation > Price range validation",
       "status": "passed",
-      "duration": 472,
+      "duration": 276,
+      "error": null,
+      "retry": 0,
+      "attachments": []
+    },
+    {
+      "title": "Display Japanese stock prices in UI",
+      "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Fund UI Integration > Display Japanese stock prices in UI",
+      "status": "skipped",
+      "duration": 87,
       "error": null,
       "retry": 0,
       "attachments": []
@@ -294,31 +215,26 @@
     {
       "title": "Mixed valid and invalid symbols",
       "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Error Handling and Fallbacks > Mixed valid and invalid symbols",
-      "status": "failed",
-      "duration": 2307,
-      "error": {
-        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mundefined\u001b[39m",
-        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeTruthy\u001b[2m()\u001b[22m\n\nReceived: \u001b[31mundefined\u001b[39m\n    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/japanese-market-data.spec.js:314:81"
-      },
+      "status": "passed",
+      "duration": 378,
+      "error": null,
       "retry": 0,
-      "attachments": [
-        {
-          "name": "screenshot",
-          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/japanese-market-data-Japan-663c7-d-valid-and-invalid-symbols-chromium/test-failed-1.png",
-          "contentType": "image/png"
-        },
-        {
-          "name": "video",
-          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/japanese-market-data-Japan-663c7-d-valid-and-invalid-symbols-chromium/video.webm",
-          "contentType": "video/webm"
-        }
-      ]
+      "attachments": []
+    },
+    {
+      "title": "USD/JPY exchange rate",
+      "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Currency and Exchange Rates > USD/JPY exchange rate",
+      "status": "passed",
+      "duration": 1818,
+      "error": null,
+      "retry": 0,
+      "attachments": []
     },
     {
       "title": "Rate limiting with Japanese market data",
       "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Error Handling and Fallbacks > Rate limiting with Japanese market data",
       "status": "passed",
-      "duration": 6655,
+      "duration": 4112,
       "error": null,
       "retry": 0,
       "attachments": []
@@ -329,5 +245,5 @@
     "performance": [],
     "errors": []
   },
-  "timestamp": "2025-06-11T20:29:40.300Z"
+  "timestamp": "2025-06-11T20:46:35.459Z"
 }
