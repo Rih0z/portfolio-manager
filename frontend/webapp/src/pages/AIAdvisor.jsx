@@ -1552,6 +1552,7 @@ Based on the above information, please advise me on:
           )}
         </div>
         
+        {/* Navigation Buttons */}
         <div className="flex justify-between mt-8 max-w-4xl mx-auto">
           <button
             onClick={handlePrevious}

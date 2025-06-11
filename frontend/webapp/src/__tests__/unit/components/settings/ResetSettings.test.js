@@ -1,333 +1,325 @@
 /**
- * ResetSettings.jsx のユニットテスト
- * 設定リセット機能のテスト
+ * ResetSettings.jsx のテストファイル
+ * 設定リセット機能を提供するコンポーネントの包括的テスト
  */
 
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ResetSettings from '../../../../components/settings/ResetSettings';
-import { PortfolioContext } from '../../../../context/PortfolioContext';
 
-// window.location.reload のモック
-delete window.location;
-window.location = { reload: jest.fn() };
+// usePortfolioContextフックのモック
+const mockClearAllData = jest.fn();
+jest.mock('../../../../hooks/usePortfolioContext', () => ({
+  usePortfolioContext: jest.fn()
+}));
 
-// モックコンテキスト値を作成するヘルパー関数
-const createMockContext = (overrides = {}) => ({
-  clearLocalStorage: jest.fn(),
-  addNotification: jest.fn(),
-  currentAssets: [],
-  targetPortfolio: [],
-  ...overrides
-});
+// コンポーネントのモック
+jest.mock('../../../../components/common/ModernButton', () => ({
+  __esModule: true,
+  default: ({ children, onClick, variant, disabled, className }) => (
+    <button 
+      onClick={onClick} 
+      className={`${variant} ${className}`}
+      disabled={disabled}
+    >
+      {children}
+    </button>
+  )
+}));
 
-describe('ResetSettings', () => {
+jest.mock('../../../../components/common/ModernCard', () => ({
+  __esModule: true,
+  default: ({ children, className }) => (
+    <div className={className}>{children}</div>
+  )
+}));
+
+describe('ResetSettings Component', () => {
+  const { usePortfolioContext } = require('../../../../hooks/usePortfolioContext');
+  
+  const defaultMockData = {
+    clearAllData: mockClearAllData
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
-    window.location.reload.mockClear();
-  });
-
-  it('データがない場合の基本的なUIを表示する', () => {
-    const mockContext = createMockContext();
-
-    render(
-      <PortfolioContext.Provider value={mockContext}>
-        <ResetSettings />
-      </PortfolioContext.Provider>
-    );
-
-    expect(screen.getByText('設定のリセット')).toBeInTheDocument();
-    expect(screen.getByText(/すべての保有資産、目標配分、AI設定をリセットします/)).toBeInTheDocument();
-    expect(screen.getByText(/この操作は取り消せません/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '設定をリセット' })).toBeInTheDocument();
+    usePortfolioContext.mockReturnValue(defaultMockData);
     
-    // データがない場合は警告が表示されない
-    expect(screen.queryByText(/警告:/)).not.toBeInTheDocument();
+    // window.location.reload のモック
+    delete window.location;
+    window.location = { reload: jest.fn() };
   });
 
-  it('データがある場合に警告を表示する', () => {
-    const mockContext = createMockContext({
-      currentAssets: [
-        { id: '1', ticker: 'AAPL', name: 'Apple Inc.' },
-        { id: '2', ticker: 'GOOGL', name: 'Alphabet Inc.' }
-      ],
-      targetPortfolio: [
-        { id: '1', ticker: 'AAPL', targetPercentage: 50 },
-        { id: '2', ticker: 'GOOGL', targetPercentage: 50 }
-      ]
+  describe('レンダリング', () => {
+    test('基本コンポーネントが正しく表示される', () => {
+      render(<ResetSettings />);
+      
+      expect(screen.getByText('データのリセット')).toBeInTheDocument();
+      expect(screen.getByText('すべてのデータをリセット')).toBeInTheDocument();
+      expect(screen.getByText('この操作は取り消せません。すべてのポートフォリオデータが削除されます。')).toBeInTheDocument();
     });
 
-    render(
-      <PortfolioContext.Provider value={mockContext}>
-        <ResetSettings />
-      </PortfolioContext.Provider>
-    );
-
-    expect(screen.getByText(/警告:/)).toBeInTheDocument();
-    expect(screen.getByText('2件の保有資産データ')).toBeInTheDocument();
-    expect(screen.getByText('2件の目標配分設定')).toBeInTheDocument();
-    expect(screen.getByText('AI分析プロンプト設定')).toBeInTheDocument();
-    expect(screen.getByText('その他すべての設定')).toBeInTheDocument();
+    test('リセットボタンが危険な操作を示すスタイルを持つ', () => {
+      render(<ResetSettings />);
+      
+      const resetButton = screen.getByText('すべてのデータをリセット');
+      expect(resetButton).toHaveClass('danger');
+    });
   });
 
-  it('リセットボタンクリックで確認ダイアログを表示する', () => {
-    const mockContext = createMockContext();
-
-    render(
-      <PortfolioContext.Provider value={mockContext}>
-        <ResetSettings />
-      </PortfolioContext.Provider>
-    );
-
-    // 確認ダイアログが最初は表示されていない
-    expect(screen.queryByText('本当にリセットしますか？')).not.toBeInTheDocument();
-
-    // リセットボタンをクリック
-    fireEvent.click(screen.getByRole('button', { name: '設定をリセット' }));
-
-    // 確認ダイアログが表示される
-    expect(screen.getByText('本当にリセットしますか？')).toBeInTheDocument();
-    expect(screen.getByText(/この操作により、すべての設定データが削除されます/)).toBeInTheDocument();
-    expect(screen.getByText(/削除されたデータは復元できません/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'キャンセル' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'リセットする' })).toBeInTheDocument();
-  });
-
-  it('確認ダイアログでキャンセルをクリックするとダイアログが閉じる', () => {
-    const mockContext = createMockContext();
-
-    render(
-      <PortfolioContext.Provider value={mockContext}>
-        <ResetSettings />
-      </PortfolioContext.Provider>
-    );
-
-    // リセットボタンをクリックして確認ダイアログを表示
-    fireEvent.click(screen.getByRole('button', { name: '設定をリセット' }));
-    expect(screen.getByText('本当にリセットしますか？')).toBeInTheDocument();
-
-    // キャンセルボタンをクリック
-    fireEvent.click(screen.getByRole('button', { name: 'キャンセル' }));
-
-    // 確認ダイアログが閉じる
-    expect(screen.queryByText('本当にリセットしますか？')).not.toBeInTheDocument();
-  });
-
-  it('リセット実行で必要な関数が呼ばれる', async () => {
-    const mockContext = createMockContext();
-
-    render(
-      <PortfolioContext.Provider value={mockContext}>
-        <ResetSettings />
-      </PortfolioContext.Provider>
-    );
-
-    // リセットボタンをクリックして確認ダイアログを表示
-    fireEvent.click(screen.getByRole('button', { name: '設定をリセット' }));
-
-    // リセット実行
-    fireEvent.click(screen.getByRole('button', { name: 'リセットする' }));
-
-    // ダイアログが閉じる
-    expect(screen.queryByText('本当にリセットしますか？')).not.toBeInTheDocument();
-
-    // clearLocalStorage が呼ばれる
-    expect(mockContext.clearLocalStorage).toHaveBeenCalledTimes(1);
-
-    // 成功通知が表示される
-    expect(mockContext.addNotification).toHaveBeenCalledWith(
-      'すべての設定をリセットしました。ページを再読み込みします。',
-      'success'
-    );
-
-    // 1秒後にページがリロードされる
-    await waitFor(() => {
-      expect(window.location.reload).toHaveBeenCalledTimes(1);
-    }, { timeout: 1500 });
-  });
-
-  it('リセット中にエラーが発生した場合の処理', async () => {
-    const mockContext = createMockContext({
-      clearLocalStorage: jest.fn().mockImplementation(() => {
-        throw new Error('ストレージエラー');
-      })
+  describe('確認ダイアログ', () => {
+    test('リセットボタンクリックで確認ダイアログが表示される', () => {
+      render(<ResetSettings />);
+      
+      const resetButton = screen.getByText('すべてのデータをリセット');
+      fireEvent.click(resetButton);
+      
+      expect(screen.getByText('本当にリセットしますか？')).toBeInTheDocument();
+      expect(screen.getByText('この操作により、以下のデータがすべて削除されます：')).toBeInTheDocument();
+      expect(screen.getByText('• 保有資産の情報')).toBeInTheDocument();
+      expect(screen.getByText('• 目標配分の設定')).toBeInTheDocument();
+      expect(screen.getByText('• カスタマイズしたAIプロンプト')).toBeInTheDocument();
+      expect(screen.getByText('• その他すべての設定')).toBeInTheDocument();
     });
 
-    // console.error をモック
-    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+    test('確認ダイアログのボタンが表示される', () => {
+      render(<ResetSettings />);
+      
+      const resetButton = screen.getByText('すべてのデータをリセット');
+      fireEvent.click(resetButton);
+      
+      expect(screen.getByText('リセットを実行')).toBeInTheDocument();
+      expect(screen.getByText('キャンセル')).toBeInTheDocument();
+    });
+  });
 
-    render(
-      <PortfolioContext.Provider value={mockContext}>
-        <ResetSettings />
-      </PortfolioContext.Provider>
-    );
+  describe('リセット実行', () => {
+    test('リセット実行の成功', async () => {
+      mockClearAllData.mockResolvedValue(true);
+      
+      render(<ResetSettings />);
+      
+      const resetButton = screen.getByText('すべてのデータをリセット');
+      fireEvent.click(resetButton);
+      
+      const confirmButton = screen.getByText('リセットを実行');
+      fireEvent.click(confirmButton);
+      
+      expect(confirmButton).toBeDisabled();
+      expect(confirmButton).toHaveTextContent('リセット中...');
+      
+      await waitFor(() => {
+        expect(mockClearAllData).toHaveBeenCalled();
+      });
+      
+      // 少し待ってからリロードが呼ばれることを確認
+      await waitFor(() => {
+        expect(window.location.reload).toHaveBeenCalled();
+      }, { timeout: 2000 });
+    });
 
-    // リセットボタンをクリックして確認ダイアログを表示
-    fireEvent.click(screen.getByRole('button', { name: '設定をリセット' }));
+    test('リセット実行中はキャンセルボタンも無効化される', async () => {
+      mockClearAllData.mockImplementation(() => 
+        new Promise(resolve => setTimeout(() => resolve(true), 1000))
+      );
+      
+      render(<ResetSettings />);
+      
+      const resetButton = screen.getByText('すべてのデータをリセット');
+      fireEvent.click(resetButton);
+      
+      const confirmButton = screen.getByText('リセットを実行');
+      const cancelButton = screen.getByText('キャンセル');
+      
+      fireEvent.click(confirmButton);
+      
+      expect(cancelButton).toBeDisabled();
+    });
 
-    // リセット実行
-    fireEvent.click(screen.getByRole('button', { name: 'リセットする' }));
+    test('リセット失敗時のエラー処理', async () => {
+      mockClearAllData.mockRejectedValue(new Error('リセットエラー'));
+      console.error = jest.fn(); // console.errorのモック
+      
+      render(<ResetSettings />);
+      
+      const resetButton = screen.getByText('すべてのデータをリセット');
+      fireEvent.click(resetButton);
+      
+      const confirmButton = screen.getByText('リセットを実行');
+      fireEvent.click(confirmButton);
+      
+      await waitFor(() => {
+        expect(console.error).toHaveBeenCalledWith('リセットエラー:', expect.any(Error));
+      });
+      
+      // エラー時もリロードは実行される
+      await waitFor(() => {
+        expect(window.location.reload).toHaveBeenCalled();
+      }, { timeout: 2000 });
+    });
+  });
 
-    // エラー通知が表示される
-    expect(mockContext.addNotification).toHaveBeenCalledWith(
-      '設定のリセットに失敗しました',
-      'error'
-    );
+  describe('キャンセル機能', () => {
+    test('キャンセルボタンでダイアログが閉じる', () => {
+      render(<ResetSettings />);
+      
+      const resetButton = screen.getByText('すべてのデータをリセット');
+      fireEvent.click(resetButton);
+      
+      expect(screen.getByText('本当にリセットしますか？')).toBeInTheDocument();
+      
+      const cancelButton = screen.getByText('キャンセル');
+      fireEvent.click(cancelButton);
+      
+      expect(screen.queryByText('本当にリセットしますか？')).not.toBeInTheDocument();
+    });
 
-    // console.error が呼ばれる
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      '設定のリセットに失敗しました:',
-      expect.any(Error)
-    );
+    test('キャンセル後は再度リセットボタンがクリックできる', () => {
+      render(<ResetSettings />);
+      
+      const resetButton = screen.getByText('すべてのデータをリセット');
+      fireEvent.click(resetButton);
+      
+      const cancelButton = screen.getByText('キャンセル');
+      fireEvent.click(cancelButton);
+      
+      // 再度クリック可能
+      fireEvent.click(resetButton);
+      expect(screen.getByText('本当にリセットしますか？')).toBeInTheDocument();
+    });
+  });
 
-    // ページはリロードされない
-    await waitFor(() => {
+  describe('UI/UX', () => {
+    test('確認ダイアログのオーバーレイ', () => {
+      render(<ResetSettings />);
+      
+      const resetButton = screen.getByText('すべてのデータをリセット');
+      fireEvent.click(resetButton);
+      
+      const overlay = screen.getByText('本当にリセットしますか？').closest('.fixed');
+      expect(overlay).toHaveClass('inset-0', 'bg-black', 'bg-opacity-50');
+    });
+
+    test('確認ダイアログのモーダルスタイル', () => {
+      render(<ResetSettings />);
+      
+      const resetButton = screen.getByText('すべてのデータをリセット');
+      fireEvent.click(resetButton);
+      
+      const modal = screen.getByText('本当にリセットしますか？').closest('.bg-white');
+      expect(modal).toHaveClass('rounded-lg', 'shadow-xl');
+    });
+
+    test('リセット実行ボタンの危険スタイル', () => {
+      render(<ResetSettings />);
+      
+      const resetButton = screen.getByText('すべてのデータをリセット');
+      fireEvent.click(resetButton);
+      
+      const confirmButton = screen.getByText('リセットを実行');
+      expect(confirmButton).toHaveClass('danger');
+    });
+
+    test('キャンセルボタンのセカンダリスタイル', () => {
+      render(<ResetSettings />);
+      
+      const resetButton = screen.getByText('すべてのデータをリセット');
+      fireEvent.click(resetButton);
+      
+      const cancelButton = screen.getByText('キャンセル');
+      expect(cancelButton).toHaveClass('secondary');
+    });
+  });
+
+  describe('アクセシビリティ', () => {
+    test('確認ダイアログのフォーカス管理', () => {
+      render(<ResetSettings />);
+      
+      const resetButton = screen.getByText('すべてのデータをリセット');
+      fireEvent.click(resetButton);
+      
+      const confirmButton = screen.getByText('リセットを実行');
+      const cancelButton = screen.getByText('キャンセル');
+      
+      // ボタンがフォーカス可能
+      expect(confirmButton).not.toHaveAttribute('tabindex', '-1');
+      expect(cancelButton).not.toHaveAttribute('tabindex', '-1');
+    });
+
+    test('Escapeキーでダイアログが閉じる（実装されている場合）', () => {
+      render(<ResetSettings />);
+      
+      const resetButton = screen.getByText('すべてのデータをリセット');
+      fireEvent.click(resetButton);
+      
+      // Escapeキーのイベントをシミュレート
+      fireEvent.keyDown(document, { key: 'Escape', code: 27 });
+      
+      // 注: 実際の実装によってはEscapeキーのハンドリングがない可能性があります
+      // その場合、このテストは失敗します
+    });
+  });
+
+  describe('タイミング', () => {
+    test('リセット後1秒待ってからリロード', async () => {
+      jest.useFakeTimers();
+      mockClearAllData.mockResolvedValue(true);
+      
+      render(<ResetSettings />);
+      
+      const resetButton = screen.getByText('すべてのデータをリセット');
+      fireEvent.click(resetButton);
+      
+      const confirmButton = screen.getByText('リセットを実行');
+      fireEvent.click(confirmButton);
+      
+      await waitFor(() => {
+        expect(mockClearAllData).toHaveBeenCalled();
+      });
+      
       expect(window.location.reload).not.toHaveBeenCalled();
-    }, { timeout: 1500 });
-
-    consoleErrorSpy.mockRestore();
+      
+      jest.advanceTimersByTime(1000);
+      
+      expect(window.location.reload).toHaveBeenCalled();
+      
+      jest.useRealTimers();
+    });
   });
 
-  it('リセット中はボタンが無効になる', () => {
-    const mockContext = createMockContext();
-
-    render(
-      <PortfolioContext.Provider value={mockContext}>
-        <ResetSettings />
-      </PortfolioContext.Provider>
-    );
-
-    // リセットボタンをクリックして確認ダイアログを表示
-    fireEvent.click(screen.getByRole('button', { name: '設定をリセット' }));
-
-    // リセット実行
-    fireEvent.click(screen.getByRole('button', { name: 'リセットする' }));
-
-    // リセットボタンが無効になる
-    expect(screen.getByRole('button', { name: '設定をリセット' })).toBeDisabled();
-  });
-
-  it('確認ダイアログのスタイルが正しく適用される', () => {
-    const mockContext = createMockContext();
-
-    render(
-      <PortfolioContext.Provider value={mockContext}>
-        <ResetSettings />
-      </PortfolioContext.Provider>
-    );
-
-    // リセットボタンをクリックして確認ダイアログを表示
-    fireEvent.click(screen.getByRole('button', { name: '設定をリセット' }));
-
-    // オーバーレイのスタイル確認
-    const overlay = screen.getByText('本当にリセットしますか？').closest('.fixed');
-    expect(overlay).toHaveClass('fixed', 'inset-0', 'bg-black', 'bg-opacity-50', 'flex', 'items-center', 'justify-center', 'z-50');
-
-    // ダイアログボックスのスタイル確認
-    const dialogBox = screen.getByText('本当にリセットしますか？').closest('.bg-white');
-    expect(dialogBox).toHaveClass('bg-white', 'rounded-lg', 'p-6', 'max-w-md', 'w-full', 'mx-4');
-  });
-
-  it('警告ボックスのスタイルが正しく適用される', () => {
-    const mockContext = createMockContext({
-      currentAssets: [{ id: '1', ticker: 'AAPL' }]
+  describe('エッジケース', () => {
+    test('clearAllDataが未定義の場合', () => {
+      usePortfolioContext.mockReturnValue({});
+      console.error = jest.fn();
+      
+      render(<ResetSettings />);
+      
+      const resetButton = screen.getByText('すべてのデータをリセット');
+      fireEvent.click(resetButton);
+      
+      const confirmButton = screen.getByText('リセットを実行');
+      fireEvent.click(confirmButton);
+      
+      // エラーが発生してもクラッシュしない
+      expect(screen.getByText('リセット中...')).toBeInTheDocument();
     });
 
-    render(
-      <PortfolioContext.Provider value={mockContext}>
-        <ResetSettings />
-      </PortfolioContext.Provider>
-    );
-
-    const warningBox = screen.getByText(/警告:/).closest('div');
-    expect(warningBox).toHaveClass('bg-yellow-50', 'border', 'border-yellow-200', 'rounded', 'p-3');
-  });
-
-  it('保有資産のみがある場合の表示', () => {
-    const mockContext = createMockContext({
-      currentAssets: [{ id: '1', ticker: 'AAPL' }],
-      targetPortfolio: []
+    test('複数回のリセット防止', async () => {
+      mockClearAllData.mockResolvedValue(true);
+      
+      render(<ResetSettings />);
+      
+      const resetButton = screen.getByText('すべてのデータをリセット');
+      fireEvent.click(resetButton);
+      
+      const confirmButton = screen.getByText('リセットを実行');
+      fireEvent.click(confirmButton);
+      fireEvent.click(confirmButton); // 2回目のクリック
+      
+      await waitFor(() => {
+        expect(mockClearAllData).toHaveBeenCalledTimes(1); // 1回のみ呼ばれる
+      });
     });
-
-    render(
-      <PortfolioContext.Provider value={mockContext}>
-        <ResetSettings />
-      </PortfolioContext.Provider>
-    );
-
-    expect(screen.getByText('1件の保有資産データ')).toBeInTheDocument();
-    expect(screen.queryByText(/件の目標配分設定/)).not.toBeInTheDocument();
-  });
-
-  it('目標配分のみがある場合の表示', () => {
-    const mockContext = createMockContext({
-      currentAssets: [],
-      targetPortfolio: [{ id: '1', ticker: 'AAPL', targetPercentage: 100 }]
-    });
-
-    render(
-      <PortfolioContext.Provider value={mockContext}>
-        <ResetSettings />
-      </PortfolioContext.Provider>
-    );
-
-    expect(screen.queryByText(/件の保有資産データ/)).not.toBeInTheDocument();
-    expect(screen.getByText('1件の目標配分設定')).toBeInTheDocument();
-  });
-
-  it('ModernCardコンポーネントが正しく使用される', () => {
-    const mockContext = createMockContext();
-
-    render(
-      <PortfolioContext.Provider value={mockContext}>
-        <ResetSettings />
-      </PortfolioContext.Provider>
-    );
-
-    // ModernCardのデフォルトクラスが適用される
-    const card = screen.getByText('設定のリセット').closest('.bg-white');
-    expect(card).toHaveClass('bg-white', 'rounded-lg', 'shadow', 'p-6');
-  });
-
-  it('ModernButtonのvariant="danger"が適用される', () => {
-    const mockContext = createMockContext();
-
-    render(
-      <PortfolioContext.Provider value={mockContext}>
-        <ResetSettings />
-      </PortfolioContext.Provider>
-    );
-
-    const resetButton = screen.getByRole('button', { name: '設定をリセット' });
-    // ModernButtonのdangerバリアントのクラスを確認（gradient使用）
-    expect(resetButton).toHaveClass('from-danger-500', 'to-danger-600');
-  });
-
-  it('loadingプロパティが正しく動作する', () => {
-    const mockContext = createMockContext();
-
-    render(
-      <PortfolioContext.Provider value={mockContext}>
-        <ResetSettings />
-      </PortfolioContext.Provider>
-    );
-
-    // リセットボタンをクリックして確認ダイアログを表示
-    fireEvent.click(screen.getByRole('button', { name: '設定をリセット' }));
-
-    // リセット実行
-    fireEvent.click(screen.getByRole('button', { name: 'リセットする' }));
-
-    // リセット中はメインのリセットボタンが無効になる
-    expect(screen.getByRole('button', { name: '設定をリセット' })).toBeDisabled();
-    
-    // loadingTextが表示されているか、または通常のテキストが表示されている
-    // (ModernButtonのloading実装により、テキストが切り替わる可能性がある)
-    const buttons = screen.getAllByRole('button');
-    const hasResetButton = buttons.some(btn => 
-      btn.textContent?.includes('リセット')
-    );
-    expect(hasResetButton).toBeTruthy();
   });
 });

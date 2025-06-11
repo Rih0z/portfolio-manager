@@ -1,6 +1,18 @@
 /**
  * ToastNotification.jsx のユニットテスト
  * トースト通知コンポーネントのテスト
+ * 
+ * テスト範囲:
+ * - 基本的なレンダリング
+ * - 自動閉じる機能（フェイクタイマー使用）
+ * - 手動閉じる機能
+ * - 位置設定（top/bottom）
+ * - 期間設定のテスト
+ * - onCloseコールバック
+ * - 表示状態管理
+ * - エッジケース（ゼロ期間、負の期間、長いメッセージ）
+ * - クリーンアップテスト（アンマウント時のタイマークリーンアップ）
+ * - アクセシビリティテスト
  */
 
 import React from 'react';
@@ -12,10 +24,12 @@ import ToastNotification from '../../../../components/common/ToastNotification';
 jest.useFakeTimers();
 
 describe('ToastNotification', () => {
+  // 各テスト後にタイマーをクリア
   afterEach(() => {
     jest.clearAllTimers();
   });
 
+  // 全テスト完了後にリアルタイマーに戻す
   afterAll(() => {
     jest.useRealTimers();
   });
@@ -294,6 +308,184 @@ describe('ToastNotification', () => {
       }).not.toThrow();
       
       expect(screen.getByText('テスト')).toBeInTheDocument();
+    });
+
+    it('null メッセージでも正常に動作する', () => {
+      expect(() => {
+        render(<ToastNotification message={null} />);
+      }).not.toThrow();
+      
+      expect(screen.getByRole('button', { name: '閉じる' })).toBeInTheDocument();
+    });
+
+    it('非常に短い duration でも正常に動作する', () => {
+      const mockOnClose = jest.fn();
+      render(<ToastNotification message="テストメッセージ" duration={1} onClose={mockOnClose} />);
+      
+      act(() => {
+        jest.advanceTimersByTime(1);
+      });
+      
+      expect(mockOnClose).toHaveBeenCalledTimes(1);
+    });
+
+    it('非常に長い duration でも正常に動作する', () => {
+      const mockOnClose = jest.fn();
+      render(<ToastNotification message="テストメッセージ" duration={999999999} onClose={mockOnClose} />);
+      
+      // 長時間でも例外が発生しない
+      expect(screen.getByText('テストメッセージ')).toBeInTheDocument();
+      
+      // まだ閉じていない
+      act(() => {
+        jest.advanceTimersByTime(10000);
+      });
+      expect(mockOnClose).not.toHaveBeenCalled();
+    });
+
+    it('無効なtype値が指定された場合のフォールバック', () => {
+      render(<ToastNotification message="テストメッセージ" type="invalid" />);
+      
+      // 無効なタイプでもコンポーネントは表示される（スタイルは適用されない可能性）
+      expect(screen.getByText('テストメッセージ')).toBeInTheDocument();
+    });
+
+    it('無効なposition値が指定された場合のフォールバック', () => {
+      render(<ToastNotification message="テストメッセージ" position="invalid" />);
+      
+      const toastContainer = screen.getByText('テストメッセージ').closest('div').parentElement.parentElement.parentElement;
+      // 無効な位置の場合、bottom-4が適用される（position === 'top'でない限り）
+      expect(toastContainer).toHaveClass('bottom-4');
+    });
+  });
+
+  describe('タイマー管理の詳細テスト', () => {
+    it('複数のトーストが同時に存在する場合のタイマー管理', () => {
+      const mockOnClose1 = jest.fn();
+      const mockOnClose2 = jest.fn();
+      
+      const { rerender } = render(<ToastNotification message="メッセージ1" duration={1000} onClose={mockOnClose1} />);
+      
+      // 2番目のトーストをレンダリング
+      render(<ToastNotification message="メッセージ2" duration={2000} onClose={mockOnClose2} />);
+      
+      expect(jest.getTimerCount()).toBeGreaterThan(0);
+      
+      // 1秒経過
+      act(() => {
+        jest.advanceTimersByTime(1000);
+      });
+      
+      expect(mockOnClose1).toHaveBeenCalledTimes(1);
+      expect(mockOnClose2).not.toHaveBeenCalled();
+      
+      // さらに1秒経過
+      act(() => {
+        jest.advanceTimersByTime(1000);
+      });
+      
+      expect(mockOnClose2).toHaveBeenCalledTimes(1);
+    });
+
+    it('props が変更された場合のタイマーリセット', () => {
+      const mockOnClose = jest.fn();
+      const { rerender } = render(
+        <ToastNotification message="初期メッセージ" duration={1000} onClose={mockOnClose} />
+      );
+      
+      // propsを変更してコンポーネントを再レンダリング
+      rerender(
+        <ToastNotification message="更新メッセージ" duration={2000} onClose={mockOnClose} />
+      );
+      
+      // 元の1秒では閉じない
+      act(() => {
+        jest.advanceTimersByTime(1000);
+      });
+      expect(mockOnClose).not.toHaveBeenCalled();
+      
+      // 更新された2秒で閉じる
+      act(() => {
+        jest.advanceTimersByTime(1000);
+      });
+      expect(mockOnClose).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('状態管理の詳細テスト', () => {
+    it('visible状態の初期値がtrueである', () => {
+      render(<ToastNotification message="テストメッセージ" />);
+      
+      // コンポーネントが表示されている
+      expect(screen.getByText('テストメッセージ')).toBeInTheDocument();
+    });
+
+    it('閉じるボタンクリック後にvisible状態がfalseになる', () => {
+      render(<ToastNotification message="テストメッセージ" />);
+      
+      const closeButton = screen.getByRole('button', { name: '閉じる' });
+      fireEvent.click(closeButton);
+      
+      // コンポーネントがDOMから削除される
+      expect(screen.queryByText('テストメッセージ')).not.toBeInTheDocument();
+    });
+
+    it('自動閉じる処理後にvisible状態がfalseになる', () => {
+      render(<ToastNotification message="テストメッセージ" duration={1000} />);
+      
+      // 初期状態では表示されている
+      expect(screen.getByText('テストメッセージ')).toBeInTheDocument();
+      
+      // タイマー経過後
+      act(() => {
+        jest.advanceTimersByTime(1000);
+      });
+      
+      // コンポーネントがDOMから削除される
+      expect(screen.queryByText('テストメッセージ')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('レンダリング条件のテスト', () => {
+    it('visible=falseの場合にnullを返す', () => {
+      const { container } = render(<ToastNotification message="テストメッセージ" />);
+      
+      // 初期状態では要素が存在
+      expect(container.firstChild).not.toBeNull();
+      
+      // 閉じるボタンをクリック
+      const closeButton = screen.getByRole('button', { name: '閉じる' });
+      fireEvent.click(closeButton);
+      
+      // visible=falseになると何もレンダリングされない
+      expect(container.firstChild).toBeNull();
+    });
+  });
+
+  describe('ボタンのインタラクションテスト', () => {
+    it('閉じるボタンにホバー効果クラスが適用される', () => {
+      render(<ToastNotification message="テストメッセージ" />);
+      
+      const closeButton = screen.getByRole('button', { name: '閉じる' });
+      expect(closeButton).toHaveClass('hover:text-gray-500');
+    });
+
+    it('閉じるボタンが複数回クリックされても安全に動作する', () => {
+      const mockOnClose = jest.fn();
+      render(<ToastNotification message="テストメッセージ" onClose={mockOnClose} />);
+      
+      const closeButton = screen.getByRole('button', { name: '閉じる' });
+      
+      // 複数回クリック
+      fireEvent.click(closeButton);
+      fireEvent.click(closeButton);
+      fireEvent.click(closeButton);
+      
+      // 最初のクリックで閉じるため、onCloseは1回だけ呼ばれる
+      expect(mockOnClose).toHaveBeenCalledTimes(1);
+      
+      // コンポーネントは削除される
+      expect(screen.queryByText('テストメッセージ')).not.toBeInTheDocument();
     });
   });
 });

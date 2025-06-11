@@ -59,6 +59,8 @@ export class EncryptionService {
     if (!password) return JSON.stringify(data);
     
     const jsonStr = JSON.stringify(data);
+    if (!jsonStr) return btoa(''); // null/undefinedの場合の処理
+    
     let encrypted = '';
     
     for (let i = 0; i < jsonStr.length; i++) {

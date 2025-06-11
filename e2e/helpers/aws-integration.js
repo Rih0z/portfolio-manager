@@ -193,4 +193,336 @@ export class AWSIntegrationHelper {
       allowCredentials: headers['access-control-allow-credentials']
     };
   }
+
+  /**
+   * 日本株データのテスト
+   */
+  async testJapaneseStockData(symbol) {
+    const response = await this.page.request.get(`${this.apiBaseUrl}/api/market-data`, {
+      params: {
+        symbols: symbol,
+        type: 'jp-stock'
+      }
+    });
+    
+    expect(response.status()).toBe(200);
+    const data = await response.json();
+    
+    expect(data).toHaveProperty('success', true);
+    expect(data).toHaveProperty('data');
+    expect(data.data).toHaveProperty(symbol);
+    
+    const stockData = data.data[symbol];
+    expect(stockData).toHaveProperty('symbol', symbol);
+    expect(stockData).toHaveProperty('currency', 'JPY');
+    
+    return stockData;
+  }
+
+  /**
+   * 日本投資信託データのテスト
+   */
+  async testJapaneseFundData(fundCode) {
+    const response = await this.page.request.get(`${this.apiBaseUrl}/api/market-data`, {
+      params: {
+        symbols: fundCode,
+        type: 'jp-fund'
+      }
+    });
+    
+    expect(response.status()).toBe(200);
+    const data = await response.json();
+    
+    expect(data).toHaveProperty('success', true);
+    expect(data).toHaveProperty('data');
+    
+    if (data.data[fundCode]) {
+      const fundData = data.data[fundCode];
+      expect(fundData).toHaveProperty('symbol', fundCode);
+      expect(fundData).toHaveProperty('currency', 'JPY');
+      return fundData;
+    }
+    
+    return null;
+  }
+
+  /**
+   * 複数日本株の一括取得テスト
+   */
+  async testMultipleJapaneseStocks(symbols) {
+    const response = await this.page.request.get(`${this.apiBaseUrl}/api/market-data`, {
+      params: {
+        symbols: symbols.join(','),
+        type: 'jp-stock'
+      }
+    });
+    
+    expect(response.status()).toBe(200);
+    const data = await response.json();
+    
+    expect(data).toHaveProperty('success', true);
+    expect(data).toHaveProperty('data');
+    
+    // 各シンボルのデータを検証
+    const results = {};
+    symbols.forEach(symbol => {
+      if (data.data[symbol]) {
+        results[symbol] = data.data[symbol];
+      }
+    });
+    
+    return results;
+  }
+
+  /**
+   * 市場指数データのテスト
+   */
+  async testJapaneseIndices(indices = ['^N225', '^TPX']) {
+    const response = await this.page.request.get(`${this.apiBaseUrl}/api/market-data`, {
+      params: {
+        symbols: indices.join(','),
+        type: 'jp-index'
+      }
+    });
+    
+    expect(response.status()).toBe(200);
+    const data = await response.json();
+    
+    expect(data).toHaveProperty('success', true);
+    expect(data).toHaveProperty('data');
+    
+    const results = {};
+    indices.forEach(index => {
+      if (data.data[index]) {
+        results[index] = data.data[index];
+        // 日本の指数は適切な範囲にあるか確認
+        if (index === '^N225') {
+          expect(data.data[index].price).toBeGreaterThan(15000);
+          expect(data.data[index].price).toBeLessThan(50000);
+        }
+        if (index === '^TPX') {
+          expect(data.data[index].price).toBeGreaterThan(1000);
+          expect(data.data[index].price).toBeLessThan(3000);
+        }
+      }
+    });
+    
+    return results;
+  }
+
+  /**
+   * 為替レートテスト（円関連）
+   */
+  async testJPYExchangeRates(baseCurrencies = ['USD', 'EUR', 'GBP']) {
+    const pairs = baseCurrencies.map(base => `${base}-JPY`);
+    
+    const response = await this.page.request.get(`${this.apiBaseUrl}/api/market-data`, {
+      params: {
+        type: 'exchange-rate',
+        pairs: pairs.join(',')
+      }
+    });
+    
+    expect(response.status()).toBe(200);
+    const data = await response.json();
+    
+    expect(data).toHaveProperty('success', true);
+    expect(data).toHaveProperty('data');
+    
+    const results = {};
+    pairs.forEach(pair => {
+      if (data.data[pair]) {
+        results[pair] = data.data[pair];
+        expect(data.data[pair].rate).toBeGreaterThan(0);
+        expect(data.data[pair]).toHaveProperty('lastUpdated');
+      }
+    });
+    
+    return results;
+  }
+
+  /**
+   * 日本市場の営業時間テスト
+   */
+  async testJapaneseMarketHours() {
+    const response = await this.page.request.get(`${this.apiBaseUrl}/api/market-status`, {
+      params: {
+        market: 'jp'
+      }
+    });
+    
+    if (response.status() === 200) {
+      const data = await response.json();
+      
+      expect(data).toHaveProperty('success', true);
+      expect(data.data).toHaveProperty('market', 'jp');
+      expect(data.data).toHaveProperty('isOpen');
+      expect(data.data).toHaveProperty('timezone', 'Asia/Tokyo');
+      
+      return data.data;
+    }
+    
+    return null;
+  }
+
+  /**
+   * 日本の祝日データテスト
+   */
+  async testJapaneseHolidays(year = new Date().getFullYear()) {
+    const response = await this.page.request.get(`${this.apiBaseUrl}/api/market-holidays`, {
+      params: {
+        market: 'jp',
+        year: year
+      }
+    });
+    
+    if (response.status() === 200) {
+      const data = await response.json();
+      
+      expect(data).toHaveProperty('success', true);
+      expect(Array.isArray(data.holidays)).toBe(true);
+      
+      // 日本の主要祝日が含まれているか確認
+      const holidayNames = data.holidays.map(h => h.name.toLowerCase());
+      const hasNewYear = holidayNames.some(name => name.includes('new year'));
+      const hasGoldenWeek = holidayNames.some(name => 
+        name.includes('golden week') || 
+        name.includes('constitution day') ||
+        name.includes('greenery day') ||
+        name.includes('children\'s day')
+      );
+      
+      return {
+        holidays: data.holidays,
+        hasNewYear,
+        hasGoldenWeek,
+        total: data.holidays.length
+      };
+    }
+    
+    return null;
+  }
+
+  /**
+   * 投資信託検索APIのテスト
+   */
+  async testFundSearch(query, limit = 10) {
+    const response = await this.page.request.get(`${this.apiBaseUrl}/api/search-funds`, {
+      params: {
+        query: query,
+        type: 'jp-fund',
+        limit: limit
+      }
+    });
+    
+    if (response.status() === 200) {
+      const data = await response.json();
+      
+      expect(data).toHaveProperty('success', true);
+      expect(Array.isArray(data.results)).toBe(true);
+      
+      // 検索結果の検証
+      data.results.forEach(fund => {
+        expect(fund).toHaveProperty('code');
+        expect(fund).toHaveProperty('name');
+        expect(fund.name.toLowerCase()).toContain(query.toLowerCase());
+      });
+      
+      return data.results;
+    }
+    
+    return [];
+  }
+
+  /**
+   * 日本株の価格履歴テスト
+   */
+  async testJapaneseStockHistory(symbol, period = '1M') {
+    const response = await this.page.request.get(`${this.apiBaseUrl}/api/market-data/history`, {
+      params: {
+        symbol: symbol,
+        type: 'jp-stock',
+        period: period
+      }
+    });
+    
+    if (response.status() === 200) {
+      const data = await response.json();
+      
+      expect(data).toHaveProperty('success', true);
+      expect(Array.isArray(data.history)).toBe(true);
+      
+      // 履歴データの検証
+      if (data.history.length > 0) {
+        const firstRecord = data.history[0];
+        expect(firstRecord).toHaveProperty('date');
+        expect(firstRecord).toHaveProperty('price');
+        expect(firstRecord.price).toBeGreaterThan(0);
+      }
+      
+      return data.history;
+    }
+    
+    return [];
+  }
+
+  /**
+   * データ品質チェック
+   */
+  async validateJapaneseMarketDataQuality(symbol, type = 'jp-stock') {
+    const response = await this.page.request.get(`${this.apiBaseUrl}/api/market-data`, {
+      params: {
+        symbols: symbol,
+        type: type
+      }
+    });
+    
+    expect(response.status()).toBe(200);
+    const data = await response.json();
+    
+    if (!data.data[symbol] || data.data[symbol].error) {
+      return {
+        valid: false,
+        reason: 'No data or error present'
+      };
+    }
+    
+    const stockData = data.data[symbol];
+    const issues = [];
+    
+    // 価格の妥当性チェック
+    if (!stockData.price || stockData.price <= 0) {
+      issues.push('Invalid price');
+    }
+    
+    // 日本株の価格範囲チェック
+    if (type === 'jp-stock' && stockData.price) {
+      if (stockData.price < 1 || stockData.price > 1000000) {
+        issues.push('Price outside typical Japanese stock range');
+      }
+    }
+    
+    // 通貨チェック
+    if (stockData.currency !== 'JPY') {
+      issues.push('Currency should be JPY for Japanese assets');
+    }
+    
+    // 最終更新時刻チェック
+    if (stockData.lastUpdated) {
+      const lastUpdated = new Date(stockData.lastUpdated);
+      const now = new Date();
+      const timeDiff = now - lastUpdated;
+      
+      // 24時間以上古い場合は警告
+      if (timeDiff > 24 * 60 * 60 * 1000) {
+        issues.push('Data may be stale (older than 24 hours)');
+      }
+    }
+    
+    return {
+      valid: issues.length === 0,
+      issues: issues,
+      data: stockData
+    };
+  }
 }
