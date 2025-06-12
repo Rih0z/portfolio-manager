@@ -14,6 +14,7 @@
 
 const axios = require('axios');
 const { parse } = require('csv-parse/sync');
+const iconv = require('iconv-lite');
 const { withRetry, isRetryableApiError, sleep } = require('../../utils/retry');
 const alertService = require('../alerts');
 const blacklist = require('../../utils/scrapingBlacklist');
@@ -156,7 +157,7 @@ const getMorningstarCsvData = async (fundCode) => {
           'Accept-Language': 'ja,en-US;q=0.9,en;q=0.8'
         },
         timeout: MUTUAL_FUND_TIMEOUT,
-        responseType: 'text'
+        responseType: 'arraybuffer'  // バイナリデータとして取得
       }),
       {
         maxRetries: 3,
@@ -165,11 +166,13 @@ const getMorningstarCsvData = async (fundCode) => {
       }
     );
     
+    // Shift_JISからUTF-8に変換
+    const csvText = iconv.decode(Buffer.from(response.data), 'Shift_JIS');
+    
     // CSV解析
-    const records = parse(response.data, {
+    const records = parse(csvText, {
       columns: true,
-      skip_empty_lines: true,
-      encoding: 'shift_jis'
+      skip_empty_lines: true
     });
     
     if (!records || records.length === 0) {
