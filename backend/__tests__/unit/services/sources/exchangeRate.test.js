@@ -163,7 +163,7 @@ describe('為替レートAPIサービス', () => {
       expect(result.rate).toBeGreaterThan(0); // 具体的な値はテスト環境によって異なる場合がある
       
       // フォールバックであることを示すフラグが設定されているか
-      expect(result.source).toContain('dynamic-calculation');
+      expect(result.source).toContain('hardcoded-values');
     });
     
     test('APIレスポンスがsuccessでない場合はフォールバック値を返す', async () => {

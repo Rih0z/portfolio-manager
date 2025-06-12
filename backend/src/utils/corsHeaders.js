@@ -17,7 +17,13 @@ const getCorsHeaders = (event) => {
     : 'http://localhost:3001,http://localhost:3000,https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com';
   
   const allowedOriginsStr = process.env.CORS_ALLOWED_ORIGINS || defaultOrigins;
-  const allowedOrigins = allowedOriginsStr.split(',').map(o => o.trim());
+  const allowedOrigins = allowedOriginsStr.split(',').map(o => o.trim()).filter(o => o.length > 0);
+  
+  // If no valid origins after filtering, use defaults
+  if (allowedOrigins.length === 0) {
+    const fallbackOrigins = defaultOrigins.split(',').map(o => o.trim());
+    allowedOrigins.push(...fallbackOrigins);
+  }
   
   // Check if the request origin is in the allowed list
   const corsOrigin = allowedOrigins.includes(origin) ? origin : allowedOrigins[0];

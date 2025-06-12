@@ -1,257 +1,411 @@
-/**
- * ファイルパス: __tests__/unit/utils/tokenManager.test.js
- * 
- * TokenManagerのユニットテスト
- * 
- * @author Portfolio Manager Team
- * @created 2025-05-20
- */
+const { 
+  validateAndRefreshToken, 
+  refreshAccessToken, 
+  verifyIdToken, 
+  exchangeCodeForTokens, 
+  refreshDriveToken 
+} = require('../../../src/utils/tokenManager');
 
-// テスト対象モジュールのインポート
-const tokenManager = require('../../../src/utils/tokenManager');
-
-// 依存モジュールのインポート
 const { OAuth2Client } = require('google-auth-library');
 const { withRetry } = require('../../../src/utils/retry');
-const logger = require('../../../src/utils/logger');
+const { getApiKeys } = require('../../../src/utils/secretsManager');
 
-// モックの設定
 jest.mock('google-auth-library');
 jest.mock('../../../src/utils/retry');
-jest.mock('../../../src/utils/logger');
-jest.mock('../../../src/utils/secretsManager', () => ({
-  getApiKeys: jest.fn().mockResolvedValue({
-    googleClientId: 'test-client-id',
-    googleClientSecret: 'test-client-secret'
-  })
-}));
+jest.mock('../../../src/utils/secretsManager');
 
-describe('TokenManager', () => {
-  // テスト用のモックデータ
-  const mockSession = {
-    accessToken: 'test-access-token',
-    refreshToken: 'test-refresh-token',
-    tokenExpiry: new Date(Date.now() + 1000 * 60 * 60).toISOString() // 1時間後
-  };
-
-  const mockExpiredSession = {
-    accessToken: 'expired-access-token',
-    refreshToken: 'test-refresh-token',
-    tokenExpiry: new Date(Date.now() - 1000 * 60 * 60).toISOString() // 1時間前（期限切れ）
-  };
-
-  const mockNewTokens = {
-    access_token: 'new-access-token',
-    refresh_token: 'new-refresh-token',
-    expires_in: 3600
-  };
-
-  const mockIdTokenPayload = {
-    sub: 'user-123',
-    email: 'test@example.com',
-    name: 'Test User'
-  };
-
+describe('tokenManager', () => {
   let mockOAuth2Client;
-  let mockTicket;
+  let originalConsole;
 
   beforeEach(() => {
-    // テスト前の準備
-    jest.resetAllMocks();
+    originalConsole = console.log;
+    console.log = jest.fn();
+    console.error = jest.fn();
 
-    // モックのTicketオブジェクトを作成
-    mockTicket = {
-      getPayload: jest.fn().mockReturnValue(mockIdTokenPayload)
-    };
-
-    // OAuth2Clientのモック実装
     mockOAuth2Client = {
-      refreshAccessToken: jest.fn().mockResolvedValue({ 
-        credentials: mockNewTokens
-      }),
-      verifyIdToken: jest.fn().mockResolvedValue(mockTicket),
-      getToken: jest.fn().mockResolvedValue({ 
-        tokens: mockNewTokens 
-      }),
-      setCredentials: jest.fn()
+      setCredentials: jest.fn(),
+      refreshAccessToken: jest.fn(),
+      verifyIdToken: jest.fn(),
+      getToken: jest.fn()
     };
 
-    // OAuth2Clientコンストラクタのモック
     OAuth2Client.mockImplementation(() => mockOAuth2Client);
 
-    // withRetryのモック実装 - 関数を直接実行せず、直接結果を返すようにする
-    withRetry.mockImplementation((fn, options) => {
-      // refreshAccessTokenをモックするとき
-      if (fn.toString().includes('refreshAccessToken')) {
-        return Promise.resolve(mockNewTokens);
-      }
-      // verifyIdTokenをモックするとき
-      else if (fn.toString().includes('verifyIdToken')) {
-        return Promise.resolve(mockIdTokenPayload);
-      }
-      // exchangeCodeForTokensをモックするとき
-      else if (fn.toString().includes('getToken')) {
-        return Promise.resolve(mockNewTokens);
-      }
-      // その他の場合
-      else {
-        return fn();
-      }
+    getApiKeys.mockResolvedValue({
+      googleClientId: 'test-client-id',
+      googleClientSecret: 'test-client-secret'
     });
-  });
-  
-  afterEach(() => {
-    // テスト後のクリーンアップ
+
+    // Mock withRetry to simply execute the function  
+    withRetry.mockImplementation(async (fn, options) => {
+      return await fn();
+    });
+
     jest.clearAllMocks();
   });
-  
-  // エクスポートされた関数をテスト
+
+  afterEach(() => {
+    console.log = originalConsole;
+    jest.restoreAllMocks();
+  });
+
   describe('validateAndRefreshToken', () => {
-    test('有効期限内のトークンの場合は更新しない', async () => {
-      const result = await tokenManager.validateAndRefreshToken(mockSession);
-      
-      expect(result).toEqual({
-        accessToken: mockSession.accessToken,
-        refreshed: false
-      });
-
-      // OAuth2ClientのsetCredentialsが呼ばれていないことを確認
-      expect(mockOAuth2Client.setCredentials).not.toHaveBeenCalled();
-    });
-
-    test('有効期限切れのトークンを更新する', async () => {
-      // refreshAccessTokenが呼ばれたときに直接mockNewTokensを返すようにする
-      withRetry.mockImplementation(() => Promise.resolve(mockNewTokens));
-
-      const result = await tokenManager.validateAndRefreshToken(mockExpiredSession);
-      
-      expect(result).toEqual({
-        accessToken: mockNewTokens.access_token,
-        refreshToken: mockNewTokens.refresh_token,
-        tokenExpiry: expect.any(String),
-        refreshed: true
-      });
-
-      // setCredentialsは、withRetryのモックでskipされる可能性があるため検証しない
-    });
-
-    test('セッションがnullの場合はエラーをスローする', async () => {
-      await expect(tokenManager.validateAndRefreshToken(null))
-        .rejects
-        .toThrow('セッション情報が不足しています');
-    });
-
-    test('リフレッシュトークンがない場合はエラーをスローする', async () => {
-      const sessionWithoutRefreshToken = {
-        ...mockExpiredSession,
-        refreshToken: null
+    it('should return existing token when not expired', async () => {
+      const futureDate = new Date(Date.now() + 60000); // 1 minute from now
+      const session = {
+        accessToken: 'valid-token',
+        tokenExpiry: futureDate.toISOString(),
+        refreshToken: 'refresh-token'
       };
 
-      await expect(tokenManager.validateAndRefreshToken(sessionWithoutRefreshToken))
-        .rejects
-        .toThrow('リフレッシュトークンが存在しません');
+      const result = await validateAndRefreshToken(session);
+
+      expect(result).toEqual({
+        accessToken: 'valid-token',
+        refreshed: false
+      });
+    });
+
+    it('should refresh token when expired', async () => {
+      const pastDate = new Date(Date.now() - 60000); // 1 minute ago
+      const session = {
+        accessToken: 'expired-token',
+        tokenExpiry: pastDate.toISOString(),
+        refreshToken: 'refresh-token'
+      };
+
+      const newTokens = {
+        access_token: 'new-access-token',
+        refresh_token: 'new-refresh-token',
+        expires_in: 3600
+      };
+
+      mockOAuth2Client.refreshAccessToken.mockResolvedValue({
+        credentials: newTokens
+      });
+
+      const result = await validateAndRefreshToken(session);
+
+      expect(result).toMatchObject({
+        accessToken: 'new-access-token',
+        refreshToken: 'new-refresh-token',
+        refreshed: true
+      });
+      expect(result.tokenExpiry).toBeDefined();
+    });
+
+    it('should throw error when session is missing', async () => {
+      await expect(validateAndRefreshToken(null)).rejects.toThrow('セッション情報が不足しています');
+    });
+
+    it('should throw error when refresh token is missing', async () => {
+      const pastDate = new Date(Date.now() - 60000);
+      const session = {
+        accessToken: 'expired-token',
+        tokenExpiry: pastDate.toISOString()
+        // refreshToken is missing
+      };
+
+      await expect(validateAndRefreshToken(session)).rejects.toThrow('リフレッシュトークンが存在しません');
+    });
+
+    it('should use existing refresh token when new one is not provided', async () => {
+      const pastDate = new Date(Date.now() - 60000);
+      const session = {
+        accessToken: 'expired-token',
+        tokenExpiry: pastDate.toISOString(),
+        refreshToken: 'existing-refresh-token'
+      };
+
+      const newTokens = {
+        access_token: 'new-access-token',
+        expires_in: 3600
+        // No refresh_token in response
+      };
+
+      withRetry.mockImplementation(async (fn) => {
+        const client = mockOAuth2Client;
+        client.setCredentials({
+          refresh_token: 'existing-refresh-token'
+        });
+        
+        const mockCredentials = await client.refreshAccessToken();
+        return mockCredentials.credentials;
+      });
+
+      mockOAuth2Client.refreshAccessToken.mockResolvedValue({
+        credentials: newTokens
+      });
+
+      const result = await validateAndRefreshToken(session);
+
+      expect(result.refreshToken).toBe('existing-refresh-token');
+    });
+
+    it('should handle token refresh errors', async () => {
+      const pastDate = new Date(Date.now() - 60000);
+      const session = {
+        accessToken: 'expired-token',
+        tokenExpiry: pastDate.toISOString(),
+        refreshToken: 'invalid-refresh-token'
+      };
+
+      // Mock the entire withRetry call to throw an error
+      withRetry.mockRejectedValue(new Error('Invalid refresh token'));
+
+      await expect(validateAndRefreshToken(session)).rejects.toThrow('アクセストークンの検証または更新に失敗しました');
     });
   });
 
   describe('refreshAccessToken', () => {
-    test('リフレッシュトークンを使用してアクセストークンを更新する', async () => {
-      // 直接mockNewTokensを返すようにする
-      withRetry.mockResolvedValue(mockNewTokens);
+    it('should successfully refresh access token', async () => {
+      const refreshToken = 'test-refresh-token';
+      const newCredentials = {
+        access_token: 'new-access-token',
+        refresh_token: 'new-refresh-token',
+        expires_in: 3600
+      };
 
-      const result = await tokenManager.refreshAccessToken('test-refresh-token');
-      
-      expect(result).toEqual(mockNewTokens);
+      // Mock withRetry to execute the function and verify client behavior
+      withRetry.mockImplementation(async (fn) => {
+        const client = mockOAuth2Client;
+        client.setCredentials({ refresh_token: refreshToken });
+        const response = { credentials: newCredentials };
+        client.refreshAccessToken.mockResolvedValue(response);
+        return newCredentials;
+      });
 
-      // withRetryが呼ばれたことを確認
-      expect(withRetry).toHaveBeenCalled();
+      const result = await refreshAccessToken(refreshToken);
+
+      expect(result).toEqual(newCredentials);
     });
 
-    test('エラー発生時は適切なエラーメッセージをスローする', async () => {
-      // refreshAccessTokenでエラーが発生するようにモック設定
-      const mockError = new Error('Token refresh failed');
-      withRetry.mockRejectedValue(mockError);
+    it('should handle refresh errors', async () => {
+      const refreshToken = 'invalid-refresh-token';
+      
+      // Mock withRetry to throw error
+      withRetry.mockRejectedValue(new Error('Invalid grant'));
 
-      await expect(tokenManager.refreshAccessToken('test-refresh-token'))
-        .rejects
-        .toThrow('アクセストークンの更新に失敗しました');
+      await expect(refreshAccessToken(refreshToken)).rejects.toThrow('アクセストークンの更新に失敗しました');
+    });
 
-      expect(logger.error).toHaveBeenCalledWith('トークン更新エラー:', mockError);
+    it('should apply retry logic', async () => {
+      const refreshToken = 'test-refresh-token';
+      
+      // Verify that withRetry is called
+      const mockWithRetry = withRetry.mockImplementation(async (fn, options) => {
+        expect(options).toMatchObject({
+          maxRetries: 3,
+          baseDelay: 300
+        });
+        return await fn();
+      });
+
+      mockOAuth2Client.refreshAccessToken.mockResolvedValue({
+        credentials: { access_token: 'token' }
+      });
+
+      await refreshAccessToken(refreshToken);
+
+      expect(mockWithRetry).toHaveBeenCalled();
     });
   });
 
   describe('verifyIdToken', () => {
-    test('IDトークンを検証してユーザー情報を取得する', async () => {
-      // 直接mockIdTokenPayloadを返すようにする
-      withRetry.mockResolvedValue(mockIdTokenPayload);
+    it('should successfully verify ID token', async () => {
+      const idToken = 'test-id-token';
+      const payload = {
+        sub: 'user-123',
+        email: 'test@example.com',
+        name: 'Test User'
+      };
 
-      const result = await tokenManager.verifyIdToken('test-id-token');
+      const mockTicket = {
+        getPayload: jest.fn().mockReturnValue(payload)
+      };
+
+      // Mock withRetry to execute the function
+      withRetry.mockImplementation(async (fn) => {
+        mockOAuth2Client.verifyIdToken.mockResolvedValue(mockTicket);
+        return payload;
+      });
+
+      const result = await verifyIdToken(idToken);
+
+      expect(result).toEqual(payload);
+    });
+
+    it('should handle expired token error', async () => {
+      const idToken = 'expired-token';
       
-      expect(result).toEqual(mockIdTokenPayload);
+      withRetry.mockRejectedValue(new Error('Token expired'));
 
-      // withRetryが呼ばれたことを確認
-      expect(withRetry).toHaveBeenCalled();
+      await expect(verifyIdToken(idToken)).rejects.toThrow('IDトークンの有効期限が切れています');
     });
 
-    test('トークン期限切れエラーの場合は適切なメッセージをスローする', async () => {
-      // verifyIdTokenでトークン期限切れエラーが発生するようにモック設定
-      const mockError = new Error('Token has expired');
-      withRetry.mockRejectedValue(mockError);
+    it('should handle audience mismatch error', async () => {
+      const idToken = 'invalid-audience-token';
+      
+      withRetry.mockRejectedValue(new Error('Wrong audience'));
 
-      await expect(tokenManager.verifyIdToken('expired-token'))
-        .rejects
-        .toThrow('IDトークンの有効期限が切れています');
-
-      expect(logger.error).toHaveBeenCalledWith('IDトークン検証エラー:', mockError);
+      await expect(verifyIdToken(idToken)).rejects.toThrow('IDトークンの対象者(audience)が不正です');
     });
 
-    test('audience不一致エラーの場合は適切なメッセージをスローする', async () => {
-      // verifyIdTokenでaudience不一致エラーが発生するようにモック設定
-      const mockError = new Error('Invalid audience');
-      withRetry.mockRejectedValue(mockError);
+    it('should handle generic verification errors', async () => {
+      const idToken = 'invalid-token';
+      
+      withRetry.mockRejectedValue(new Error('Invalid signature'));
 
-      await expect(tokenManager.verifyIdToken('invalid-audience-token'))
-        .rejects
-        .toThrow('IDトークンの対象者(audience)が不正です');
-
-      expect(logger.error).toHaveBeenCalledWith('IDトークン検証エラー:', mockError);
+      await expect(verifyIdToken(idToken)).rejects.toThrow('IDトークンの検証に失敗しました: Invalid signature');
     });
   });
 
   describe('exchangeCodeForTokens', () => {
-    test('認証コードをトークンと交換する', async () => {
-      // 直接mockNewTokensを返すようにする
-      withRetry.mockResolvedValue(mockNewTokens);
+    it('should successfully exchange code for tokens', async () => {
+      const code = 'auth-code';
+      const redirectUri = 'http://localhost:3000/callback';
+      const tokens = {
+        access_token: 'access-token',
+        refresh_token: 'refresh-token',
+        id_token: 'id-token'
+      };
 
-      const result = await tokenManager.exchangeCodeForTokens('test-auth-code', 'https://example.com/callback');
+      withRetry.mockImplementation(async (fn) => {
+        mockOAuth2Client.getToken.mockResolvedValue({ tokens });
+        return tokens;
+      });
+
+      const result = await exchangeCodeForTokens(code, redirectUri);
+
+      expect(result).toEqual(tokens);
+    });
+
+    it('should handle invalid grant error', async () => {
+      const code = 'invalid-code';
+      const redirectUri = 'http://localhost:3000/callback';
       
-      expect(result).toEqual(mockNewTokens);
+      withRetry.mockRejectedValue(new Error('invalid_grant'));
 
-      // withRetryが呼ばれたことを確認
-      expect(withRetry).toHaveBeenCalled();
+      await expect(exchangeCodeForTokens(code, redirectUri)).rejects.toThrow('認証コードが無効または期限切れです');
     });
 
-    test('invalid_grantエラーの場合は適切なメッセージをスローする', async () => {
-      // getTokenでinvalid_grantエラーが発生するようにモック設定
-      const mockError = new Error('invalid_grant');
-      withRetry.mockRejectedValue(mockError);
+    it('should handle redirect URI mismatch error', async () => {
+      const code = 'auth-code';
+      const redirectUri = 'http://wrong-domain.com/callback';
+      
+      withRetry.mockRejectedValue(new Error('redirect_uri_mismatch'));
 
-      await expect(tokenManager.exchangeCodeForTokens('invalid-code', 'https://example.com/callback'))
-        .rejects
-        .toThrow('認証コードが無効または期限切れです');
-
-      expect(logger.error).toHaveBeenCalledWith('トークン交換エラー:', mockError);
+      await expect(exchangeCodeForTokens(code, redirectUri)).rejects.toThrow('リダイレクトURIが一致しません');
     });
 
-    test('redirect_uri_mismatchエラーの場合は適切なメッセージをスローする', async () => {
-      // getTokenでredirect_uri_mismatchエラーが発生するようにモック設定
-      const mockError = new Error('redirect_uri_mismatch');
-      withRetry.mockRejectedValue(mockError);
+    it('should handle generic exchange errors', async () => {
+      const code = 'auth-code';
+      const redirectUri = 'http://localhost:3000/callback';
+      
+      withRetry.mockRejectedValue(new Error('Network error'));
 
-      await expect(tokenManager.exchangeCodeForTokens('test-code', 'https://invalid-uri.com'))
-        .rejects
-        .toThrow('リダイレクトURIが一致しません');
+      await expect(exchangeCodeForTokens(code, redirectUri)).rejects.toThrow('認証コードからトークンへの交換に失敗しました: Network error');
+    });
+  });
 
-      expect(logger.error).toHaveBeenCalledWith('トークン交換エラー:', mockError);
+  describe('refreshDriveToken', () => {
+    it('should successfully refresh Drive API token', async () => {
+      const refreshToken = 'drive-refresh-token';
+      const credentials = {
+        access_token: 'new-drive-token',
+        expiry_date: Date.now() + 3600000,
+        token_type: 'Bearer'
+      };
+
+      // getApiKeysのモックを追加
+      getApiKeys.mockResolvedValue({
+        google_client_id: 'test-client-id',
+        google_client_secret: 'test-client-secret'
+      });
+
+      mockOAuth2Client.refreshAccessToken.mockResolvedValue({ credentials });
+
+      const result = await refreshDriveToken(refreshToken);
+
+      expect(mockOAuth2Client.setCredentials).toHaveBeenCalledWith({
+        refresh_token: refreshToken
+      });
+      expect(result).toEqual({
+        access_token: credentials.access_token,
+        expiry_date: credentials.expiry_date,
+        token_type: 'Bearer'
+      });
+    });
+
+    it('should handle missing token type', async () => {
+      const refreshToken = 'drive-refresh-token';
+      const credentials = {
+        access_token: 'new-drive-token',
+        expiry_date: Date.now() + 3600000
+        // token_type is missing
+      };
+
+      // getApiKeysのモックを追加
+      getApiKeys.mockResolvedValue({
+        google_client_id: 'test-client-id',
+        google_client_secret: 'test-client-secret'
+      });
+
+      mockOAuth2Client.refreshAccessToken.mockResolvedValue({ credentials });
+
+      const result = await refreshDriveToken(refreshToken);
+
+      expect(result.token_type).toBe('Bearer');
+    });
+
+    it('should handle Drive token refresh errors', async () => {
+      const refreshToken = 'invalid-drive-refresh-token';
+      
+      // getApiKeysのモックを追加
+      getApiKeys.mockResolvedValue({
+        google_client_id: 'test-client-id',
+        google_client_secret: 'test-client-secret'
+      });
+      
+      mockOAuth2Client.refreshAccessToken.mockRejectedValue(new Error('Invalid refresh token'));
+
+      await expect(refreshDriveToken(refreshToken)).rejects.toThrow('Drive APIトークンのリフレッシュに失敗しました: Invalid refresh token');
+    });
+  });
+
+  describe('OAuth2Client initialization', () => {
+    beforeEach(() => {
+      // Reset OAuth2Client mock for each test
+      OAuth2Client.mockClear();
+    });
+
+    it('should initialize OAuth2Client with API keys', async () => {
+      const idToken = 'test-token';
+      const payload = { sub: 'user-123' };
+
+      withRetry.mockImplementation(async (fn) => {
+        return payload;
+      });
+
+      const result = await verifyIdToken(idToken);
+
+      expect(getApiKeys).toHaveBeenCalled();
+      expect(result).toEqual(payload);
+    });
+
+    it('should handle missing client credentials', async () => {
+      // Create a fresh mock for getApiKeys that returns empty object
+      const mockGetApiKeys = jest.fn().mockResolvedValue({});
+      
+      // We need to test initialization errors, which happen at getOAuth2Client level
+      await expect(verifyIdToken('test-token')).rejects.toThrow();
+    });
+
+    it('should handle OAuth2Client initialization error', async () => {
+      getApiKeys.mockRejectedValue(new Error('Secrets Manager error'));
+
+      await expect(verifyIdToken('test-token')).rejects.toThrow('Secrets Manager error');
     });
   });
 });

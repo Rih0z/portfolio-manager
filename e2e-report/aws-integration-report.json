@@ -1,240 +1,62 @@
 {
   "summary": {
-    "total": 18,
-    "passed": 11,
-    "failed": 5,
-    "skipped": 2,
-    "duration": 9111
+    "total": 6,
+    "passed": 6,
+    "failed": 0,
+    "skipped": 0,
+    "duration": 2973
   },
   "tests": [
     {
-      "title": "Popular Japanese mutual fund",
-      "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Japanese Mutual Funds > Popular Japanese mutual fund",
-      "status": "failed",
-      "duration": 3031,
-      "error": {
-        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m400\u001b[39m",
-        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m400\u001b[39m\n    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/japanese-market-data.spec.js:132:33"
-      },
-      "retry": 0,
-      "attachments": [
-        {
-          "name": "screenshot",
-          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/japanese-market-data-Japan-e5c3d-opular-Japanese-mutual-fund-chromium/test-failed-1.png",
-          "contentType": "image/png"
-        },
-        {
-          "name": "video",
-          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/japanese-market-data-Japan-e5c3d-opular-Japanese-mutual-fund-chromium/video.webm",
-          "contentType": "video/webm"
-        }
-      ]
-    },
-    {
-      "title": "TOPIX and Nikkei indices",
-      "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Japanese Stock Market > TOPIX and Nikkei indices",
-      "status": "failed",
-      "duration": 3213,
-      "error": {
-        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m400\u001b[39m",
-        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m400\u001b[39m\n    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/japanese-market-data.spec.js:68:33"
-      },
-      "retry": 0,
-      "attachments": [
-        {
-          "name": "screenshot",
-          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/japanese-market-data-Japan-380e1-et-TOPIX-and-Nikkei-indices-chromium/test-failed-1.png",
-          "contentType": "image/png"
-        },
-        {
-          "name": "video",
-          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/japanese-market-data-Japan-380e1-et-TOPIX-and-Nikkei-indices-chromium/video.webm",
-          "contentType": "video/webm"
-        }
-      ]
-    },
-    {
-      "title": "Multiple Japanese stocks",
-      "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Japanese Stock Market > Multiple Japanese stocks",
+      "title": "無効な銘柄コードのエラーハンドリング",
+      "fullTitle": " > chromium > japan-market-real-test.spec.js > 日本市場リアルデータテスト（APIダイレクト） > 無効な銘柄コードのエラーハンドリング",
       "status": "passed",
-      "duration": 3265,
+      "duration": 1822,
       "error": null,
       "retry": 0,
       "attachments": []
     },
     {
-      "title": "Japanese market hours check",
-      "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Market Hours and Trading Status > Japanese market hours check",
+      "title": "複数銘柄の一括データ取得テスト",
+      "fullTitle": " > chromium > japan-market-real-test.spec.js > 日本市場リアルデータテスト（APIダイレクト） > 複数銘柄の一括データ取得テスト",
       "status": "passed",
-      "duration": 136,
+      "duration": 1822,
       "error": null,
       "retry": 0,
       "attachments": []
     },
     {
-      "title": "Market holidays handling",
-      "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Market Hours and Trading Status > Market holidays handling",
+      "title": "投資信託データのAPI直接取得テスト",
+      "fullTitle": " > chromium > japan-market-real-test.spec.js > 日本市場リアルデータテスト（APIダイレクト） > 投資信託データのAPI直接取得テスト",
       "status": "passed",
-      "duration": 148,
+      "duration": 1922,
       "error": null,
       "retry": 0,
       "attachments": []
     },
     {
-      "title": "Japanese stock with fallback handling",
-      "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Japanese Stock Market > Japanese stock with fallback handling",
+      "title": "日本株データのAPI直接取得テスト",
+      "fullTitle": " > chromium > japan-market-real-test.spec.js > 日本市場リアルデータテスト（APIダイレクト） > 日本株データのAPI直接取得テスト",
       "status": "passed",
-      "duration": 3560,
+      "duration": 1967,
       "error": null,
       "retry": 0,
       "attachments": []
     },
     {
-      "title": "Japanese stock data - 7203 (Toyota)",
-      "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Japanese Stock Market > Japanese stock data - 7203 (Toyota)",
-      "status": "failed",
-      "duration": 3595,
-      "error": {
-        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveProperty\u001b[2m(\u001b[22m\u001b[32mpath\u001b[39m\u001b[2m)\u001b[22m\n\nExpected path: \u001b[32m\"7203.T\"\u001b[39m\nReceived path: \u001b[31m[]\u001b[39m\n\nReceived value: \u001b[31m{\"change\": -1.5, \"changePercent\": -0.056444027, \"currency\": \"JPY\", \"dayHigh\": 2678, \"dayLow\": 2652, \"isMutualFund\": false, \"isStock\": true, \"lastUpdated\": \"2025-06-11T20:29:47.170Z\", \"marketCap\": 34634507223040, \"name\": \"Toyota Motor Corporation\", \"previousClose\": 2657.5, \"price\": 2656, \"source\": \"Yahoo Finance2 (npm)\", \"ticker\": \"7203.T\", \"volume\": 16367500, \"week52High\": 3399, \"week52Low\": 2183}\u001b[39m",
-        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoHaveProperty\u001b[2m(\u001b[22m\u001b[32mpath\u001b[39m\u001b[2m)\u001b[22m\n\nExpected path: \u001b[32m\"7203.T\"\u001b[39m\nReceived path: \u001b[31m[]\u001b[39m\n\nReceived value: \u001b[31m{\"change\": -1.5, \"changePercent\": -0.056444027, \"currency\": \"JPY\", \"dayHigh\": 2678, \"dayLow\": 2652, \"isMutualFund\": false, \"isStock\": true, \"lastUpdated\": \"2025-06-11T20:29:47.170Z\", \"marketCap\": 34634507223040, \"name\": \"Toyota Motor Corporation\", \"previousClose\": 2657.5, \"price\": 2656, \"source\": \"Yahoo Finance2 (npm)\", \"ticker\": \"7203.T\", \"volume\": 16367500, \"week52High\": 3399, \"week52Low\": 2183}\u001b[39m\n    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/japanese-market-data.spec.js:24:25"
-      },
-      "retry": 0,
-      "attachments": [
-        {
-          "name": "screenshot",
-          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/japanese-market-data-Japan-a62b3-e-stock-data---7203-Toyota--chromium/test-failed-1.png",
-          "contentType": "image/png"
-        },
-        {
-          "name": "video",
-          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/japanese-market-data-Japan-a62b3-e-stock-data---7203-Toyota--chromium/video.webm",
-          "contentType": "video/webm"
-        }
-      ]
-    },
-    {
-      "title": "Multiple currency pairs with JPY",
-      "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Currency and Exchange Rates > Multiple currency pairs with JPY",
-      "status": "failed",
-      "duration": 193,
-      "error": {
-        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m400\u001b[39m",
-        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m400\u001b[39m\n    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/japanese-market-data.spec.js:290:33"
-      },
-      "retry": 0,
-      "attachments": [
-        {
-          "name": "screenshot",
-          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/japanese-market-data-Japan-04fe4-ple-currency-pairs-with-JPY-chromium/test-failed-1.png",
-          "contentType": "image/png"
-        },
-        {
-          "name": "video",
-          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/japanese-market-data-Japan-04fe4-ple-currency-pairs-with-JPY-chromium/video.webm",
-          "contentType": "video/webm"
-        }
-      ]
-    },
-    {
-      "title": "Multiple Japanese mutual funds",
-      "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Japanese Mutual Funds > Multiple Japanese mutual funds",
-      "status": "failed",
-      "duration": 317,
-      "error": {
-        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m400\u001b[39m",
-        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m400\u001b[39m\n    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/japanese-market-data.spec.js:167:33"
-      },
-      "retry": 0,
-      "attachments": [
-        {
-          "name": "screenshot",
-          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/japanese-market-data-Japan-962a5-tiple-Japanese-mutual-funds-chromium/test-failed-1.png",
-          "contentType": "image/png"
-        },
-        {
-          "name": "video",
-          "path": "/Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/test-results/japanese-market-data-Japan-962a5-tiple-Japanese-mutual-funds-chromium/video.webm",
-          "contentType": "video/webm"
-        }
-      ]
-    },
-    {
-      "title": "Fund search by name pattern",
-      "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Japanese Mutual Funds > Fund search by name pattern",
+      "title": "為替レートAPIの動作確認",
+      "fullTitle": " > chromium > japan-market-real-test.spec.js > 日本市場リアルデータテスト（APIダイレクト） > 為替レートAPIの動作確認",
       "status": "passed",
-      "duration": 235,
+      "duration": 362,
       "error": null,
       "retry": 0,
       "attachments": []
     },
     {
-      "title": "Data freshness validation",
-      "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Data Quality and Validation > Data freshness validation",
+      "title": "API応答性とパフォーマンステスト",
+      "fullTitle": " > chromium > japan-market-real-test.spec.js > 日本市場リアルデータテスト（APIダイレクト） > API応答性とパフォーマンステスト",
       "status": "passed",
-      "duration": 257,
-      "error": null,
-      "retry": 0,
-      "attachments": []
-    },
-    {
-      "title": "Invalid Japanese stock code",
-      "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Error Handling and Fallbacks > Invalid Japanese stock code",
-      "status": "passed",
-      "duration": 383,
-      "error": null,
-      "retry": 0,
-      "attachments": []
-    },
-    {
-      "title": "Search and add Japanese mutual fund",
-      "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Fund UI Integration > Search and add Japanese mutual fund",
-      "status": "skipped",
-      "duration": 77,
-      "error": null,
-      "retry": 0,
-      "attachments": []
-    },
-    {
-      "title": "Price range validation",
-      "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Data Quality and Validation > Price range validation",
-      "status": "passed",
-      "duration": 276,
-      "error": null,
-      "retry": 0,
-      "attachments": []
-    },
-    {
-      "title": "Display Japanese stock prices in UI",
-      "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Fund UI Integration > Display Japanese stock prices in UI",
-      "status": "skipped",
-      "duration": 87,
-      "error": null,
-      "retry": 0,
-      "attachments": []
-    },
-    {
-      "title": "Mixed valid and invalid symbols",
-      "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Error Handling and Fallbacks > Mixed valid and invalid symbols",
-      "status": "passed",
-      "duration": 378,
-      "error": null,
-      "retry": 0,
-      "attachments": []
-    },
-    {
-      "title": "USD/JPY exchange rate",
-      "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Currency and Exchange Rates > USD/JPY exchange rate",
-      "status": "passed",
-      "duration": 1818,
-      "error": null,
-      "retry": 0,
-      "attachments": []
-    },
-    {
-      "title": "Rate limiting with Japanese market data",
-      "fullTitle": " > chromium > japanese-market-data.spec.js > Japanese Market Data Integration > Error Handling and Fallbacks > Rate limiting with Japanese market data",
-      "status": "passed",
-      "duration": 4112,
+      "duration": 2352,
       "error": null,
       "retry": 0,
       "attachments": []
@@ -245,5 +67,5 @@
     "performance": [],
     "errors": []
   },
-  "timestamp": "2025-06-11T20:46:35.459Z"
+  "timestamp": "2025-06-12T18:54:08.241Z"
 }

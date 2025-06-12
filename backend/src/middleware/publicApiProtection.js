@@ -3,7 +3,7 @@
  * リクエストヘッダーやUser-Agentをチェックして基本的な保護を提供
  */
 
-const { createResponse } = require('../utils/response');
+const { createResponse } = require('../utils/responseUtils');
 const logger = require('../utils/logger');
 
 const ALLOWED_USER_AGENTS = [

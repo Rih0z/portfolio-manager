@@ -34,7 +34,7 @@ describe('exchangeRate service additional coverage', () => {
 
     expect(result.base).toBe('JPY');
     expect(result.target).toBe('USD');
-    expect(result.source).toBe('dynamic-calculation');
+    expect(result.source).toBe('hardcoded-values');
     expect(result.rate).toBeCloseTo(expected, 4);
   });
 

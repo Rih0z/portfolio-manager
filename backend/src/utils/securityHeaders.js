@@ -30,7 +30,7 @@ const getSecurityHeaders = (options = {}) => {
     'Server': 'portfolio-api',
     
     // Cache control
-    'Cache-Control': options.cacheControl || 'no-store, no-cache, must-revalidate',
+    'Cache-Control': (options && options.cacheControl) || 'no-store, no-cache, must-revalidate',
     
     // Permissions policy
     'Permissions-Policy': 'camera=(), microphone=(), geolocation=()'
@@ -42,7 +42,7 @@ const getSecurityHeaders = (options = {}) => {
   }
   
   // Add Content Security Policy
-  if (options.includeCSP !== false) {
+  if (!(options && options.includeCSP === false)) {
     const cspDirectives = [
       "default-src 'none'",
       "script-src 'self'",
@@ -76,11 +76,13 @@ const mergeWithSecurityHeaders = (existingHeaders = {}, options = {}) => {
   const merged = { ...securityHeaders };
   
   // Preserve existing headers
-  Object.keys(existingHeaders).forEach(key => {
-    if (corsHeaders.includes(key) || !securityHeaders.hasOwnProperty(key)) {
-      merged[key] = existingHeaders[key];
-    }
-  });
+  if (existingHeaders && typeof existingHeaders === 'object') {
+    Object.keys(existingHeaders).forEach(key => {
+      if (corsHeaders.includes(key) || !securityHeaders.hasOwnProperty(key)) {
+        merged[key] = existingHeaders[key];
+      }
+    });
+  }
   
   return merged;
 };

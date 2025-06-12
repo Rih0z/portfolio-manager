@@ -1,258 +1,441 @@
 /**
- * responseUtils.js のユニットテスト
- * 
- * @file __tests__/unit/utils/responseUtils.test.js
- * @author Portfolio Manager Team
- * @created 2025-05-18
- * @updated 2025-05-12 バグ修正: 非同期関数の処理を修正
- * @updated 2025-05-14 修正: テスト対応強化、期待値の調整
+ * responseUtils.jsのテスト
+ * API Gateway互換のレスポンスを標準化するユーティリティのテスト
  */
+'use strict';
 
-const { formatResponse, formatErrorResponse, formatRedirectResponse, formatOptionsResponse, handleOptions } = require('../../../src/utils/responseUtils');
-const { getBudgetWarningMessage, addBudgetWarningToResponse } = require('../../../src/utils/budgetCheck');
+const {
+  formatResponse,
+  formatErrorResponse,
+  formatRedirectResponse,
+  formatOptionsResponse,
+  methodHandler,
+  handleOptions
+} = require('../../../src/utils/responseUtils');
 
-// budgetCheck モジュールをモック化
-jest.mock('../../../src/utils/budgetCheck', () => ({
-  getBudgetWarningMessage: jest.fn(),
-  addBudgetWarningToResponse: jest.fn(async response => response), // 非同期関数に修正
-  isBudgetCritical: jest.fn().mockResolvedValue(false)
+// モックの設定
+jest.mock('../../../src/config/constants', () => ({
+  ERROR_CODES: {
+    SERVER_ERROR: 'SERVER_ERROR',
+    VALIDATION_ERROR: 'VALIDATION_ERROR'
+  },
+  RESPONSE_FORMATS: {
+    JSON: 'application/json'
+  }
 }));
 
-describe('responseUtils', () => {
-  // 環境変数のモック
-  const originalEnv = process.env;
-  
-  beforeEach(() => {
-    jest.resetAllMocks();
-    process.env = { ...originalEnv };
-    process.env.CORS_ALLOW_ORIGIN = '*';
-    process.env.NODE_ENV = 'test';
+jest.mock('../../../src/utils/budgetCheck', () => ({
+  isBudgetCritical: jest.fn(),
+  getBudgetWarningMessage: jest.fn(),
+  addBudgetWarningToResponse: jest.fn((response) => Promise.resolve(response))
+}));
 
-    // モック関数を明示的に設定
-    addBudgetWarningToResponse.mockImplementation(async response => response);
+jest.mock('../../../src/utils/corsHeaders', () => ({
+  getCorsHeaders: jest.fn(() => ({
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Credentials': 'true'
+  }))
+}));
+
+jest.mock('../../../src/utils/securityHeaders', () => ({
+  mergeWithSecurityHeaders: jest.fn((headers) => ({
+    ...headers,
+    'X-Content-Type-Options': 'nosniff'
+  }))
+}));
+
+const { isBudgetCritical, getBudgetWarningMessage, addBudgetWarningToResponse } = require('../../../src/utils/budgetCheck');
+const { getCorsHeaders } = require('../../../src/utils/corsHeaders');
+const { mergeWithSecurityHeaders } = require('../../../src/utils/securityHeaders');
+
+describe('responseUtils', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    
+    // console.logをモック
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+    
+    // デフォルトのモック設定
+    isBudgetCritical.mockResolvedValue(false);
+    getBudgetWarningMessage.mockResolvedValue('Budget warning message');
   });
-  
-  afterAll(() => {
-    process.env = originalEnv;
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   describe('formatResponse', () => {
-    test('デフォルトパラメータでの正常レスポンス', async () => {
-      // テスト用フックの作成
-      const mockFormatResponse = jest.fn();
+    test('基本的な成功レスポンスを生成する', async () => {
+      const options = {
+        data: { test: 'data' },
+        message: 'Success'
+      };
 
-      // テスト実行
-      const response = await formatResponse({
-        data: { message: 'Success' },
-        _formatResponse: mockFormatResponse // テスト用フックを追加
+      const result = await formatResponse(options);
+
+      expect(result).toEqual({
+        statusCode: 200,
+        headers: expect.objectContaining({
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'X-Content-Type-Options': 'nosniff'
+        }),
+        body: JSON.stringify({
+          success: true,
+          data: { test: 'data' },
+          message: 'Success'
+        })
       });
-
-      // 検証
-      expect(response.statusCode).toBe(200);
-      expect(response.headers['Content-Type']).toBe('application/json');
-      expect(response.headers['Access-Control-Allow-Origin']).toBe('*');
-      expect(response.headers['Access-Control-Allow-Credentials']).toBe('true');
-      
-      const body = JSON.parse(response.body);
-      expect(body.success).toBe(true);
-      expect(body.data.message).toBe('Success');
-      
-      // フックが呼び出されたことを検証
-      expect(mockFormatResponse).toHaveBeenCalledWith(expect.any(Object), expect.any(Object));
-      
-      // 予算警告が追加されたか確認
-      expect(addBudgetWarningToResponse).toHaveBeenCalledWith(expect.any(Object));
     });
 
-    test('カスタムステータスコードとヘッダーでの正常レスポンス', async () => {
-      // テスト用フックの作成
-      const mockFormatResponse = jest.fn();
-      
-      // テスト実行
-      const response = await formatResponse({
+    test('カスタムステータスコードでレスポンスを生成する', async () => {
+      const options = {
         statusCode: 201,
-        headers: { 'Custom-Header': 'Value' },
-        data: { id: '123' },
-        source: 'Test Source',
-        lastUpdated: '2025-05-18T10:00:00Z',
-        processingTime: '50ms',
-        _formatResponse: mockFormatResponse // テスト用フックを追加
-      });
+        data: { created: true }
+      };
 
-      // 検証
-      expect(response.statusCode).toBe(201);
-      expect(response.headers['Custom-Header']).toBe('Value');
-      
-      const body = JSON.parse(response.body);
-      expect(body.success).toBe(true);
-      expect(body.data.id).toBe('123');
-      expect(body.source).toBe('Test Source');
-      expect(body.lastUpdated).toBe('2025-05-18T10:00:00Z');
-      expect(body.processingTime).toBe('50ms');
-      
-      // フックが呼び出されたことを検証
-      expect(mockFormatResponse).toHaveBeenCalledWith(expect.any(Object), expect.any(Object));
+      const result = await formatResponse(options);
+
+      expect(result.statusCode).toBe(201);
+      expect(JSON.parse(result.body)).toMatchObject({
+        success: true,
+        data: { created: true }
+      });
     });
-    
-    test('予算警告スキップオプション', async () => {
-      // テスト実行
-      await formatResponse({
-        data: { message: 'No Budget Warning' },
-        skipBudgetWarning: true
-      });
 
-      // 予算警告が追加されていないことを確認
+    test('追加のメタデータを含むレスポンスを生成する', async () => {
+      const options = {
+        data: { test: 'data' },
+        source: 'test-api',
+        lastUpdated: '2025-01-01T00:00:00Z',
+        processingTime: '100ms'
+      };
+
+      const result = await formatResponse(options);
+      const body = JSON.parse(result.body);
+
+      expect(body).toMatchObject({
+        success: true,
+        data: { test: 'data' },
+        source: 'test-api',
+        lastUpdated: '2025-01-01T00:00:00Z',
+        processingTime: '100ms'
+      });
+    });
+
+    test('警告情報を含むレスポンスを生成する', async () => {
+      const options = {
+        data: { test: 'data' },
+        warnings: ['Warning 1', 'Warning 2']
+      };
+
+      const result = await formatResponse(options);
+      const body = JSON.parse(result.body);
+
+      expect(body.warnings).toEqual(['Warning 1', 'Warning 2']);
+    });
+
+    test('使用量情報を含むレスポンスを生成する', async () => {
+      const options = {
+        data: { test: 'data' },
+        usage: {
+          daily: { count: 10, limit: 100 },
+          monthly: { count: 100, limit: 1000 }
+        }
+      };
+
+      const result = await formatResponse(options);
+      const body = JSON.parse(result.body);
+
+      expect(body.usage).toMatchObject({
+        daily: { count: 10, limit: 100 },
+        monthly: { count: 100, limit: 1000 }
+      });
+    });
+
+    test('予算警告がある場合のレスポンスを生成する', async () => {
+      isBudgetCritical.mockResolvedValue(true);
+      getBudgetWarningMessage.mockResolvedValue('Budget limit exceeded');
+
+      const options = {
+        data: { test: 'data' }
+      };
+
+      const result = await formatResponse(options);
+
+      expect(result.headers['X-Budget-Warning']).toBe('Budget limit exceeded');
+      expect(JSON.parse(result.body).budgetWarning).toBe('Budget limit exceeded');
+    });
+
+    test('予算警告をスキップする場合', async () => {
+      isBudgetCritical.mockResolvedValue(true);
+
+      const options = {
+        data: { test: 'data' },
+        skipBudgetWarning: true
+      };
+
+      const result = await formatResponse(options);
+
+      expect(result.headers['X-Budget-Warning']).toBeUndefined();
       expect(addBudgetWarningToResponse).not.toHaveBeenCalled();
+    });
+
+    test('eventオブジェクトなしでwarningログを出力する', async () => {
+      const options = { data: { test: 'data' } };
+
+      await formatResponse(options);
+
+      expect(console.log).toHaveBeenCalledWith(
+        'WARNING: formatResponse/formatErrorResponse called without event object - CORS headers may be incorrect'
+      );
+    });
+
+    test('テスト用フックを実行する', async () => {
+      const mockHook = jest.fn();
+      const options = {
+        data: { test: 'data' },
+        _formatResponse: mockHook
+      };
+
+      const result = await formatResponse(options);
+
+      expect(mockHook).toHaveBeenCalledWith(result, options);
     });
   });
 
   describe('formatErrorResponse', () => {
-    test('デフォルトパラメータでのエラーレスポンス', async () => {
-      // テスト用フックの作成
-      const mockFormatResponse = jest.fn();
-      
-      // テスト実行
-      const response = await formatErrorResponse({
-        message: 'Error occurred',
-        _formatResponse: mockFormatResponse // テスト用フックを追加
-      });
+    test('基本的なエラーレスポンスを生成する', async () => {
+      const options = {
+        message: 'Test error'
+      };
 
-      // 検証
-      expect(response.statusCode).toBe(500);
-      
-      const body = JSON.parse(response.body);
-      expect(body.success).toBe(false);
-      expect(body.error.message).toBe('Error occurred');
-      expect(body.error.code).toBe('SERVER_ERROR');
-      expect(body.error.details).toBeUndefined();
-      
-      // フックが呼び出されたことを検証
-      expect(mockFormatResponse).toHaveBeenCalledWith(expect.any(Object), expect.any(Object));
+      const result = await formatErrorResponse(options);
+
+      expect(result).toEqual({
+        statusCode: 500,
+        headers: expect.objectContaining({
+          'Content-Type': 'application/json'
+        }),
+        body: JSON.stringify({
+          success: false,
+          error: {
+            code: 'SERVER_ERROR',
+            message: 'Test error'
+          }
+        })
+      });
     });
 
-    test('詳細エラー情報を含むエラーレスポンス（開発環境用）', async () => {
-      // 開発環境設定
-      process.env.NODE_ENV = 'development';
-      
-      // テスト用フックの作成
-      const mockFormatResponse = jest.fn();
-      
-      // テスト実行
-      const response = await formatErrorResponse({
+    test('カスタムエラーコードとステータスコードでレスポンスを生成する', async () => {
+      const options = {
         statusCode: 400,
-        code: 'INVALID_PARAMS',
-        message: 'Invalid parameters',
-        details: 'Missing required field',
-        _formatResponse: mockFormatResponse // テスト用フックを追加
-      });
+        code: 'VALIDATION_ERROR',
+        message: 'Validation failed'
+      };
 
-      // 検証
-      expect(response.statusCode).toBe(400);
-      
-      const body = JSON.parse(response.body);
-      expect(body.error.code).toBe('INVALID_PARAMS');
-      expect(body.error.message).toBe('Invalid parameters');
-      expect(body.error.details).toBe('Missing required field');
-      
-      // フックが呼び出されたことを検証
-      expect(mockFormatResponse).toHaveBeenCalledWith(expect.any(Object), expect.any(Object));
+      const result = await formatErrorResponse(options);
+
+      expect(result.statusCode).toBe(400);
+      expect(JSON.parse(result.body).error.code).toBe('VALIDATION_ERROR');
     });
-    
-    test('使用量情報を含むエラーレスポンス', async () => {
-      // テスト用フックの作成
-      const mockFormatResponse = jest.fn();
-      
-      // テスト実行
-      const response = await formatErrorResponse({
-        statusCode: 429,
-        code: 'LIMIT_EXCEEDED',
-        message: 'API usage limit exceeded',
-        usage: {
-          daily: { count: 5000, limit: 5000 },
-          monthly: { count: 50000, limit: 100000 }
-        },
-        _formatResponse: mockFormatResponse // テスト用フックを追加
-      });
 
-      // 検証
-      expect(response.statusCode).toBe(429);
-      
-      const body = JSON.parse(response.body);
-      expect(body.usage.daily.count).toBe(5000);
-      expect(body.usage.monthly.limit).toBe(100000);
-      
-      // フックが呼び出されたことを検証
-      expect(mockFormatResponse).toHaveBeenCalledWith(expect.any(Object), expect.any(Object));
+    test('詳細情報を含むエラーレスポンスを生成する（開発環境）', async () => {
+      process.env.NODE_ENV = 'development';
+
+      const options = {
+        message: 'Test error',
+        details: 'Detailed error information'
+      };
+
+      const result = await formatErrorResponse(options);
+      const body = JSON.parse(result.body);
+
+      expect(body.error.details).toBe('Detailed error information');
+    });
+
+    test('詳細情報を含まないエラーレスポンスを生成する（本番環境）', async () => {
+      process.env.NODE_ENV = 'production';
+
+      const options = {
+        message: 'Test error',
+        details: 'Detailed error information'
+      };
+
+      const result = await formatErrorResponse(options);
+      const body = JSON.parse(result.body);
+
+      expect(body.error.details).toBeUndefined();
+    });
+
+    test('リトライ情報を含むエラーレスポンスを生成する', async () => {
+      const options = {
+        message: 'Rate limit exceeded',
+        retryAfter: 60
+      };
+
+      const result = await formatErrorResponse(options);
+      const body = JSON.parse(result.body);
+
+      expect(body.error.retryAfter).toBe(60);
+      expect(result.headers['Retry-After']).toBe('60');
+    });
+
+    test('リクエストIDを含むエラーレスポンスを生成する', async () => {
+      const options = {
+        message: 'Test error',
+        requestId: 'req-123'
+      };
+
+      const result = await formatErrorResponse(options);
+      const body = JSON.parse(result.body);
+
+      expect(body.error.requestId).toBe('req-123');
+    });
+
+    test('使用量情報を含むエラーレスポンスを生成する', async () => {
+      const options = {
+        message: 'Test error',
+        usage: {
+          daily: { count: 100, limit: 100 }
+        }
+      };
+
+      const result = await formatErrorResponse(options);
+      const body = JSON.parse(result.body);
+
+      expect(body.usage).toMatchObject({
+        daily: { count: 100, limit: 100 }
+      });
     });
   });
 
   describe('formatRedirectResponse', () => {
-    test('デフォルトの一時的リダイレクト', () => {
-      // テスト実行
-      const response = formatRedirectResponse('https://example.com/redirect');
+    test('基本的なリダイレクトレスポンスを生成する', () => {
+      const url = 'https://example.com';
 
-      // 検証
-      expect(response.statusCode).toBe(302);
-      expect(response.headers.Location).toBe('https://example.com/redirect');
-      expect(response.headers['Access-Control-Allow-Origin']).toBe('*');
-      expect(response.body).toBe('');
+      const result = formatRedirectResponse(url);
+
+      expect(result).toEqual({
+        statusCode: 302,
+        headers: {
+          'Location': 'https://example.com',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Credentials': 'true'
+        },
+        body: ''
+      });
     });
 
-    test('恒久的リダイレクト', () => {
-      // テスト実行
-      const response = formatRedirectResponse('https://example.com/permanent', 301);
+    test('カスタムステータスコードでリダイレクトレスポンスを生成する', () => {
+      const url = 'https://example.com';
+      const statusCode = 301;
 
-      // 検証
-      expect(response.statusCode).toBe(301);
-      expect(response.headers.Location).toBe('https://example.com/permanent');
+      const result = formatRedirectResponse(url, statusCode);
+
+      expect(result.statusCode).toBe(301);
+    });
+
+    test('追加ヘッダーを含むリダイレクトレスポンスを生成する', () => {
+      const url = 'https://example.com';
+      const statusCode = 302;
+      const headers = { 'Custom-Header': 'value' };
+
+      const result = formatRedirectResponse(url, statusCode, headers);
+
+      expect(result.headers['Custom-Header']).toBe('value');
     });
   });
 
   describe('formatOptionsResponse', () => {
-    test('デフォルトのOPTIONSレスポンス', () => {
-      // テスト実行
-      const response = formatOptionsResponse();
+    test('基本的なOPTIONSレスポンスを生成する', () => {
+      const result = formatOptionsResponse();
 
-      // 検証
-      expect(response.statusCode).toBe(204);
-      expect(response.headers['Access-Control-Allow-Origin']).toBe('*');
-      expect(response.headers['Access-Control-Allow-Headers']).toContain('Content-Type');
-      expect(response.headers['Access-Control-Allow-Methods']).toContain('GET');
-      expect(response.body).toBe('');
+      expect(result).toEqual({
+        statusCode: 204,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Api-Key',
+          'Access-Control-Allow-Credentials': 'true',
+          'Access-Control-Max-Age': '86400'
+        },
+        body: ''
+      });
     });
 
-    test('カスタムヘッダー付きのOPTIONSレスポンス', () => {
-      // テスト実行
-      const response = formatOptionsResponse({
-        'Custom-Header': 'Value'
-      });
+    test('追加ヘッダーを含むOPTIONSレスポンスを生成する', () => {
+      const headers = { 'Custom-Header': 'value' };
 
-      // 検証
-      expect(response.statusCode).toBe(204);
-      expect(response.headers['Custom-Header']).toBe('Value');
+      const result = formatOptionsResponse(headers);
+
+      expect(result.headers['Custom-Header']).toBe('value');
+    });
+  });
+
+  describe('methodHandler', () => {
+    test('OPTIONSリクエストの場合はOPTIONSレスポンスを返す', async () => {
+      const event = { httpMethod: 'OPTIONS' };
+      const handler = jest.fn();
+
+      const result = await methodHandler(event, handler);
+
+      expect(result.statusCode).toBe(204);
+      expect(handler).not.toHaveBeenCalled();
+    });
+
+    test('OPTIONS以外のリクエストの場合はnullを返す', async () => {
+      const event = { httpMethod: 'GET' };
+      const handler = jest.fn();
+
+      const result = await methodHandler(event, handler);
+
+      expect(result).toBeNull();
     });
   });
 
   describe('handleOptions', () => {
-    test('OPTIONSメソッドの処理', () => {
-      // テスト実行
-      const response = handleOptions({
-        httpMethod: 'OPTIONS'
-      });
+    test('OPTIONSリクエストの場合はOPTIONSレスポンスを返す', () => {
+      const event = { httpMethod: 'OPTIONS' };
 
-      // 検証
-      expect(response).not.toBeNull();
-      expect(response.statusCode).toBe(204);
+      const result = handleOptions(event);
+
+      expect(result.statusCode).toBe(204);
     });
 
-    test('OPTIONSメソッド以外の処理', () => {
-      // テスト実行
-      const response = handleOptions({
-        httpMethod: 'GET'
-      });
+    test('OPTIONS以外のリクエストの場合はnullを返す', () => {
+      const event = { httpMethod: 'GET' };
 
-      // 検証
-      expect(response).toBeNull();
+      const result = handleOptions(event);
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('undefined値の処理', () => {
+    test('データがundefinedの場合はdataプロパティを含まない', async () => {
+      const options = {
+        data: undefined,
+        message: 'Success'
+      };
+
+      const result = await formatResponse(options);
+      const body = JSON.parse(result.body);
+
+      expect(body).not.toHaveProperty('data');
+      expect(body.message).toBe('Success');
+    });
+
+    test('メッセージがない場合はmessageプロパティを含まない', async () => {
+      const options = {
+        data: { test: 'data' }
+      };
+
+      const result = await formatResponse(options);
+      const body = JSON.parse(result.body);
+
+      expect(body).not.toHaveProperty('message');
+      expect(body.data).toEqual({ test: 'data' });
     });
   });
 });
