@@ -364,16 +364,11 @@ const getMutualFundData = async (code, refresh = false) => {
  * @returns {Promise<Object>} ファンドコードをキーとするデータオブジェクト
  */
 const getMutualFundsData = async (codes, refresh = false) => {
-  // 新しい強化版サービスを利用
-  const toushinDataService = require('./toushinDataService');
-  
   return await fetchBatchDataWithFallback({
     symbols: codes,
     dataType: DATA_TYPES.MUTUAL_FUND,
     fetchFunctions: [
-      // 新しい統合サービス（複数ソース対応）
-      (sym) => toushinDataService.getEnhancedMutualFundData(sym),
-      // フォールバック: Morningstar CSV
+      // Morningstar CSV
       (sym) => fundDataService.getMutualFundData(sym),
     ],
     defaultValues: {
@@ -402,21 +397,9 @@ const getExchangeRateData = async (base, target, refresh = false) => {
   // 為替レートに特化した処理
   const pair = `${base}-${target}`;
   
-  // 新しい統合為替レートサービスを利用
-  const japanBankExchangeService = require('./japanBankExchangeService');
-  
   // データソース関数
   const fetchFunctions = [
-    // 新しい統合サービス（日銀、ECB、Yahoo対応）
-    async () => {
-      try {
-        return await japanBankExchangeService.getEnhancedExchangeRate(base, target);
-      } catch (error) {
-        logger.debug(`Enhanced exchange rate service error for ${pair}:`, error.message);
-        throw error;
-      }
-    },
-    // Yahoo Finance2 NPM（バックアップ）
+    // Yahoo Finance2 NPM（最優先 - 無料、APIキー不要）
     ...(yahooFinance2Service.isAvailable() ? 
       [async () => {
         try {
@@ -427,7 +410,7 @@ const getExchangeRateData = async (base, target, refresh = false) => {
         }
       }] : 
       []),
-    // 既存の為替レートサービス（最終手段）
+    // 既存の為替レートサービス
     async () => {
       try {
         return await exchangeRateService.getExchangeRate(base, target);

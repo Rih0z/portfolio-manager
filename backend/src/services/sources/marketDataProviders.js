@@ -17,9 +17,7 @@ const { withRetry, isRetryableApiError, sleep } = require('../../utils/retry');
 const alertService = require('../alerts');
 const blacklist = require('../../utils/scrapingBlacklist');
 const fundDataService = require('./fundDataService');
-const toushinDataService = require('./toushinDataService');
 const yahooFinanceService = require('./yahooFinance');
-const japanBankExchangeService = require('./japanBankExchangeService');
 const { 
   getRandomUserAgent, 
   recordDataFetchFailure, 
