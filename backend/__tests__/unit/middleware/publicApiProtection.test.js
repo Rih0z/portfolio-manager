@@ -3,11 +3,9 @@
  */
 
 const { publicApiProtection } = require('../../../src/middleware/publicApiProtection');
-const { createResponse } = require('../../../src/utils/responseUtils');
 const logger = require('../../../src/utils/logger');
 
 // モック設定
-jest.mock('../../../src/utils/responseUtils');
 jest.mock('../../../src/utils/logger');
 
 describe('publicApiProtection', () => {
@@ -16,11 +14,6 @@ describe('publicApiProtection', () => {
     beforeEach(() => {
         originalEnv = process.env;
         jest.clearAllMocks();
-        
-        createResponse.mockReturnValue({
-            statusCode: 403,
-            body: JSON.stringify({ error: 'Mocked response' })
-        });
     });
 
     afterEach(() => {
@@ -51,11 +44,13 @@ describe('publicApiProtection', () => {
             const result = await publicApiProtection(event);
 
             expect(result).not.toBeNull();
+            expect(result.statusCode).toBe(403);
+            const body = JSON.parse(result.body);
+            expect(body.error).toBe('Access denied');
             expect(logger.warn).toHaveBeenCalledWith('Blocked request with User-Agent:', {
                 userAgent: 'curl/7.68.0',
                 origin: ''
             });
-            expect(createResponse).toHaveBeenCalledWith(403, { error: 'Access denied' });
         });
 
         it('should block wget User-Agent', async () => {
@@ -172,8 +167,10 @@ describe('publicApiProtection', () => {
             const result = await publicApiProtection(event);
 
             expect(result).not.toBeNull();
+            expect(result.statusCode).toBe(403);
+            const body = JSON.parse(result.body);
+            expect(body.error).toBe('Invalid request');
             expect(logger.warn).toHaveBeenCalledWith('Blocked request with empty or short User-Agent');
-            expect(createResponse).toHaveBeenCalledWith(403, { error: 'Invalid request' });
         });
 
         it('should block missing User-Agent', async () => {
@@ -242,10 +239,12 @@ describe('publicApiProtection', () => {
             const result = await publicApiProtection(event);
 
             expect(result).not.toBeNull();
+            expect(result.statusCode).toBe(403);
+            const body = JSON.parse(result.body);
+            expect(body.error).toBe('Origin not allowed');
             expect(logger.warn).toHaveBeenCalledWith('Blocked request with invalid origin:', {
                 origin: 'https://malicious-site.com'
             });
-            expect(createResponse).toHaveBeenCalledWith(403, { error: 'Origin not allowed' });
         });
 
         it('should handle uppercase Origin header', async () => {
@@ -296,9 +295,9 @@ describe('publicApiProtection', () => {
 
     describe('Error handling', () => {
         it('should handle errors gracefully and allow request through', async () => {
-            // createResponseがエラーをスローするように設定
-            createResponse.mockImplementation(() => {
-                throw new Error('createResponse error');
+            // loggerのwarnメソッドがエラーをスローするように設定
+            logger.warn.mockImplementation(() => {
+                throw new Error('Logger error');
             });
 
             const event = {
@@ -385,6 +384,160 @@ describe('publicApiProtection', () => {
             const result = await publicApiProtection(event);
 
             expect(result).toBeNull();
+        });
+
+        it('should handle Edge browser request', async () => {
+            const event = {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Edg/122.0.0.0'
+                }
+            };
+
+            const result = await publicApiProtection(event);
+
+            expect(result).toBeNull();
+        });
+
+        it('should handle Safari browser request', async () => {
+            const event = {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1'
+                }
+            };
+
+            const result = await publicApiProtection(event);
+
+            expect(result).toBeNull();
+        });
+
+        it('should handle empty origin with valid user-agent', async () => {
+            const event = {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                    'origin': ''
+                }
+            };
+
+            const result = await publicApiProtection(event);
+
+            expect(result).toBeNull();
+        });
+
+        it('should handle empty referer with valid user-agent', async () => {
+            const event = {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                    'referer': ''
+                }
+            };
+
+            const result = await publicApiProtection(event);
+
+            expect(result).toBeNull();
+        });
+    });
+
+    describe('Edge cases', () => {
+        it('should handle User-Agent exactly 10 characters long', async () => {
+            const event = {
+                headers: {
+                    'User-Agent': '1234567890' // exactly 10 characters
+                }
+            };
+
+            const result = await publicApiProtection(event);
+
+            expect(result).toBeNull(); // should pass as it's not < 10
+        });
+
+        it('should handle User-Agent with 9 characters', async () => {
+            const event = {
+                headers: {
+                    'User-Agent': '123456789' // 9 characters
+                }
+            };
+
+            const result = await publicApiProtection(event);
+
+            expect(result).not.toBeNull();
+            expect(logger.warn).toHaveBeenCalledWith('Blocked request with empty or short User-Agent');
+        });
+
+        it('should allow partial matches for allowed user agents', async () => {
+            const event = {
+                headers: {
+                    'User-Agent': 'MozillaCompatible/1.0' // Contains 'Mozilla'
+                }
+            };
+
+            const result = await publicApiProtection(event);
+
+            expect(result).toBeNull();
+        });
+
+        it('should handle mixed case blocked user agents', async () => {
+            const event = {
+                headers: {
+                    'User-Agent': 'CuRl/7.68.0' // Mixed case
+                }
+            };
+
+            const result = await publicApiProtection(event);
+
+            expect(result).not.toBeNull();
+        });
+
+        it('should handle null headers gracefully', async () => {
+            const event = {
+                headers: null
+            };
+
+            const result = await publicApiProtection(event);
+
+            expect(result).toBeNull(); // Error handling should return null
+            expect(logger.error).toHaveBeenCalled();
+        });
+
+        it('should handle undefined User-Agent', async () => {
+            const event = {
+                headers: {
+                    'User-Agent': undefined
+                }
+            };
+
+            const result = await publicApiProtection(event);
+
+            expect(result).not.toBeNull();
+        });
+
+        it('should handle multiple allowed origins', async () => {
+            process.env.CORS_ALLOWED_ORIGINS = 'https://app1.com,https://app2.com,https://app3.com';
+
+            const event = {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0',
+                    'origin': 'https://app2.com'
+                }
+            };
+
+            const result = await publicApiProtection(event);
+
+            expect(result).toBeNull();
+        });
+
+        it('should handle origin with trailing slash', async () => {
+            process.env.CORS_ALLOWED_ORIGINS = 'https://app.com';
+
+            const event = {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0',
+                    'origin': 'https://app.com/'
+                }
+            };
+
+            const result = await publicApiProtection(event);
+
+            expect(result).toBeNull(); // Should match because of partial matching
         });
     });
 });

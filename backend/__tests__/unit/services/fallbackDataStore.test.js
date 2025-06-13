@@ -124,18 +124,31 @@ describe('Fallback Data Store Service', () => {
         exchangeRates: {}
       };
 
-      // getFallbackDataの実装を一時的に置き換え
-      const originalGetFallbackData = fallbackDataStore.getFallbackData;
-      fallbackDataStore.getFallbackData = jest.fn().mockResolvedValue(mockCacheData);
+      // 実際のキャッシュ確認をテストするため、まずキャッシュを設定
+      fallbackDataStore._resetCacheForTests && fallbackDataStore._resetCacheForTests();
       
-      // 関数実行
+      // 最初はGitHubからデータを取得
+      axios.get.mockImplementation((url) => {
+        if (url.includes('fallback-stocks.json')) {
+          return Promise.resolve({ data: { [TEST_SYMBOL]: { price: 150 } } });
+        }
+        return Promise.resolve({ data: {} });
+      });
+      
+      // 強制更新でデータを設定（これによりキャッシュが設定される）
+      await fallbackDataStore.getFallbackData(true);
+      
+      // axiosをリセットして、2回目の呼び出しでキャッシュから取得されることを確認
+      axios.get.mockClear();
+      
+      // 関数実行（キャッシュから取得）
       const result = await fallbackDataStore.getFallbackData();
       
-      // 検証
-      expect(result).toEqual(mockCacheData);
-      
-      // オリジナルの実装を復元
-      fallbackDataStore.getFallbackData = originalGetFallbackData;
+      // 検証：キャッシュからデータが返されたことを確認
+      expect(result).toHaveProperty('stocks');
+      expect(result.stocks).toHaveProperty(TEST_SYMBOL);
+      expect(axios.get).not.toHaveBeenCalled(); // GitHubには再アクセスしていない
+      expect(logger.debug).toHaveBeenCalledWith('Using cached fallback data');
     });
     
     test('強制更新フラグが設定されている場合はGitHubからデータを取得', async () => {
@@ -162,32 +175,89 @@ describe('Fallback Data Store Service', () => {
     });
     
     test('GitHub APIエラー時はキャッシュを使用する', async () => {
-      // キャッシュデータを設定
-      const mockCacheData = {
-        stocks: { 
-          [TEST_SYMBOL]: { price: 150 }
-        },
+      // まずキャッシュを設定するため、成功データで初期化
+      fallbackDataStore._resetCacheForTests && fallbackDataStore._resetCacheForTests();
+      
+      // 最初は成功させてキャッシュを設定
+      axios.get.mockImplementation((url) => {
+        if (url.includes('fallback-stocks.json')) {
+          return Promise.resolve({ data: { [TEST_SYMBOL]: { price: 150 } } });
+        }
+        return Promise.resolve({ data: {} });
+      });
+      
+      await fallbackDataStore.getFallbackData(true);
+      
+      // 次回のAPIアクセスでエラーをシミュレート
+      axios.get.mockRejectedValue(new Error('API error'));
+      
+      // 関数実行（エラーが発生するが、キャッシュからデータを取得）
+      const result = await fallbackDataStore.getFallbackData(true);
+      
+      // 検証：キャッシュからデータが返されることを確認
+      expect(result).toHaveProperty('stocks');
+      expect(result.stocks).toHaveProperty(TEST_SYMBOL);
+      expect(logger.error).toHaveBeenCalledWith('Error fetching fallback data from GitHub:', expect.any(Error));
+      expect(logger.warn).toHaveBeenCalledWith('Using stale fallback data from cache');
+    });
+    
+    test('開発環境でGitHub APIとキャッシュが両方失敗した場合はローカルファイルを使用する', async () => {
+      // 環境を開発環境に設定
+      const originalNodeEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'development';
+      
+      // キャッシュをリセット
+      fallbackDataStore._resetCacheForTests && fallbackDataStore._resetCacheForTests();
+      
+      // GitHub APIでエラーをシミュレート
+      axios.get.mockRejectedValue(new Error('API error'));
+      
+      // requireをモック（ローカルファイル読み込み用）
+      const mockRequire = jest.fn();
+      mockRequire.mockImplementation((path) => {
+        if (path.includes('fallback-stocks.json')) {
+          return { [TEST_SYMBOL]: { price: 150, name: 'Apple Inc.' } };
+        }
+        return {};
+      });
+      
+      // jest.doMockを使用してrequireをモック
+      const Module = require('module');
+      const originalRequire = Module.prototype.require;
+      Module.prototype.require = mockRequire;
+      
+      try {
+        // 関数実行
+        const result = await fallbackDataStore.getFallbackData();
+        
+        // 検証
+        expect(result).toHaveProperty('stocks');
+        expect(logger.error).toHaveBeenCalledWith('Error fetching fallback data from GitHub:', expect.any(Error));
+        expect(logger.info).toHaveBeenCalledWith('Using local fallback data files');
+      } finally {
+        // 環境変数とrequireを復元
+        process.env.NODE_ENV = originalNodeEnv;
+        Module.prototype.require = originalRequire;
+      }
+    });
+    
+    test('すべての取得方法が失敗した場合は空のデータを返す', async () => {
+      // キャッシュをリセット
+      fallbackDataStore._resetCacheForTests && fallbackDataStore._resetCacheForTests();
+      
+      // GitHub APIでエラーをシミュレート
+      axios.get.mockRejectedValue(new Error('API error'));
+      
+      // 関数実行
+      const result = await fallbackDataStore.getFallbackData();
+      
+      // 検証：空のデータ構造が返されることを確認
+      expect(result).toEqual({
+        stocks: {},
         etfs: {},
         mutualFunds: {},
         exchangeRates: {}
-      };
-
-      // fallbackDataCacheを直接設定できる方法（テスト用にモック）
-      jest.spyOn(fallbackDataStore, 'getFallbackData').mockImplementation(async (forceRefresh) => {
-        if (forceRefresh) {
-          // 強制更新フラグがある場合、APIエラーをシミュレート
-          axios.get.mockRejectedValueOnce(new Error('API error'));
-          // しかし、キャッシュから既存のデータを返す
-          return mockCacheData;
-        }
-        return mockCacheData;
       });
-      
-      // 関数実行
-      const result = await fallbackDataStore.getFallbackData(true);
-      
-      // 検証
-      expect(result).toEqual(mockCacheData);
     });
   });
   
@@ -647,6 +717,14 @@ describe('Fallback Data Store Service', () => {
       expect(logger.warn).toHaveBeenCalled();
       const warnMsg = logger.warn.mock.calls[0][0];
       expect(warnMsg).toContain("DEPRECATED: 'cache プロパティの直接設定' は非推奨です");
+    });
+    
+    test('_shouldThrowDeprecationError関数の動作をテストする', () => {
+      // テスト環境ではエラーをスローしない
+      expect(fallbackDataStore._shouldThrowDeprecationError()).toBe(false);
+      
+      // 強制フラグがある場合でもテスト環境ではスローしない
+      expect(fallbackDataStore._shouldThrowDeprecationError(true)).toBe(false);
     });
   });
 });

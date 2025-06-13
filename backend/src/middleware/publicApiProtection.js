@@ -3,7 +3,7 @@
  * リクエストヘッダーやUser-Agentをチェックして基本的な保護を提供
  */
 
-const { createResponse } = require('../utils/responseUtils');
+const { formatResponse } = require('../utils/responseUtils');
 const logger = require('../utils/logger');
 
 const ALLOWED_USER_AGENTS = [
@@ -39,16 +39,22 @@ const publicApiProtection = async (event) => {
     
     if (isBlockedUA) {
       logger.warn('Blocked request with User-Agent:', { userAgent, origin });
-      return createResponse(403, {
-        error: 'Access denied'
+      return formatResponse({
+        statusCode: 403,
+        body: {
+          error: 'Access denied'
+        }
       });
     }
     
     // 空のUser-Agentを拒否
     if (!userAgent || userAgent.length < 10) {
       logger.warn('Blocked request with empty or short User-Agent');
-      return createResponse(403, {
-        error: 'Invalid request'
+      return formatResponse({
+        statusCode: 403,
+        body: {
+          error: 'Invalid request'
+        }
       });
     }
     
@@ -57,8 +63,11 @@ const publicApiProtection = async (event) => {
       const allowedOrigins = process.env.CORS_ALLOWED_ORIGINS?.split(',') || [];
       if (!allowedOrigins.some(allowed => origin.includes(allowed))) {
         logger.warn('Blocked request with invalid origin:', { origin });
-        return createResponse(403, {
-          error: 'Origin not allowed'
+        return formatResponse({
+          statusCode: 403,
+          body: {
+            error: 'Origin not allowed'
+          }
         });
       }
     }

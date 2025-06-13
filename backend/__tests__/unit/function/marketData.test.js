@@ -12,11 +12,6 @@
 // テスト対象モジュールのインポート
 const marketDataModule = require('../../../src/function/marketData');
 
-// 実装関数をモック化して、テスト用に差し替える
-const originalHandler = marketDataModule.handler;
-const originalCombinedDataHandler = marketDataModule.combinedDataHandler;
-const originalHighLatencyHandler = marketDataModule.highLatencyHandler;
-
 // 依存モジュールのインポート
 const { DATA_TYPES, ERROR_CODES } = require('../../../src/config/constants');
 
@@ -25,21 +20,43 @@ jest.mock('../../../src/services/sources/enhancedMarketDataService', () => ({
   getUsStocksData: jest.fn(),
   getJpStocksData: jest.fn(),
   getExchangeRateData: jest.fn(),
-  getMutualFundsData: jest.fn()
+  getMutualFundsData: jest.fn(),
+  getMultipleExchangeRatesData: jest.fn()
 }));
 
 jest.mock('../../../src/services/fallbackDataStore', () => ({
   recordFailedFetch: jest.fn(),
-  getFallbackForSymbol: jest.fn()
+  getFallbackForSymbol: jest.fn(),
+  getFallbackData: jest.fn()
 }));
 
 jest.mock('../../../src/services/cache', () => ({
   get: jest.fn(),
-  set: jest.fn()
+  set: jest.fn(),
+  generateCacheKey: jest.fn(),
+  CACHE_TIMES: {
+    US_STOCK: 300,
+    JP_STOCK: 300,
+    EXCHANGE_RATE: 300
+  }
 }));
 
 jest.mock('../../../src/services/usage', () => ({
   checkAndUpdateUsage: jest.fn()
+}));
+
+jest.mock('../../../src/services/rateLimitService', () => ({
+  checkRateLimit: jest.fn(),
+  recordUsage: jest.fn(),
+  getRateLimitHeaders: jest.fn()
+}));
+
+jest.mock('../../../src/middleware/apiKeyAuth', () => ({
+  authenticate: jest.fn()
+}));
+
+jest.mock('../../../src/middleware/ipRestriction', () => ({
+  checkIPRestrictions: jest.fn()
 }));
 
 jest.mock('../../../src/services/alerts', () => ({
@@ -60,7 +77,10 @@ jest.mock('../../../src/utils/responseUtils', () => ({
 }));
 
 jest.mock('../../../src/utils/errorHandler', () => ({
-  handleError: jest.fn()
+  handleError: jest.fn(),
+  errorTypes: {
+    DATA_SOURCE_ERROR: 'DATA_SOURCE_ERROR'
+  }
 }));
 
 jest.mock('../../../src/utils/logger', () => ({
@@ -79,6 +99,9 @@ const budgetCheck = require('../../../src/utils/budgetCheck');
 const responseUtils = require('../../../src/utils/responseUtils');
 const errorHandler = require('../../../src/utils/errorHandler');
 const logger = require('../../../src/utils/logger');
+const rateLimitService = require('../../../src/services/rateLimitService');
+const { authenticate } = require('../../../src/middleware/apiKeyAuth');
+const { checkIPRestrictions } = require('../../../src/middleware/ipRestriction');
 
 describe('Market Data API Handler', () => {
   // テスト用データ
@@ -154,13 +177,26 @@ describe('Market Data API Handler', () => {
     }
   };
 
+  // Store original handler functions
+  let originalHandler, originalCombinedDataHandler, originalHighLatencyHandler;
+  
+  beforeAll(() => {
+    // Store the original implementations
+    originalHandler = marketDataModule.handler;
+    originalCombinedDataHandler = marketDataModule.combinedDataHandler;
+    originalHighLatencyHandler = marketDataModule.highLatencyHandler;
+  });
+
   // 各テスト前の準備
   beforeEach(() => {
     // モックをリセット
     jest.clearAllMocks();
+    
+    // 環境変数を設定
+    process.env.NODE_ENV = 'test';
 
-    // ハンドラー関数をモック実装で上書き
-    marketDataModule.handler = jest.fn().mockImplementation(async (event) => {
+    // デフォルトのモック実装を設定
+    marketDataModule.handler = jest.fn().mockImplementation(async (event, context) => {
       // 実際のハンドラー関数の動作を模倣
       if (event.httpMethod === 'OPTIONS') {
         return responseUtils.formatOptionsResponse();
