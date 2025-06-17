@@ -51,6 +51,22 @@ describe('Scraping Blacklist Utils', () => {
       const result = await blacklist.isBlacklisted('TEST', 'jp');
       expect(result).toBe(true);
     });
+
+    test('異なる市場の場合はfalseを返す', async () => {
+      mockDynamoDb.send.mockResolvedValueOnce({
+        Item: { market: 'us', cooldownUntil: new Date(Date.now() + 86400000).toISOString() }
+      });
+
+      const result = await blacklist.isBlacklisted('TEST', 'jp');
+      expect(result).toBe(false);
+    });
+
+    test('エラーが発生した場合はfalseを返す', async () => {
+      mockDynamoDb.send.mockRejectedValueOnce(new Error('Database error'));
+
+      const result = await blacklist.isBlacklisted('TEST', 'jp');
+      expect(result).toBe(false);
+    });
   });
 
   describe('recordFailure', () => {
@@ -73,6 +89,16 @@ describe('Scraping Blacklist Utils', () => {
       const result = await blacklist.recordFailure('BBB', 'jp', 'err');
       expect(result.isBlacklisted).toBe(true);
       expect(alertService.sendAlert).toHaveBeenCalled();
+    });
+
+    test('エラーが発生した場合はエラーオブジェクトを返す', async () => {
+      mockDynamoDb.send.mockRejectedValueOnce(new Error('Database error'));
+
+      const result = await blacklist.recordFailure('FAIL', 'jp', 'error');
+      expect(result).toEqual({
+        symbol: 'FAIL',
+        error: 'Database error'
+      });
     });
   });
 
@@ -104,6 +130,30 @@ describe('Scraping Blacklist Utils', () => {
 
       const res = await blacklist.recordSuccess('EEE');
       expect(res).toBe(true);
+    });
+
+    test('エラーが発生した場合はfalseを返す', async () => {
+      mockDynamoDb.send.mockRejectedValueOnce(new Error('Database error'));
+
+      const res = await blacklist.recordSuccess('ERROR');
+      expect(res).toBe(false);
+    });
+  });
+
+  describe('removeFromBlacklist', () => {
+    test('削除に成功した場合はtrueを返す', async () => {
+      mockDynamoDb.send.mockResolvedValueOnce({});
+
+      const res = await blacklist.removeFromBlacklist('REMOVE');
+      expect(res).toBe(true);
+      expect(mockDynamoDb.send).toHaveBeenCalled();
+    });
+
+    test('エラーが発生した場合はfalseを返す', async () => {
+      mockDynamoDb.send.mockRejectedValueOnce(new Error('Delete error'));
+
+      const res = await blacklist.removeFromBlacklist('FAIL');
+      expect(res).toBe(false);
     });
   });
 

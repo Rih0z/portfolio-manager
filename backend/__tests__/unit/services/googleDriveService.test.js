@@ -518,4 +518,311 @@ describe('GoogleDriveService', () => {
       }]);
     });
   });
+
+  describe('listPortfolioFiles', () => {
+    test('ポートフォリオファイル一覧を取得する', async () => {
+      // Setup mock for listPortfolioFiles which calls listFiles with portfolio filter
+      mockDriveClient.files.list.mockImplementation((params) => {
+        if (params.q && params.q.includes('portfolio')) {
+          return Promise.resolve({
+            data: {
+              files: [{
+                id: mockFileId,
+                name: 'portfolio-data.json',
+                mimeType: 'application/json',
+                size: '100',
+                createdTime: '2025-05-10T00:00:00Z',
+                modifiedTime: '2025-05-15T00:00:00Z',
+                webViewLink: 'https://drive.google.com/file/d/test-file-id/view'
+              }]
+            }
+          });
+        } else {
+          return Promise.resolve({
+            data: {
+              files: [{ id: mockFolderId, name: 'PortfolioManagerData' }]
+            }
+          });
+        }
+      });
+      
+      const result = await googleDriveService.listPortfolioFiles(mockAccessToken);
+      
+      expect(result).toEqual([{
+        id: mockFileId,
+        name: 'portfolio-data.json',
+        mimeType: 'application/json',
+        size: '100',
+        createdTime: expect.any(String),
+        modifiedTime: expect.any(String),
+        webViewLink: expect.any(String)
+      }]);
+    });
+  });
+
+  describe('getOrCreateBackupFolder', () => {
+    test('バックアップフォルダを取得または作成する', async () => {
+      const result = await googleDriveService.getOrCreateBackupFolder(mockAccessToken);
+      
+      expect(result).toBe(mockBackupFolderId);
+      // メインフォルダとバックアップフォルダの作成を確認
+      expect(mockDriveClient.files.list).toHaveBeenCalled();
+    });
+  });
+
+  // Additional tests for complete coverage
+  describe('Error handling and edge cases', () => {
+    test('getOrCreateFolder - folder creation with withRetry failure and retry warn', async () => {
+      mockDriveClient.files.list.mockResolvedValueOnce({ data: { files: [] } });
+      
+      let callCount = 0;
+      withRetry.mockImplementation((fn, options) => {
+        callCount++;
+        if (callCount === 2) {
+          // Simulate retry with warning
+          if (options && options.onRetry) {
+            options.onRetry(new Error('Retry test'), 1);
+          }
+        }
+        return fn();
+      });
+      
+      const result = await googleDriveService.getOrCreateFolder(mockAccessToken);
+      expect(result).toBe(mockFolderId);
+    });
+
+    test('getOrCreateFolder - setFolderMetadata failure should not throw', async () => {
+      mockDriveClient.files.list.mockResolvedValueOnce({ data: { files: [] } });
+      mockDriveClient.files.update.mockRejectedValue(new Error('Update failed'));
+      
+      const result = await googleDriveService.getOrCreateFolder(mockAccessToken);
+      expect(result).toBe(mockFolderId);
+      expect(logger.warn).toHaveBeenCalledWith('Failed to set folder metadata:', expect.any(Error));
+    });
+
+    test('getOrCreateFolder - error during folder search or creation', async () => {
+      mockDriveClient.files.list.mockRejectedValue(new Error('API Error'));
+      
+      await expect(googleDriveService.getOrCreateFolder(mockAccessToken))
+        .rejects.toThrow('Failed to get or create Drive folder');
+      expect(logger.error).toHaveBeenCalledWith('Error getting or creating Drive folder:', expect.any(Error));
+    });
+
+    test('saveFile - error during file save', async () => {
+      mockDriveClient.files.create.mockRejectedValue(new Error('Save error'));
+      
+      await expect(googleDriveService.saveFile(
+        mockFileName, mockFileContent, 'application/json', mockAccessToken
+      )).rejects.toThrow('Failed to save file to Google Drive');
+      expect(logger.error).toHaveBeenCalledWith('Error saving file to Drive:', expect.any(Error));
+    });
+
+    test('createFileBackup - backup creation failure should not throw', async () => {
+      mockDriveClient.files.get.mockRejectedValue(new Error('Get file error'));
+      
+      const result = await googleDriveService.createFileBackup(mockDriveClient, mockFileId, mockAccessToken);
+      expect(result).toBeNull();
+      expect(logger.warn).toHaveBeenCalledWith('Failed to create backup file:', expect.any(Error));
+    });
+
+    test('getFile - error during file retrieval', async () => {
+      mockDriveClient.files.get.mockRejectedValue(new Error('Get error'));
+      
+      await expect(googleDriveService.getFile(mockFileId, mockAccessToken))
+        .rejects.toThrow('Failed to get file from Google Drive');
+      expect(logger.error).toHaveBeenCalledWith(`Error getting file ${mockFileId} from Drive:`, expect.any(Error));
+    });
+
+    test('getFileMetadata - error during metadata retrieval', async () => {
+      mockDriveClient.files.get.mockRejectedValue(new Error('Metadata error'));
+      
+      await expect(googleDriveService.getFileMetadata(mockFileId, mockAccessToken))
+        .rejects.toThrow('Failed to get file metadata from Google Drive');
+      expect(logger.error).toHaveBeenCalledWith(`Error getting file metadata for ${mockFileId}:`, expect.any(Error));
+    });
+
+    test('getFileWithMetadata - error during combined retrieval', async () => {
+      mockDriveClient.files.get.mockRejectedValue(new Error('Combined error'));
+      
+      await expect(googleDriveService.getFileWithMetadata(mockFileId, mockAccessToken))
+        .rejects.toThrow('Failed to get file with metadata from Google Drive');
+      expect(logger.error).toHaveBeenCalledWith(`Error getting file with metadata for ${mockFileId}:`, expect.any(Error));
+    });
+
+    test('listFiles - error during file listing', async () => {
+      mockDriveClient.files.list.mockRejectedValue(new Error('List error'));
+      
+      await expect(googleDriveService.listFiles(mockAccessToken))
+        .rejects.toThrow('Failed to list files from Google Drive');
+      expect(logger.error).toHaveBeenCalledWith('Error listing files from Drive:', expect.any(Error));
+    });
+
+    test('deleteFile - error during file deletion', async () => {
+      mockDriveClient.files.update.mockRejectedValue(new Error('Delete error'));
+      
+      await expect(googleDriveService.deleteFile(mockFileId, mockAccessToken))
+        .rejects.toThrow('Failed to delete file from Google Drive');
+      expect(logger.error).toHaveBeenCalledWith(`Error deleting file ${mockFileId} from Drive:`, expect.any(Error));
+    });
+
+    test('moveFile - successful file move', async () => {
+      const targetFolderId = 'target-folder-id';
+      mockDriveClient.files.get.mockResolvedValue({
+        data: { parents: ['parent1', 'parent2'] }
+      });
+      mockDriveClient.files.update.mockResolvedValue({ data: {} });
+      
+      const result = await googleDriveService.moveFile(mockFileId, targetFolderId, mockAccessToken);
+      
+      expect(result).toBe(true);
+      expect(mockDriveClient.files.update).toHaveBeenCalledWith({
+        fileId: mockFileId,
+        addParents: targetFolderId,
+        removeParents: 'parent1,parent2',
+        fields: 'id, parents'
+      });
+    });
+
+    test('moveFile - error during file move', async () => {
+      const targetFolderId = 'target-folder-id';
+      mockDriveClient.files.get.mockRejectedValue(new Error('Move error'));
+      
+      await expect(googleDriveService.moveFile(mockFileId, targetFolderId, mockAccessToken))
+        .rejects.toThrow('Failed to move file in Google Drive');
+      expect(logger.error).toHaveBeenCalledWith(`Error moving file ${mockFileId} to folder ${targetFolderId}:`, expect.any(Error));
+    });
+
+    test('savePortfolioToDrive - error during portfolio save', async () => {
+      // Mock saveFile to throw error
+      const saveFileSpy = jest.spyOn(googleDriveService, 'saveFile').mockRejectedValue(new Error('Save portfolio error'));
+      
+      const portfolioData = { name: 'Test Portfolio' };
+      
+      await expect(googleDriveService.savePortfolioToDrive(mockAccessToken, portfolioData))
+        .rejects.toThrow('Failed to save portfolio data to Google Drive');
+      expect(logger.error).toHaveBeenCalledWith('Error saving portfolio to Drive:', expect.any(Error));
+      
+      saveFileSpy.mockRestore();
+    });
+
+    test('getPortfolioVersionHistory - error during version history retrieval', async () => {
+      mockDriveClient.files.list.mockRejectedValue(new Error('History error'));
+      
+      await expect(googleDriveService.getPortfolioVersionHistory(mockFileId, mockAccessToken))
+        .rejects.toThrow('Failed to get version history from Google Drive');
+      expect(logger.error).toHaveBeenCalledWith(`Error getting version history for ${mockFileId}:`, expect.any(Error));
+    });
+
+    test('loadPortfolioFromDrive - error during content parsing (malformed JSON)', async () => {
+      // Test case where content is malformed JSON that cannot be parsed
+      mockDriveClient.files.get.mockImplementation((params) => {
+        if (params.alt === 'media') {
+          return Promise.resolve({ data: '{ invalid json' }); // Malformed JSON
+        }
+        return Promise.resolve({
+          data: {
+            id: mockFileId,
+            name: mockFileName,
+            createdTime: '2025-05-10T00:00:00Z',
+            modifiedTime: '2025-05-15T00:00:00Z',
+            webViewLink: 'https://drive.google.com/file/d/test-file-id/view'
+          }
+        });
+      });
+      
+      await expect(googleDriveService.loadPortfolioFromDrive(mockAccessToken, mockFileId))
+        .rejects.toThrow('Invalid portfolio data format');
+    });
+
+    test('loadPortfolioFromDrive - file retrieval error', async () => {
+      mockDriveClient.files.get.mockRejectedValue(new Error('File load error'));
+      
+      await expect(googleDriveService.loadPortfolioFromDrive(mockAccessToken, mockFileId))
+        .rejects.toThrow('Invalid portfolio data format');
+      expect(logger.error).toHaveBeenCalledWith(`Error loading portfolio from Drive ${mockFileId}:`, expect.any(Error));
+    });
+
+    test('getOrCreateFolder - with parent folder ID (line 86)', async () => {
+      const parentFolderId = 'parent-folder-id';
+      mockDriveClient.files.list.mockResolvedValueOnce({ data: { files: [] } }); // No existing folder
+      
+      const result = await googleDriveService.getOrCreateFolder(mockAccessToken, 'TestFolder', parentFolderId);
+      
+      expect(result).toBe(mockFolderId);
+      expect(mockDriveClient.files.create).toHaveBeenCalledWith(expect.objectContaining({
+        resource: expect.objectContaining({
+          name: 'TestFolder',
+          mimeType: 'application/vnd.google-apps.folder',
+          parents: [parentFolderId]
+        })
+      }));
+    });
+
+    test('getOrCreateFolder - withRetry onRetry callback triggers (line 67)', async () => {
+      mockDriveClient.files.list.mockResolvedValueOnce({ data: { files: [] } }); // No existing folder
+      
+      let onRetryCallback = null;
+      withRetry.mockImplementationOnce((fn, options) => {
+        onRetryCallback = options.onRetry;
+        return fn();
+      });
+      
+      await googleDriveService.getOrCreateFolder(mockAccessToken);
+      
+      // Trigger the onRetry callback to cover line 67
+      if (onRetryCallback) {
+        onRetryCallback(new Error('Test retry error'), 1);
+        expect(logger.warn).toHaveBeenCalledWith('Drive API folder search retry 1:', 'Test retry error');
+      }
+    });
+
+    test('listPortfolioFiles - calls listFiles with correct parameters (line 384)', async () => {
+      // Override default mock to provide proper response for both calls
+      mockDriveClient.files.list.mockImplementation((params) => {
+        if (params.q && params.q.includes('portfolio')) {
+          // This is the portfolio-specific query
+          return Promise.resolve({
+            data: {
+              files: [{
+                id: mockFileId,
+                name: 'portfolio-test.json',
+                mimeType: 'application/json',
+                size: '100',
+                createdTime: '2025-05-10T00:00:00Z',
+                modifiedTime: '2025-05-15T00:00:00Z',
+                webViewLink: 'https://drive.google.com/file/d/test-file-id/view'
+              }]
+            }
+          });
+        } else {
+          // This is the folder query
+          return Promise.resolve({
+            data: {
+              files: [{ id: mockFolderId, name: 'PortfolioManagerData' }]
+            }
+          });
+        }
+      });
+      
+      const result = await googleDriveService.listPortfolioFiles(mockAccessToken);
+      
+      expect(result).toEqual([{
+        id: mockFileId,
+        name: 'portfolio-test.json',
+        mimeType: 'application/json',
+        size: '100',
+        createdTime: '2025-05-10T00:00:00Z',
+        modifiedTime: '2025-05-15T00:00:00Z',
+        webViewLink: 'https://drive.google.com/file/d/test-file-id/view'
+      }]);
+      
+      // Check that listFiles was called with portfolio filter
+      expect(mockDriveClient.files.list).toHaveBeenCalledWith(expect.objectContaining({
+        q: expect.stringContaining("name contains 'portfolio'"),
+        fields: expect.any(String),
+        orderBy: 'createdTime desc',
+        pageSize: 100
+      }));
+    });
+  });
 });

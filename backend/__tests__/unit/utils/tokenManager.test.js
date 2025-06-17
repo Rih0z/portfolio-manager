@@ -318,12 +318,6 @@ describe('tokenManager', () => {
         token_type: 'Bearer'
       };
 
-      // getApiKeysのモックを追加
-      getApiKeys.mockResolvedValue({
-        google_client_id: 'test-client-id',
-        google_client_secret: 'test-client-secret'
-      });
-
       mockOAuth2Client.refreshAccessToken.mockResolvedValue({ credentials });
 
       const result = await refreshDriveToken(refreshToken);
@@ -346,12 +340,6 @@ describe('tokenManager', () => {
         // token_type is missing
       };
 
-      // getApiKeysのモックを追加
-      getApiKeys.mockResolvedValue({
-        google_client_id: 'test-client-id',
-        google_client_secret: 'test-client-secret'
-      });
-
       mockOAuth2Client.refreshAccessToken.mockResolvedValue({ credentials });
 
       const result = await refreshDriveToken(refreshToken);
@@ -361,12 +349,6 @@ describe('tokenManager', () => {
 
     it('should handle Drive token refresh errors', async () => {
       const refreshToken = 'invalid-drive-refresh-token';
-      
-      // getApiKeysのモックを追加
-      getApiKeys.mockResolvedValue({
-        google_client_id: 'test-client-id',
-        google_client_secret: 'test-client-secret'
-      });
       
       mockOAuth2Client.refreshAccessToken.mockRejectedValue(new Error('Invalid refresh token'));
 
@@ -378,6 +360,7 @@ describe('tokenManager', () => {
     beforeEach(() => {
       // Reset OAuth2Client mock for each test
       OAuth2Client.mockClear();
+      jest.clearAllMocks();
     });
 
     it('should initialize OAuth2Client with API keys', async () => {
@@ -394,18 +377,150 @@ describe('tokenManager', () => {
       expect(result).toEqual(payload);
     });
 
-    it('should handle missing client credentials', async () => {
-      // Create a fresh mock for getApiKeys that returns empty object
-      const mockGetApiKeys = jest.fn().mockResolvedValue({});
-      
-      // We need to test initialization errors, which happen at getOAuth2Client level
-      await expect(verifyIdToken('test-token')).rejects.toThrow();
+    it('should handle missing Google Client ID', async () => {
+      getApiKeys.mockResolvedValue({
+        // googleClientId is missing
+        googleClientSecret: 'test-client-secret'
+      });
+
+      await expect(verifyIdToken('test-token')).rejects.toThrow('Google Client ID/Secret not configured');
+    });
+
+    it('should handle missing Google Client Secret', async () => {
+      getApiKeys.mockResolvedValue({
+        googleClientId: 'test-client-id'
+        // googleClientSecret is missing
+      });
+
+      await expect(verifyIdToken('test-token')).rejects.toThrow('Google Client ID/Secret not configured');
     });
 
     it('should handle OAuth2Client initialization error', async () => {
       getApiKeys.mockRejectedValue(new Error('Secrets Manager error'));
 
       await expect(verifyIdToken('test-token')).rejects.toThrow('Secrets Manager error');
+    });
+
+    it('should use environment variables when API keys are missing', async () => {
+      // Test fallback to environment variables
+      process.env.GOOGLE_CLIENT_ID = 'env-client-id';
+      process.env.GOOGLE_CLIENT_SECRET = 'env-client-secret';
+      
+      getApiKeys.mockResolvedValue({});
+
+      const payload = { sub: 'user-123' };
+      withRetry.mockImplementation(async (fn) => {
+        return payload;
+      });
+
+      const result = await verifyIdToken('test-token');
+      expect(result).toEqual(payload);
+      
+      // Clean up environment variables
+      delete process.env.GOOGLE_CLIENT_ID;
+      delete process.env.GOOGLE_CLIENT_SECRET;
+    });
+
+    it('should cache OAuth2Client instance', async () => {
+      // First call should create new instance
+      await verifyIdToken('test-token-1');
+      expect(OAuth2Client).toHaveBeenCalledTimes(1);
+      
+      // Second call should reuse cached instance
+      await verifyIdToken('test-token-2');
+      expect(OAuth2Client).toHaveBeenCalledTimes(1); // Still only called once
+    });
+  });
+
+  describe('Error handling and retry logic', () => {
+    it('should handle retry logic with network errors', async () => {
+      const refreshToken = 'test-refresh-token';
+      
+      withRetry.mockImplementation(async (fn, options) => {
+        // Verify retry options are passed correctly
+        expect(options).toMatchObject({
+          maxRetries: 3,
+          baseDelay: 300,
+          shouldRetry: expect.any(Function)
+        });
+        
+        // Test the shouldRetry function
+        const shouldRetry = options.shouldRetry;
+        expect(shouldRetry({ code: 'ETIMEDOUT' })).toBe(true);
+        expect(shouldRetry({ code: 'ECONNRESET' })).toBe(true);
+        expect(shouldRetry({ message: 'network error' })).toBe(true);
+        expect(shouldRetry({ response: { status: 500 } })).toBe(true);
+        expect(shouldRetry({ response: { status: 400 } })).toBe(false);
+        
+        // Simulate successful retry
+        return { access_token: 'new-token' };
+      });
+
+      const result = await refreshAccessToken(refreshToken);
+      expect(result).toEqual({ access_token: 'new-token' });
+    });
+
+    it('should handle console.log calls during initialization', async () => {
+      // Clear existing mocks
+      jest.clearAllMocks();
+      
+      // Reset the module to test initialization logging
+      jest.resetModules();
+      
+      // Re-require the module to trigger initialization
+      const tokenManager = require('../../../src/utils/tokenManager');
+      
+      // Verify that console.log was called during initialization
+      expect(console.log).toHaveBeenCalledWith('Initializing OAuth2Client...');
+    });
+
+    it('should log Google OAuth configuration', async () => {
+      jest.clearAllMocks();
+      
+      // Reset module to test configuration logging
+      jest.resetModules();
+      
+      getApiKeys.mockResolvedValue({
+        googleClientId: 'test-client-id-12345',
+        googleClientSecret: 'test-client-secret-67890'
+      });
+      
+      const tokenManager = require('../../../src/utils/tokenManager');
+      
+      // Call a function that triggers OAuth2Client initialization
+      await tokenManager.verifyIdToken('test-token');
+      
+      // Verify configuration logging
+      expect(console.log).toHaveBeenCalledWith('Google OAuth configuration:', expect.objectContaining({
+        hasClientId: true,
+        clientIdLength: 20,
+        hasClientSecret: true,
+        clientSecretLength: 23,
+        clientIdPrefix: 'test-client-id-12345'
+      }));
+      
+      expect(console.log).toHaveBeenCalledWith('OAuth2Client initialized successfully');
+    });
+  });
+
+  describe('Edge cases and error paths', () => {
+    it('should handle validation without refresh token in session', async () => {
+      const pastDate = new Date(Date.now() - 60000);
+      const session = {
+        accessToken: 'expired-token',
+        tokenExpiry: pastDate.toISOString()
+        // No refreshToken
+      };
+
+      await expect(validateAndRefreshToken(session)).rejects.toThrow('リフレッシュトークンが存在しません');
+    });
+
+    it('should handle undefined session', async () => {
+      await expect(validateAndRefreshToken(undefined)).rejects.toThrow('セッション情報が不足しています');
+    });
+
+    it('should handle null session', async () => {
+      await expect(validateAndRefreshToken(null)).rejects.toThrow('セッション情報が不足しています');
     });
   });
 });

@@ -1,11 +1,28 @@
 /**
- * ファイルパス: __tests__/unit/utils/dynamoDbService.test.js
+ * ファイルパス: __tests__/unit/utils/dynamoDbService.complete.test.js
  *
  * dynamoDbServiceユーティリティの完全なカバレッジテスト
  * 全ての関数とエラーケースを含む
  */
 
-// Mock AWS SDK first
+const {
+  getDynamoDBClient,
+  getDynamoDBItem,
+  putDynamoDBItem,
+  updateDynamoDBItem,
+  deleteDynamoDBItem,
+  queryDynamoDB,
+  scanDynamoDB,
+  marshallItem,
+  unmarshallItem,
+  unmarshallItems,
+  addItem,
+  getItem,
+  deleteItem,
+  updateItem
+} = require('../../../src/utils/dynamoDbService');
+
+// Mock AWS SDK
 const mockSend = jest.fn();
 const mockDynamoDBClient = {
   send: mockSend
@@ -36,24 +53,6 @@ jest.mock('../../../src/utils/logger', () => ({
 }));
 
 const logger = require('../../../src/utils/logger');
-
-// Now import the service
-const {
-  getDynamoDBClient,
-  getDynamoDBItem,
-  putDynamoDBItem,
-  updateDynamoDBItem,
-  deleteDynamoDBItem,
-  queryDynamoDB,
-  scanDynamoDB,
-  marshallItem,
-  unmarshallItem,
-  unmarshallItems,
-  addItem,
-  getItem,
-  deleteItem,
-  updateItem
-} = require('../../../src/utils/dynamoDbService');
 
 describe('dynamoDbService Complete Coverage', () => {
   let originalEnv;
