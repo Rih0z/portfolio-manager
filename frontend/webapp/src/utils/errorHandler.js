@@ -40,6 +40,9 @@ export function sanitizeError(error) {
         'UNAUTHORIZED': 'アクセス権限がありません。',
         'FORBIDDEN': 'このリソースへのアクセスは禁止されています。',
         'SESSION_EXPIRED': 'セッションの有効期限が切れました。再度ログインしてください。',
+        'INVALID_AUTH_CODE': '認証コードが無効または期限切れです。再度ログインを試してください。',
+        'ONE_TAP_NOT_SUPPORTED': 'Google One Tap認証ではGoogle Driveのアクセス権限を取得できません。通常のログイン方法を使用してください。',
+        'MISSING_DRIVE_SCOPE': '認証にGoogle Driveのアクセス権限が含まれていません。ログイン時に必ずDriveのアクセスを許可してください。',
         
         // バリデーションエラー
         'VALIDATION_ERROR': '入力内容に誤りがあります。',

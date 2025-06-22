@@ -306,7 +306,23 @@ export const AuthProvider = ({ children }) => {
         console.error('サーバーエラー詳細:', JSON.stringify(error.response.data, null, 2));
         console.error('エラーコード:', error.response.data.error?.code);
         console.error('エラーメッセージ:', error.response.data.error?.message);
-        errorMessage = error.response.data.error?.message || error.response.data.message || errorMessage;
+        
+        // サーバーからの具体的なエラーメッセージを使用
+        const serverErrorMessage = error.response.data.error?.message || error.response.data.message;
+        
+        // Google認証関連のエラーは具体的なメッセージを表示
+        if (serverErrorMessage && (
+          error.response.data.error?.code === 'INVALID_AUTH_CODE' ||
+          error.response.data.error?.code === 'ONE_TAP_NOT_SUPPORTED' ||
+          error.response.data.error?.code === 'MISSING_DRIVE_SCOPE' ||
+          serverErrorMessage.includes('認証コード') ||
+          serverErrorMessage.includes('Google') ||
+          serverErrorMessage.includes('Drive')
+        )) {
+          errorMessage = serverErrorMessage;
+        } else if (serverErrorMessage) {
+          errorMessage = serverErrorMessage;
+        }
       } else if (error.message) {
         errorMessage = error.message;
       }
