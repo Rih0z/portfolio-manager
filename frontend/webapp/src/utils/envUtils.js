@@ -102,14 +102,22 @@ export const getApiEndpoint = async (path) => {
 // Google認証用のクライアントIDを取得（非同期）
 export const getGoogleClientId = async () => {
   try {
+    // 環境変数から直接取得を試行
+    const envClientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
+    if (envClientId && envClientId !== 'dummy-client-id-for-development') {
+      return envClientId;
+    }
+    
+    // AWS設定から取得を試行
     const config = await getApiConfig();
     const clientId = config?.googleClientId;
-    // フォールバック: 一般的な開発環境用のダミーGoogle Client ID
-    if (!clientId) {
-      console.warn('Google Client ID が取得できません。フォールバックIDを使用します。');
-      return 'dummy-client-id-for-development';
+    if (clientId && clientId !== 'dummy-client-id-for-development') {
+      return clientId;
     }
-    return clientId;
+    
+    // フォールバック: 一般的な開発環境用のダミーGoogle Client ID
+    console.warn('Google Client ID が取得できません。フォールバックIDを使用します。');
+    return 'dummy-client-id-for-development';
   } catch (error) {
     console.warn('Google Client ID の取得に失敗しました（フォールバックを使用）:', error.message);
     return 'dummy-client-id-for-development';
