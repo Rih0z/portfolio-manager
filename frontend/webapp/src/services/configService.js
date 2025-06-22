@@ -17,10 +17,10 @@ import axios from 'axios';
 let configCache = null;
 let configFetchPromise = null;
 
-// AWS設定エンドポイント
+// AWS設定エンドポイント（公開版を使用）
 const CONFIG_ENDPOINT = process.env.REACT_APP_API_BASE_URL 
-  ? `${process.env.REACT_APP_API_BASE_URL}/config/client`
-  : '/api-proxy/config/client'; // フォールバックとしてプロキシを使用
+  ? `${process.env.REACT_APP_API_BASE_URL}/config/public`
+  : '/api-proxy/config/public'; // フォールバックとしてプロキシを使用
 
 // デバッグ用（開発環境のみ）
 if (process.env.NODE_ENV === 'development') {
@@ -82,7 +82,7 @@ export const fetchApiConfig = async () => {
       // 本番環境ではプロキシ経由で再試行
       if (process.env.NODE_ENV === 'production' && CONFIG_ENDPOINT.includes('execute-api')) {
         try {
-          const proxyResponse = await axios.get('/api-proxy/config/client');
+          const proxyResponse = await axios.get('/api-proxy/config/public');
           if (proxyResponse.data && proxyResponse.data.success) {
             configCache = proxyResponse.data.data;
             return configCache;

@@ -35,6 +35,7 @@ export const RETRY = {
 // タイムアウト設定
 export const TIMEOUT = {
   DEFAULT: 10000,        // 10秒
+  AUTH: 30000,           // 30秒（認証用）
   EXCHANGE_RATE: 5000,   // 5秒
   US_STOCK: 10000,       // 10秒
   JP_STOCK: 20000,       // 20秒

@@ -61,9 +61,10 @@ export const AuthProvider = ({ children }) => {
         return;
       }
       
-      // セッション確認エンドポイント
-      const sessionEndpoint = await getApiEndpoint('auth/session');
-      console.log('セッション確認URL:', sessionEndpoint);
+      // セッション確認エンドポイント（強制的に直接AWS APIを使用）
+      const AWS_API_BASE = process.env.REACT_APP_API_BASE_URL || 'https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod';
+      const sessionEndpoint = `${AWS_API_BASE}/auth/session`;
+      console.log('セッション確認URL（強制AWS）:', sessionEndpoint);
       
       const response = await authFetch(sessionEndpoint, 'get');
       console.log('セッション確認レスポンス:', response);
@@ -158,9 +159,10 @@ export const AuthProvider = ({ children }) => {
       const redirectUri = window.location.origin + '/auth/google/callback';
       console.log('リダイレクトURI:', redirectUri);
       
-      // 認証エンドポイント
-      const loginEndpoint = await getApiEndpoint('auth/google/login');
-      console.log('ログインエンドポイント:', loginEndpoint);
+      // 認証エンドポイント（強制的に直接AWS APIを使用）
+      const AWS_API_BASE = process.env.REACT_APP_API_BASE_URL || 'https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod';
+      const loginEndpoint = `${AWS_API_BASE}/auth/google/login`;
+      console.log('ログインエンドポイント（強制AWS）:', loginEndpoint);
       
       // 認証リクエスト（適切なフィールドで送信）
       const requestBody = {};
@@ -196,7 +198,7 @@ export const AuthProvider = ({ children }) => {
         return false;
       }
       
-      const response = await authFetch(loginEndpoint, 'post', requestBody);
+      const response = await authFetch(loginEndpoint, 'post', requestBody, { timeout: 30000 });
       
       console.log('認証レスポンス:', response);
       

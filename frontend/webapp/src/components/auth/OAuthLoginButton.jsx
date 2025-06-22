@@ -89,7 +89,11 @@ const OAuthLoginButton = () => {
           // redirectUriを含めてバックエンドに送信（動的に生成）
           const redirectUri = getRedirectUri();
           console.log('Sending to backend with redirect_uri:', redirectUri); // デバッグ用
+          console.log('Google Client ID:', googleClientId); // デバッグ用
+          console.log('Current URL:', window.location.href); // デバッグ用
+          
           const result = await loginWithGoogle({ code, redirectUri });
+          console.log('Backend response:', result); // デバッグ用
           
           if (result && result.success) {
             console.log('ログイン成功（Drive権限付き）');
@@ -103,7 +107,24 @@ const OAuthLoginButton = () => {
           }
         } catch (err) {
           console.error('ログイン処理エラー:', err);
-          setLoginError(ERROR_MESSAGES.GENERAL_ERROR);
+          console.error('Error details:', {
+            name: err.name,
+            message: err.message,
+            stack: err.stack,
+            response: err.response?.data
+          });
+          
+          let errorMessage = ERROR_MESSAGES.GENERAL_ERROR;
+          if (err.response?.data?.error?.message) {
+            errorMessage = `API エラー: ${err.response.data.error.message}`;
+          } else if (err.message) {
+            errorMessage = `通信エラー: ${err.message}`;
+          }
+          
+          setLoginError(errorMessage);
+          if (addNotification) {
+            addNotification(errorMessage, 'error');
+          }
         } finally {
           setIsProcessing(false);
         }
@@ -117,16 +138,37 @@ const OAuthLoginButton = () => {
 
   // エラーハンドリング
   const handleLoginError = (result) => {
+    console.error('Login error details:', {
+      result,
+      error: result?.error,
+      message: result?.error?.message,
+      code: result?.error?.code,
+      success: result?.success
+    });
+    
+    let errorMessage = ERROR_MESSAGES.GENERAL_ERROR;
+    
     if (result?.error?.code === 'MISSING_DRIVE_SCOPE') {
-      setLoginError(ERROR_MESSAGES.MISSING_DRIVE_SCOPE);
+      errorMessage = ERROR_MESSAGES.MISSING_DRIVE_SCOPE;
       // 3秒後に再度認証画面へ
       setTimeout(() => {
         window.location.href = generateOAuthUrl();
       }, 3000);
     } else if (result?.error?.code === 'ONE_TAP_NOT_SUPPORTED') {
-      setLoginError(ERROR_MESSAGES.ONE_TAP_NOT_SUPPORTED);
-    } else {
-      setLoginError(result?.error?.message || ERROR_MESSAGES.GENERAL_ERROR);
+      errorMessage = ERROR_MESSAGES.ONE_TAP_NOT_SUPPORTED;
+    } else if (result?.error?.message) {
+      errorMessage = `認証エラー: ${result.error.message}`;
+    } else if (result?.message) {
+      errorMessage = `エラー: ${result.message}`;
+    } else if (!result) {
+      errorMessage = 'サーバーからの応答がありませんでした';
+    } else if (!result.success) {
+      errorMessage = '認証に失敗しました。再度お試しください。';
+    }
+    
+    setLoginError(errorMessage);
+    if (addNotification) {
+      addNotification(errorMessage, 'error');
     }
   };
 

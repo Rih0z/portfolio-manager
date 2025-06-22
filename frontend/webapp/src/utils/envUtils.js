@@ -41,13 +41,14 @@ const getApiConfig = async () => {
       apiConfigCache = {
         marketDataApiUrl: process.env.REACT_APP_API_BASE_URL || 'https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod',
         apiStage: 'prod',
-        googleClientId: '', // 動的に設定される
+        googleClientId: process.env.REACT_APP_GOOGLE_CLIENT_ID || '243939385276-0gga06ocrn3vumf7lasubcpdqjk49j3n.apps.googleusercontent.com',
         features: {
           useProxy: false,
           useMockApi: false,
           useDirectApi: true
         }
       };
+      console.log('Using fallback API config:', apiConfigCache);
     }
   }
   return apiConfigCache || {};
@@ -68,16 +69,42 @@ export const getApiStage = async () => {
 // 完全なエンドポイントURLの生成（非同期）
 export const getApiEndpoint = async (path) => {
   const config = await getApiConfig();
-  const baseUrl = config.marketDataApiUrl || '';
-  const stage = config.apiStage || 'dev';
+  const baseUrl = config.marketDataApiUrl || process.env.REACT_APP_API_BASE_URL || '';
+  const stage = config.apiStage || 'prod';
   
   // パスが既にスラッシュで始まる場合は削除
   const cleanPath = path.startsWith('/') ? path.slice(1) : path;
   
-  // プロダクション環境でCloudflare Pagesプロキシを使用
+  // デバッグ情報を出力
+  console.log('getApiEndpoint debug:', {
+    path,
+    cleanPath,
+    baseUrl,
+    stage,
+    config,
+    NODE_ENV: process.env.NODE_ENV,
+    isAuthPath: cleanPath.includes('auth/') || cleanPath.includes('config/')
+  });
+  
+  // プロダクション環境での設定
   if (process.env.NODE_ENV === 'production') {
-    // プロダクション環境では全てプロキシ経由
-    return `/api-proxy/${cleanPath}`;
+    // 認証関連のエンドポイントは直接AWS APIを使用（環境変数から強制取得）
+    if (cleanPath.includes('auth/') || cleanPath.includes('config/')) {
+      const forceBaseUrl = process.env.REACT_APP_API_BASE_URL || 'https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod';
+      let finalUrl;
+      // baseUrlに既にステージが含まれているかチェック
+      if (forceBaseUrl.includes('/prod') || forceBaseUrl.includes('/dev')) {
+        finalUrl = `${forceBaseUrl}/${cleanPath}`;
+      } else {
+        finalUrl = `${forceBaseUrl}/${stage}/${cleanPath}`;
+      }
+      console.log('Auth endpoint FORCED direct AWS URL:', finalUrl);
+      return finalUrl;
+    }
+    // その他のエンドポイントはプロキシ経由
+    const proxyUrl = `/api-proxy/${cleanPath}`;
+    console.log('Non-auth endpoint proxy URL:', proxyUrl);
+    return proxyUrl;
   }
   
   // ローカル開発環境でプロキシを使用する場合
