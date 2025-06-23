@@ -59,7 +59,11 @@
     "ci:test": "npm run test:clean && npm run test:coverage && npm run coverage:generate-chart",
     "ci:test-with-chart": "npm run test:clean && npm run test:coverage-chart",
     "health-check": "node scripts/health-check.js",
-    "check-backend": "npm run health-check"
+    "check-backend": "npm run health-check",
+    "deploy": "npm run build && wrangler pages deploy build --project-name=pfwise-portfolio-manager --commit-dirty=true",
+    "deploy:preview": "npm run build && wrangler pages deploy build --commit-dirty=true",
+    "deploy:prod": "npm run build && wrangler pages deploy build --project-name=pfwise-portfolio-manager --branch=main --commit-dirty=true",
+    "deploy:direct": "wrangler pages deploy build --project-name=pfwise-portfolio-manager --commit-dirty=true"
   },
   "eslintConfig": {
     "extends": [

@@ -35,7 +35,7 @@ export const RETRY = {
 // タイムアウト設定
 export const TIMEOUT = {
   DEFAULT: 10000,        // 10秒
-  AUTH: 30000,           // 30秒（認証用）
+  AUTH: 15000,           // 15秒（認証用）- 30秒から短縮
   EXCHANGE_RATE: 5000,   // 5秒
   US_STOCK: 10000,       // 10秒
   JP_STOCK: 20000,       // 20秒
@@ -133,8 +133,11 @@ export const clearAuthToken = () => {
 export const createApiClient = (withAuth = false) => {
   console.log(`Creating API client with auth: ${withAuth}, withCredentials: true`);
   
+  // 認証用クライアントは短めのタイムアウトを設定
+  const timeout = withAuth ? TIMEOUT.AUTH : TIMEOUT.DEFAULT;
+  
   const client = axios.create({
-    timeout: TIMEOUT.DEFAULT,
+    timeout: timeout,
     withCredentials: true, // Cookieを送信するために必要
     headers: {
       'Content-Type': 'application/json',

@@ -99,9 +99,9 @@ export const fetchApiConfig = async () => {
         apiStage: baseUrl.includes('/prod') ? 'prod' : 'dev',
         googleClientId: '', // Google Client IDは環境変数または設定APIから取得すべき
         features: {
-          useProxy: process.env.NODE_ENV === 'production', // 本番環境ではプロキシを使用
+          useProxy: true, // 常にプロキシを使用
           useMockApi: false,
-          useDirectApi: process.env.NODE_ENV !== 'production'
+          useDirectApi: false
         }
       };
       return configCache;

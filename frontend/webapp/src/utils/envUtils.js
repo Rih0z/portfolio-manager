@@ -43,9 +43,9 @@ const getApiConfig = async () => {
         apiStage: 'prod',
         googleClientId: process.env.REACT_APP_GOOGLE_CLIENT_ID || '243939385276-0gga06ocrn3vumf7lasubcpdqjk49j3n.apps.googleusercontent.com',
         features: {
-          useProxy: false,
+          useProxy: true,
           useMockApi: false,
-          useDirectApi: true
+          useDirectApi: false
         }
       };
       console.log('Using fallback API config:', apiConfigCache);
@@ -86,25 +86,12 @@ export const getApiEndpoint = async (path) => {
     isAuthPath: cleanPath.includes('auth/') || cleanPath.includes('config/')
   });
   
-  // プロダクション環境での設定
+  // プロダクション環境では/api-proxy/経由でアクセス
   if (process.env.NODE_ENV === 'production') {
-    // 認証関連のエンドポイントは直接AWS APIを使用（環境変数から強制取得）
-    if (cleanPath.includes('auth/') || cleanPath.includes('config/')) {
-      const forceBaseUrl = process.env.REACT_APP_API_BASE_URL || 'https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod';
-      let finalUrl;
-      // baseUrlに既にステージが含まれているかチェック
-      if (forceBaseUrl.includes('/prod') || forceBaseUrl.includes('/dev')) {
-        finalUrl = `${forceBaseUrl}/${cleanPath}`;
-      } else {
-        finalUrl = `${forceBaseUrl}/${stage}/${cleanPath}`;
-      }
-      console.log('Auth endpoint FORCED direct AWS URL:', finalUrl);
-      return finalUrl;
-    }
-    // その他のエンドポイントはプロキシ経由
-    const proxyUrl = `/api-proxy/${cleanPath}`;
-    console.log('Non-auth endpoint proxy URL:', proxyUrl);
-    return proxyUrl;
+    // プロキシ経由でアクセス
+    let finalUrl = `/api-proxy/${cleanPath}`;
+    console.log('Production endpoint proxy URL:', finalUrl);
+    return finalUrl;
   }
   
   // ローカル開発環境でプロキシを使用する場合
