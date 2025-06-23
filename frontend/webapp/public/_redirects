@@ -1,1 +1,2 @@
+/api-proxy/* https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod/:splat 200
 /* /index.html 200
