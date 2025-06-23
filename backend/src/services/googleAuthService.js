@@ -12,7 +12,7 @@
  */
 'use strict';
 
-const uuid = require('uuid');
+const crypto = require('crypto');
 // 分割代入でのインポートからモジュールとしてのインポートに変更
 const dynamoDbService = require('../utils/dynamoDbService');
 const tokenManager = require('../utils/tokenManager');
@@ -46,7 +46,7 @@ const verifyIdToken = async (idToken) => {
  * @returns {Promise<Object>} - セッション情報
  */
 const createUserSession = async (userData) => {
-  const sessionId = uuid.v4();
+  const sessionId = crypto.randomUUID();
   const now = new Date();
   const expiresAt = new Date(now.getTime() + SESSION_EXPIRES_DAYS * 24 * 60 * 60 * 1000);
   

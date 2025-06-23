@@ -2,7 +2,7 @@ service: pfwise-api
 
 package:
   individually: false
-  excludeDevDependencies: true
+  excludeDevDependencies: false
   patterns:
     - '!__tests__/**'
     - '!test-results/**'
@@ -17,7 +17,6 @@ package:
     - '!*.spec.js'
     - '!.git/**'
     - '!.github/**'
-    - '!node_modules/aws-sdk/**'
     - '!node_modules/jest/**'
     - '!node_modules/sinon/**'
     - '!node_modules/mock-fs/**'
@@ -26,16 +25,6 @@ package:
     - '!node_modules/@types/**'
     - '!node_modules/serverless/**'
     - '!node_modules/serverless-*/**'
-    # Explicitly include critical dependencies
-    - 'node_modules/axios/**'
-    - 'node_modules/@aws-sdk/**'
-    - 'node_modules/jsonwebtoken/**'
-    - 'node_modules/joi/**'
-    - 'node_modules/lodash/**'
-    - 'node_modules/winston/**'
-    - 'node_modules/bottleneck/**'
-    - 'node_modules/p-retry/**'
-    - 'node_modules/uuid/**'
 
 provider:
   name: aws
@@ -248,9 +237,9 @@ functions:
             allowCredentials: true
           private: true
   
-  # Google認証関連
-  googleLogin:
-    handler: src/function/auth/googleLogin.handler
+  # Google認証関連（シンプル版 - DynamoDB不使用）
+  simpleGoogleLogin:
+    handler: src/function/auth/simpleGoogleLogin.handler
     events:
       - http:
           path: auth/google/login
@@ -292,6 +281,10 @@ functions:
               - X-Amz-User-Agent
               - Cookie
             allowCredentials: true
+  
+  # 元のGoogle認証（コメントアウト）
+  # googleLogin:
+  #   handler: src/function/auth/googleLogin.handler
   
   getSession:
     handler: src/function/auth/getSession.handler
@@ -515,6 +508,31 @@ functions:
     events:
       - http:
           path: config/client
+          method: get
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+
+  # 公開設定エンドポイント（認証不要）
+  getPublicConfig:
+    handler: src/function/config/getPublicConfig.handler
+    events:
+      - http:
+          path: config/public
           method: get
           cors:
             origins:

@@ -12,7 +12,8 @@ let API_SECRET = null;
 const SKIP_VALIDATION_PATHS = [
   '/auth/google/login',  // Google認証は直接アクセス必要
   '/auth/google/callback',
-  '/auth/google/drive/callback'
+  '/auth/google/drive/callback',
+  '/config/public'  // 公開設定エンドポイント
 ];
 
 const validateApiSecret = async (event) => {
