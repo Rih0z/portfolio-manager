@@ -22,7 +22,7 @@
 
 import React, { createContext, useState, useEffect, useCallback, useRef } from 'react';
 import { getApiEndpoint, getRedirectUri, getGoogleClientId } from '../utils/envUtils';
-import { authFetch, setAuthToken, getAuthToken, clearAuthToken } from '../utils/apiUtils';
+import { authFetch, setAuthToken, getAuthToken, clearAuthToken, TIMEOUT, authApiClient } from '../utils/apiUtils';
 
 // コンテキスト作成
 export const AuthContext = createContext();
@@ -159,10 +159,10 @@ export const AuthProvider = ({ children }) => {
       const redirectUri = window.location.origin + '/auth/google/callback';
       console.log('リダイレクトURI:', redirectUri);
       
-      // 認証エンドポイント（強制的に直接AWS APIを使用）
+      // 認証エンドポイント（実際に動作する/auth/google/loginを使用）
       const AWS_API_BASE = process.env.REACT_APP_API_BASE_URL || 'https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod';
       const loginEndpoint = `${AWS_API_BASE}/auth/google/login`;
-      console.log('ログインエンドポイント（強制AWS）:', loginEndpoint);
+      console.log('ログインエンドポイント:', loginEndpoint);
       
       // 認証リクエスト（適切なフィールドで送信）
       const requestBody = {};
@@ -198,26 +198,34 @@ export const AuthProvider = ({ children }) => {
         return false;
       }
       
-      const response = await authFetch(loginEndpoint, 'post', requestBody, { timeout: 30000 });
+      // 認証APIは直接axiosを使用（高速化とタイムアウト制御のため）
+      console.log('認証API呼び出し:', loginEndpoint);
+      const response = await authApiClient.post(loginEndpoint, requestBody, { 
+        timeout: TIMEOUT.AUTH,
+        withCredentials: true 
+      });
       
-      console.log('認証レスポンス:', response);
+      // レスポンスデータを取得
+      const responseData = response.data;
+      
+      console.log('認証レスポンス:', responseData);
       
       // エラーレスポンスの詳細を確認
-      if (!response) {
+      if (!responseData) {
         console.error('レスポンスがnullまたはundefinedです');
         setError('サーバーからの応答がありません');
         return false;
       }
       
-      if (response.error) {
-        console.error('認証エラー:', response.error);
-        setError(response.error.message || '認証に失敗しました');
+      if (responseData.error) {
+        console.error('認証エラー:', responseData.error);
+        setError(responseData.error.message || '認証に失敗しました');
         return false;
       }
       
-      if (response && response.success) {
-        console.log('Google認証成功:', response);
-        console.log('レスポンス全体:', JSON.stringify(response, null, 2));
+      if (responseData && responseData.success) {
+        console.log('Google認証成功:', responseData);
+        console.log('レスポンス全体:', JSON.stringify(responseData, null, 2));
         
         // ログイン後のCookieを確認
         console.log('=== Cookie Debug After Login ===');
@@ -239,20 +247,20 @@ export const AuthProvider = ({ children }) => {
         }
         
         // JWTトークンの保存（複数の可能な場所をチェック）
-        const token = response.token || 
-                     response.accessToken || 
-                     response.access_token ||
-                     response.authToken ||
-                     response.auth_token ||
-                     response.jwt ||
-                     response.jwtToken ||
-                     response.data?.token || 
-                     response.data?.accessToken ||
-                     response.data?.access_token ||
-                     response.data?.authToken ||
-                     response.data?.auth_token ||
-                     response.data?.jwt ||
-                     response.data?.jwtToken;
+        const token = responseData.token || 
+                     responseData.accessToken || 
+                     responseData.access_token ||
+                     responseData.authToken ||
+                     responseData.auth_token ||
+                     responseData.jwt ||
+                     responseData.jwtToken ||
+                     responseData.data?.token || 
+                     responseData.data?.accessToken ||
+                     responseData.data?.access_token ||
+                     responseData.data?.authToken ||
+                     responseData.data?.auth_token ||
+                     responseData.data?.jwt ||
+                     responseData.data?.jwtToken;
                      
         if (token) {
           setAuthToken(token);
@@ -260,18 +268,18 @@ export const AuthProvider = ({ children }) => {
           console.warn('トークンがレスポンスに含まれていません');
         }
         
-        setUser(response.user || response.data?.user);
+        setUser(responseData.user || responseData.data?.user);
         setIsAuthenticated(true);
         setError(null);
         
         // hasDriveAccessフラグをチェック
-        const driveAccess = response.hasDriveAccess || response.data?.hasDriveAccess || false;
+        const driveAccess = responseData.hasDriveAccess || responseData.data?.hasDriveAccess || false;
         setHasDriveAccess(driveAccess);
         console.log('Drive access status from login:', driveAccess);
         
         // ポートフォリオコンテキストに認証状態変更を通知
         if (portfolioContextRef.current?.handleAuthStateChange) {
-          portfolioContextRef.current.handleAuthStateChange(true, response.user || response.data?.user);
+          portfolioContextRef.current.handleAuthStateChange(true, responseData.user || responseData.data?.user);
         }
         
         // ログイン成功時は失敗カウントをリセット
@@ -287,8 +295,8 @@ export const AuthProvider = ({ children }) => {
         
         return { success: true, hasDriveAccess: driveAccess };
       } else {
-        console.error('認証レスポンスエラー:', response);
-        const errorMessage = response?.message || response?.error?.message || 'ログインに失敗しました';
+        console.error('認証レスポンスエラー:', responseData);
+        const errorMessage = responseData?.message || responseData?.error?.message || 'ログインに失敗しました';
         setError(errorMessage);
         return { success: false, hasDriveAccess: false };
       }
@@ -296,9 +304,15 @@ export const AuthProvider = ({ children }) => {
       console.error('Google認証エラー:', error);
       console.error('エラー詳細:', {
         message: error.message,
-        response: error.response,
-        request: error.request,
-        config: error.config
+        code: error.code,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        responseData: error.response?.data,
+        requestUrl: error.config?.url,
+        requestMethod: error.config?.method,
+        requestTimeout: error.config?.timeout,
+        isTimeoutError: error.code === 'ECONNABORTED' || error.message.includes('timeout'),
+        fullError: JSON.stringify(error, Object.getOwnPropertyNames(error))
       });
       
       // エラーメッセージを設定
