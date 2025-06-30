@@ -159,10 +159,20 @@ export const AuthProvider = ({ children }) => {
       const redirectUri = window.location.origin + '/auth/google/callback';
       console.log('リダイレクトURI:', redirectUri);
       
-      // 認証エンドポイント（実際に動作する/auth/google/loginを使用）
+      // 認証エンドポイント（本番環境では直接API、開発環境ではプロキシを使用）
       const AWS_API_BASE = process.env.REACT_APP_API_BASE_URL || 'https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod';
-      const loginEndpoint = `${AWS_API_BASE}/auth/google/login`;
+      const isProduction = window.location.hostname === 'portfolio-wise.com' || 
+                          window.location.hostname.includes('portfolio-manager') ||
+                          window.location.hostname.includes('pages.dev');
+      const isDevelopment = !isProduction && window.location.hostname === 'localhost';
+      
+      // 本番環境では直接API、開発環境ではプロキシを使用
+      const loginEndpoint = isProduction 
+        ? `${AWS_API_BASE}/auth/google/login`
+        : '/api-proxy/auth/google/login';
+        
       console.log('ログインエンドポイント:', loginEndpoint);
+      console.log('環境:', { isProduction, isDevelopment, hostname: window.location.hostname });
       
       // 認証リクエスト（適切なフィールドで送信）
       const requestBody = {};
@@ -198,17 +208,39 @@ export const AuthProvider = ({ children }) => {
         return false;
       }
       
-      // 認証APIは直接axiosを使用（高速化とタイムアウト制御のため）
+      // 認証APIは直接fetchを使用（確実なタイムアウト制御のため）
       console.log('認証API呼び出し:', loginEndpoint);
-      const response = await authApiClient.post(loginEndpoint, requestBody, { 
-        timeout: TIMEOUT.AUTH,
-        withCredentials: true 
-      });
+      console.log('タイムアウト設定:', TIMEOUT.AUTH);
       
-      // レスポンスデータを取得
-      const responseData = response.data;
+      // AbortControllerでタイムアウト制御
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), TIMEOUT.AUTH);
+      
+      try {
+        const response = await fetch(loginEndpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          credentials: 'include',
+          body: JSON.stringify(requestBody),
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const responseData = await response.json();
       
       console.log('認証レスポンス:', responseData);
+      console.log('認証レスポンス詳細:', JSON.stringify(responseData, null, 2));
+      console.log('レスポンスのタイプ:', typeof responseData);
+      console.log('successプロパティ:', responseData.success);
+      console.log('successのタイプ:', typeof responseData.success);
       
       // エラーレスポンスの詳細を確認
       if (!responseData) {
@@ -223,7 +255,16 @@ export const AuthProvider = ({ children }) => {
         return false;
       }
       
-      if (responseData && responseData.success) {
+      // success === false の場合でも詳細ログ
+      if (responseData.success === false) {
+        console.log('認証失敗レスポンス受信:', responseData);
+        console.log('エラーメッセージ:', responseData.message || responseData.error);
+        const errorMessage = responseData.message || responseData.error || 'ログインに失敗しました';
+        setError(errorMessage);
+        return { success: false, hasDriveAccess: false };
+      }
+      
+      if (responseData && responseData.success === true) {
         console.log('Google認証成功:', responseData);
         console.log('レスポンス全体:', JSON.stringify(responseData, null, 2));
         
@@ -300,20 +341,46 @@ export const AuthProvider = ({ children }) => {
         setError(errorMessage);
         return { success: false, hasDriveAccess: false };
       }
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        throw fetchError;
+      }
     } catch (error) {
       console.error('Google認証エラー:', error);
+      console.error('API エンドポイント:', loginEndpoint);
+      console.error('リクエストボディ:', JSON.stringify(requestBody, null, 2));
       console.error('エラー詳細:', {
         message: error.message,
         code: error.code,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        responseData: error.response?.data,
-        requestUrl: error.config?.url,
-        requestMethod: error.config?.method,
-        requestTimeout: error.config?.timeout,
-        isTimeoutError: error.code === 'ECONNABORTED' || error.message.includes('timeout'),
-        fullError: JSON.stringify(error, Object.getOwnPropertyNames(error))
+        name: error.name,
+        isAbortError: error.name === 'AbortError',
+        isTimeoutError: error.name === 'AbortError' || error.code === 'ECONNABORTED' || error.message.includes('timeout'),
+        isCorsError: error.message.includes('CORS') || error.message.includes('Network Error'),
+        isNetworkError: error.message === 'Failed to fetch',
+        stack: error.stack
       });
+      
+      // Failed to fetchの場合は詳細な診断
+      if (error.message === 'Failed to fetch') {
+        console.error('🚨 Failed to fetch 詳細診断:');
+        console.error('- API URL:', loginEndpoint);
+        console.error('- Origin:', window.location.origin);
+        console.error('- CORS設定確認が必要');
+        console.error('- バックエンドが500エラーを返している可能性');
+      }
+      
+      // エラーレスポンスデータも詳細に確認
+      if (error.response?.data) {
+        console.log('エラーレスポンスデータ:', JSON.stringify(error.response.data, null, 2));
+        // success: false のレスポンスの場合、catchではなく正常レスポンスとして処理すべき
+        if (error.response.data.success === false) {
+          console.log('success: false レスポンスを正常レスポンスとして処理');
+          const responseData = error.response.data;
+          const errorMessage = responseData.message || responseData.error || 'ログインに失敗しました';
+          setError(errorMessage);
+          return { success: false, hasDriveAccess: false };
+        }
+      }
       
       // エラーメッセージを設定
       let errorMessage = 'ログイン処理中にエラーが発生しました';

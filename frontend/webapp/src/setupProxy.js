@@ -22,4 +22,26 @@ module.exports = function(app) {
       }
     })
   );
+  
+  // Google認証用のプロキシ設定を追加
+  app.use(
+    '/api-proxy',
+    proxy({
+      target: process.env.REACT_APP_API_BASE_URL || 'https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod',
+      changeOrigin: true,
+      pathRewrite: {
+        '^/api-proxy': '' // /api-proxyを削除
+      },
+      onProxyReq: (proxyReq, req, res) => {
+        // ログ出力
+        console.log(`Proxying Google Auth ${req.method} ${req.url} -> ${proxyReq.path}`);
+        // 必要なヘッダーを追加
+        proxyReq.setHeader('Origin', 'https://portfolio-wise.com');
+      },
+      onError: (err, req, res) => {
+        console.error('Google Auth proxy error:', err);
+        res.status(500).json({ error: 'Proxy error', message: err.message });
+      }
+    })
+  );
 };
