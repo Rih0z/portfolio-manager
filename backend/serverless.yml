@@ -25,6 +25,9 @@ package:
     - '!node_modules/@types/**'
     - '!node_modules/serverless/**'
     - '!node_modules/serverless-*/**'
+    # AWS SDK v3とSmithyの依存関係を明示的に含める
+    - 'node_modules/@smithy/**'
+    - 'node_modules/@aws-sdk/**'
 
 provider:
   name: aws
@@ -91,6 +94,10 @@ provider:
     # Google認証情報（Client ID, Secret, Redirect URI）はSecrets Managerから取得（pfwise-api/google-oauth）
     DRIVE_AUTH_SUCCESS_URL: ${self:custom.driveSuccessUrl.${self:provider.stage}}
     
+    # Google OAuth設定（直接設定）
+    GOOGLE_CLIENT_ID: ${env:GOOGLE_CLIENT_ID, '243939385276-0gga06ocrn3vumf7lasubcpdqjk49j3n.apps.googleusercontent.com'}
+    GOOGLE_CLIENT_SECRET: ${env:GOOGLE_CLIENT_SECRET, ''}
+    
     # CORS設定
     CORS_ALLOWED_ORIGINS: ${self:custom.corsAllowedOrigins.${self:provider.stage}}
   
@@ -140,12 +147,9 @@ functions:
           method: get
           cors:
             origins:
-              - http://localhost:3001
-              - http://localhost:3000
               - https://portfolio-wise.com
-              - https://www.portfolio-wise.com
-              - https://app.portfolio-wise.com
               - https://pfwise-portfolio-manager.pages.dev
+              - https://*.pfwise-portfolio-manager.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -170,12 +174,9 @@ functions:
           method: get
           cors:
             origins:
-              - http://localhost:3001
-              - http://localhost:3000
               - https://portfolio-wise.com
-              - https://www.portfolio-wise.com
-              - https://app.portfolio-wise.com
               - https://pfwise-portfolio-manager.pages.dev
+              - https://*.pfwise-portfolio-manager.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -195,12 +196,9 @@ functions:
           method: post
           cors:
             origins:
-              - http://localhost:3001
-              - http://localhost:3000
               - https://portfolio-wise.com
-              - https://www.portfolio-wise.com
-              - https://app.portfolio-wise.com
               - https://pfwise-portfolio-manager.pages.dev
+              - https://*.pfwise-portfolio-manager.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -220,12 +218,9 @@ functions:
           method: get
           cors:
             origins:
-              - http://localhost:3001
-              - http://localhost:3000
               - https://portfolio-wise.com
-              - https://www.portfolio-wise.com
-              - https://app.portfolio-wise.com
               - https://pfwise-portfolio-manager.pages.dev
+              - https://*.pfwise-portfolio-manager.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -237,21 +232,18 @@ functions:
             allowCredentials: true
           private: true
   
-  # Google認証関連（シンプル版 - DynamoDB不使用）
-  simpleGoogleLogin:
-    handler: src/function/auth/simpleGoogleLogin.handler
+  # 基本的なGoogle認証（動作確認用）
+  basicGoogleLogin:
+    handler: src/function/auth/basicGoogleLogin.handler
     events:
       - http:
           path: auth/google/login
           method: post
           cors:
             origins:
-              - http://localhost:3001
-              - http://localhost:3000
               - https://portfolio-wise.com
-              - https://www.portfolio-wise.com
-              - https://app.portfolio-wise.com
               - https://pfwise-portfolio-manager.pages.dev
+              - https://*.pfwise-portfolio-manager.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -266,12 +258,9 @@ functions:
           method: options
           cors:
             origins:
-              - http://localhost:3001
-              - http://localhost:3000
               - https://portfolio-wise.com
-              - https://www.portfolio-wise.com
-              - https://app.portfolio-wise.com
               - https://pfwise-portfolio-manager.pages.dev
+              - https://*.pfwise-portfolio-manager.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -281,10 +270,45 @@ functions:
               - X-Amz-User-Agent
               - Cookie
             allowCredentials: true
+
+  # Google認証関連（ステートレス版 - DynamoDB不使用）- 一時無効化
+  # statelessGoogleLogin:
+  #   handler: src/function/auth/statelessGoogleLogin.handler
+  #   events:
+  #     - http:
+  #         path: auth/google/login
+  #         method: post
+  #         cors:
+  #           origins:
+  #             - https://portfolio-wise.com
+  #           headers:
+  #             - Content-Type
+  #             - X-Amz-Date
+  #             - Authorization
+  #             - X-Api-Key
+  #             - X-Amz-Security-Token
+  #             - X-Amz-User-Agent
+  #             - Cookie
+  #           allowCredentials: true
+  #     - http:
+  #         path: auth/google/login
+  #         method: options
+  #         cors:
+  #           origins:
+  #             - https://portfolio-wise.com
+  #           headers:
+  #             - Content-Type
+  #             - X-Amz-Date
+  #             - Authorization
+  #             - X-Api-Key
+  #             - X-Amz-Security-Token
+  #             - X-Amz-User-Agent
+  #             - Cookie
+  #           allowCredentials: true
   
-  # 元のGoogle認証（コメントアウト）
-  # googleLogin:
-  #   handler: src/function/auth/googleLogin.handler
+  # シンプル版Google認証（無効化）
+  # simpleGoogleLogin:
+  #   handler: src/function/auth/simpleGoogleLogin.handler
   
   getSession:
     handler: src/function/auth/getSession.handler
@@ -294,12 +318,9 @@ functions:
           method: get
           cors:
             origins:
-              - http://localhost:3001
-              - http://localhost:3000
               - https://portfolio-wise.com
-              - https://www.portfolio-wise.com
-              - https://app.portfolio-wise.com
               - https://pfwise-portfolio-manager.pages.dev
+              - https://*.pfwise-portfolio-manager.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -318,12 +339,9 @@ functions:
           method: post
           cors:
             origins:
-              - http://localhost:3001
-              - http://localhost:3000
               - https://portfolio-wise.com
-              - https://www.portfolio-wise.com
-              - https://app.portfolio-wise.com
               - https://pfwise-portfolio-manager.pages.dev
+              - https://*.pfwise-portfolio-manager.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -343,12 +361,9 @@ functions:
           method: post
           cors:
             origins:
-              - http://localhost:3001
-              - http://localhost:3000
               - https://portfolio-wise.com
-              - https://www.portfolio-wise.com
-              - https://app.portfolio-wise.com
               - https://pfwise-portfolio-manager.pages.dev
+              - https://*.pfwise-portfolio-manager.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -369,12 +384,9 @@ functions:
           integration: lambda-proxy
           cors:
             origins:
-              - http://localhost:3001
-              - http://localhost:3000
               - https://portfolio-wise.com
-              - https://www.portfolio-wise.com
-              - https://app.portfolio-wise.com
               - https://pfwise-portfolio-manager.pages.dev
+              - https://*.pfwise-portfolio-manager.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -389,12 +401,9 @@ functions:
           method: options
           cors:
             origins:
-              - http://localhost:3001
-              - http://localhost:3000
               - https://portfolio-wise.com
-              - https://www.portfolio-wise.com
-              - https://app.portfolio-wise.com
               - https://pfwise-portfolio-manager.pages.dev
+              - https://*.pfwise-portfolio-manager.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -413,12 +422,9 @@ functions:
           method: get
           cors:
             origins:
-              - http://localhost:3001
-              - http://localhost:3000
               - https://portfolio-wise.com
-              - https://www.portfolio-wise.com
-              - https://app.portfolio-wise.com
               - https://pfwise-portfolio-manager.pages.dev
+              - https://*.pfwise-portfolio-manager.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -438,12 +444,9 @@ functions:
           method: post
           cors:
             origins:
-              - http://localhost:3001
-              - http://localhost:3000
               - https://portfolio-wise.com
-              - https://www.portfolio-wise.com
-              - https://app.portfolio-wise.com
               - https://pfwise-portfolio-manager.pages.dev
+              - https://*.pfwise-portfolio-manager.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -462,12 +465,9 @@ functions:
           method: get
           cors:
             origins:
-              - http://localhost:3001
-              - http://localhost:3000
               - https://portfolio-wise.com
-              - https://www.portfolio-wise.com
-              - https://app.portfolio-wise.com
               - https://pfwise-portfolio-manager.pages.dev
+              - https://*.pfwise-portfolio-manager.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -486,12 +486,9 @@ functions:
           method: get
           cors:
             origins:
-              - http://localhost:3001
-              - http://localhost:3000
               - https://portfolio-wise.com
-              - https://www.portfolio-wise.com
-              - https://app.portfolio-wise.com
               - https://pfwise-portfolio-manager.pages.dev
+              - https://*.pfwise-portfolio-manager.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -511,12 +508,9 @@ functions:
           method: get
           cors:
             origins:
-              - http://localhost:3001
-              - http://localhost:3000
               - https://portfolio-wise.com
-              - https://www.portfolio-wise.com
-              - https://app.portfolio-wise.com
               - https://pfwise-portfolio-manager.pages.dev
+              - https://*.pfwise-portfolio-manager.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -536,12 +530,9 @@ functions:
           method: get
           cors:
             origins:
-              - http://localhost:3001
-              - http://localhost:3000
               - https://portfolio-wise.com
-              - https://www.portfolio-wise.com
-              - https://app.portfolio-wise.com
               - https://pfwise-portfolio-manager.pages.dev
+              - https://*.pfwise-portfolio-manager.pages.dev
             headers:
               - Content-Type
               - X-Amz-Date
@@ -648,8 +639,8 @@ custom:
     dev: ${env:DRIVE_AUTH_SUCCESS_URL, 'http://localhost:3001/drive-success'}
     prod: https://${env:DOMAIN_NAME, 'portfolio-wise.com'}/drive-success
   corsAllowedOrigins:
-    dev: ${env:CORS_ALLOWED_ORIGINS, 'http://localhost:3000,http://localhost:3001,https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com,https://pfwise-portfolio-manager.pages.dev,https://*.pfwise-portfolio-manager.pages.dev'}
-    prod: ${env:CORS_ALLOWED_ORIGINS, 'https://portfolio-wise.com,https://www.portfolio-wise.com,https://app.portfolio-wise.com,https://pfwise-portfolio-manager.pages.dev,https://*.pfwise-portfolio-manager.pages.dev'}
+    dev: ${env:CORS_ALLOWED_ORIGINS, 'http://localhost:3000,http://localhost:3001,https://portfolio-wise.com,https://pfwise-portfolio-manager.pages.dev,https://*.pfwise-portfolio-manager.pages.dev'}
+    prod: ${env:CORS_ALLOWED_ORIGINS, 'https://portfolio-wise.com,https://pfwise-portfolio-manager.pages.dev,https://*.pfwise-portfolio-manager.pages.dev'}
   # Production specific settings
   logRetentionInDays:
     dev: 7
