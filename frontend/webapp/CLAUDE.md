@@ -129,56 +129,7 @@ This is a React-based portfolio management application with AI-powered investmen
 
 ### Deployment
 
-#### Manual Deployment with Claude Code
-For immediate deployment using Claude Code environment:
-
-**Note**: Due to npm workspace conflicts in the monorepo structure, use the following method:
-
-1. **Create an isolated copy for building**:
-   ```bash
-   cd frontend
-   cp -r webapp webapp-build
-   ```
-
-2. **Install dependencies in the isolated copy**:
-   ```bash
-   cd webapp-build
-   npm install --legacy-peer-deps --no-audit --no-fund
-   ```
-
-3. **Build with environment variables**:
-   ```bash
-   REACT_APP_API_BASE_URL='https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod' \
-   REACT_APP_DEFAULT_EXCHANGE_RATE='150.0' \
-   NODE_OPTIONS='--openssl-legacy-provider' \
-   npm run build
-   ```
-
-4. **Deploy to Cloudflare Pages**:
-   ```bash
-   wrangler pages deploy build --project-name=portfolio-manager
-   ```
-
-5. **Clean up**:
-   ```bash
-   cd ../..
-   rm -rf frontend/webapp-build
-   ```
-
-**Important Notes**:
-- This method avoids npm workspace conflicts by creating an isolated build directory
-- Environment variables must be set at build time for React apps
-- The deployment creates a preview URL first, then updates the main site
-
-#### Automated Deployment
-- Cloudflare Pages deployment is also automated via GitHub Actions
-- Build artifacts are generated in `frontend/webapp/build/` directory
-- Environment variables are configured in Cloudflare Pages dashboard
-
-#### Deployment Notes
-- Wrangler CLI must be installed and authenticated with Cloudflare
-- The project name `portfolio-manager` corresponds to the Cloudflare Pages project
-- Deployment URL: https://portfolio-manager-7bx.pages.dev
+デプロイ手順の詳細は[メインCLAUDE.mdのDeployment Commands章](../../CLAUDE.md#deployment-commands)を参照してください。
 
 ## Security Configuration
 
@@ -240,13 +191,7 @@ API configurations are fetched dynamically from AWS. The following environment v
    - コミットメッセージは日本語でも英語でも可
 
 2. **Build and Deploy**: 作業が完了したらClaude環境でビルドしデプロイすること
-   ```bash
-   # ビルド
-   npm run build
-   
-   # デプロイ（正しいプロジェクト名を使用）
-   wrangler pages deploy build --project-name=pfwise-portfolio-manager
-   ```
+   - デプロイ手順の詳細は[メインCLAUDE.mdのDeployment Commands章](../../CLAUDE.md#deployment-commands)を参照
 
 3. **Update README**: READMEにデプロイ先を記載して
    - 本番環境URL: https://portfolio-wise.com/
@@ -273,12 +218,7 @@ API configurations are fetched dynamically from AWS. The following environment v
 ### API Configuration
 - **固定API使用**: フロントエンドとバックエンドの通信が必ず成功するように固定のAPIを指定して
   - 本番API: https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod
-  - ビルド時に環境変数で指定:
-    ```bash
-    REACT_APP_API_BASE_URL='https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod' \
-    REACT_APP_DEFAULT_EXCHANGE_RATE='150.0' \
-    npm run build
-    ```
+  - ビルド時の環境変数設定は[メインCLAUDE.mdのDeployment Commands章](../../CLAUDE.md#deployment-commands)を参照
 
 ## SOLID Principles
 

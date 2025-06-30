@@ -18,9 +18,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run test:setup` - Initialize test environment
 
 ### Deployment
-- `npm run deploy` - Deploy to development stage
-- `npm run deploy:prod` - Deploy to production stage
-- `npm run logs` - View Lambda function logs
+
+デプロイ手順の詳細は[メインCLAUDE.mdのDeployment Commands章](../CLAUDE.md#deployment-commands)を参照してください。
 
 ### Utilities
 - `npm run test:clean` - Clean test results directory
