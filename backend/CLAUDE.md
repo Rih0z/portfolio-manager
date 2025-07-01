@@ -19,14 +19,44 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Deployment
 
-デプロイ手順の詳細は[メインCLAUDE.mdのDeployment Commands章](../CLAUDE.md#deployment-commands)を参照してください。
+#### 独立プロジェクトとしてのデプロイ
+バックエンドはモノレポから分離され、独立したServerlessプロジェクトとして運用されています。
+
+```bash
+# バックエンドデプロイ（本番環境）
+cd backend
+npm install  # 依存関係の独立管理
+npm run deploy:prod
+
+# 開発環境デプロイ
+npm run deploy  # デフォルトはdev環境
+```
+
+#### デプロイ最適化
+- **パッケージサイズ**: 32MB (Lambda制限250MBの13%)
+- **Node.js Runtime**: 20.x (最新LTS)
+- **Memory**: 512MB (パフォーマンス最適化)
+- **除外パターン**: テスト・ドキュメント・開発ツール自動除外
 
 ### Utilities
 - `npm run test:clean` - Clean test results directory
 
 ## Architecture Overview
 
-This is a serverless portfolio management API built with AWS Lambda that fetches financial market data from multiple sources with intelligent fallback mechanisms.
+This is an **独立したServerlessプロジェクト** - Google認証を含む portfolio management API built with AWS Lambda。モノレポから分離されており、フロントエンドとは独立してデプロイ・運用されます。
+
+### 2025年7月現在の重要な変更
+- ✅ **モノレポから独立**: 依存関係競合の解決
+- ✅ **Google認証修復**: 502エラー→正常な400エラーレスポンス
+- ✅ **パッケージ最適化**: 99.83MB→32MB (67%削減)
+- ✅ **Node.js 20.x対応**: 最新ランタイム環境
+- ✅ **Lambda Handler修正**: 正しいファイルパス設定
+
+### 独立プロジェクトの利点
+1. **デプロイ分離**: フロントエンド変更がバックエンドに影響しない
+2. **依存関係最適化**: Lambdaに必要な最小限のパッケージのみ
+3. **セキュリティ向上**: React開発ツールなどがLambda環境に混入しない
+4. **スケーラビリティ**: 個別の最適化・監視が可能
 
 ### Core Components
 

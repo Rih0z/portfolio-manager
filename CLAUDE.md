@@ -22,8 +22,8 @@ ai_coding_principles:
       rule: "エンタープライズレベルの実装を実施し、修正は表面的ではなく、全体のアーキテクチャを意識して実施する"
       related_sections: ["architecture", "quality_standards", "deployment_requirements"]
     第5条:
-      rule: "モノレポ構造においても確実にビルド・デプロイが成功するよう、依存関係の問題を適切に回避・解決する"
-      related_sections: ["monorepo_build_deploy", "implementation", "deployment_requirements"]
+      rule: "マイクロサービス構造で確実にビルド・デプロイが成功するよう、独立した依存関係を適切に管理する"
+      related_sections: ["microservices_architecture", "implementation", "deployment_requirements"]
 
   quality_standards:
     security:
@@ -94,57 +94,59 @@ ai_coding_principles:
     config: "config/"
     deployment: "deploy/"
 
-  monorepo_build_deploy:
-    description: "モノレポ構造での確実なビルド・デプロイ方法"
+  microservices_architecture:
+    description: "独立プロジェクト構造での確実なビルド・デプロイ方法 (2025年7月現在)"
     
-    dependency_issues:
-      - "npm workspacesによる依存関係のホイスティング問題"
-      - "react-scriptsやwebpack関連モジュールの競合"
-      - "Node.jsモジュール解決の不整合"
+    migration_completed:
+      - "✅ モノレポから独立プロジェクトへの移行完了"
+      - "✅ バックエンド: 独立したServerlessプロジェクト"
+      - "✅ フロントエンド: 独立したReactプロジェクト"
+      - "✅ 依存関係競合の根本的解決"
     
-    proven_solution:
-      step1_workspace_config:
-        - "ルートpackage.jsonで適切なworkspaces設定"
-        - "nohoistで競合パッケージを除外: react-scripts, check-types, webpack, babel関連"
-        - ".npmrcファイル: legacy-peer-deps=true, engine-strict=true"
-      
-      step2_clean_environment:
-        - "cd frontend/webapp && rm -rf node_modules package-lock.json"
-        - "cd ../.. && rm -rf node_modules package-lock.json"
-        - "npm install（ルートディレクトリから実行）"
-      
-      step3_build_frontend:
+    current_deployment_flow:
+      step1_frontend_build:
         - "cd frontend/webapp"
+        - "npm install  # 独立管理"
         - "REACT_APP_API_BASE_URL='https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod' \\"
         - "REACT_APP_DEFAULT_EXCHANGE_RATE='150.0' \\"
-        - "NODE_OPTIONS='--openssl-legacy-provider' \\"
         - "npm run build"
       
-      step4_deploy_frontend:
-        - "wrangler pages deploy build --project-name=pfwise-portfolio-manager --commit-dirty=true"
-        - "デプロイ完了URL: https://[hash].pfwise-portfolio-manager.pages.dev"
+      step2_frontend_deploy:
+        - "wrangler pages deploy build --project-name=pfwise-portfolio-manager"
+        - "本番URL: https://portfolio-wise.com/"
+        - "プレビューURL: https://[hash].pfwise-portfolio-manager.pages.dev"
       
-      step5_deploy_backend:
+      step3_backend_build_deploy:
         - "cd backend"
-        - "NODE_ENV=production npx serverless@3.32.2 deploy --stage prod --verbose"
+        - "npm install  # 独立管理（1098パッケージ）"
+        - "npm run deploy:prod"
+        - "パッケージサイズ: 32MB (最適化済み)"
         - "APIエンドポイント: https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod"
     
-    environment_requirements:
-      - "Node.js v18.x（v22.xではビルドエラーが発生）"
-      - "npm v10.x"
-      - "wrangler CLI（Cloudflare Pages用）"
-      - "serverless@3.32.2（AWS Lambda用）"
+    technical_achievements:
+      backend_optimization:
+        - "Node.js Runtime: 18.x → 20.x"
+        - "Lambda Memory: 256MB → 512MB"
+        - "Package Size: 99.83MB → 32MB (67%削減)"
+        - "Deployment Time: 大幅短縮"
+      
+      authentication_fixes:
+        - "Google認証: 502エラー → 正常動作"
+        - "Lambda Handler: 正しいパス設定"
+        - "Dependencies: 明示的なis-stream追加"
+        - "Response: HTTP 400 (正常なエラーレスポンス)"
     
     success_indicators:
       - "フロントエンドビルド: 'Compiled with warnings'は成功（warningは無視可）"
-      - "フロントエンドデプロイ: '✨ Deployment complete!'メッセージ"
+      - "フロントエンドデプロイ: '✨ Deployment complete!'メッセージ"  
       - "バックエンドデプロイ: '✔ Service deployed to stack'メッセージ"
+      - "Google認証テスト: HTTP 400 + '認証コードが不足しています' = 正常"
     
-    troubleshooting:
-      - "Cannot find module → workspace設定とnohoistを確認"
-      - "createEnvironmentHash is not a function → Node.jsバージョンを確認"
-      - "ビルドタイムアウト → 既存のbuildディレクトリを削除してリトライ"
-      - "Permission denied → sudo npm installを避け、権限を正しく設定"
+    future_scalability:
+      - "独立デプロイ: フロントエンド・バックエンド個別最適化"
+      - "マイクロサービス基盤: 追加サービスの容易な統合"
+      - "技術選択の自由度: 各サービス最適な技術スタック"
+      - "障害分離: 一方のサービス障害が他方に波及しない"
 
   execution_checklist:
     mandatory_declaration:
