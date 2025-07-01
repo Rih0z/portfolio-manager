@@ -2,7 +2,7 @@ service: pfwise-api
 
 package:
   individually: false
-  excludeDevDependencies: false
+  excludeDevDependencies: true
   patterns:
     - '!__tests__/**'
     - '!test-results/**'
@@ -11,6 +11,15 @@ package:
     - '!scripts/**'
     - '!.jest-cache/**'
     - '!dynamodb-local/**'
+    - '!node_modules/aws-sdk/**'
+    - '!node_modules/@aws-sdk/**/.cache/**'
+    - '!node_modules/**/test/**'
+    - '!node_modules/**/tests/**'
+    - '!node_modules/**/example/**'
+    - '!node_modules/**/examples/**'
+    - '!node_modules/**/docs/**'
+    - '!node_modules/**/typescript/**'
+    - '!node_modules/**/*.md'
     - '!*.md'
     - '!*.bak*'
     - '!*.test.js'
@@ -31,11 +40,11 @@ package:
 
 provider:
   name: aws
-  runtime: nodejs18.x
+  runtime: nodejs20.x
   region: ${opt:region, 'us-west-2'}
   stage: ${opt:stage, 'dev'}
   profile: ${opt:profile, ''}
-  memorySize: 256
+  memorySize: 512
   timeout: 30
   
   environment:
@@ -234,7 +243,7 @@ functions:
   
   # 基本的なGoogle認証（動作確認用）
   basicGoogleLogin:
-    handler: src/function/auth/basicGoogleLogin.handler
+    handler: src/function/auth/googleLogin.handler
     events:
       - http:
           path: auth/google/login

@@ -22,8 +22,7 @@
   },
   "workspaces": {
     "packages": [
-      "frontend/webapp",
-      "backend"
+      "frontend/webapp"
     ],
     "nohoist": [
       "**/react-scripts",
