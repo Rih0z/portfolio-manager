@@ -397,23 +397,38 @@ const getExchangeRateData = async (base, target, refresh = false) => {
   // 為替レートに特化した処理
   const pair = `${base}-${target}`;
   
-  // データソース関数
+  // タイムアウト設定（10秒）
+  const timeout = 10000;
+  
+  // データソース関数（タイムアウト付き）
   const fetchFunctions = [
-    // Yahoo Finance2 NPM（最優先 - 無料、APIキー不要）
+    // Yahoo Finance2 NPM（最優先 - 無料、APIキー不要、5秒タイムアウト）
     ...(yahooFinance2Service.isAvailable() ? 
       [async () => {
         try {
-          return await yahooFinance2Service.getExchangeRate(base, target);
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Yahoo Finance2 timeout')), 5000)
+          );
+          return await Promise.race([
+            yahooFinance2Service.getExchangeRate(base, target),
+            timeoutPromise
+          ]);
         } catch (error) {
           logger.debug(`Yahoo Finance2 exchange rate error for ${pair}:`, error.message);
           throw error;
         }
       }] : 
       []),
-    // 既存の為替レートサービス
+    // 既存の為替レートサービス（7秒タイムアウト）
     async () => {
       try {
-        return await exchangeRateService.getExchangeRate(base, target);
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Exchange rate service timeout')), 7000)
+        );
+        return await Promise.race([
+          exchangeRateService.getExchangeRate(base, target),
+          timeoutPromise
+        ]);
       } catch (error) {
         logger.error(`Error getting exchange rate for ${pair}:`, error.message);
         throw error;
@@ -431,15 +446,36 @@ const getExchangeRateData = async (base, target, refresh = false) => {
     changePercent: 0
   };
   
-  // 強化されたフォールバック処理付きでデータを取得
-  return await fetchDataWithFallback({
-    symbol: pair,
-    dataType: DATA_TYPES.EXCHANGE_RATE,
-    fetchFunctions,
-    defaultValues,
-    refresh,
-    cache: { time: 3600 } // 1時間固定
-  });
+  // 強化されたフォールバック処理付きでデータを取得（グローバルタイムアウト付き）
+  try {
+    const globalTimeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Global exchange rate fetch timeout')), timeout)
+    );
+    
+    const result = await Promise.race([
+      fetchDataWithFallback({
+        symbol: pair,
+        dataType: DATA_TYPES.EXCHANGE_RATE,
+        fetchFunctions,
+        defaultValues,
+        refresh,
+        cache: { time: 3600 } // 1時間固定
+      }),
+      globalTimeoutPromise
+    ]);
+    
+    return result;
+  } catch (error) {
+    // タイムアウトまたはエラー時は即座にデフォルト値を返す
+    logger.warn(`Exchange rate fetch failed for ${pair}, using default values:`, error.message);
+    return {
+      ...defaultValues,
+      source: 'Timeout Fallback',
+      lastUpdated: new Date().toISOString(),
+      isDefault: true,
+      error: error.message
+    };
+  }
 };
 
 /**

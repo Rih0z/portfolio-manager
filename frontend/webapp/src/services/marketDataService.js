@@ -21,8 +21,24 @@ import { fetchWithRetry, formatErrorResponse, generateFallbackData, TIMEOUT } fr
 
 // 通貨換算レート取得
 export const fetchExchangeRate = async (fromCurrency = 'USD', toCurrency = 'JPY', refresh = false) => {
+  // 為替レートのデフォルト値を定義
+  const getDefaultRate = () => {
+    if (fromCurrency === 'USD' && toCurrency === 'JPY') return 150.0;
+    if (fromCurrency === 'JPY' && toCurrency === 'USD') return 1/150.0;
+    if (fromCurrency === 'EUR' && toCurrency === 'JPY') return 160.0;
+    if (fromCurrency === 'GBP' && toCurrency === 'JPY') return 185.0;
+    return 1.0;
+  };
+  
+  // キャッシュチェック（タイムアウト時の高速フォールバック用）
+  const cacheKey = `exchangeRate_${fromCurrency}_${toCurrency}`;
+  const cached = localStorage.getItem(cacheKey);
+  
   try {
     const endpoint = await getApiEndpoint('api/market-data');
+    
+    console.log(`為替レート取得開始: ${fromCurrency}/${toCurrency}, refresh: ${refresh}`);
+    
     const response = await fetchWithRetry(
       endpoint,
       {
@@ -67,17 +83,49 @@ export const fetchExchangeRate = async (fromCurrency = 'USD', toCurrency = 'JPY'
   } catch (error) {
     console.error(`Error fetching exchange rate ${fromCurrency}/${toCurrency}:`, error);
     
+    // タイムアウトエラーの特別処理
+    const isTimeoutError = error.code === 'ECONNABORTED' || 
+                          error.message?.includes('timeout') || 
+                          error.message?.includes('ETIMEDOUT');
+    
+    let fallbackSource = 'Fallback';
+    let fallbackRate = getDefaultRate();
+    let fallbackLastUpdated = new Date().toISOString();
+    
+    // キャッシュからフォールバックデータを取得を試みる
+    if (cached && isTimeoutError) {
+      try {
+        const cachedData = JSON.parse(cached);
+        const cacheAge = Date.now() - new Date(cachedData.timestamp).getTime();
+        
+        // 7日以内のキャッシュデータは使用可能
+        if (cacheAge < 7 * 24 * 60 * 60 * 1000 && cachedData.rate && cachedData.rate > 0) {
+          console.log(`タイムアウトのためキャッシュデータを使用: ${cachedData.rate} (キャッシュ年齢: ${Math.round(cacheAge / 1000 / 60 / 60)}時間)`);
+          fallbackRate = cachedData.rate;
+          fallbackSource = 'Cached Data (Timeout Fallback)';
+          fallbackLastUpdated = cachedData.lastUpdated || fallbackLastUpdated;
+        }
+      } catch (cacheError) {
+        console.warn('キャッシュデータの読み込みに失敗:', cacheError.message);
+      }
+    }
+    
+    const errorMessage = isTimeoutError 
+      ? '為替レートの取得がタイムアウトしました。デフォルト値を使用します。'
+      : '為替レートの取得に失敗しました。デフォルト値を使用します。';
+    
     // フォールバック値を返す
     return {
       success: false,
       error: true,
-      message: '為替レートの取得に失敗しました',
+      message: errorMessage,
+      errorType: isTimeoutError ? 'TIMEOUT' : 'API_ERROR',
       ...formatErrorResponse(error),
-      // デフォルト値も含める
-      rate: fromCurrency === 'USD' && toCurrency === 'JPY' ? 150.0 : 
-            fromCurrency === 'JPY' && toCurrency === 'USD' ? 1/150.0 : 1.0,
-      source: 'Fallback',
-      lastUpdated: new Date().toISOString()
+      rate: fallbackRate,
+      source: fallbackSource,
+      lastUpdated: fallbackLastUpdated,
+      isDefault: fallbackSource === 'Fallback',
+      isStale: fallbackSource.includes('Cached')
     };
   }
 };

@@ -32,11 +32,11 @@ export const RETRY = {
   CIRCUIT_BREAKER_TIMEOUT: 300000 // サーキットブレーカータイムアウト: 5分
 };
 
-// タイムアウト設定
+// タイムアウト設定（バックエンドのタイムアウトを考慮して短縮）
 export const TIMEOUT = {
   DEFAULT: 10000,        // 10秒
-  AUTH: 15000,           // 15秒（認証用）- 30秒から短縮
-  EXCHANGE_RATE: 15000,  // 15秒（複数のAPIフォールバックに対応）
+  AUTH: 15000,           // 15秒（認証用）
+  EXCHANGE_RATE: 12000,  // 12秒（バックエンドの10秒タイムアウト+バッファ）
   US_STOCK: 10000,       // 10秒
   JP_STOCK: 20000,       // 20秒
   MUTUAL_FUND: 20000     // 20秒
@@ -477,11 +477,13 @@ export const formatErrorResponse = (error, ticker) => {
   } else if (error.code === 'ECONNABORTED') {
     // タイムアウトの場合
     errorResponse.errorType = 'TIMEOUT';
-    errorResponse.message = 'リクエストがタイムアウトしました';
-  } else if (error.message.includes('Network Error')) {
-    // ネットワークエラーの場合
-    errorResponse.errorType = 'NETWORK';
-    errorResponse.message = 'ネットワーク接続に問題があります';
+    errorResponse.message = 'リクエストがタイムアウトしました。デフォルト値を使用します。';
+  } else if (error.message.includes('Network Error') || error.message.includes('timeout')) {
+    // ネットワークエラーまたはタイムアウトの場合
+    errorResponse.errorType = error.message.includes('timeout') ? 'TIMEOUT' : 'NETWORK';
+    errorResponse.message = error.message.includes('timeout') 
+      ? 'リクエストがタイムアウトしました。デフォルト値を使用します。'
+      : 'ネットワーク接続に問題があります。デフォルト値を使用します。';
   }
   
   if (ticker) {

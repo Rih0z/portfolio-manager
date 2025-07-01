@@ -1303,22 +1303,45 @@ export const PortfolioProvider = ({ children }) => {
           
           // キャッシュに保存（デフォルト値の場合は短時間のみキャッシュ）
           const cacheData = {
-            data: rateData,
+            rate: result.rate,
+            source: result.source,
+            lastUpdated: result.lastUpdated,
             timestamp: new Date().toISOString()
           };
           localStorage.setItem(cacheKey, JSON.stringify(cacheData));
         } else if (result.error) {
-          // エラー時の処理を追加
-          console.error('為替レート取得エラー:', result.message);
-          addNotification(
-            `為替レートの取得に失敗しました。デフォルト値（${exchangeRate.rate}円/ドル）を使用します。5分後に再試行します。`,
-            'warning'
-          );
+          // エラー時の処理を改善（タイムアウト特別処理）
+          console.error('為替レート取得エラー:', result.message, result.errorType);
           
-          // 5分後に再試行をスケジュール
+          // タイムアウトの場合は、フォールバックデータがあるか確認
+          if (result.errorType === 'TIMEOUT' && result.rate) {
+            // タイムアウトでもフォールバックデータがある場合
+            const rateData = {
+              rate: result.rate,
+              source: result.source || 'Timeout Fallback',
+              lastUpdated: result.lastUpdated || new Date().toISOString(),
+              isDefault: result.isDefault,
+              isStale: result.isStale
+            };
+            setExchangeRate(rateData);
+            
+            addNotification(
+              `為替レートの取得がタイムアウトしましたが、${result.isStale ? 'キャッシュデータ' : 'デフォルト値'}（${result.rate}円/ドル）を使用します。`,
+              'warning'
+            );
+          } else {
+            // その他のエラーの場合
+            addNotification(
+              `為替レートの取得に失敗しました。デフォルト値（${exchangeRate.rate}円/ドル）を使用します。`,
+              'warning'
+            );
+          }
+          
+          // 1分後に再試行をスケジュール（タイムアウトの場合は短い間隔）
+          const retryDelay = result.errorType === 'TIMEOUT' ? 1 * 60 * 1000 : 5 * 60 * 1000;
           setTimeout(() => {
             updateExchangeRate();
-          }, 5 * 60 * 1000);
+          }, retryDelay);
         }
       } else {
         // USD表示の場合は、JPY→USDのレートが必要
@@ -1344,21 +1367,42 @@ export const PortfolioProvider = ({ children }) => {
           
           // キャッシュに保存
           localStorage.setItem(cacheKey, JSON.stringify({
-            data: rateData,
+            rate: result.rate,
+            source: result.source,
+            lastUpdated: result.lastUpdated,
             timestamp: new Date().toISOString()
           }));
         } else if (result.error) {
-          // エラー時の処理を追加
-          console.error('為替レート取得エラー:', result.message);
-          addNotification(
-            `為替レートの取得に失敗しました。デフォルト値（${exchangeRate.rate}円/ドル）を使用します。5分後に再試行します。`,
-            'warning'
-          );
+          // エラー時の処理を改善（USD表示用）
+          console.error('為替レート取得エラー(USD):', result.message, result.errorType);
           
-          // 5分後に再試行をスケジュール
+          // タイムアウトの場合の特別処理
+          if (result.errorType === 'TIMEOUT' && result.rate) {
+            const rateData = {
+              rate: result.rate,
+              source: result.source || 'Timeout Fallback',
+              lastUpdated: result.lastUpdated || new Date().toISOString(),
+              isDefault: result.isDefault,
+              isStale: result.isStale
+            };
+            setExchangeRate(rateData);
+            
+            addNotification(
+              `為替レートの取得がタイムアウトしましたが、${result.isStale ? 'キャッシュデータ' : 'デフォルト値'}（${result.rate}円/ドル）を使用します。`,
+              'warning'
+            );
+          } else {
+            addNotification(
+              `為替レートの取得に失敗しました。デフォルト値（${exchangeRate.rate}円/ドル）を使用します。`,
+              'warning'
+            );
+          }
+          
+          // 再試行のスケジュール
+          const retryDelay = result.errorType === 'TIMEOUT' ? 1 * 60 * 1000 : 5 * 60 * 1000;
           setTimeout(() => {
             updateExchangeRate();
-          }, 5 * 60 * 1000);
+          }, retryDelay);
         }
       }
       
@@ -1366,11 +1410,29 @@ export const PortfolioProvider = ({ children }) => {
       // setTimeout(() => saveToLocalStorage(), 100);
     } catch (error) {
       console.error('為替レートの更新に失敗しました', error);
-      // 更新失敗時は既存のレートを維持
-      addNotification(
-        `為替レートの更新中にエラーが発生しました。デフォルト値（${exchangeRate.rate}円/ドル）を使用します。`,
-        'error'
-      );
+      
+      // ネットワークエラーまたはタイムアウトの特別処理
+      const isNetworkOrTimeoutError = error.message?.includes('timeout') || 
+                                     error.message?.includes('Network Error') ||
+                                     error.code === 'ECONNABORTED';
+      
+      if (isNetworkOrTimeoutError) {
+        addNotification(
+          `為替レートの取得がタイムアウトまたはネットワークエラーにより失敗しました。デフォルト値（${exchangeRate.rate}円/ドル）を使用します。`,
+          'warning'
+        );
+        
+        // 1分後に再試行
+        setTimeout(() => {
+          updateExchangeRate();
+        }, 1 * 60 * 1000);
+      } else {
+        // その他のエラー
+        addNotification(
+          `為替レートの更新中にエラーが発生しました。デフォルト値（${exchangeRate.rate}円/ドル）を使用します。`,
+          'error'
+        );
+      }
     }
   }, [addNotification, exchangeRate.rate, baseCurrency]); // 依存配列にaddNotification、exchangeRate.rate、baseCurrencyを追加
 
