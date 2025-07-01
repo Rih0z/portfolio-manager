@@ -4,10 +4,11 @@
   "private": true,
   "description": "Portfolio Manager Monorepo",
   "scripts": {
-    "dev:webapp": "cd frontend/webapp && npm start",
-    "build:webapp": "cd frontend/webapp && npm run build",
-    "test:webapp": "cd frontend/webapp && npm test",
-    "install:all": "npm install && cd frontend/webapp && npm install",
+    "dev:webapp": "npm run -w frontend/webapp start",
+    "build:webapp": "npm run -w frontend/webapp build",
+    "test:webapp": "npm run -w frontend/webapp test",
+    "install:all": "npm install",
+    "clean": "rm -rf node_modules package-lock.json && rm -rf frontend/webapp/node_modules frontend/webapp/package-lock.json && rm -rf backend/node_modules backend/package-lock.json",
     "deploy": "npm run deploy:production",
     "deploy:production": "./scripts/deploy-production.sh",
     "deploy:preview": "./scripts/deploy-preview.sh",
@@ -19,10 +20,25 @@
     "e2e:debug": "./scripts/run-e2e-tests.sh debug",
     "e2e:report": "./scripts/run-e2e-tests.sh report"
   },
-  "workspaces": [
-    "frontend/webapp",
-    "backend"
-  ],
+  "workspaces": {
+    "packages": [
+      "frontend/webapp",
+      "backend"
+    ],
+    "nohoist": [
+      "**/react-scripts",
+      "**/react-scripts/**",
+      "**/check-types",
+      "**/check-types/**",
+      "**/webpack",
+      "**/webpack/**",
+      "**/babel-loader",
+      "**/babel-loader/**",
+      "**/@babel/**",
+      "**/eslint",
+      "**/eslint/**"
+    ]
+  },
   "overrides": {
     "cookie": "^0.7.0",
     "cross-spawn": "^7.0.5",
@@ -35,5 +51,9 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.53.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
   }
 }

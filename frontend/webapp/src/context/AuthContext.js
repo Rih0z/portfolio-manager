@@ -149,6 +149,10 @@ export const AuthProvider = ({ children }) => {
   
   // Googleログイン
   const loginWithGoogle = async (credentialResponse) => {
+    // スコープの外で変数を定義
+    let loginEndpoint = '';
+    let requestBody = {};
+    
     try {
       setLoading(true);
       setError(null);
@@ -167,7 +171,7 @@ export const AuthProvider = ({ children }) => {
       const isDevelopment = !isProduction && window.location.hostname === 'localhost';
       
       // 本番環境では直接API、開発環境ではプロキシを使用
-      const loginEndpoint = isProduction 
+      loginEndpoint = isProduction 
         ? `${AWS_API_BASE}/auth/google/login`
         : '/api-proxy/auth/google/login';
         
@@ -175,7 +179,7 @@ export const AuthProvider = ({ children }) => {
       console.log('環境:', { isProduction, isDevelopment, hostname: window.location.hostname });
       
       // 認証リクエスト（適切なフィールドで送信）
-      const requestBody = {};
+      requestBody = {};
       
       // Google One Tapの場合（credentialが存在）
       if (credentialResponse.credential) {

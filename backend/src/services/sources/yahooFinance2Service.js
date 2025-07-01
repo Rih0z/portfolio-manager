@@ -35,9 +35,18 @@ const getStockDataFromYahooFinance2 = async (symbol, type) => {
     : symbol;
 
   try {
+    // タイムアウトを設定してより高速に
     const quote = await withRetry(
-      async () => await yahooFinance.quote(querySymbol),
-      { maxRetries: 2, delay: 1000 }
+      async () => {
+        // Yahoo Finance2はタイムアウトオプションをサポート
+        return await Promise.race([
+          yahooFinance.quote(querySymbol),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Yahoo Finance2 timeout')), 3000)
+          )
+        ]);
+      },
+      { maxRetries: 1, delay: 500 }
     );
 
     if (!quote || !quote.regularMarketPrice) {
@@ -150,7 +159,17 @@ const getExchangeRate = async (base, target) => {
   const symbol = `${base}${target}=X`;
   
   try {
-    const quote = await yahooFinance.quote(symbol);
+    // タイムアウトを設定してより高速に
+    const quote = await Promise.race([
+      yahooFinance.quote(symbol),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Yahoo Finance2 timeout')), 3000)
+      )
+    ]);
+    
+    if (!quote || !quote.regularMarketPrice) {
+      throw new Error('Invalid exchange rate data');
+    }
     
     return {
       pair: `${base}-${target}`,
