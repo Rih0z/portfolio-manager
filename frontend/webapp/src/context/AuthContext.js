@@ -61,10 +61,9 @@ export const AuthProvider = ({ children }) => {
         return;
       }
       
-      // セッション確認エンドポイント（強制的に直接AWS APIを使用）
-      const AWS_API_BASE = process.env.REACT_APP_API_BASE_URL || 'https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod';
-      const sessionEndpoint = `${AWS_API_BASE}/auth/session`;
-      console.log('セッション確認URL（強制AWS）:', sessionEndpoint);
+      // セッション確認エンドポイント（プロキシ経由）
+      const sessionEndpoint = '/api-proxy/auth/session';
+      console.log('セッション確認URL（プロキシ経由）:', sessionEndpoint);
       
       const response = await authFetch(sessionEndpoint, 'get');
       console.log('セッション確認レスポンス:', response);
@@ -170,10 +169,8 @@ export const AuthProvider = ({ children }) => {
                           window.location.hostname.includes('pages.dev');
       const isDevelopment = !isProduction && window.location.hostname === 'localhost';
       
-      // 本番環境では直接API、開発環境ではプロキシを使用
-      loginEndpoint = isProduction 
-        ? `${AWS_API_BASE}/auth/google/login`
-        : '/api-proxy/auth/google/login';
+      // 全環境でプロキシを使用（CORS問題を回避）
+      loginEndpoint = '/api-proxy/auth/google/login';
         
       console.log('ログインエンドポイント:', loginEndpoint);
       console.log('環境:', { isProduction, isDevelopment, hostname: window.location.hostname });
@@ -351,8 +348,19 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Google認証エラー:', error);
-      console.error('API エンドポイント:', loginEndpoint);
-      console.error('リクエストボディ:', JSON.stringify(requestBody, null, 2));
+      console.error('認証エラー詳細:', {
+        endpoint: loginEndpoint,
+        origin: window.location.origin,
+        hostname: window.location.hostname,
+        isProduction,
+        isDevelopment,
+        awsApiBase: AWS_API_BASE,
+        requestBody: { 
+          ...requestBody, 
+          credential: requestBody.credential ? '[HIDDEN - ' + requestBody.credential.length + ' chars]' : undefined,
+          code: requestBody.code ? '[HIDDEN - ' + requestBody.code.length + ' chars]' : undefined
+        }
+      });
       console.error('エラー詳細:', {
         message: error.message,
         code: error.code,
@@ -427,8 +435,8 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       console.log('ログアウト処理を開始します');
       
-      // ログアウトエンドポイント
-      const logoutEndpoint = await getApiEndpoint('auth/logout');
+      // ログアウトエンドポイント（プロキシ経由）
+      const logoutEndpoint = '/api-proxy/auth/logout';
       
       await authFetch(logoutEndpoint, 'post');
       
@@ -564,7 +572,7 @@ export const AuthProvider = ({ children }) => {
         console.log('Drive API認証前のCookie数:', cookies.length);
       }
       
-      const driveInitEndpoint = await getApiEndpoint('auth/google/drive/initiate');
+      const driveInitEndpoint = '/api-proxy/auth/google/drive/initiate';
       
       // 明示的にwithCredentialsを設定
       const response = await authFetch(driveInitEndpoint, 'get', null, {
