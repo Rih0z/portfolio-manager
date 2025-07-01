@@ -36,7 +36,7 @@ export const RETRY = {
 export const TIMEOUT = {
   DEFAULT: 10000,        // 10秒
   AUTH: 15000,           // 15秒（認証用）- 30秒から短縮
-  EXCHANGE_RATE: 5000,   // 5秒
+  EXCHANGE_RATE: 15000,  // 15秒（複数のAPIフォールバックに対応）
   US_STOCK: 10000,       // 10秒
   JP_STOCK: 20000,       // 20秒
   MUTUAL_FUND: 20000     // 20秒

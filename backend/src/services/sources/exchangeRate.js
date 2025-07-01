@@ -27,6 +27,7 @@ const PROVIDERS = {
   YAHOO_FINANCE2: 'yahoo-finance2',
   EXCHANGERATE_API: 'exchangerate-api',
   FRANKFURTER: 'frankfurter-api',
+  EXCHANGERATE_IO: 'open.er-api.com',
   FALLBACK: 'hardcoded-values'
 };
 
@@ -132,7 +133,31 @@ const getExchangeRate = async (base = 'USD', target = 'JPY') => {
       console.warn(`Frankfurter API failed: ${error.message}`);
     }
     
-    // 4. ハードコードされた値を使用
+    // 4. ExchangeRate-API.io を試す（無料、認証不要）
+    try {
+      const rateData = await getExchangeRateFromExchangeRateIO(queryBase, queryTarget);
+      
+      if (rateData) {
+        // JPY/USDの場合は逆数を計算
+        if (isJpyToUsd) {
+          rateData.rate = 1 / rateData.rate;
+        }
+        
+        return createExchangeRateResponse(
+          base, 
+          target, 
+          rateData.rate, 
+          rateData.change, 
+          rateData.changePercent, 
+          rateData.source, 
+          rateData.lastUpdated
+        );
+      }
+    } catch (error) {
+      console.warn(`ExchangeRate-API.io failed: ${error.message}`);
+    }
+    
+    // 5. ハードコードされた値を使用
     try {
       const hardcodedRateData = getExchangeRateFromHardcodedValues(queryBase, queryTarget);
       
@@ -272,14 +297,13 @@ const getExchangeRateFromYahooFinance2 = async (base, target) => {
     // 為替ペアのシンボルを構成（例：USD/JPY → USDJPY=X）
     const symbol = `${base}${target}=X`;
     
-    const quote = await withRetry(
-      () => yahooFinance.quote(symbol),
-      {
-        maxRetries: 2,
-        baseDelay: 500,
-        shouldRetry: isRetryableApiError
-      }
-    );
+    // 3秒でタイムアウト
+    const quote = await Promise.race([
+      yahooFinance.quote(symbol),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Yahoo Finance2 timeout after 3 seconds')), 3000)
+      )
+    ]);
     
     if (quote && quote.regularMarketPrice) {
       console.log(`Yahoo Finance2 successful! Rate: ${quote.regularMarketPrice}`);
@@ -310,20 +334,13 @@ const getExchangeRateFromExchangerateApi = async (base, target) => {
   console.log(`Trying exchangerate-api.com for ${base}/${target}...`);
   
   try {
-    // exchangerate-api.comを使用（無料、認証不要、信頼性が高い）
-    const response = await withRetry(
-      () => axios.get(`https://api.exchangerate-api.com/v4/latest/${base}`, {
-        headers: {
-          'User-Agent': getRandomUserAgent()
-        },
-        timeout: 8000
-      }),
-      {
-        maxRetries: 3,
-        baseDelay: 500,
-        shouldRetry: isRetryableApiError
-      }
-    );
+    // 3秒でタイムアウト（素早くフォールバック）
+    const response = await axios.get(`https://api.exchangerate-api.com/v4/latest/${base}`, {
+      headers: {
+        'User-Agent': getRandomUserAgent()
+      },
+      timeout: 3000
+    });
     
     const data = response.data;
     
@@ -344,15 +361,7 @@ const getExchangeRateFromExchangerateApi = async (base, target) => {
   } catch (error) {
     console.error('Error fetching from exchangerate-api.com:', error.message);
     
-    // APIエラーは無視してnullを返す
-    
-    // すべてのAPIエラーに対してアラート通知を行う
-    await alertService.notifyError(
-      'Exchange Rate API Error',
-      error,
-      { base, target, provider: PROVIDERS.EXCHANGERATE_API }
-    );
-    
+    // エラーでもアラート通知は送らない（頻繁すぎるため）
     // APIエラーの場合はnullを返してフォールバックロジックに委ねる
     return null;
   }
@@ -368,23 +377,17 @@ const getExchangeRateFromFrankfurter = async (base, target) => {
   console.log(`Trying Frankfurter API for ${base}/${target}...`);
   
   try {
-    const response = await withRetry(
-      () => axios.get(`https://api.frankfurter.app/latest`, {
-        params: {
-          from: base,
-          to: target
-        },
-        headers: {
-          'User-Agent': getRandomUserAgent()
-        },
-        timeout: 8000
-      }),
-      {
-        maxRetries: 2,
-        baseDelay: 500,
-        shouldRetry: isRetryableApiError
-      }
-    );
+    // 3秒でタイムアウト（素早くフォールバック）
+    const response = await axios.get(`https://api.frankfurter.app/latest`, {
+      params: {
+        from: base,
+        to: target
+      },
+      headers: {
+        'User-Agent': getRandomUserAgent()
+      },
+      timeout: 3000
+    });
     
     const data = response.data;
     
@@ -403,6 +406,45 @@ const getExchangeRateFromFrankfurter = async (base, target) => {
     return null;
   } catch (error) {
     console.error('Error fetching from Frankfurter API:', error.message);
+    return null;
+  }
+};
+
+/**
+ * ExchangeRate-API.io から為替レートを取得（無料、認証不要）
+ * @param {string} base - ベース通貨
+ * @param {string} target - 対象通貨
+ * @returns {Promise<Object|null>} 為替レートデータ
+ */
+const getExchangeRateFromExchangeRateIO = async (base, target) => {
+  console.log(`Trying ExchangeRate-API.io for ${base}/${target}...`);
+  
+  try {
+    // 3秒でタイムアウト（素早くフォールバック）
+    const response = await axios.get(`https://open.er-api.com/v6/latest/${base}`, {
+      headers: {
+        'User-Agent': getRandomUserAgent()
+      },
+      timeout: 3000
+    });
+    
+    const data = response.data;
+    
+    if (data && data.rates && data.rates[target]) {
+      console.log(`ExchangeRate-API.io successful! Rate: ${data.rates[target]}`);
+      
+      return {
+        rate: data.rates[target],
+        change: 0, // この無料APIでは変化率は提供されない
+        changePercent: 0,
+        source: PROVIDERS.EXCHANGERATE_IO,
+        lastUpdated: data.time_last_update_utc ? new Date(data.time_last_update_utc).toISOString() : new Date().toISOString()
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error fetching from ExchangeRate-API.io:', error.message);
     return null;
   }
 };
