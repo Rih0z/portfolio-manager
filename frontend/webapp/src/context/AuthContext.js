@@ -151,6 +151,9 @@ export const AuthProvider = ({ children }) => {
     // スコープの外で変数を定義
     let loginEndpoint = '';
     let requestBody = {};
+    let AWS_API_BASE = '';
+    let isProduction = false;
+    let isDevelopment = false;
     
     try {
       setLoading(true);
@@ -163,11 +166,11 @@ export const AuthProvider = ({ children }) => {
       console.log('リダイレクトURI:', redirectUri);
       
       // 認証エンドポイント（本番環境では直接API、開発環境ではプロキシを使用）
-      const AWS_API_BASE = process.env.REACT_APP_API_BASE_URL || 'https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod';
-      const isProduction = window.location.hostname === 'portfolio-wise.com' || 
+      AWS_API_BASE = process.env.REACT_APP_API_BASE_URL || 'https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod';
+      isProduction = window.location.hostname === 'portfolio-wise.com' || 
                           window.location.hostname.includes('portfolio-manager') ||
                           window.location.hostname.includes('pages.dev');
-      const isDevelopment = !isProduction && window.location.hostname === 'localhost';
+      isDevelopment = !isProduction && window.location.hostname === 'localhost';
       
       // 全環境でプロキシを使用（CORS問題を回避）
       loginEndpoint = '/api-proxy/auth/google/login';
