@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio Wise - Deployment Test</title>
+</head>
+<body>
+    <h1>Portfolio Wise - 為替レート修正版</h1>
+    <p>バックエンドがデプロイされました。フロントエンドのビルドに問題があるため、手動でビルドしてください。</p>
+    <h2>デプロイ済みの変更</h2>
+    <ul>
+        <li>✅ バックエンド: 為替レート取得の最適化完了</li>
+        <li>✅ 新しいAPIプロバイダー追加</li>
+        <li>✅ タイムアウト設定の最適化</li>
+        <li>❌ フロントエンド: ビルドエラーのため手動対応が必要</li>
+    </ul>
+    <h2>手動ビルド手順</h2>
+    <pre>
+cd frontend/webapp
+REACT_APP_API_BASE_URL='https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod' \
+REACT_APP_DEFAULT_EXCHANGE_RATE='150.0' \
+npm run build
+wrangler pages deploy build --project-name=pfwise-portfolio-manager
+    </pre>
+</body>
+</html>

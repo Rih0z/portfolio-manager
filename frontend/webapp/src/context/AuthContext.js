@@ -22,7 +22,7 @@
 
 import React, { createContext, useState, useEffect, useCallback, useRef } from 'react';
 import { getApiEndpoint, getRedirectUri, getGoogleClientId } from '../utils/envUtils';
-import { authFetch, setAuthToken, getAuthToken, clearAuthToken, TIMEOUT, authApiClient } from '../utils/apiUtils';
+import { authFetch, setAuthToken, getAuthToken, clearAuthToken, setUserData, getUserData, getLastLoginTime, TIMEOUT, authApiClient } from '../utils/apiUtils';
 
 // コンテキスト作成
 export const AuthContext = createContext();
@@ -38,11 +38,40 @@ export const AuthProvider = ({ children }) => {
   const portfolioContextRef = useRef(null);
   const sessionIntervalRef = useRef(null);
   const sessionCheckFailureCount = useRef(0);
-  const MAX_SESSION_CHECK_FAILURES = 3;
+  const MAX_SESSION_CHECK_FAILURES = 5; // 3回から5回に増加
   
   // Google認証クライアントIDを非同期で取得
   useEffect(() => {
     getGoogleClientId().then(id => setGoogleClientId(id));
+  }, []);
+  
+  // 初期化時に永続化されたユーザーデータを復元
+  useEffect(() => {
+    const savedUserData = getUserData();
+    const lastLoginTime = getLastLoginTime();
+    const token = getAuthToken();
+    
+    if (savedUserData && token && lastLoginTime) {
+      const daysSinceLogin = (Date.now() - lastLoginTime) / (1000 * 60 * 60 * 24);
+      
+      // 30日以内のログインであれば復元
+      if (daysSinceLogin <= 30) {
+        console.log('永続化されたユーザーデータを復元しています');
+        setUser(savedUserData);
+        setIsAuthenticated(true);
+        setHasDriveAccess(savedUserData.hasDriveAccess || false);
+        
+        // セッション確認を実行（バックグラウンドで）
+        checkSession();
+        return;
+      } else {
+        console.log('ログインから30日経過しているため、再認証が必要です');
+        clearAuthToken();
+      }
+    }
+    
+    // セッション確認を実行
+    checkSession();
   }, []);
   
   // セッション確認
@@ -84,6 +113,13 @@ export const AuthProvider = ({ children }) => {
           setAuthToken(response.token);
         }
         
+        // ユーザーデータを永続化
+        const userDataWithDriveAccess = {
+          ...response.user,
+          hasDriveAccess: response.hasDriveAccess !== undefined ? response.hasDriveAccess : false
+        };
+        setUserData(userDataWithDriveAccess);
+        
         // ポートフォリオコンテキストに認証状態変更を通知
         if (portfolioContextRef.current?.handleAuthStateChange) {
           portfolioContextRef.current.handleAuthStateChange(true, response.user);
@@ -106,23 +142,41 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('セッション確認エラー:', error);
       
-      // エラー発生時は失敗カウントを増加
-      sessionCheckFailureCount.current++;
+      // ネットワークエラーかどうかを判定
+      const isNetworkError = error.code === 'NETWORK_ERROR' || 
+                           error.message?.includes('network') ||
+                           error.message?.includes('fetch') ||
+                           error.name === 'AbortError' ||
+                           !navigator.onLine;
+      
+      if (isNetworkError) {
+        console.log('ネットワークエラーのため、セッション状態を維持します');
+        // ネットワークエラーの場合は失敗カウントを軽微に増加
+        sessionCheckFailureCount.current += 0.5;
+      } else {
+        // その他のエラーの場合は通常通り増加
+        sessionCheckFailureCount.current++;
+      }
+      
       console.log('セッションチェック失敗回数:', sessionCheckFailureCount.current);
       
-      // 最大失敗回数に達した場合は定期チェックを停止
+      // 最大失敗回数に達した場合のみログアウト
       if (sessionCheckFailureCount.current >= MAX_SESSION_CHECK_FAILURES) {
-        console.log('セッションチェックが' + MAX_SESSION_CHECK_FAILURES + '回失敗したため、定期チェックを停止します');
+        console.log('セッションチェックが' + MAX_SESSION_CHECK_FAILURES + '回失敗したため、ログアウトします');
+        setUser(null);
+        setIsAuthenticated(false);
+        setHasDriveAccess(false);
+        clearAuthToken();
+        
         if (sessionIntervalRef.current) {
           clearInterval(sessionIntervalRef.current);
           sessionIntervalRef.current = null;
         }
+      } else {
+        console.log('セッションチェック失敗 - 再試行可能な範囲内です');
+        // 失敗回数が限界未満の場合はログアウトしない
+        return;
       }
-      
-      setUser(null);
-      setIsAuthenticated(false);
-      setHasDriveAccess(false);
-      clearAuthToken();
       
       // エラーメッセージを設定
       let errorMessage = 'セッション確認中にエラーが発生しました';
@@ -498,7 +552,7 @@ export const AuthProvider = ({ children }) => {
       sessionIntervalRef.current = setInterval(() => {
         console.log('定期セッションチェック実行');
         checkSession();
-      }, 30 * 60 * 1000); // 30分
+      }, 2 * 60 * 60 * 1000); // 2時間 (セッション安定性向上)
       
       return () => {
         if (sessionIntervalRef.current) {
@@ -513,7 +567,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     let visibilityCheckTimeout = null;
     let lastCheckTime = Date.now();
-    const MIN_CHECK_INTERVAL = 60000; // 1分間は再チェックしない
+    const MIN_CHECK_INTERVAL = 5 * 60 * 1000; // 5分間は再チェックしない (頻繁チェック防止)
     
     const handleVisibilityChange = () => {
       if (!document.hidden && isAuthenticated) {

@@ -18,6 +18,8 @@ import { useTranslation } from 'react-i18next';
 import { PortfolioContext } from '../context/PortfolioContext';
 import MarketSelectionWizard, { INVESTMENT_MARKETS } from '../components/settings/MarketSelectionWizard';
 import PromptOrchestrator from '../components/ai/PromptOrchestrator';
+import AIDataImportModal from '../components/ai/AIDataImportModal';
+import SurveyYAMLManager from '../components/survey/SurveyYAMLManager';
 import promptOrchestrationService from '../services/PromptOrchestrationService';
 import portfolioPromptService from '../services/PortfolioPromptService';
 import ModernButton from '../components/common/ModernButton';
@@ -95,6 +97,10 @@ const AIAdvisor = () => {
   // カスタム分析項目の状態
   const [selectedAnalysisItems, setSelectedAnalysisItems] = useState([]);
   const [customAnalysisItems, setCustomAnalysisItems] = useState('');
+  
+  // AIデータ取り込みモーダルの状態
+  const [isAIImportModalOpen, setIsAIImportModalOpen] = useState(false);
+  const [importDataType, setImportDataType] = useState('portfolio');
 
   const isJapanese = i18n.language === 'ja';
 
@@ -535,15 +541,82 @@ Based on the above information, please advise me on:
     );
   };
 
+  // AIデータ取り込みモーダルの処理
+  const handleOpenAIImportModal = (dataType = 'portfolio') => {
+    setImportDataType(dataType);
+    setIsAIImportModalOpen(true);
+  };
+
+  const handleCloseAIImportModal = () => {
+    setIsAIImportModalOpen(false);
+  };
+
+  const handleImportComplete = (importedData, detectedType) => {
+    console.log('データ取り込み完了:', { importedData, detectedType });
+    
+    // データタイプに応じて適切なContextに保存
+    if (detectedType === 'portfolio' && importedData.portfolio_data) {
+      // ポートフォリオデータの場合、PortfolioContextに統合
+      // この部分は要件に応じてさらに実装を進める
+    }
+    
+    // 成功メッセージの表示（ToastNotificationなど）
+    // この部分も後で実装
+    
+    setIsAIImportModalOpen(false);
+  };
+
+  // アンケートYAMLインポート処理
+  const handleSurveyImport = (importedSurveyData, metadata) => {
+    console.log('アンケートデータのインポート:', { importedSurveyData, metadata });
+    
+    // インポートされたデータでuserDataを更新
+    setUserData(prev => ({
+      ...prev,
+      ...importedSurveyData,
+      // インポート情報を記録
+      lastImportedAt: metadata.importedAt,
+      importSource: metadata.dataSource
+    }));
+    
+    console.log('アンケートデータが正常にインポートされました');
+  };
+
   return (
-    <>
     <div className="min-h-screen bg-dark-100 text-white">
       <div className={`container mx-auto px-4 py-8 pb-20 ${isFirstTimeUser ? 'max-w-6xl' : ''}`}>
+        
+        {/* YAML管理サイドパネル */}
+        {!isFirstTimeUser && (
+          <div className="fixed right-4 top-20 w-80 z-40">
+            <div className="bg-white/10 backdrop-blur-md rounded-lg p-1">
+              <SurveyYAMLManager
+                surveyData={userData}
+                onImportData={handleSurveyImport}
+                isVisible={true}
+                showPreview={true}
+                compact={true}
+              />
+            </div>
+          </div>
+        )}
         {/* Header */}
         <div className="text-center mb-8">
           <div className={`flex items-center justify-center gap-3 font-bold mb-4 ${isFirstTimeUser ? 'text-4xl lg:text-5xl' : 'text-3xl'}`}>
             <FaRobot className="text-primary-400" />
             <h1>{isJapanese ? 'AIアドバイザー' : 'AI Advisor'}</h1>
+          </div>
+          
+          {/* AI Data Import Button */}
+          <div className="mb-6">
+            <ModernButton
+              variant="secondary"
+              onClick={() => handleOpenAIImportModal('portfolio')}
+              className="inline-flex items-center gap-2"
+            >
+              <FaCamera className="w-4 h-4" />
+              {isJapanese ? 'スクリーンショットからデータ取り込み' : 'Import Data from Screenshot'}
+            </ModernButton>
           </div>
           <p className={`text-gray-400 mx-auto ${isFirstTimeUser ? 'max-w-4xl text-lg' : 'max-w-2xl'}`}>
             {isFirstTimeUser ? (
@@ -1550,40 +1623,51 @@ Based on the above information, please advise me on:
               )}
             </div>
           )}
-        </div>
         
         {/* Navigation Buttons */}
-        <div className="flex justify-between mt-8 max-w-4xl mx-auto">
-          <button
-            onClick={handlePrevious}
-            disabled={currentStep === 0}
-            className={`px-6 py-2 rounded-lg transition-colors duration-200 ${
-              currentStep === 0
-                ? 'bg-dark-300 text-gray-500 cursor-not-allowed'
-                : 'bg-dark-300 hover:bg-dark-200 text-white'
-            }`}
-          >
-            {isJapanese ? '戻る' : 'Previous'}
-          </button>
+        <div className="max-w-4xl mx-auto">
+          <div className="flex justify-between mt-8">
+            <button
+              onClick={handlePrevious}
+              disabled={currentStep === 0}
+              className={`px-6 py-2 rounded-lg transition-colors duration-200 ${
+                currentStep === 0
+                  ? 'bg-dark-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-dark-300 hover:bg-dark-200 text-white'
+              }`}
+            >
+              {isJapanese ? '戻る' : 'Previous'}
+            </button>
 
-          <button
-            onClick={handleNext}
-            disabled={currentStep === steps.length - 1}
-            className={`px-6 py-2 rounded-lg transition-colors duration-200 ${
-              currentStep === steps.length - 1
-                ? 'bg-dark-300 text-gray-500 cursor-not-allowed'
-                : 'bg-primary-500 hover:bg-primary-600 text-white'
-            }`}
-          >
-            {currentStep === steps.length - 2 
-              ? (isJapanese ? 'プロンプト生成' : 'Generate Prompt')
-              : (isJapanese ? '次へ' : 'Next')
-            }
-          </button>
+            <button
+              onClick={handleNext}
+              disabled={currentStep === steps.length - 1}
+              className={`px-6 py-2 rounded-lg transition-colors duration-200 ${
+                currentStep === steps.length - 1
+                  ? 'bg-dark-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-primary-500 hover:bg-primary-600 text-white'
+              }`}
+            >
+              {currentStep === steps.length - 2 
+                ? (isJapanese ? 'プロンプト生成' : 'Generate Prompt')
+                : (isJapanese ? '次へ' : 'Next')
+              }
+            </button>
+          </div>
         </div>
+        
+        {/* AI Data Import Modal - Temporarily disabled for build */}
+        {/* {isAIImportModalOpen && (
+          <AIDataImportModal
+            isOpen={isAIImportModalOpen}
+            onClose={handleCloseAIImportModal}
+            dataType={importDataType}
+            userContext={userData}
+            onImportComplete={handleImportComplete}
+          />
+        )} */}
       </div>
     </div>
-    </>
   );
 };
 

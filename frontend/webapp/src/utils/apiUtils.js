@@ -42,8 +42,13 @@ export const TIMEOUT = {
   MUTUAL_FUND: 20000     // 20秒
 };
 
-// 認証トークンの保存（メモリ内）
+// 認証トークンの保存（メモリ内＋localStorage）
 let authToken = null;
+
+// LocalStorageキー
+const AUTH_TOKEN_KEY = 'portfolio_auth_token';
+const USER_DATA_KEY = 'portfolio_user_data';
+const LAST_LOGIN_KEY = 'portfolio_last_login';
 
 // サーキットブレーカーの状態管理
 const circuitBreakers = new Map();
@@ -114,19 +119,86 @@ export function resetAllCircuitBreakers() {
   circuitBreakers.clear();
 }
 
-// トークンを設定する関数
+// トークンを設定する関数（localStorageに永続化）
 export const setAuthToken = (token) => {
   authToken = token;
+  if (token) {
+    try {
+      localStorage.setItem(AUTH_TOKEN_KEY, token);
+      localStorage.setItem(LAST_LOGIN_KEY, Date.now().toString());
+    } catch (error) {
+      console.warn('Failed to save auth token to localStorage:', error);
+    }
+  } else {
+    try {
+      localStorage.removeItem(AUTH_TOKEN_KEY);
+      localStorage.removeItem(LAST_LOGIN_KEY);
+    } catch (error) {
+      console.warn('Failed to remove auth token from localStorage:', error);
+    }
+  }
 };
 
-// トークンを取得する関数
+// トークンを取得する関数（localStorageから復元）
 export const getAuthToken = () => {
-  return authToken;
+  if (authToken) {
+    return authToken;
+  }
+  
+  try {
+    const storedToken = localStorage.getItem(AUTH_TOKEN_KEY);
+    if (storedToken) {
+      authToken = storedToken;
+      return authToken;
+    }
+  } catch (error) {
+    console.warn('Failed to get auth token from localStorage:', error);
+  }
+  
+  return null;
 };
 
-// トークンをクリアする関数
+// トークンをクリアする関数（localStorageからも削除）
 export const clearAuthToken = () => {
   authToken = null;
+  try {
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+    localStorage.removeItem(USER_DATA_KEY);
+    localStorage.removeItem(LAST_LOGIN_KEY);
+  } catch (error) {
+    console.warn('Failed to clear auth data from localStorage:', error);
+  }
+};
+
+// ユーザーデータの永続化
+export const setUserData = (userData) => {
+  try {
+    localStorage.setItem(USER_DATA_KEY, JSON.stringify(userData));
+  } catch (error) {
+    console.warn('Failed to save user data to localStorage:', error);
+  }
+};
+
+// ユーザーデータの取得
+export const getUserData = () => {
+  try {
+    const storedData = localStorage.getItem(USER_DATA_KEY);
+    return storedData ? JSON.parse(storedData) : null;
+  } catch (error) {
+    console.warn('Failed to get user data from localStorage:', error);
+    return null;
+  }
+};
+
+// 最終ログイン時刻の取得
+export const getLastLoginTime = () => {
+  try {
+    const timestamp = localStorage.getItem(LAST_LOGIN_KEY);
+    return timestamp ? parseInt(timestamp) : null;
+  } catch (error) {
+    console.warn('Failed to get last login time from localStorage:', error);
+    return null;
+  }
 };
 
 // Axiosインスタンスの作成

@@ -1,6 +1,7 @@
 # PortfolioWise - スマート投資ポートフォリオ管理アプリケーション
 
-🌐 **本番環境**: https://portfolio-wise.com/
+🌐 **本番環境**: https://portfolio-wise.com/  
+🚀 **バックエンドAPI**: https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod
 
 ## すぐに試せる！AIを活用した投資分析
 
@@ -8,7 +9,6 @@
 
 **試してみませんか？** [こちらのサンプルプロンプト](./sample-prompt.md)をClaudeやGemini ChatGPTなどのAIに貼り付けるだけで、このアプリが目指している投資分析がどのようなものか確認できます。実際に使用する際は、プロンプト内の「現在の総資産額」と「毎月の新規投資予定額」の数値を自分の状況に合わせて変更するだけで、あなた専用の投資分析が即座に得られます。
 
-現在、セキュリティ強化および日本市場対応のため、アプリケーションを一時停止しています。2025年6月1日にバックエンドのセキュリティ強化、日本市場への対応強化、および株価取得機能の修正を含むアップデートで再稼働予定です。
 
 ### AIの選択条件と「Claude推奨」の理由
 
@@ -64,9 +64,20 @@
 
 PortfolioWiseは、投資家のためのスマートなポートフォリオ管理ツールです。複数のデータソースから株価情報を取得し、資産配分の視覚化、リバランス計算、手数料・配当の分析などの包括的な機能を提供します。さらに、**AIプロンプト生成機能**により、あなたの投資ポートフォリオデータを基にした最適なプロンプトを作成し、お好みのAIアシスタント（Claude推奨）で自由に投資分析ができます。通貨に合わせた表示（円/ドル）やデータの自動取得により、投資判断をより簡単かつ正確にサポートします。
 
-### サイトURL
+## プロジェクト構造（マイクロサービスアーキテクチャ）
 
-https://portfolio-wise.com
+このフロントエンドアプリケーションは、独立したプロジェクトとして運用されています：
+
+- **フロントエンド**: React 18 + Cloudflare Pages
+- **バックエンド**: AWS Lambda (Node.js 20.x) + Serverless Framework
+- **依存関係**: 完全に独立管理（モノレポから分離済み）
+- **デプロイ**: フロントエンドとバックエンドを個別にデプロイ
+
+### アーキテクチャの利点 (2025年7月現在)
+- ✅ **独立デプロイ**: フロントエンドの変更がバックエンドに影響しない
+- ✅ **パフォーマンス**: React開発ツールがLambda環境に混入しない
+- ✅ **セキュリティ**: 各サービスで最適な依存関係管理
+- ✅ **スケーラビリティ**: サービスごとに最適な技術スタック選択
 
 ## 主な機能
 
@@ -231,7 +242,9 @@ AIが現在のポートフォリオの状態を詳細に分析し、理想的な
 - **長期投資戦略**: リバランス頻度や税金対策を含む長期運用方針
 - **マクロ経済環境分析**: 現在の経済環境が各資産クラスに与える影響
 
-## インストール方法
+## インストールとデプロイ
+
+### 開発環境
 
 ```bash
 # 依存パッケージのインストール
@@ -239,21 +252,42 @@ npm install
 
 # 開発サーバーの起動
 npm start
+```
 
-# ビルド
+### 本番環境ビルド・デプロイ
+
+```bash
+# 環境変数を設定してビルド (Node.js v22環境では--openssl-legacy-provider必要)
+REACT_APP_API_BASE_URL='https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod' \
+REACT_APP_DEFAULT_EXCHANGE_RATE='150.0' \
+NODE_OPTIONS='--openssl-legacy-provider' \
 npm run build
+
+# Cloudflare Pagesへのデプロイ (CLOUDFLARE_API_TOKEN環境変数が必要)
+# .envファイルからトークンを読み込む場合
+export $(grep -v '^#' ../../.env | xargs) && \
+wrangler pages deploy build --project-name=pfwise-portfolio-manager --commit-dirty=true
 ```
 
 ## 環境変数の設定
 
-`.env`ファイルを作成し、以下の環境変数を設定します。
+### 開発環境
+`.env.development`ファイルを作成：
 
 ```
-# AWS APIのベースURL（必須）
-REACT_APP_API_BASE_URL=https://your-api-gateway-url.amazonaws.com
-
-# デフォルト為替レート（API障害時のフォールバック用）
+REACT_APP_API_BASE_URL=https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod
 REACT_APP_DEFAULT_EXCHANGE_RATE=150.0
+```
+
+### 本番環境 (Cloudflare Pages)
+Cloudflare Pagesのダッシュボードで以下を設定済み：
+- `REACT_APP_API_BASE_URL`: https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod
+- `REACT_APP_DEFAULT_EXCHANGE_RATE`: 150.0
+
+### デプロイ用トークン
+プロジェクトルートの`.env`ファイルに設定（.gitignoreに含まれているため安全）：
+```
+CLOUDFLARE_API_TOKEN=your_token_here
 ```
 
 **注意**: 

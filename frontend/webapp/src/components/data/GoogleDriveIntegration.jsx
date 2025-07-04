@@ -38,7 +38,8 @@ const GoogleDriveIntegration = () => {
     baseCurrency, 
     additionalBudget,
     aiPromptTemplate,
-    saveToLocalStorage
+    saveToLocalStorage,
+    updatePortfolio
   } = usePortfolioContext();
   
   const [files, setFiles] = useState([]);
@@ -105,22 +106,41 @@ const GoogleDriveIntegration = () => {
     
     const data = await loadFile(fileId);
     if (data) {
-      // ポートフォリオコンテキストのデータを更新
-      // 注：実際の実装ではportfolioContextのloadFromCloudのような関数を呼び出すべき
-      
-      setSyncStatus('success');
-      setLastSync(new Date());
-      setOperationResult({
-        success: true,
-        message: 'Google Driveからデータを読み込みました',
-        details: {
-          filename: files.find(f => f.id === fileId)?.name || 'Unknown file',
-          timestamp: data.timestamp
+      try {
+        // ポートフォリオコンテキストのデータを更新
+        if (data.currentAssets) {
+          await updatePortfolio({
+            currentAssets: data.currentAssets,
+            targetPortfolio: data.targetPortfolio || [],
+            baseCurrency: data.baseCurrency || 'JPY',
+            additionalBudget: data.additionalBudget || 0,
+            aiPromptTemplate: data.aiPromptTemplate || null
+          });
         }
-      });
-      
-      // ローカルストレージにも保存
-      saveToLocalStorage();
+        
+        setSyncStatus('success');
+        setLastSync(new Date());
+        setOperationResult({
+          success: true,
+          message: 'Google Driveからデータを読み込み、ポートフォリオを更新しました',
+          details: {
+            filename: files.find(f => f.id === fileId)?.name || 'Unknown file',
+            timestamp: data.timestamp,
+            assetsCount: data.currentAssets?.length || 0
+          }
+        });
+        
+        // ローカルストレージにも保存
+        saveToLocalStorage();
+      } catch (updateError) {
+        console.error('ポートフォリオ更新エラー:', updateError);
+        setSyncStatus('error');
+        setOperationResult({
+          success: false,
+          message: 'データは読み込まれましたが、ポートフォリオの更新に失敗しました',
+          details: updateError.message
+        });
+      }
     } else {
       setSyncStatus('error');
       setOperationResult({

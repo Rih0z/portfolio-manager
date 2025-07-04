@@ -17,6 +17,8 @@ import { useTranslation } from 'react-i18next';
 import { PortfolioContext } from '../context/PortfolioContext';
 import ScreenshotAnalyzer from '../components/ai/ScreenshotAnalyzer';
 import portfolioPromptService from '../services/PortfolioPromptService';
+import { parseYAMLSafely } from '../utils/yamlProcessor';
+import GoogleDriveIntegration from '../components/data/GoogleDriveIntegration';
 import { 
   FaFileAlt, 
   FaFileCode, 
@@ -46,6 +48,29 @@ const DataImport = () => {
 
   const isJapanese = i18n.language === 'ja';
 
+  // YAMLとJSONを自動判定してパースする関数
+  const parseDataWithAutoDetection = (inputData) => {
+    if (!inputData || typeof inputData !== 'string') {
+      throw new Error('Invalid input data');
+    }
+
+    const trimmedData = inputData.trim();
+    
+    // JSON形式を試行
+    try {
+      const jsonData = JSON.parse(trimmedData);
+      return { data: jsonData, format: 'JSON' };
+    } catch (jsonError) {
+      // JSON失敗時、YAML形式を試行
+      try {
+        const yamlData = parseYAMLSafely(trimmedData);
+        return { data: yamlData, format: 'YAML' };
+      } catch (yamlError) {
+        throw new Error(`データ形式を認識できません。JSON Error: ${jsonError.message}, YAML Error: ${yamlError.message}`);
+      }
+    }
+  };
+
   // URLパラメータからタブを設定
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -71,6 +96,14 @@ const DataImport = () => {
       description: isJapanese 
         ? 'JSONファイルからポートフォリオデータを読み込み'
         : 'Import portfolio data from JSON files'
+    },
+    {
+      id: 'google-drive',
+      name: isJapanese ? 'Google Drive連携' : 'Google Drive Sync',
+      icon: <FaFileAlt className="w-5 h-5" />,
+      description: isJapanese 
+        ? 'Google Driveでデータを同期・バックアップ'
+        : 'Sync and backup data with Google Drive'
     },
     {
       id: 'export',
@@ -277,17 +310,21 @@ const DataImport = () => {
                 value={jsonImportData}
                 onChange={(e) => {
                   setJsonImportData(e.target.value);
-                  // リアルタイム検証
+                  // リアルタイム検証（YAML/JSON自動判定）
                   if (e.target.value.trim()) {
                     try {
-                      const parsedData = JSON.parse(e.target.value);
-                      const validation = portfolioPromptService.validatePortfolioJSON(parsedData);
-                      setValidationResult(validation);
+                      const parseResult = parseDataWithAutoDetection(e.target.value);
+                      const validation = portfolioPromptService.validatePortfolioJSON(parseResult.data);
+                      setValidationResult({
+                        ...validation,
+                        format: parseResult.format
+                      });
                     } catch (error) {
                       setValidationResult({
                         isValid: false,
-                        errors: [`JSON parsing error: ${error.message}`],
-                        warnings: []
+                        errors: [`データ解析エラー: ${error.message}`],
+                        warnings: [],
+                        format: 'Unknown'
                       });
                     }
                   } else {
@@ -295,8 +332,8 @@ const DataImport = () => {
                   }
                 }}
                 placeholder={isJapanese 
-                  ? 'AIで生成されたポートフォリオJSONデータをここに貼り付けてください...'
-                  : 'Paste AI-generated portfolio JSON data here...'
+                  ? 'AIで生成されたポートフォリオデータ（YAMLまたはJSON形式）をここに貼り付けてください...'
+                  : 'Paste AI-generated portfolio data (YAML or JSON format) here...'
                 }
                 className="w-full p-3 bg-dark-300 border border-dark-400 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-primary-400 focus:border-transparent resize-none"
                 rows={10}
@@ -321,8 +358,8 @@ const DataImport = () => {
                           validationResult.isValid ? 'text-green-400' : 'text-red-400'
                         }`}>
                           {isJapanese ? 
-                            (validationResult.isValid ? 'データ検証成功' : 'データ検証エラー') :
-                            (validationResult.isValid ? 'Validation Successful' : 'Validation Error')
+                            (validationResult.isValid ? `データ検証成功 (${validationResult.format || 'Unknown'}形式)` : 'データ検証エラー') :
+                            (validationResult.isValid ? `Validation Successful (${validationResult.format || 'Unknown'} format)` : 'Validation Error')
                           }
                         </span>
                       </div>
@@ -372,19 +409,19 @@ const DataImport = () => {
             <div className="bg-primary-500/10 border border-primary-500/30 rounded-lg p-4">
               <div className="flex items-center gap-2 text-primary-400 font-medium mb-2">
                 <FaExclamationCircle />
-                <h5>{isJapanese ? 'JSONフォーマットについて' : 'JSON Format Info'}</h5>
+                <h5>{isJapanese ? 'YAMLフォーマットについて' : 'YAML Format Info'}</h5>
               </div>
               <div className="space-y-1 text-sm text-gray-300">
                 <div>
                   • {isJapanese 
-                    ? 'エクスポートされたJSONファイルと同じ形式を使用してください'
-                    : 'Use the same format as exported JSON files'
+                    ? 'YAML形式またはJSON形式のファイルを使用してください'
+                    : 'Use YAML or JSON format files'
                   }
                 </div>
                 <div>
                   • {isJapanese 
-                    ? 'assets配列にポートフォリオデータが含まれている必要があります'
-                    : 'Must contain an assets array with portfolio data'
+                    ? 'ポートフォリオデータまたは資産情報が含まれている必要があります'
+                    : 'Must contain portfolio data or asset information'
                   }
                 </div>
                 <div>
@@ -395,6 +432,13 @@ const DataImport = () => {
                 </div>
               </div>
             </div>
+          </div>
+        );
+      
+      case 'google-drive':
+        return (
+          <div className="bg-dark-200 rounded-lg p-6">
+            <GoogleDriveIntegration />
           </div>
         );
       

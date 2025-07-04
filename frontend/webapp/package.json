@@ -18,6 +18,7 @@
     "i18next": "^25.2.1",
     "i18next-browser-languagedetector": "^8.1.0",
     "i18next-http-backend": "^3.0.2",
+    "js-yaml": "^4.1.0",
     "jwt-decode": "^3.1.2",
     "lodash": "^4.17.21",
     "papaparse": "^5.4.1",
