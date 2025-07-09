@@ -165,6 +165,17 @@
     "currentPrice": "Current Price",
     "exchange": "Exchange",
     "copyAIPrompt": "Copy AI Prompt",
-    "promptCopied": "Prompt copied to clipboard"
+    "promptCopied": "Prompt copied to clipboard",
+    "setupRequired": {
+      "title": "You're almost ready to calculate your optimal investment allocation!",
+      "description": "To use the investment calculator, you need to set up your current holdings and target portfolio. It only takes a few minutes to get started.",
+      "currentPortfolioMissing": "Current holdings not configured",
+      "currentPortfolioHint": "Please enter your current stock holdings in the settings. If you don't own any stocks yet, you can enter \"0 shares\".",
+      "targetPortfolioMissing": "Target portfolio not configured",
+      "targetPortfolioHint": "Set your ideal investment allocation percentages. If you're new to investing, try our AI Investment Strategy for personalized recommendations.",
+      "goToSettings": "Go to Settings",
+      "useAIAdvisor": "Create Your Ideal Portfolio with AI",
+      "tip": "Our AI Investment Strategy creates a personalized portfolio based on your investment goals and risk tolerance. Perfect for beginners and experienced investors alike!"
+    }
   }
 }

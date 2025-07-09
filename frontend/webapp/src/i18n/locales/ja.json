@@ -165,6 +165,17 @@
     "currentPrice": "現在価格",
     "exchange": "取引所",
     "copyAIPrompt": "AIプロンプトをコピー",
-    "promptCopied": "プロンプトがクリップボードにコピーされました"
+    "promptCopied": "プロンプトがクリップボードにコピーされました",
+    "setupRequired": {
+      "title": "あと少しで投資配分計算が使えます！",
+      "description": "投資配分計算を使うには、現在の保有銘柄と理想のポートフォリオの設定が必要です。わずか数分で設定できます。",
+      "currentPortfolioMissing": "現在の保有銘柄が未設定です",
+      "currentPortfolioHint": "設定画面で保有している株式の情報を入力してください。株式を持っていない場合は「0株」でも大丈夫です。",
+      "targetPortfolioMissing": "理想のポートフォリオが未設定です",
+      "targetPortfolioHint": "どのような配分で投資したいか、理想の比率を設定してください。初心者の方は、AI投資戦略がおすすめです。",
+      "goToSettings": "設定画面で入力する",
+      "useAIAdvisor": "AI投資戦略で理想のポートフォリオを作る",
+      "tip": "AI投資戦略では、あなたの投資目標やリスク許容度に基づいて、最適なポートフォリオを提案します。初心者の方でも安心して始められます！"
+    }
   }
 }
