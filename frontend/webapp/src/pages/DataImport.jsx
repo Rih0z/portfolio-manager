@@ -36,7 +36,7 @@ import { HiDocumentText } from 'react-icons/hi';
 const DataImport = () => {
   const { t, i18n } = useTranslation();
   const { portfolio, updatePortfolio } = useContext(PortfolioContext);
-  const [activeTab, setActiveTab] = useState('ai-result');
+  const [activeTab, setActiveTab] = useState('ai-import');
   const [importHistory, setImportHistory] = useState([]);
   const [importStats, setImportStats] = useState({
     totalImports: 0,
@@ -77,42 +77,42 @@ const DataImport = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const tabParam = urlParams.get('tab');
     if (tabParam === 'ai-analysis') {
-      setActiveTab('ai-result');
+      setActiveTab('ai-import');
     }
   }, []);
 
   const tabs = [
     {
-      id: 'ai-result',
-      name: isJapanese ? 'AI分析結果' : 'AI Results',
+      id: 'ai-import',
+      name: isJapanese ? 'AI結果取り込み' : 'AI Import',
       icon: <HiDocumentText className="w-5 h-5" />,
       description: isJapanese 
-        ? '外部AIで分析された結果をテキストで受け取り'
-        : 'Receive AI analysis results as text'
+        ? '外部AIで分析されたポートフォリオデータを取り込み'
+        : 'Import portfolio data analyzed by external AI'
     },
     {
-      id: 'yaml-data',
-      name: isJapanese ? 'YAML/JSON' : 'YAML/JSON',
+      id: 'file-import',
+      name: isJapanese ? 'ファイル取り込み' : 'File Import',
       icon: <FaFileCode className="w-5 h-5" />,
       description: isJapanese 
-        ? 'YAML/JSON形式でポートフォリオや戦略データを管理'
-        : 'Manage portfolio and strategy data in YAML/JSON format'
+        ? 'YAML/JSON形式のファイルからデータを取り込み'
+        : 'Import data from YAML/JSON files'
     },
     {
-      id: 'google-drive',
-      name: isJapanese ? 'Google Drive連携' : 'Google Drive Sync',
+      id: 'cloud-sync',
+      name: isJapanese ? 'クラウド同期' : 'Cloud Sync',
       icon: <FaFileAlt className="w-5 h-5" />,
       description: isJapanese 
-        ? 'Google Driveでデータを同期・バックアップ'
+        ? 'Google Driveとデータを同期・バックアップ'
         : 'Sync and backup data with Google Drive'
     },
     {
-      id: 'export',
-      name: isJapanese ? 'データエクスポート' : 'Data Export',
+      id: 'data-export',
+      name: isJapanese ? 'データ出力' : 'Data Export',
       icon: <FaFileAlt className="w-5 h-5" />,
       description: isJapanese 
-        ? '現在のポートフォリオデータをエクスポート'
-        : 'Export current portfolio data'
+        ? 'ポートフォリオデータをファイル出力'
+        : 'Export portfolio data to files'
     }
   ];
 
@@ -330,15 +330,23 @@ portfolio:
 
   const getTabContent = () => {
     switch (activeTab) {
-      case 'ai-result':
+      case 'ai-import':
         return (
-          <ScreenshotAnalyzer 
-            onDataExtracted={handleDataExtracted}
-            className="w-full"
-          />
+          <div className="bg-dark-200 rounded-lg p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <HiDocumentText className="text-primary-400 text-xl" />
+              <h3 className="text-xl font-semibold text-white">
+                {isJapanese ? 'AI結果取り込み' : 'AI Result Import'}
+              </h3>
+            </div>
+            <ScreenshotAnalyzer 
+              onDataExtracted={handleDataExtracted}
+              className="w-full"
+            />
+          </div>
         );
       
-      case 'yaml-data':
+      case 'file-import':
         return (
           <div className="bg-dark-200 rounded-lg p-6">
             <div className="flex items-center gap-2 mb-4">
@@ -348,99 +356,34 @@ portfolio:
               </h3>
             </div>
             
-            {/* YAML Strategy Template Generator */}
+            {/* File Upload Section */}
             <div className="mb-6">
               <h4 className="font-medium text-white mb-3">
-                {isJapanese ? 'データ取得専用プロンプト生成' : 'Data Acquisition Prompt Generation'}
+                {isJapanese ? 'ファイルからインポート' : 'Import from File'}
               </h4>
-              <div className="bg-primary-500/10 border border-primary-500/30 rounded-lg p-4 mb-4">
-                <div className="flex items-center gap-2 text-primary-400 font-medium mb-2">
-                  <FaLightbulb />
-                  <h5>{isJapanese ? 'AI戦略データ取得プロンプト' : 'AI Strategy Data Acquisition Prompt'}</h5>
-                </div>
-                <div className="bg-dark-300 rounded-lg p-4 text-sm text-gray-300">
-                  <div className="mb-2 font-medium text-white">
-                    {isJapanese ? '以下のプロンプトをAIに送信してください：' : 'Send the following prompt to AI:'}
-                  </div>
-                  <pre className="whitespace-pre-wrap text-xs">
-{`あなたは投資戦略エキスパートです。以下のYAMLテンプレートに従って、ポートフォリオ最適化のためのデータ構造を生成してください。
-
-# YAML戦略データテンプレート
-\`\`\`yaml
-investment_strategy:
-  meta:
-    version: "1.0"
-    created_at: "${new Date().toISOString()}"
-    strategy_type: "data_driven_optimization"
-    
-  market_analysis:
-    target_markets:
-      - market: "日本株"
-        allocation_target: 40
-        risk_level: "medium"
-        sectors:
-          - "technology"
-          - "healthcare"
-          - "finance"
-      - market: "米国株"
-        allocation_target: 35
-        risk_level: "medium"
-        sectors:
-          - "technology"
-          - "consumer_discretionary"
-      - market: "新興国"
-        allocation_target: 15
-        risk_level: "high"
-      - market: "債券"
-        allocation_target: 10
-        risk_level: "low"
-        
-  asset_recommendations:
-    equities:
-      - ticker: "7203.T"
-        name: "トヨタ自動車"
-        allocation: 5.0
-        reason: "自動車産業のリーダー"
-        target_price: 2500
-      - ticker: "AAPL"
-        name: "Apple Inc."
-        allocation: 8.0
-        reason: "テクノロジー分野の安定企業"
-        target_price: 200
-        
-  risk_management:
-    max_position_size: 10.0
-    sector_concentration_limit: 25.0
-    rebalancing_frequency: "quarterly"
-    stop_loss_threshold: -15.0
-    
-  performance_targets:
-    annual_return_target: 8.0
-    max_drawdown_limit: -20.0
-    sharpe_ratio_target: 1.2
-\`\`\`
-
-このテンプレートを参考に、現在の市場状況に応じた具体的な投資戦略をYAML形式で提案してください。`}
-                  </pre>
-                </div>
-                <button
-                  onClick={() => {
-                    const promptText = document.querySelector('pre').textContent;
-                    navigator.clipboard.writeText(promptText).then(() => {
-                      alert(isJapanese ? 'プロンプトをクリップボードにコピーしました' : 'Prompt copied to clipboard');
-                    });
-                  }}
-                  className="mt-3 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg text-sm font-medium transition-colors"
-                >
-                  {isJapanese ? 'プロンプトをコピー' : 'Copy Prompt'}
-                </button>
+              <div className="bg-dark-300 rounded-lg p-4 border border-dark-400 mb-4">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  {isJapanese ? 'YAML/JSONファイルを選択' : 'Select YAML/JSON File'}
+                </label>
+                <input
+                  type="file"
+                  accept=".yaml,.yml,.json"
+                  onChange={handleFileImport}
+                  className="w-full px-3 py-2 bg-dark-400 border border-dark-500 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-primary-500 file:text-white hover:file:bg-primary-600"
+                />
+                <p className="text-xs text-gray-400 mt-2">
+                  {isJapanese 
+                    ? '対応形式: .yaml, .yml, .json'
+                    : 'Supported formats: .yaml, .yml, .json'
+                  }
+                </p>
               </div>
             </div>
 
-            {/* YAML Import Section */}
+            {/* Direct Data Import Section */}
             <div className="mb-6">
               <h4 className="font-medium text-white mb-3">
-                {isJapanese ? 'YAML戦略データインポート' : 'YAML Strategy Data Import'}
+                {isJapanese ? 'テキストデータ貼り付け' : 'Paste Text Data'}
               </h4>
               <textarea
                 value={jsonImportData}
@@ -468,8 +411,8 @@ investment_strategy:
                   }
                 }}
                 placeholder={isJapanese 
-                  ? 'AIで生成されたYAML戦略データをここに貼り付けてください...\n\ninvestment_strategy:\n  meta:\n    version: "1.0"\n    strategy_type: "data_driven_optimization"\n  market_analysis:\n    target_markets:\n      - market: "日本株"\n        allocation_target: 40\n        risk_level: "medium"'
-                  : 'Paste AI-generated YAML strategy data here...\n\ninvestment_strategy:\n  meta:\n    version: "1.0"\n    strategy_type: "data_driven_optimization"\n  market_analysis:\n    target_markets:\n      - market: "Japanese Stocks"\n        allocation_target: 40\n        risk_level: "medium"'
+                  ? 'YAML/JSON形式のポートフォリオデータをここに貼り付けてください...\n\nportfolio:\n  assets:\n    - ticker: "AAPL"\n      name: "Apple Inc."\n      quantity: 10\n      price: 150.00\n    - ticker: "7203.T"\n      name: "トヨタ自動車"\n      quantity: 100\n      price: 2500'
+                  : 'Paste YAML/JSON portfolio data here...\n\nportfolio:\n  assets:\n    - ticker: "AAPL"\n      name: "Apple Inc."\n      quantity: 10\n      price: 150.00\n    - ticker: "7203.T"\n      name: "Toyota Motor"\n      quantity: 100\n      price: 2500'
                 }
                 className="w-full p-3 bg-dark-300 border border-dark-400 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-primary-400 focus:border-transparent resize-none"
                 rows={12}
@@ -491,8 +434,8 @@ investment_strategy:
                       validationResult.isValid ? 'text-green-400' : 'text-red-400'
                     }`}>
                       {isJapanese ? 
-                        (validationResult.isValid ? `YAML戦略データ検証成功 (${validationResult.format || 'YAML'}形式)` : 'YAML戦略データ検証エラー') :
-                        (validationResult.isValid ? `YAML Strategy Validation Successful (${validationResult.format || 'YAML'} format)` : 'YAML Strategy Validation Error')
+                        (validationResult.isValid ? `データ検証成功 (${validationResult.format || 'YAML'}形式)` : 'データ検証エラー') :
+                        (validationResult.isValid ? `Data Validation Successful (${validationResult.format || 'YAML'} format)` : 'Data Validation Error')
                       }
                     </span>
                   </div>
@@ -524,42 +467,42 @@ investment_strategy:
                   }`}
                 >
                   {isImporting 
-                    ? (isJapanese ? 'YAML戦略データインポート中...' : 'Importing YAML Strategy...')
-                    : (isJapanese ? 'YAML戦略データをインポート' : 'Import YAML Strategy Data')
+                    ? (isJapanese ? 'データインポート中...' : 'Importing Data...')
+                    : (isJapanese ? 'データをインポート' : 'Import Data')
                   }
                 </button>
               )}
             </div>
 
-            {/* YAML Help */}
+            {/* Import Help */}
             <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
               <div className="flex items-center gap-2 text-blue-400 font-medium mb-2">
                 <FaLightbulb />
-                <h5>{isJapanese ? 'YAML戦略データについて' : 'About YAML Strategy Data'}</h5>
+                <h5>{isJapanese ? 'ファイル取り込みについて' : 'About File Import'}</h5>
               </div>
               <div className="space-y-1 text-sm text-gray-300">
                 <div>
                   • {isJapanese 
-                    ? 'AI生成の投資戦略をYAML形式で構造化管理'
-                    : 'Structured management of AI-generated investment strategies in YAML format'
+                    ? 'YAML/JSON形式のポートフォリオデータを取り込み'
+                    : 'Import portfolio data in YAML/JSON format'
                   }
                 </div>
                 <div>
                   • {isJapanese 
-                    ? '市場分析、資産推奨、リスク管理を包含したデータ'
-                    : 'Data including market analysis, asset recommendations, and risk management'
+                    ? 'ファイルアップロードまたは直接貼り付けに対応'
+                    : 'Supports file upload or direct paste'
                   }
                 </div>
                 <div>
                   • {isJapanese 
-                    ? 'ポートフォリオ最適化のための戦略的データ取得'
-                    : 'Strategic data acquisition for portfolio optimization'
+                    ? '自動データ検証でエラーを事前に検出'
+                    : 'Automatic data validation to detect errors'
                   }
                 </div>
                 <div>
                   • {isJapanese 
-                    ? 'バージョン管理対応で戦略の進化を追跡'
-                    : 'Version control support to track strategy evolution'
+                    ? '既存データとの統合で重複を自動処理'
+                    : 'Automatic handling of duplicates when merging with existing data'
                   }
                 </div>
               </div>
@@ -567,20 +510,26 @@ investment_strategy:
           </div>
         );
       
-      case 'google-drive':
-        return (
-          <div className="bg-dark-200 rounded-lg p-6">
-            <GoogleDriveIntegration />
-          </div>
-        );
-      
-      case 'export':
+      case 'cloud-sync':
         return (
           <div className="bg-dark-200 rounded-lg p-6">
             <div className="flex items-center gap-2 mb-4">
               <FaFileAlt className="text-primary-400 text-xl" />
               <h3 className="text-xl font-semibold text-white">
-                {isJapanese ? 'YAMLエクスポート' : 'YAML Export'}
+                {isJapanese ? 'クラウド同期' : 'Cloud Sync'}
+              </h3>
+            </div>
+            <GoogleDriveIntegration />
+          </div>
+        );
+      
+      case 'data-export':
+        return (
+          <div className="bg-dark-200 rounded-lg p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <FaFileAlt className="text-primary-400 text-xl" />
+              <h3 className="text-xl font-semibold text-white">
+                {isJapanese ? 'データ出力' : 'Data Export'}
               </h3>
             </div>
             
@@ -622,7 +571,7 @@ investment_strategy:
                 onClick={handleExportYaml}
                 className="w-full py-3 px-4 bg-green-500 hover:bg-green-600 text-white font-medium rounded-lg transition-colors duration-200"
               >
-                {isJapanese ? 'YAMLファイルとしてエクスポート' : 'Export as YAML File'}
+                {isJapanese ? 'YAML形式でエクスポート' : 'Export as YAML File'}
               </button>
             </div>
 
@@ -630,7 +579,7 @@ investment_strategy:
             <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
               <div className="flex items-center gap-2 text-green-400 font-medium mb-2">
                 <FaFileAlt />
-                <h5>{isJapanese ? 'YAMLエクスポート内容' : 'YAML Export Contents'}</h5>
+                <h5>{isJapanese ? 'データ出力内容' : 'Data Export Contents'}</h5>
               </div>
               <div className="space-y-1 text-sm text-gray-300">
                 <div>
@@ -680,12 +629,12 @@ investment_strategy:
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 text-3xl font-bold mb-4">
             <FaChartBar className="text-primary-400" />
-            <h1>{isJapanese ? 'データ取り込み' : 'Data Import'}</h1>
+            <h1>{isJapanese ? 'データ連携' : 'Data Integration'}</h1>
           </div>
           <p className="text-gray-400 max-w-2xl mx-auto">
             {isJapanese 
-              ? '外部AIで分析されたデータの受け取りや、JSONファイルでのデータ交換が行えます。プライバシーを保護しながら安全にデータを管理します。'
-              : 'Receive AI-analyzed data and exchange data via JSON files. Manage your data safely while protecting privacy.'
+              ? 'AI分析結果の取り込み、ファイル連携、クラウド同期、データ出力などの連携機能を提供します。プライバシーを保護しながら安全にデータを管理します。'
+              : 'Provides integration features including AI result import, file connectivity, cloud sync, and data export. Manage your data safely while protecting privacy.'
             }
           </p>
         </div>
@@ -699,7 +648,7 @@ investment_strategy:
                   {importStats.totalImports}
                 </div>
                 <div className="text-sm text-gray-400">
-                  {isJapanese ? 'インポート回数' : 'Total Imports'}
+                  {isJapanese ? '連携回数' : 'Total Integrations'}
                 </div>
               </div>
               <FaChartLine className="text-3xl text-primary-400" />
@@ -713,7 +662,7 @@ investment_strategy:
                   {importStats.successfulImports}
                 </div>
                 <div className="text-sm text-gray-400">
-                  {isJapanese ? '成功インポート' : 'Successful Imports'}
+                  {isJapanese ? '成功連携' : 'Successful Integrations'}
                 </div>
               </div>
               <FaCheckCircle className="text-3xl text-green-400" />
@@ -727,7 +676,7 @@ investment_strategy:
                   {importStats.assetsAdded}
                 </div>
                 <div className="text-sm text-gray-400">
-                  {isJapanese ? '追加された資産' : 'Assets Added'}
+                  {isJapanese ? '連携データ件数' : 'Data Records Integrated'}
                 </div>
               </div>
               <FaGem className="text-3xl text-blue-400" />
@@ -770,7 +719,7 @@ investment_strategy:
           <div className="bg-dark-200 rounded-lg p-6">
             <div className="flex items-center gap-2 text-xl font-semibold text-white mb-4">
               <FaClipboardList className="text-primary-400" />
-              <h3>{isJapanese ? 'インポート履歴' : 'Import History'}</h3>
+              <h3>{isJapanese ? '連携履歴' : 'Integration History'}</h3>
             </div>
             <div className="space-y-3">
               {importHistory.map(record => (
@@ -825,37 +774,37 @@ investment_strategy:
         <div className="mt-8 bg-primary-500/10 border border-primary-500/30 rounded-lg p-6">
           <div className="flex items-center gap-2 text-lg font-semibold text-primary-400 mb-3">
             <FaLightbulb />
-            <h3>{isJapanese ? '使い方のヒント' : 'Usage Tips'}</h3>
+            <h3>{isJapanese ? 'データ連携のヒント' : 'Data Integration Tips'}</h3>
           </div>
           <div className="space-y-2 text-sm text-gray-300">
             <div>
               • {isJapanese 
-                ? 'プロンプト生成は「AIアドバイザー」タブをご利用ください'
-                : 'Use the "AI Advisor" tab for prompt generation'
+                ? 'AI結果取り込み：外部AIで分析されたポートフォリオデータを取り込み'
+                : 'AI Import: Import portfolio data analyzed by external AI'
               }
             </div>
             <div>
               • {isJapanese 
-                ? '外部AIでの分析完了後、結果をこちらに貼り付けてください'
-                : 'After analyzing with external AI, paste the results here'
+                ? 'ファイル取り込み：YAML/JSON形式でデータを一括インポート'
+                : 'File Import: Bulk import data in YAML/JSON format'
               }
             </div>
             <div>
               • {isJapanese 
-                ? 'JSONエクスポート機能でデータのバックアップが取れます'
-                : 'Use JSON export to backup your data'
+                ? 'クラウド同期：Google Driveでデータのバックアップと同期'
+                : 'Cloud Sync: Backup and sync data with Google Drive'
+              }
+            </div>
+            <div>
+              • {isJapanese 
+                ? 'データ出力：ポートフォリオデータを外部形式で出力'
+                : 'Data Export: Export portfolio data to external formats'
               }
             </div>
             <div>
               • {isJapanese 
                 ? 'このアプリからスクリーンショットが送信されることはありません'
                 : 'No screenshots are ever sent from this app'
-              }
-            </div>
-            <div>
-              • {isJapanese 
-                ? '複数の証券会社のデータを統合して管理できます'
-                : 'You can integrate data from multiple brokerages'
               }
             </div>
           </div>
