@@ -65,7 +65,19 @@
     "deploy": "npm run build && wrangler pages deploy build --project-name=pfwise-portfolio-manager --commit-dirty=true",
     "deploy:preview": "npm run build && wrangler pages deploy build --commit-dirty=true",
     "deploy:prod": "npm run build && wrangler pages deploy build --project-name=pfwise-portfolio-manager --branch=main --commit-dirty=true",
-    "deploy:direct": "wrangler pages deploy build --project-name=pfwise-portfolio-manager --commit-dirty=true"
+    "deploy:direct": "wrangler pages deploy build --project-name=pfwise-portfolio-manager --commit-dirty=true",
+    "e2e": "playwright test",
+    "e2e:ui": "playwright test --ui",
+    "e2e:debug": "playwright test --debug",
+    "e2e:headed": "playwright test --headed",
+    "e2e:chrome": "playwright test --project=chromium",
+    "e2e:firefox": "playwright test --project=firefox",
+    "e2e:webkit": "playwright test --project=webkit",
+    "e2e:mobile": "playwright test --project='Mobile Chrome' --project='Mobile Safari'",
+    "e2e:report": "playwright show-report",
+    "e2e:codegen": "playwright codegen http://localhost:3000",
+    "e2e:install": "playwright install",
+    "e2e:install-deps": "playwright install-deps"
   },
   "eslintConfig": {
     "extends": [

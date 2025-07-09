@@ -76,7 +76,7 @@ describe('configService', () => {
 
       const config = await fetchApiConfig();
 
-      expect(mockedAxios.get).toHaveBeenCalledWith('https://api.example.com/config/client');
+      expect(mockedAxios.get).toHaveBeenCalledWith('https://api.example.com/config/public');
       expect(config).toEqual(mockResponse.data.data);
     });
 
@@ -132,24 +132,26 @@ describe('configService', () => {
       expect(results[1]).toEqual(results[2]);
     });
 
-    it('REACT_APP_API_BASE_URLが未設定の場合はフォールバック設定を返す', async () => {
+    it('REACT_APP_API_BASE_URLが未設定の場合はプロキシ経由でアクセス', async () => {
       delete process.env.REACT_APP_API_BASE_URL;
+
+      const mockResponse = {
+        data: {
+          success: true,
+          data: {
+            marketDataApiUrl: 'https://proxy-api.example.com',
+            apiStage: 'prod',
+            googleClientId: 'proxy-google-client-id'
+          }
+        }
+      };
+
+      mockedAxios.get.mockResolvedValue(mockResponse);
 
       const config = await fetchApiConfig();
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'REACT_APP_API_BASE_URL が設定されていません。.env ファイルを確認してください。'
-      );
-      expect(config).toEqual({
-        marketDataApiUrl: '',
-        apiStage: 'dev',
-        googleClientId: '',
-        features: {
-          useProxy: false,
-          useMockApi: false,
-          useDirectApi: true
-        }
-      });
+      expect(mockedAxios.get).toHaveBeenCalledWith('/api-proxy/config/public');
+      expect(config).toEqual(mockResponse.data.data);
     });
 
     it('API取得に失敗した場合はフォールバック設定を返す', async () => {
@@ -166,9 +168,9 @@ describe('configService', () => {
         apiStage: 'dev',
         googleClientId: '',
         features: {
-          useProxy: false,
+          useProxy: true,
           useMockApi: false,
-          useDirectApi: true
+          useDirectApi: false
         }
       });
     });
@@ -207,8 +209,8 @@ describe('configService', () => {
       const config = await fetchApiConfig();
 
       expect(mockedAxios.get).toHaveBeenCalledTimes(2);
-      expect(mockedAxios.get).toHaveBeenNthCalledWith(1, 'https://abc123.execute-api.us-west-2.amazonaws.com/prod/config/client');
-      expect(mockedAxios.get).toHaveBeenNthCalledWith(2, '/api-proxy/config/client');
+      expect(mockedAxios.get).toHaveBeenNthCalledWith(1, 'https://abc123.execute-api.us-west-2.amazonaws.com/prod/config/public');
+      expect(mockedAxios.get).toHaveBeenNthCalledWith(2, '/api-proxy/config/public');
       expect(config).toEqual(proxyResponse.data.data);
     });
 
@@ -456,7 +458,7 @@ describe('configService', () => {
       require('../../../services/configService');
 
       expect(consoleLogSpy).toHaveBeenCalledWith('ConfigService initialization:', {
-        CONFIG_ENDPOINT: 'https://api.example.com/config/client',
+        CONFIG_ENDPOINT: 'https://api.example.com/config/public',
         REACT_APP_API_BASE_URL: 'https://api.example.com',
         NODE_ENV: 'development'
       });

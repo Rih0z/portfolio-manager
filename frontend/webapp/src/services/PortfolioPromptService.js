@@ -23,10 +23,10 @@ class PortfolioPromptService {
     const promptContent = isJapanese ? this.generateJapanesePrompt(options) : this.generateEnglishPrompt(options);
     
     return {
-      title: isJapanese ? 'ポートフォリオデータ取得プロンプト' : 'Portfolio Data Collection Prompt',
+      title: isJapanese ? 'ポートフォリオYAMLデータ取得プロンプト' : 'Portfolio YAML Data Collection Prompt',
       content: promptContent,
       instructions: this.getInstructions(language),
-      expectedFormat: this.getExpectedJSONFormat(),
+      expectedFormat: this.getExpectedYAMLFormat(),
       language
     };
   }
@@ -75,29 +75,34 @@ class PortfolioPromptService {
 
 ## 📊 出力形式
 
-最終的に以下のJSON形式でデータを整理します：
+最終的に以下のYAML形式でデータを整理します：
 
-\`\`\`json
-{
-  "portfolio": {
-    "assets": [
-      {
-        "name": "銘柄名",
-        "ticker": "ティッカー",
-        "type": "stock|etf|fund|bond|reit|crypto|cash",
-        "quantity": 100,
-        "averagePrice": 1500,
-        "currentPrice": 1600,
-        "currency": "JPY",
-        "market": "Japan|US|Global",
-        "sector": "セクター名"
-      }
-    ],
-    "totalValue": 総評価額,
-    "lastUpdated": "更新日時",
-    "baseCurrency": "JPY"
-  }
-}
+\`\`\`yaml
+portfolio:
+  baseCurrency: "JPY"
+  totalValue: 総評価額
+  lastUpdated: "更新日時"
+  
+  assets:
+    - name: "銘柄名"
+      ticker: "ティッカー"
+      type: "stock"  # stock|etf|fund|bond|reit|crypto|cash
+      quantity: 100
+      averagePrice: 1500
+      currentPrice: 1600
+      currency: "JPY"
+      market: "Japan"  # Japan|US|Global
+      sector: "セクター名"
+      
+    - name: "別の銘柄"
+      ticker: "別のティッカー"
+      type: "etf"
+      quantity: 50
+      averagePrice: 2000
+      currentPrice: 2100
+      currency: "JPY"
+      market: "US"
+      sector: "テクノロジー"
 \`\`\`
 
 準備ができましたら「準備完了」と入力してデータ収集を開始してください！`;
@@ -147,29 +152,34 @@ Please provide the following information in order:
 
 ## 📊 Output Format
 
-Finally, I will organize the data in this JSON format:
+Finally, I will organize the data in this YAML format:
 
-\`\`\`json
-{
-  "portfolio": {
-    "assets": [
-      {
-        "name": "Asset Name",
-        "ticker": "TICKER",
-        "type": "stock|etf|fund|bond|reit|crypto|cash",
-        "quantity": 100,
-        "averagePrice": 1500,
-        "currentPrice": 1600,
-        "currency": "JPY",
-        "market": "Japan|US|Global",
-        "sector": "Sector Name"
-      }
-    ],
-    "totalValue": "Total Portfolio Value",
-    "lastUpdated": "Update Date",
-    "baseCurrency": "JPY"
-  }
-}
+\`\`\`yaml
+portfolio:
+  baseCurrency: "JPY"
+  totalValue: Total Portfolio Value
+  lastUpdated: "Update Date"
+  
+  assets:
+    - name: "Asset Name"
+      ticker: "TICKER"
+      type: "stock"  # stock|etf|fund|bond|reit|crypto|cash
+      quantity: 100
+      averagePrice: 1500
+      currentPrice: 1600
+      currency: "JPY"
+      market: "Japan"  # Japan|US|Global
+      sector: "Sector Name"
+      
+    - name: "Another Asset"
+      ticker: "ANOTHER"
+      type: "etf"
+      quantity: 50
+      averagePrice: 2000
+      currentPrice: 2100
+      currency: "USD"
+      market: "US"
+      sector: "Technology"
 \`\`\`
 
 When you're ready, type "Ready to start" to begin data collection!`;
@@ -187,42 +197,60 @@ When you're ready, type "Ready to start" to begin data collection!`;
         '1. 上記プロンプトをコピーしてください',
         '2. Claude（claude.ai）またはGemini（gemini.google.com）を開いてください',
         '3. プロンプトを貼り付けて、保有資産の情報を入力してください',
-        '4. AIがJSON形式で出力したデータをコピーしてください',
-        '5. このアプリの「データ取り込み」タブでJSONを貼り付けてください'
+        '4. AIがYAML形式で出力したデータをコピーしてください',
+        '5. このアプリの「YAMLデータ」タブでYAMLを貼り付けてください'
       ] : [
         '1. Copy the prompt above',
         '2. Open Claude (claude.ai) or Gemini (gemini.google.com)',
         '3. Paste the prompt and enter your portfolio information',
-        '4. Copy the JSON data output by the AI',
-        '5. Paste the JSON in the "Data Import" tab of this app'
+        '4. Copy the YAML data output by the AI',
+        '5. Paste the YAML in the "YAML Data" tab of this app'
       ]
     };
   }
 
   /**
-   * 期待されるJSONフォーマットを取得
+   * 期待されるYAMLフォーマットを取得
    */
-  getExpectedJSONFormat() {
+  getExpectedYAMLFormat() {
     return {
-      portfolio: {
-        assets: [
-          {
-            name: "Asset Name (String)",
-            ticker: "Ticker Symbol (String, Optional)",
-            type: "Asset Type (stock|etf|fund|bond|reit|crypto|cash)",
-            quantity: "Quantity (Number)",
-            averagePrice: "Average Purchase Price (Number, Optional)",
-            currentPrice: "Current Price (Number, Optional)",
-            currency: "Currency (String, default: JPY)",
-            market: "Market (Japan|US|Global|Other, Optional)",
-            sector: "Sector Name (String, Optional)",
-            totalValue: "Total Value (Number, Optional)"
-          }
-        ],
-        totalValue: "Total Portfolio Value (Number)",
-        lastUpdated: "Last Update Date (ISO String)",
-        baseCurrency: "Base Currency (String, default: JPY)"
-      }
+      format: "YAML",
+      structure: {
+        portfolio: {
+          baseCurrency: "Base Currency (String, default: JPY)",
+          totalValue: "Total Portfolio Value (Number)",
+          lastUpdated: "Last Update Date (ISO String)",
+          assets: [
+            {
+              name: "Asset Name (String)",
+              ticker: "Ticker Symbol (String, Optional)",
+              type: "Asset Type (stock|etf|fund|bond|reit|crypto|cash)",
+              quantity: "Quantity (Number)",
+              averagePrice: "Average Purchase Price (Number, Optional)",
+              currentPrice: "Current Price (Number, Optional)",
+              currency: "Currency (String, default: JPY)",
+              market: "Market (Japan|US|Global|Other, Optional)",
+              sector: "Sector Name (String, Optional)",
+              totalValue: "Total Value (Number, Optional)"
+            }
+          ]
+        }
+      },
+      example: `portfolio:
+  baseCurrency: "JPY"
+  totalValue: 1000000
+  lastUpdated: "2025-07-08T20:00:00Z"
+  
+  assets:
+    - name: "トヨタ自動車"
+      ticker: "7203.T"
+      type: "stock"
+      quantity: 100
+      averagePrice: 2500
+      currentPrice: 2600
+      currency: "JPY"
+      market: "Japan"
+      sector: "自動車"`
     };
   }
 

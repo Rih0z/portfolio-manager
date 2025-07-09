@@ -7,6 +7,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import PortfolioSummary from '../../../../components/dashboard/PortfolioSummary';
+import { usePortfolioContext } from '../../../../hooks/usePortfolioContext';
 
 // React i18nextのモック
 jest.mock('react-i18next', () => ({
@@ -22,9 +23,8 @@ jest.mock('react-i18next', () => ({
 }));
 
 // usePortfolioContextフックのモック
-const mockPortfolioContext = jest.fn();
 jest.mock('../../../../hooks/usePortfolioContext', () => ({
-  usePortfolioContext: mockPortfolioContext
+  usePortfolioContext: jest.fn()
 }));
 
 // formatters utilsのモック
@@ -103,7 +103,7 @@ describe('PortfolioSummary Component', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockPortfolioContext.mockReturnValue(defaultMockData);
+    usePortfolioContext.mockReturnValue(defaultMockData);
   });
 
   describe('レンダリング', () => {

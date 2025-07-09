@@ -22,7 +22,9 @@
     "currency": "通貨",
     "amount": "金額",
     "percentage": "割合",
-    "total": "合計"
+    "total": "合計",
+    "loginRequired": "ログインが必要です",
+    "calculating": "計算中..."
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -32,7 +34,8 @@
     "simulation": "Simulation",
     "data": "Data",
     "dataImport": "データ取り込み",
-    "settings": "Settings"
+    "settings": "Settings",
+    "investmentCalculator": "投資配分"
   },
   "auth": {
     "login": "ログイン",
@@ -144,5 +147,24 @@
     "minValue": "{{min}}以上の値を入力してください",
     "maxValue": "{{max}}以下の値を入力してください",
     "positiveNumber": "正の数値を入力してください"
+  },
+  "investmentCalculator": {
+    "title": "投資配分計算",
+    "enterAmount": "入金額を入力",
+    "amountPlaceholder": "例: 100000",
+    "investmentAmount": "投資金額",
+    "calculate": "計算する",
+    "enterValidAmount": "有効な金額を入力してください",
+    "currentVsTarget": "現在の比率 vs 理想比率",
+    "current": "現在",
+    "target": "理想",
+    "results": "投資配分結果",
+    "totalInvestment": "入金額",
+    "shares": "購入株数",
+    "allocation": "配分比率",
+    "currentPrice": "現在価格",
+    "exchange": "取引所",
+    "copyAIPrompt": "AIプロンプトをコピー",
+    "promptCopied": "プロンプトがクリップボードにコピーされました"
   }
 }

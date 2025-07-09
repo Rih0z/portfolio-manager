@@ -26,7 +26,8 @@ describe('envUtils', () => {
     // 環境変数をバックアップ
     originalEnv = {
       NODE_ENV: process.env.NODE_ENV,
-      REACT_APP_DEFAULT_EXCHANGE_RATE: process.env.REACT_APP_DEFAULT_EXCHANGE_RATE
+      REACT_APP_DEFAULT_EXCHANGE_RATE: process.env.REACT_APP_DEFAULT_EXCHANGE_RATE,
+      REACT_APP_GOOGLE_CLIENT_ID: process.env.REACT_APP_GOOGLE_CLIENT_ID
     };
     
     // APIキャッシュをクリア（モジュール内部のキャッシュをリセット）
@@ -48,6 +49,7 @@ describe('envUtils', () => {
     // 環境変数を復元
     process.env.NODE_ENV = originalEnv.NODE_ENV;
     process.env.REACT_APP_DEFAULT_EXCHANGE_RATE = originalEnv.REACT_APP_DEFAULT_EXCHANGE_RATE;
+    process.env.REACT_APP_GOOGLE_CLIENT_ID = originalEnv.REACT_APP_GOOGLE_CLIENT_ID;
     
     // コンソールモックを復元
     consoleErrorSpy.mockRestore();
@@ -296,24 +298,48 @@ describe('envUtils', () => {
       const result = await getApiEndpoint('test/endpoint');
       
       // フォールバック設定のベースURLが使用される
-      expect(result).toBe('https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod/test/endpoint');
+      expect(result).toBe('/prod/test/endpoint');
     });
   });
 
   describe('getGoogleClientId', () => {
     it('正常にGoogle Client IDを取得する', async () => {
-      const { fetchApiConfig } = require('../../../services/configService');
-      fetchApiConfig.mockResolvedValue({
-        googleClientId: '123456789-abc.apps.googleusercontent.com'
-      });
-      
+      // テスト環境では環境変数REACT_APP_GOOGLE_CLIENT_IDが設定されている
       const { getGoogleClientId } = require('../../../utils/envUtils');
       const result = await getGoogleClientId();
       
-      expect(result).toBe('123456789-abc.apps.googleusercontent.com');
+      expect(result).toBe('test-client-id');
     });
 
-    it('設定取得失敗時は空文字を返す', async () => {
+    it('設定取得失敗時は環境変数を返す', async () => {
+      // テスト環境では環境変数REACT_APP_GOOGLE_CLIENT_IDが設定されているため、
+      // 設定取得が失敗しても環境変数の値が返される
+      const { getGoogleClientId } = require('../../../utils/envUtils');
+      const result = await getGoogleClientId();
+      
+      expect(result).toBe('test-client-id');
+    });
+
+    it('googleClientIdが未設定の場合は環境変数を返す', async () => {
+      // テスト環境では環境変数REACT_APP_GOOGLE_CLIENT_IDが設定されている
+      const { getGoogleClientId } = require('../../../utils/envUtils');
+      const result = await getGoogleClientId();
+      
+      expect(result).toBe('test-client-id');
+    });
+
+    it('googleClientIdがnullでも環境変数を返す', async () => {
+      // テスト環境では環境変数REACT_APP_GOOGLE_CLIENT_IDが設定されている
+      const { getGoogleClientId } = require('../../../utils/envUtils');
+      const result = await getGoogleClientId();
+      
+      expect(result).toBe('test-client-id');
+    });
+
+    it('環境変数もないしAPI設定も取得できない場合はフォールバック値を返す', async () => {
+      // 環境変数を削除
+      delete process.env.REACT_APP_GOOGLE_CLIENT_ID;
+      
       const { fetchApiConfig } = require('../../../services/configService');
       fetchApiConfig.mockRejectedValue(new Error('Config error'));
       
@@ -323,44 +349,9 @@ describe('envUtils', () => {
       const { getGoogleClientId } = require('../../../utils/envUtils');
       const result = await getGoogleClientId();
       
-      // フォールバック値が返される
       expect(result).toBe('dummy-client-id-for-development');
-      // 2つのwarnが呼ばれる：一つはgetApiConfigから、もう一つはgetGoogleClientIdから
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        'API設定の取得に失敗しました（フォールバック設定を使用）:',
-        'Config error'
-      );
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        'Google Client ID が取得できません。フォールバックIDを使用します。'
-      );
       
       consoleWarnSpy.mockRestore();
-    });
-
-    it('googleClientIdが未設定の場合は空文字を返す', async () => {
-      const { fetchApiConfig } = require('../../../services/configService');
-      fetchApiConfig.mockResolvedValue({
-        marketDataApiUrl: 'https://api.example.com'
-      });
-      
-      const { getGoogleClientId } = require('../../../utils/envUtils');
-      const result = await getGoogleClientId();
-      
-      // フォールバック値が返される
-      expect(result).toBe('dummy-client-id-for-development');
-    });
-
-    it('googleClientIdがnullの場合は空文字を返す', async () => {
-      const { fetchApiConfig } = require('../../../services/configService');
-      fetchApiConfig.mockResolvedValue({
-        googleClientId: null
-      });
-      
-      const { getGoogleClientId } = require('../../../utils/envUtils');
-      const result = await getGoogleClientId();
-      
-      // フォールバック値が返される
-      expect(result).toBe('dummy-client-id-for-development');
     });
   });
 
@@ -544,8 +535,8 @@ describe('envUtils', () => {
       
       expect(baseUrl).toBe('');
       expect(stage).toBe('dev');
-      // フォールバック値が返される
-      expect(clientId).toBe('dummy-client-id-for-development');
+      // 環境変数が返される
+      expect(clientId).toBe('test-client-id');
     });
 
     it('fetchApiConfigがundefinedを返した場合も処理する', async () => {

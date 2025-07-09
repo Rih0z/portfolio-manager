@@ -1,5 +1,3 @@
-import { jest } from '@jest/globals';
-
 // Mock dependencies
 jest.mock('../../../services/marketDataService', () => ({
   fetchStockData: jest.fn(),
@@ -257,13 +255,13 @@ describe('グローバル関数の登録', () => {
   });
 
   test('Node.js環境では関数が登録されない', () => {
-    global.window = undefined;
+    delete global.window;
     console.log = jest.fn();
 
     // モジュールを再読み込み
     require('../../../services/testJapaneseTickers');
 
-    expect(global.window).toBeUndefined();
+    expect(typeof global.window).toBe('undefined');
     expect(console.log).not.toHaveBeenCalledWith(
       'テスト関数が利用可能です。コンソールで testJapaneseTickers() を実行してください。'
     );

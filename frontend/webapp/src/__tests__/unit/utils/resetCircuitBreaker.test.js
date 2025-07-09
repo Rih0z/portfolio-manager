@@ -15,12 +15,15 @@ import { resetAllCircuitBreakers as mockResetAllCircuitBreakers } from '../../..
 describe('resetCircuitBreaker', () => {
   let consoleSpy;
 
-  beforeEach(() => {
+  beforeAll(() => {
     consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+  });
+
+  beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  afterEach(() => {
+  afterAll(() => {
     consoleSpy.mockRestore();
   });
 
@@ -41,6 +44,39 @@ describe('resetCircuitBreaker', () => {
 
       expect(mockResetAllCircuitBreakers).toHaveBeenCalledTimes(1);
       expect(consoleSpy).toHaveBeenCalledWith('All circuit breakers have been reset');
+    });
+
+    it('コンソールにリセット関数の利用方法が表示される（モジュール初期化時）', () => {
+      // モジュール初期化時のconsole.logはすでに実行されているため、
+      // この時点で出力されていることを間接的に確認
+      expect(typeof window.resetCircuitBreakers).toBe('function');
+      
+      // 新しいコンソールスパイを作成してリセット関数の動作を確認
+      const newConsoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+      window.resetCircuitBreakers();
+      expect(newConsoleSpy).toHaveBeenCalledWith('All circuit breakers have been reset');
+      newConsoleSpy.mockRestore();
+    });
+  });
+
+  describe('サーバー環境での動作', () => {
+    let originalWindow;
+
+    beforeEach(() => {
+      originalWindow = global.window;
+      delete global.window;
+    });
+
+    afterEach(() => {
+      global.window = originalWindow;
+    });
+
+    it('windowが未定義の場合もエラーが発生しない', () => {
+      expect(() => {
+        // モジュールを再インポートしてサーバー環境をシミュレート
+        jest.resetModules();
+        require('../../../utils/resetCircuitBreaker');
+      }).not.toThrow();
     });
   });
 });

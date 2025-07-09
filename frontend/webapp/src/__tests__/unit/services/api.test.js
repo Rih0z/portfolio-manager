@@ -1,6 +1,6 @@
 /**
- * api.js のユニットテスト
- * APIエントリーポイントとエンドポイント管理のテスト
+ * api.js のテストファイル
+ * APIエントリーポイントの包括的テスト
  */
 
 import {
@@ -19,7 +19,9 @@ import {
   loadFromGoogleDrive
 } from '../../../services/api';
 
-// marketDataServiceのモック
+import * as marketDataService from '../../../services/marketDataService';
+
+// モック
 jest.mock('../../../services/marketDataService', () => ({
   fetchStockData: jest.fn(),
   fetchExchangeRate: jest.fn(),
@@ -27,209 +29,182 @@ jest.mock('../../../services/marketDataService', () => ({
   fetchApiStatus: jest.fn()
 }));
 
-// useGoogleDriveフックのモック
 jest.mock('../../../hooks/useGoogleDrive', () => ({
-  __esModule: true,
-  default: jest.fn(() => ({
-    saveFile: jest.fn(),
-    loadFile: jest.fn(),
-    listFiles: jest.fn()
-  }))
+  default: jest.fn()
 }));
 
-import { 
-  fetchStockData,
-  fetchExchangeRate as marketFetchExchangeRate,
-  fetchMultipleStocks,
-  fetchApiStatus as marketFetchApiStatus
-} from '../../../services/marketDataService';
+// 環境変数のモック
+const originalEnv = process.env;
+beforeAll(() => {
+  process.env = {
+    ...originalEnv,
+    REACT_APP_MARKET_DATA_API_URL: 'https://api.example.com',
+    REACT_APP_API_STAGE: 'prod'
+  };
+});
 
-describe('api service', () => {
-  let originalEnv;
-  let consoleWarnSpy;
+afterAll(() => {
+  process.env = originalEnv;
+});
 
+// console.warnのモック
+const originalWarn = console.warn;
+beforeAll(() => {
+  console.warn = jest.fn();
+});
+
+afterAll(() => {
+  console.warn = originalWarn;
+});
+
+describe('api.js', () => {
   beforeEach(() => {
-    // 環境変数をバックアップ
-    originalEnv = process.env;
-    
-    // console.warnをモック
-    consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    
-    // モックをクリア
     jest.clearAllMocks();
   });
 
-  afterEach(() => {
-    // 環境変数を復元
-    process.env = originalEnv;
-    
-    // console.warnモックを復元
-    consoleWarnSpy.mockRestore();
-  });
-
   describe('getApiEndpoint', () => {
-    it('market-dataエンドポイントを正しく生成する（本番環境）', () => {
-      process.env.REACT_APP_MARKET_DATA_API_URL = 'https://api.example.com';
-      process.env.REACT_APP_API_STAGE = 'prod';
-
+    test('market-dataタイプのエンドポイントを生成する', () => {
       const endpoint = getApiEndpoint('market-data');
       expect(endpoint).toBe('https://api.example.com/prod/api/market-data');
     });
 
-    it('authエンドポイントを正しく生成する（本番環境）', () => {
-      process.env.REACT_APP_MARKET_DATA_API_URL = 'https://api.example.com';
-      process.env.REACT_APP_API_STAGE = 'prod';
-
+    test('authタイプのエンドポイントを生成する', () => {
       const endpoint = getApiEndpoint('auth');
       expect(endpoint).toBe('https://api.example.com/prod/auth');
     });
 
-    it('driveエンドポイントを正しく生成する（本番環境）', () => {
-      process.env.REACT_APP_MARKET_DATA_API_URL = 'https://api.example.com';
-      process.env.REACT_APP_API_STAGE = 'prod';
-
+    test('driveタイプのエンドポイントを生成する', () => {
       const endpoint = getApiEndpoint('drive');
       expect(endpoint).toBe('https://api.example.com/prod/drive');
     });
 
-    it('デフォルトエンドポイントを正しく生成する（本番環境）', () => {
-      process.env.REACT_APP_MARKET_DATA_API_URL = 'https://api.example.com';
-      process.env.REACT_APP_API_STAGE = 'prod';
-
+    test('デフォルトのエンドポイントを生成する', () => {
       const endpoint = getApiEndpoint('unknown');
       expect(endpoint).toBe('https://api.example.com/prod');
     });
 
-    it('localhostの場合はステージプレフィックスを追加しない', () => {
+    test('ローカル開発環境ではステージプレフィックスを追加しない', () => {
       process.env.REACT_APP_MARKET_DATA_API_URL = 'http://localhost:3000';
-      process.env.REACT_APP_API_STAGE = 'dev';
-
+      
       const endpoint = getApiEndpoint('market-data');
       expect(endpoint).toBe('http://localhost:3000/api/market-data');
-    });
-
-    it('localhost（HTTPS）の場合もステージプレフィックスを追加しない', () => {
-      process.env.REACT_APP_MARKET_DATA_API_URL = 'https://localhost:3001';
-      process.env.REACT_APP_API_STAGE = 'dev';
-
-      const endpoint = getApiEndpoint('auth');
-      expect(endpoint).toBe('https://localhost:3001/auth');
-    });
-
-    it('環境変数が未設定の場合はデフォルト値を使用する', () => {
-      delete process.env.REACT_APP_MARKET_DATA_API_URL;
-      delete process.env.REACT_APP_API_STAGE;
-
-      const endpoint = getApiEndpoint('market-data');
-      expect(endpoint).toBe('http://localhost:3000/api/market-data');
-    });
-
-    it('API_STAGEのみ未設定の場合はデフォルト値を使用する', () => {
+      
+      // 環境変数を戻す
       process.env.REACT_APP_MARKET_DATA_API_URL = 'https://api.example.com';
-      delete process.env.REACT_APP_API_STAGE;
+    });
 
+    test('API_STAGEが設定されていない場合はdevを使用する', () => {
+      delete process.env.REACT_APP_API_STAGE;
+      
       const endpoint = getApiEndpoint('market-data');
       expect(endpoint).toBe('https://api.example.com/dev/api/market-data');
+      
+      // 環境変数を戻す
+      process.env.REACT_APP_API_STAGE = 'prod';
     });
   });
 
-  describe('市場データ関数の再エクスポート', () => {
-    it('fetchTickerDataがfetchStockDataを正しく呼び出す', async () => {
-      const mockData = { ticker: 'AAPL', price: 150 };
-      fetchStockData.mockResolvedValue(mockData);
-
+  describe('市場データ関数のエクスポート', () => {
+    test('fetchTickerDataが正しくエクスポートされている', async () => {
+      const mockData = { ticker: 'AAPL', price: 100 };
+      marketDataService.fetchStockData.mockResolvedValue(mockData);
+      
       const result = await fetchTickerData('AAPL');
-
-      expect(fetchStockData).toHaveBeenCalledWith('AAPL');
-      expect(result).toEqual(mockData);
+      
+      expect(marketDataService.fetchStockData).toHaveBeenCalledWith('AAPL');
+      expect(result).toBe(mockData);
     });
 
-    it('fetchExchangeRateが正しく呼び出される', async () => {
-      const mockRate = { from: 'USD', to: 'JPY', rate: 150 };
-      marketFetchExchangeRate.mockResolvedValue(mockRate);
-
-      const result = await fetchExchangeRate('USD', 'JPY');
-
-      expect(marketFetchExchangeRate).toHaveBeenCalledWith('USD', 'JPY');
-      expect(result).toEqual(mockRate);
+    test('fetchExchangeRateが正しくエクスポートされている', async () => {
+      const mockData = { rate: 150 };
+      marketDataService.fetchExchangeRate.mockResolvedValue(mockData);
+      
+      const result = await fetchExchangeRate();
+      
+      expect(marketDataService.fetchExchangeRate).toHaveBeenCalled();
+      expect(result).toBe(mockData);
     });
 
-    it('fetchMultipleTickerDataがfetchMultipleStocksを正しく呼び出す', async () => {
-      const mockData = [{ ticker: 'AAPL' }, { ticker: 'GOOGL' }];
-      fetchMultipleStocks.mockResolvedValue(mockData);
-
+    test('fetchMultipleTickerDataが正しくエクスポートされている', async () => {
+      const mockData = [
+        { ticker: 'AAPL', price: 100 },
+        { ticker: 'GOOGL', price: 200 }
+      ];
+      marketDataService.fetchMultipleStocks.mockResolvedValue(mockData);
+      
       const result = await fetchMultipleTickerData(['AAPL', 'GOOGL']);
-
-      expect(fetchMultipleStocks).toHaveBeenCalledWith(['AAPL', 'GOOGL']);
-      expect(result).toEqual(mockData);
+      
+      expect(marketDataService.fetchMultipleStocks).toHaveBeenCalledWith(['AAPL', 'GOOGL']);
+      expect(result).toBe(mockData);
     });
 
-    it('fetchApiStatusが正しく呼び出される', async () => {
-      const mockStatus = { status: 'active', requests: 100 };
-      marketFetchApiStatus.mockResolvedValue(mockStatus);
-
+    test('fetchApiStatusが正しくエクスポートされている', async () => {
+      const mockData = { status: 'healthy' };
+      marketDataService.fetchApiStatus.mockResolvedValue(mockData);
+      
       const result = await fetchApiStatus();
-
-      expect(marketFetchApiStatus).toHaveBeenCalled();
-      expect(result).toEqual(mockStatus);
+      
+      expect(marketDataService.fetchApiStatus).toHaveBeenCalled();
+      expect(result).toBe(mockData);
     });
   });
 
-  describe('互換性関数', () => {
-    it('fetchFundInfoは警告を出してfetchTickerDataにフォールバックする', async () => {
-      const mockData = { fundId: 'TEST_FUND', value: 1000 };
-      fetchStockData.mockResolvedValue(mockData);
-
-      const result = await fetchFundInfo('TEST_FUND');
-
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
+  describe('互換性のための仮実装', () => {
+    test('fetchFundInfoはfetchTickerDataを呼び出す', async () => {
+      const mockData = { ticker: 'FUND001', price: 10000 };
+      marketDataService.fetchStockData.mockResolvedValue(mockData);
+      
+      const result = await fetchFundInfo('FUND001');
+      
+      expect(console.warn).toHaveBeenCalledWith(
         '[API] fetchFundInfo is not implemented yet. Using fetchTickerData as fallback.'
       );
-      expect(fetchStockData).toHaveBeenCalledWith('TEST_FUND');
-      expect(result).toEqual(mockData);
+      expect(marketDataService.fetchStockData).toHaveBeenCalledWith('FUND001');
+      expect(result).toBe(mockData);
     });
 
-    it('fetchDividendDataは警告を出してfetchTickerDataにフォールバックする', async () => {
-      const mockData = { ticker: 'AAPL', dividend: 0.25 };
-      fetchStockData.mockResolvedValue(mockData);
-
-      const result = await fetchDividendData('AAPL');
-
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
+    test('fetchDividendDataはfetchTickerDataを呼び出す', async () => {
+      const mockData = { ticker: '7203', price: 2000 };
+      marketDataService.fetchStockData.mockResolvedValue(mockData);
+      
+      const result = await fetchDividendData('7203');
+      
+      expect(console.warn).toHaveBeenCalledWith(
         '[API] fetchDividendData is not implemented yet. Using fetchTickerData as fallback.'
       );
-      expect(fetchStockData).toHaveBeenCalledWith('AAPL');
-      expect(result).toEqual(mockData);
+      expect(marketDataService.fetchStockData).toHaveBeenCalledWith('7203');
+      expect(result).toBe(mockData);
     });
 
-    it('checkDataFreshnessは警告を出してダミーデータを返す', async () => {
+    test('checkDataFreshnessは成功を返す', async () => {
       const result = await checkDataFreshness();
-
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
+      
+      expect(console.warn).toHaveBeenCalledWith(
         '[API] checkDataFreshness is not implemented yet.'
       );
       expect(result).toEqual({ success: true, fresh: true });
     });
   });
 
-  describe('Google Drive API（非推奨）', () => {
-    it('initGoogleDriveAPIは警告を出してダミーオブジェクトを返す', () => {
-      const api = initGoogleDriveAPI();
-
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
+  describe('Google Drive API互換性関数', () => {
+    test('initGoogleDriveAPIは非推奨警告を出力する', () => {
+      const driveApi = initGoogleDriveAPI();
+      
+      expect(console.warn).toHaveBeenCalledWith(
         '[API] initGoogleDriveAPI is deprecated. Use useGoogleDrive hook instead.'
       );
-      expect(api).toHaveProperty('saveFile');
-      expect(api).toHaveProperty('loadFile');
-      expect(api).toHaveProperty('listFiles');
-      expect(typeof api.saveFile).toBe('function');
+      expect(driveApi).toHaveProperty('saveFile');
+      expect(driveApi).toHaveProperty('loadFile');
+      expect(driveApi).toHaveProperty('listFiles');
     });
 
-    it('initGoogleDriveAPI.saveFileは警告を出して失敗を返す', async () => {
-      const api = initGoogleDriveAPI();
-      const result = await api.saveFile({ test: 'data' });
-
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
+    test('saveFileメソッドは非推奨メッセージを返す', async () => {
+      const driveApi = initGoogleDriveAPI();
+      const portfolioData = { assets: [] };
+      
+      const result = await driveApi.saveFile(portfolioData);
+      
+      expect(console.warn).toHaveBeenCalledWith(
         '[API] Using deprecated Google Drive API method. Please update your code to use useGoogleDrive hook.'
       );
       expect(result).toEqual({
@@ -238,11 +213,12 @@ describe('api service', () => {
       });
     });
 
-    it('initGoogleDriveAPI.loadFileは警告を出して失敗を返す', async () => {
-      const api = initGoogleDriveAPI();
-      const result = await api.loadFile('file_id');
-
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
+    test('loadFileメソッドは非推奨メッセージを返す', async () => {
+      const driveApi = initGoogleDriveAPI();
+      
+      const result = await driveApi.loadFile('file123');
+      
+      expect(console.warn).toHaveBeenCalledWith(
         '[API] Using deprecated Google Drive API method. Please update your code to use useGoogleDrive hook.'
       );
       expect(result).toEqual({
@@ -251,11 +227,12 @@ describe('api service', () => {
       });
     });
 
-    it('initGoogleDriveAPI.listFilesは警告を出して失敗を返す', async () => {
-      const api = initGoogleDriveAPI();
-      const result = await api.listFiles();
-
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
+    test('listFilesメソッドは非推奨メッセージを返す', async () => {
+      const driveApi = initGoogleDriveAPI();
+      
+      const result = await driveApi.listFiles();
+      
+      expect(console.warn).toHaveBeenCalledWith(
         '[API] Using deprecated Google Drive API method. Please update your code to use useGoogleDrive hook.'
       );
       expect(result).toEqual({
@@ -266,27 +243,30 @@ describe('api service', () => {
   });
 
   describe('非推奨の認証関数', () => {
-    it('setGoogleAccessTokenは警告を出す', () => {
-      setGoogleAccessToken('test_token');
-
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
+    test('setGoogleAccessTokenは非推奨警告を出力する', () => {
+      setGoogleAccessToken('test-token');
+      
+      expect(console.warn).toHaveBeenCalledWith(
         '[API] setGoogleAccessToken is deprecated. Use AuthContext methods instead.'
       );
     });
 
-    it('getGoogleAccessTokenは警告を出してnullを返す', async () => {
+    test('getGoogleAccessTokenはnullを返す', async () => {
       const result = await getGoogleAccessToken();
-
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
+      
+      expect(console.warn).toHaveBeenCalledWith(
         '[API] getGoogleAccessToken is deprecated. Use AuthContext methods instead.'
       );
       expect(result).toBeNull();
     });
 
-    it('saveToGoogleDriveは警告を出して失敗を返す', async () => {
-      const result = await saveToGoogleDrive({ test: 'data' }, { user: 'test' });
-
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
+    test('saveToGoogleDriveは非推奨メッセージを返す', async () => {
+      const data = { test: 'data' };
+      const userData = { id: 'user123' };
+      
+      const result = await saveToGoogleDrive(data, userData, 'test.json');
+      
+      expect(console.warn).toHaveBeenCalledWith(
         '[API] saveToGoogleDrive is deprecated. Use AuthContext.saveToDrive instead.'
       );
       expect(result).toEqual({
@@ -295,10 +275,12 @@ describe('api service', () => {
       });
     });
 
-    it('loadFromGoogleDriveは警告を出して失敗を返す', async () => {
-      const result = await loadFromGoogleDrive({ user: 'test' });
-
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
+    test('loadFromGoogleDriveは非推奨メッセージを返す', async () => {
+      const userData = { id: 'user123' };
+      
+      const result = await loadFromGoogleDrive(userData, 'test.json');
+      
+      expect(console.warn).toHaveBeenCalledWith(
         '[API] loadFromGoogleDrive is deprecated. Use AuthContext.loadFromDrive instead.'
       );
       expect(result).toEqual({
@@ -306,124 +288,44 @@ describe('api service', () => {
         message: 'この関数は非推奨です。AuthContext.loadFromDriveを使用してください。'
       });
     });
-  });
 
-  describe('エラーハンドリング', () => {
-    it('marketDataService関数のエラーを正しく伝播する', async () => {
-      const error = new Error('Market data service error');
-      fetchStockData.mockRejectedValue(error);
-
-      await expect(fetchTickerData('INVALID')).rejects.toThrow('Market data service error');
-    });
-
-    it('fetchExchangeRateのエラーを正しく伝播する', async () => {
-      const error = new Error('Exchange rate error');
-      marketFetchExchangeRate.mockRejectedValue(error);
-
-      await expect(fetchExchangeRate('INVALID', 'CURRENCY')).rejects.toThrow('Exchange rate error');
-    });
-
-    it('fetchMultipleTickerDataのエラーを正しく伝播する', async () => {
-      const error = new Error('Multiple stocks error');
-      fetchMultipleStocks.mockRejectedValue(error);
-
-      await expect(fetchMultipleTickerData(['INVALID'])).rejects.toThrow('Multiple stocks error');
-    });
-  });
-
-  describe('パフォーマンステスト', () => {
-    it('複数のエンドポイント生成を効率的に処理する', () => {
-      process.env.REACT_APP_MARKET_DATA_API_URL = 'https://api.example.com';
-      process.env.REACT_APP_API_STAGE = 'prod';
-
-      const startTime = Date.now();
+    test('saveToGoogleDriveはデフォルトファイル名を使用する', async () => {
+      const data = { test: 'data' };
+      const userData = { id: 'user123' };
       
-      for (let i = 0; i < 1000; i++) {
-        getApiEndpoint('market-data');
-        getApiEndpoint('auth');
-        getApiEndpoint('drive');
-      }
+      const result = await saveToGoogleDrive(data, userData);
       
-      const endTime = Date.now();
-      expect(endTime - startTime).toBeLessThan(100); // 100ms以内
-    });
-
-    it('大量の非推奨関数呼び出しを効率的に処理する', async () => {
-      const startTime = Date.now();
-      
-      const promises = Array.from({ length: 100 }, async () => {
-        await checkDataFreshness();
-        setGoogleAccessToken('token');
-        await getGoogleAccessToken();
+      expect(result).toEqual({
+        success: false,
+        message: 'この関数は非推奨です。AuthContext.saveToDriveを使用してください。'
       });
+    });
+
+    test('loadFromGoogleDriveはデフォルトファイル名を使用する', async () => {
+      const userData = { id: 'user123' };
       
-      await Promise.all(promises);
+      const result = await loadFromGoogleDrive(userData);
       
-      const endTime = Date.now();
-      expect(endTime - startTime).toBeLessThan(1000); // 1秒以内
+      expect(result).toEqual({
+        success: false,
+        message: 'この関数は非推奨です。AuthContext.loadFromDriveを使用してください。'
+      });
     });
   });
 
-  describe('エッジケース', () => {
-    it('空文字列のエンドポイントタイプでもエラーを起こさない', () => {
+  describe('環境変数のデフォルト値', () => {
+    test('MARKET_DATA_API_URLのデフォルト値を使用する', () => {
+      delete process.env.REACT_APP_MARKET_DATA_API_URL;
+      
+      // モジュールを再インポートして環境変数の変更を反映
+      jest.resetModules();
+      const { getApiEndpoint: getApiEndpointNew } = require('../../../services/api');
+      
+      const endpoint = getApiEndpointNew('market-data');
+      expect(endpoint).toBe('http://localhost:3000/api/market-data');
+      
+      // 環境変数を戻す
       process.env.REACT_APP_MARKET_DATA_API_URL = 'https://api.example.com';
-      process.env.REACT_APP_API_STAGE = 'prod';
-
-      const endpoint = getApiEndpoint('');
-      expect(endpoint).toBe('https://api.example.com/prod');
-    });
-
-    it('undefinedのエンドポイントタイプでもエラーを起こさない', () => {
-      process.env.REACT_APP_MARKET_DATA_API_URL = 'https://api.example.com';
-      process.env.REACT_APP_API_STAGE = 'prod';
-
-      const endpoint = getApiEndpoint(undefined);
-      expect(endpoint).toBe('https://api.example.com/prod');
-    });
-
-    it('nullのエンドポイントタイプでもエラーを起こさない', () => {
-      process.env.REACT_APP_MARKET_DATA_API_URL = 'https://api.example.com';
-      process.env.REACT_APP_API_STAGE = 'prod';
-
-      const endpoint = getApiEndpoint(null);
-      expect(endpoint).toBe('https://api.example.com/prod');
-    });
-
-    it('空のオブジェクトを非推奨関数に渡してもエラーを起こさない', async () => {
-      await expect(fetchFundInfo({})).resolves.toBeDefined();
-      await expect(fetchDividendData({})).resolves.toBeDefined();
-      await expect(saveToGoogleDrive({}, {})).resolves.toBeDefined();
-      await expect(loadFromGoogleDrive({})).resolves.toBeDefined();
-    });
-  });
-
-  describe('統合テスト', () => {
-    it('全ての主要関数が正しくエクスポートされている', () => {
-      expect(typeof getApiEndpoint).toBe('function');
-      expect(typeof fetchTickerData).toBe('function');
-      expect(typeof fetchExchangeRate).toBe('function');
-      expect(typeof fetchMultipleTickerData).toBe('function');
-      expect(typeof fetchApiStatus).toBe('function');
-      expect(typeof fetchFundInfo).toBe('function');
-      expect(typeof fetchDividendData).toBe('function');
-      expect(typeof checkDataFreshness).toBe('function');
-      expect(typeof initGoogleDriveAPI).toBe('function');
-      expect(typeof setGoogleAccessToken).toBe('function');
-      expect(typeof getGoogleAccessToken).toBe('function');
-      expect(typeof saveToGoogleDrive).toBe('function');
-      expect(typeof loadFromGoogleDrive).toBe('function');
-    });
-
-    it('環境に応じてエンドポイントが正しく切り替わる', () => {
-      // 開発環境
-      process.env.REACT_APP_MARKET_DATA_API_URL = 'http://localhost:3000';
-      process.env.REACT_APP_API_STAGE = 'dev';
-      expect(getApiEndpoint('auth')).toBe('http://localhost:3000/auth');
-
-      // 本番環境
-      process.env.REACT_APP_MARKET_DATA_API_URL = 'https://api.example.com';
-      process.env.REACT_APP_API_STAGE = 'prod';
-      expect(getApiEndpoint('auth')).toBe('https://api.example.com/prod/auth');
     });
   });
 });

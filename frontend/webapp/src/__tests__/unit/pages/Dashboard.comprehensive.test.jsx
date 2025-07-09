@@ -130,9 +130,9 @@ describe('Dashboard - 包括的テスト', () => {
     it('資産がない場合に空の状態が表示される', () => {
       renderDashboard();
       
-      expect(screen.getByText('dashboard.noPortfolio')).toBeInTheDocument();
-      expect(screen.getByText('dashboard.setupInstructions')).toBeInTheDocument();
-      expect(screen.getByText('dashboard.goToAiStrategy')).toBeInTheDocument();
+      expect(screen.getByText('投資を始めましょう')).toBeInTheDocument();
+      expect(screen.getByText(/AIがあなたに最適な投資戦略を提案します/)).toBeInTheDocument();
+      expect(screen.getByText('AI投資戦略を始める')).toBeInTheDocument();
     });
 
     it('空の状態のイラスト（SVG）が表示される', () => {

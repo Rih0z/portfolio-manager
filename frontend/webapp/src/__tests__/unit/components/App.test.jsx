@@ -230,6 +230,30 @@ describe('App Component - 100% Coverage', () => {
       
       expect(consoleErrorSpy).toHaveBeenCalledWith('Google OAuth script load error:', testError);
     });
+
+    it('Google Client IDがnullの場合はダミーIDを使用する', async () => {
+      envUtils.initializeApiConfig.mockResolvedValue();
+      envUtils.getGoogleClientId.mockResolvedValue(null); // 90行目: null || 'dummy-client-id'
+      
+      render(<App />);
+      
+      await waitFor(() => {
+        const googleProvider = screen.getByTestId('google-oauth-provider');
+        expect(googleProvider).toHaveAttribute('data-client-id', 'dummy-client-id');
+      });
+    });
+
+    it('Google Client IDが空文字の場合はダミーIDを使用する', async () => {
+      envUtils.initializeApiConfig.mockResolvedValue();
+      envUtils.getGoogleClientId.mockResolvedValue(''); // 90行目: '' || 'dummy-client-id'
+      
+      render(<App />);
+      
+      await waitFor(() => {
+        const googleProvider = screen.getByTestId('google-oauth-provider');
+        expect(googleProvider).toHaveAttribute('data-client-id', 'dummy-client-id');
+      });
+    });
   });
 
   describe('ContextConnector', () => {
@@ -290,6 +314,34 @@ describe('App Component - 100% Coverage', () => {
         expect(screen.getByTestId('auth-provider')).toBeInTheDocument();
       });
       
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    it('authにsetPortfolioContextRefが存在しない場合の処理', async () => {
+      useAuthHook.useAuth.mockReturnValue({ otherProperty: 'value' }); // setPortfolioContextRefなし
+      usePortfolioContextHook.usePortfolioContext.mockReturnValue({ portfolioData: {} });
+      
+      render(<App />);
+      
+      await waitFor(() => {
+        expect(screen.getByTestId('auth-provider')).toBeInTheDocument();
+      });
+      
+      // エラーが発生しないことを確認（105行目の条件分岐）
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    });
+
+    it('portfolioがundefinedの場合の処理', async () => {
+      useAuthHook.useAuth.mockReturnValue({ setPortfolioContextRef: jest.fn() });
+      usePortfolioContextHook.usePortfolioContext.mockReturnValue(undefined);
+      
+      render(<App />);
+      
+      await waitFor(() => {
+        expect(screen.getByTestId('auth-provider')).toBeInTheDocument();
+      });
+      
+      // エラーが発生しないことを確認（106行目の条件分岐）
       expect(consoleErrorSpy).not.toHaveBeenCalled();
     });
   });

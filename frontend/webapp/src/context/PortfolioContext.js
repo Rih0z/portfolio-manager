@@ -1855,6 +1855,7 @@ export const PortfolioProvider = ({ children }) => {
     annualDividends, // 年間配当金を追加
     dataSource,
     lastSyncTime,
+    currentUser,                // 追加
     aiPromptTemplate,           // 追加
     updateAiPromptTemplate,     // 追加
     toggleCurrency, 

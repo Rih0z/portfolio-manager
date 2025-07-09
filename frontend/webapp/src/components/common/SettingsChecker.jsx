@@ -34,7 +34,7 @@ const SettingsChecker = ({ children }) => {
         const hasNoSettings = 
           currentAssets.length === 0 && 
           targetPortfolio.length === 0 &&
-          (!additionalBudget || additionalBudget.amount === 0);
+          (!additionalBudget || !additionalBudget.amount || additionalBudget.amount === 0);
         
         // 初期設定完了フラグもチェック
         const initialSetupCompleted = localStorage.getItem('initialSetupCompleted');

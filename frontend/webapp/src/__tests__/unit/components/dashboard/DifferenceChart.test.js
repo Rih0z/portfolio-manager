@@ -7,11 +7,11 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import DifferenceChart from '../../../../components/dashboard/DifferenceChart';
+import { usePortfolioContext } from '../../../../hooks/usePortfolioContext';
 
 // usePortfolioContextフックのモック
-const mockPortfolioContext = jest.fn();
 jest.mock('../../../../hooks/usePortfolioContext', () => ({
-  usePortfolioContext: mockPortfolioContext
+  usePortfolioContext: jest.fn()
 }));
 
 // rechartsライブラリのモック
@@ -35,7 +35,7 @@ jest.mock('recharts', () => ({
   ),
   Tooltip: ({ content, ...props }) => (
     <div data-testid="tooltip" {...props}>
-      {content && React.createElement(content, { active: false, payload: [] })}
+      {content && typeof content === 'function' ? content({ active: false, payload: [] }) : content}
     </div>
   ),
   ResponsiveContainer: ({ children, width, height, ...props }) => (
@@ -85,7 +85,7 @@ describe('DifferenceChart Component', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockPortfolioContext.mockReturnValue(defaultMockData);
+    usePortfolioContext.mockReturnValue(defaultMockData);
   });
 
   describe('レンダリング', () => {

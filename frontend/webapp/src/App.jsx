@@ -30,6 +30,7 @@ import Settings from './pages/Settings';
 import Simulation from './pages/Simulation';
 import DataIntegration from './pages/DataIntegration';
 import DataImport from './pages/DataImport';
+import InvestmentCalculator from './pages/InvestmentCalculator';
 import SettingsChecker from './components/common/SettingsChecker';
 import { useAuth } from './hooks/useAuth';
 import { usePortfolioContext } from './hooks/usePortfolioContext';
@@ -176,6 +177,7 @@ const App = () => {
                     <Routes>
                       <Route path="/" element={<Dashboard />} />
                       <Route path="/ai-advisor" element={<AIAdvisor />} />
+                      <Route path="/investment-calculator" element={<InvestmentCalculator />} />
                       <Route path="/settings" element={<Settings />} />
                       <Route path="/data" element={<DataIntegration />} />
                       <Route path="/data-import" element={<DataImport />} />

@@ -1299,6 +1299,7 @@ Based on the above information, please advise me on:
                       </span>
                     </button>
                   </div>
+                </div>
               </div>
 
               {/* 現在の資産と理想のポートフォリオ */}
@@ -1623,6 +1624,7 @@ Based on the above information, please advise me on:
               )}
             </div>
           )}
+        </div>
         
         {/* Navigation Buttons */}
         <div className="max-w-4xl mx-auto">
@@ -1656,16 +1658,6 @@ Based on the above information, please advise me on:
           </div>
         </div>
         
-        {/* AI Data Import Modal - Temporarily disabled for build */}
-        {/* {isAIImportModalOpen && (
-          <AIDataImportModal
-            isOpen={isAIImportModalOpen}
-            onClose={handleCloseAIImportModal}
-            dataType={importDataType}
-            userContext={userData}
-            onImportComplete={handleImportComplete}
-          />
-        )} */}
       </div>
     </div>
   );

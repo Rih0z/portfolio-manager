@@ -119,7 +119,7 @@ const TestConsumer = ({ callback }) => {
   const context = React.useContext(PortfolioContext);
   
   React.useEffect(() => {
-    if (callback && context) {
+    if (callback) {
       callback(context);
     }
   }, [callback, context]);
@@ -211,6 +211,9 @@ describe('PortfolioContext', () => {
       
       const encryptedData = btoa(encodeURIComponent(JSON.stringify(testData)));
       mockLocalStorage.getItem.mockReturnValue(encryptedData);
+      
+      // 為替レート更新のデバウンスを無効化してループを防止
+      mockShouldUpdateExchangeRate.mockReturnValue(false);
 
       let contextValue = null;
       
@@ -220,8 +223,11 @@ describe('PortfolioContext', () => {
         </PortfolioProvider>
       );
       
-      // 初期化処理を待つ
+      // initializeData を直接呼び出して強制的に初期化
       await act(async () => {
+        if (contextValue?.initializeData) {
+          await contextValue.initializeData();
+        }
         jest.runAllTimers();
       });
 

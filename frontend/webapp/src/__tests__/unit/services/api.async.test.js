@@ -241,7 +241,7 @@ describe('api service - async integration', () => {
 
       expect(fetchMultipleStocks).toHaveBeenCalledWith(tickers);
       expect(result.data).toHaveProperty('AAPL');
-      expect(result.data).toHaveProperty('7203.T');
+      expect(result.data['7203.T']).toBeDefined();
       expect(Object.keys(result.data)).toHaveLength(5);
     });
 

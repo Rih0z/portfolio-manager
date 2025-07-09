@@ -22,7 +22,9 @@
     "currency": "Currency",
     "amount": "Amount",
     "percentage": "Percentage",
-    "total": "Total"
+    "total": "Total",
+    "loginRequired": "Login required",
+    "calculating": "Calculating..."
   },
   "navigation": {
     "dashboard": "Dashboard",
@@ -32,7 +34,8 @@
     "simulation": "Simulation",
     "data": "Data Management",
     "dataImport": "Data Import",
-    "settings": "Settings"
+    "settings": "Settings",
+    "investmentCalculator": "Allocation"
   },
   "auth": {
     "login": "Login",
@@ -144,5 +147,24 @@
     "minValue": "Please enter a value of {{min}} or greater",
     "maxValue": "Please enter a value of {{max}} or less",
     "positiveNumber": "Please enter a positive number"
+  },
+  "investmentCalculator": {
+    "title": "Investment Allocation Calculator",
+    "enterAmount": "Enter Investment Amount",
+    "amountPlaceholder": "e.g. 100000",
+    "investmentAmount": "Investment Amount",
+    "calculate": "Calculate",
+    "enterValidAmount": "Please enter a valid amount",
+    "currentVsTarget": "Current vs Target Allocation",
+    "current": "Current",
+    "target": "Target",
+    "results": "Allocation Results",
+    "totalInvestment": "Total Investment",
+    "shares": "Shares to Buy",
+    "allocation": "Allocation %",
+    "currentPrice": "Current Price",
+    "exchange": "Exchange",
+    "copyAIPrompt": "Copy AI Prompt",
+    "promptCopied": "Prompt copied to clipboard"
   }
 }

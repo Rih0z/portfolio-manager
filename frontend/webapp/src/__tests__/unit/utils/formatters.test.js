@@ -5,6 +5,7 @@
 
 import {
   formatCurrency,
+  formatPercent,
   formatPercentage,
   formatNumber,
   formatDate,
@@ -79,6 +80,32 @@ describe('formatters', () => {
     it('サポートされていない通貨でもエラーが発生しない', () => {
       expect(() => formatCurrency(1000, 'EUR')).not.toThrow();
       expect(formatCurrency(1000, 'EUR')).toContain('1,000');
+    });
+  });
+
+  describe('formatPercent', () => {
+    it('基本的なパーセント表示', () => {
+      expect(formatPercent(10.5, 2)).toBe('10.50%');
+      expect(formatPercent(10.5, 1)).toBe('10.5%');
+      expect(formatPercent(10.5, 0)).toBe('11%');
+      expect(formatPercent(-5.25, 2)).toBe('-5.25%');
+      expect(formatPercent(0, 2)).toBe('0%'); // .00は省略される
+    });
+
+    it('整数値の処理', () => {
+      expect(formatPercent(10, 2)).toBe('10%'); // .00は省略される
+      expect(formatPercent(10, 1)).toBe('10%');
+    });
+
+    it('デフォルトの小数点桁数（2桁）', () => {
+      expect(formatPercent(10.567)).toBe('10.57%');
+    });
+
+    it('無効な値の処理', () => {
+      expect(formatPercent(NaN)).toBe('N/A');
+      expect(formatPercent('not a number')).toBe('N/A');
+      expect(formatPercent(null)).toBe('N/A');
+      expect(formatPercent(undefined)).toBe('N/A');
     });
   });
 
@@ -172,6 +199,51 @@ describe('formatters', () => {
     it('非常に小さな値を正しくフォーマットする', () => {
       expect(formatNumber(0.001)).toBe('0.001');
       expect(formatNumber(0.000001, 6)).toBe('0.000001');
+    });
+  });
+
+  describe('formatDateIntl', () => {
+    it('日本語ロケールでフォーマットする', () => {
+      const date = new Date('2024-01-15T10:30:00Z');
+      const result = formatDateIntl(date);
+      expect(result).toBe('2024/01/15');
+    });
+
+    it('英語ロケールでフォーマットする', () => {
+      const date = new Date('2024-01-15T10:30:00Z');
+      const result = formatDateIntl(date, {}, 'en-US');
+      expect(result).toBe('01/15/2024');
+    });
+
+    it('カスタムオプションを適用する', () => {
+      const date = new Date('2024-01-15T10:30:00Z');
+      const options = { year: 'numeric', month: 'long', day: 'numeric' };
+      const result = formatDateIntl(date, options, 'ja-JP');
+      expect(result).toBe('2024年1月15日');
+    });
+
+    it('文字列を受け付ける', () => {
+      const result = formatDateIntl('2024-01-15T10:30:00Z');
+      expect(result).toBe('2024/01/15');
+    });
+
+    it('タイムスタンプを受け付ける', () => {
+      const timestamp = new Date('2024-01-15T10:30:00Z').getTime();
+      const result = formatDateIntl(timestamp);
+      expect(result).toBe('2024/01/15');
+    });
+
+    it('無効な日付を適切に処理する', () => {
+      expect(formatDateIntl(null)).toBe('Invalid Date');
+      expect(formatDateIntl(undefined)).toBe('Invalid Date');
+      expect(formatDateIntl('')).toBe('Invalid Date');
+      expect(formatDateIntl('invalid-date')).toBe('Invalid Date');
+      expect(formatDateIntl(NaN)).toBe('Invalid Date');
+    });
+
+    it('エラーハンドリング', () => {
+      // 非常に大きな年でもInvalid Dateを返す
+      expect(formatDateIntl(new Date('999999-01-01'))).toBe('Invalid Date');
     });
   });
 

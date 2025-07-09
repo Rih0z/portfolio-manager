@@ -7,11 +7,11 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import AssetsTable from '../../../../components/dashboard/AssetsTable';
+import { usePortfolioContext } from '../../../../hooks/usePortfolioContext';
 
 // usePortfolioContextフックのモック
-const mockPortfolioContext = jest.fn();
 jest.mock('../../../../hooks/usePortfolioContext', () => ({
-  usePortfolioContext: mockPortfolioContext
+  usePortfolioContext: jest.fn()
 }));
 
 // formatters utilsのモック
@@ -110,7 +110,7 @@ describe('AssetsTable Component', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockPortfolioContext.mockReturnValue(defaultMockData);
+    usePortfolioContext.mockReturnValue(defaultMockData);
   });
 
   describe('レンダリング', () => {
@@ -164,7 +164,7 @@ describe('AssetsTable Component', () => {
 
   describe('資産がない場合', () => {
     test('空の状態が正しく表示される', () => {
-      mockPortfolioContext.mockReturnValue({
+      usePortfolioContext.mockReturnValue({
         ...defaultMockData,
         currentAssets: []
       });
@@ -231,7 +231,7 @@ describe('AssetsTable Component', () => {
   describe('差分表示の色分け', () => {
     test('プラスの差分が緑色で表示される', () => {
       // targetPercentage > currentPercentage になるようにデータを調整
-      mockPortfolioContext.mockReturnValue({
+      usePortfolioContext.mockReturnValue({
         ...defaultMockData,
         targetPortfolio: [
           { id: '1', targetPercentage: 80 }, // 現在より高い目標
@@ -252,7 +252,7 @@ describe('AssetsTable Component', () => {
 
     test('マイナスの差分が赤色で表示される', () => {
       // targetPercentage < currentPercentage になるようにデータを調整
-      mockPortfolioContext.mockReturnValue({
+      usePortfolioContext.mockReturnValue({
         ...defaultMockData,
         targetPortfolio: [
           { id: '1', targetPercentage: 10 }, // 現在より低い目標
@@ -298,7 +298,7 @@ describe('AssetsTable Component', () => {
     });
 
     test('推定手数料のバッジが黄色で表示される', () => {
-      mockPortfolioContext.mockReturnValue({
+      usePortfolioContext.mockReturnValue({
         ...defaultMockData,
         currentAssets: [
           {
@@ -351,7 +351,7 @@ describe('AssetsTable Component', () => {
       ];
 
       frequencies.forEach(({ frequency, expected }) => {
-        mockPortfolioContext.mockReturnValue({
+        usePortfolioContext.mockReturnValue({
           ...defaultMockData,
           currentAssets: [
             {
@@ -384,7 +384,7 @@ describe('AssetsTable Component', () => {
     });
 
     test('JPY to USD 換算が正しく処理される', () => {
-      mockPortfolioContext.mockReturnValue({
+      usePortfolioContext.mockReturnValue({
         ...defaultMockData,
         baseCurrency: 'USD'
       });
@@ -416,7 +416,7 @@ describe('AssetsTable Component', () => {
 
   describe('保有数の表示', () => {
     test('保有数が小数点付きで表示される', () => {
-      mockPortfolioContext.mockReturnValue({
+      usePortfolioContext.mockReturnValue({
         ...defaultMockData,
         currentAssets: [
           {
@@ -434,7 +434,7 @@ describe('AssetsTable Component', () => {
 
   describe('Target配分がない場合', () => {
     test('目標割合が0%で表示される', () => {
-      mockPortfolioContext.mockReturnValue({
+      usePortfolioContext.mockReturnValue({
         ...defaultMockData,
         targetPortfolio: []
       });
@@ -462,7 +462,7 @@ describe('AssetsTable Component', () => {
     });
 
     test('totalAssetsが0の場合の割合計算', () => {
-      mockPortfolioContext.mockReturnValue({
+      usePortfolioContext.mockReturnValue({
         ...defaultMockData,
         totalAssets: 0
       });

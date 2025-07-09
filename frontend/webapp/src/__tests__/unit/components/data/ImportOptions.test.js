@@ -345,12 +345,17 @@ describe('ImportOptions Component', () => {
       const textButton = screen.getByRole('radio', { name: 'テキスト入力' });
       fireEvent.click(textButton);
       
+      // テキストエリアが表示されることを確認
+      await waitFor(() => {
+        expect(screen.getByLabelText('データを貼り付け')).toBeInTheDocument();
+      });
+      
       const importButton = screen.getByText('インポート');
       fireEvent.click(importButton);
       
       await waitFor(() => {
         expect(screen.getByText('インポートするデータを入力してください')).toBeInTheDocument();
-      });
+      }, { timeout: 3000 });
     });
 
     test('無効なJSONデータのエラー処理', async () => {
