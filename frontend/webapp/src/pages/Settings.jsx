@@ -22,6 +22,7 @@ import HoldingsEditor from '../components/settings/HoldingsEditor';
 import AllocationEditor from '../components/settings/AllocationEditor';
 import AiPromptSettings from '../components/settings/AiPromptSettings';
 import ResetSettings from '../components/settings/ResetSettings';
+import PortfolioYamlConverter from '../components/settings/PortfolioYamlConverter';
 
 const Settings = () => {
   return (
@@ -44,6 +45,9 @@ const Settings = () => {
         <h2 className="text-xl font-semibold mb-4">保有資産の設定</h2>
         <HoldingsEditor />
       </div>
+
+      {/* ポートフォリオYAML変換を追加 */}
+      <PortfolioYamlConverter />
 
       <div className="bg-white rounded-lg shadow p-6">
         <h2 className="text-xl font-semibold mb-4">目標配分の設定</h2>

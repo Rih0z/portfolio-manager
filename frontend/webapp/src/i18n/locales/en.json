@@ -113,7 +113,31 @@
     "advanced": "Advanced Settings",
     "exchangeRate": "Exchange Rate",
     "autoUpdate": "Auto Update",
-    "dataRefresh": "Data Refresh Interval"
+    "dataRefresh": "Data Refresh Interval",
+    "portfolioYamlConverter": {
+      "title": "Portfolio YAML Converter",
+      "step1Title": "Step 1: Generate YAML Conversion Prompt",
+      "step1Description": "Prompt to convert current holdings to YAML format",
+      "step1Help": "Send this prompt to Claude (claude.ai) to convert your holdings information to YAML format.",
+      "showPrompt": "Show Prompt",
+      "hidePrompt": "Hide Prompt",
+      "copy": "Copy",
+      "step2Title": "Step 2: Paste YAML Result and Register",
+      "step2Description": "Paste YAML result from Claude",
+      "placeholder": "Paste YAML portfolio data from Claude here...\n\nportfolio:\n  baseCurrency: \"JPY\"\n  assets:\n    - name: \"Toyota Motor\"\n      ticker: \"7203.T\"\n      quantity: 100\n      currentPrice: 2500",
+      "registering": "Registering...",
+      "register": "Register as Current Holdings",
+      "validationSuccess": "Data Validation Successful",
+      "validationError": "Data Validation Error",
+      "importSuccess": "asset holdings imported",
+      "importError": "Import error",
+      "howToUse": "How to Use",
+      "step1": "Click \"Show Prompt\" to view the conversion prompt",
+      "step2": "Copy the prompt and send it to Claude (claude.ai)",
+      "step3": "Provide your holdings information to Claude",
+      "step4": "Copy and paste the YAML result from Claude",
+      "step5": "Click \"Register as Current Holdings\""
+    }
   },
   "messages": {
     "saveSuccess": "Successfully saved",

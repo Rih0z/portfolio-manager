@@ -113,7 +113,31 @@
     "advanced": "詳細設定",
     "exchangeRate": "為替レート",
     "autoUpdate": "自動更新",
-    "dataRefresh": "データ更新間隔"
+    "dataRefresh": "データ更新間隔",
+    "portfolioYamlConverter": {
+      "title": "ポートフォリオYAML変換",
+      "step1Title": "ステップ1: YAML変換プロンプトを生成",
+      "step1Description": "現在の保有銘柄をYAML形式に変換するプロンプト",
+      "step1Help": "このプロンプトをClaude（claude.ai）に送信して、あなたの保有銘柄情報をYAML形式に変換してもらいます。",
+      "showPrompt": "プロンプトを表示",
+      "hidePrompt": "プロンプトを隠す",
+      "copy": "コピー",
+      "step2Title": "ステップ2: YAML結果を貼り付けて登録",
+      "step2Description": "ClaudeからのYAML結果を貼り付け",
+      "placeholder": "ClaudeからのYAML形式のポートフォリオデータをここに貼り付けてください...\n\nportfolio:\n  baseCurrency: \"JPY\"\n  assets:\n    - name: \"トヨタ自動車\"\n      ticker: \"7203.T\"\n      quantity: 100\n      currentPrice: 2500",
+      "registering": "登録中...",
+      "register": "現在の保有資産として登録",
+      "validationSuccess": "データ検証成功",
+      "validationError": "データ検証エラー",
+      "importSuccess": "件の保有資産データをインポートしました",
+      "importError": "インポートエラー",
+      "howToUse": "使い方",
+      "step1": "「プロンプトを表示」をクリックして変換プロンプトを確認",
+      "step2": "プロンプトをコピーしてClaude（claude.ai）に送信",
+      "step3": "あなたの保有銘柄情報をClaudeに伝える",
+      "step4": "ClaudeからのYAML結果をコピーして貼り付け",
+      "step5": "「現在の保有資産として登録」をクリック"
+    }
   },
   "messages": {
     "saveSuccess": "正常に保存されました",
