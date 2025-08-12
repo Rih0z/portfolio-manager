@@ -3,7 +3,7 @@ module.exports = {
   content: [
     "./src/**/*.{js,jsx,ts,tsx}",
   ],
-  darkMode: 'class',
+  darkMode: 'class', // Force dark theme globally
   theme: {
     extend: {
       colors: {
@@ -90,50 +90,6 @@ module.exports = {
           600: '#0288D1',
           DEFAULT: '#4FC3F7',
         },
-        // Legacy color mapping for compatibility
-        secondary: {
-          50: '#FAFAFA',
-          100: '#F5F5F5',
-          200: '#EEEEEE',
-          300: '#E0E0E0',
-          400: '#BDBDBD',
-          500: '#9E9E9E',
-          600: '#757575',
-          700: '#616161',
-          800: '#424242',
-          900: '#212121',
-          DEFAULT: '#9E9E9E',
-        },
-      },
-      fontFamily: {
-        sans: [
-          '-apple-system',
-          'BlinkMacSystemFont',
-          'SF Pro Display',
-          'Segoe UI',
-          'Roboto',
-          'Helvetica Neue',
-          'Arial',
-          'sans-serif',
-        ],
-        mono: [
-          'SF Mono',
-          'Monaco',
-          'Inconsolata',
-          'Fira Code',
-          'monospace',
-        ],
-      },
-      fontSize: {
-        'xs': ['0.75rem', { lineHeight: '1rem' }],
-        'sm': ['0.875rem', { lineHeight: '1.25rem' }],
-        'base': ['1rem', { lineHeight: '1.5rem' }],
-        'lg': ['1.125rem', { lineHeight: '1.75rem' }],
-        'xl': ['1.25rem', { lineHeight: '1.75rem' }],
-        '2xl': ['1.5rem', { lineHeight: '2rem' }],
-        '3xl': ['2rem', { lineHeight: '2.5rem' }],
-        '4xl': ['2.5rem', { lineHeight: '3rem' }],
-        '5xl': ['3rem', { lineHeight: '3.5rem' }],
       },
       spacing: {
         'safe-bottom': 'env(safe-area-inset-bottom, 0)',

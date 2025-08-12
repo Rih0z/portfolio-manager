@@ -21,16 +21,30 @@
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
 
+/* ダークテーマ基本設定 */
+:root {
+  color-scheme: dark;
+}
+
+body {
+  background-color: #1a1a1a;
+  color: #f3f4f6;
+}
+
+html {
+  background-color: #1a1a1a;
+}
+
 /* iPhone用の安全領域（ノッチやホームバー）への対応 */
 .h-safe-bottom {
   height: env(safe-area-inset-bottom, 0);
 }
 
-/* iOS風のタブバースタイル */
+/* iOS風のタブバースタイル - ダークテーマ対応 */
 .tab-nav-ios {
   -webkit-backdrop-filter: saturate(180%) blur(20px);
   backdrop-filter: saturate(180%) blur(20px);
-  background-color: rgba(255, 255, 255, 0.8);
+  background-color: rgba(42, 42, 42, 0.95);
 }
 
 /* コンテンツがタブバーの下に隠れないようにするためのマージン */

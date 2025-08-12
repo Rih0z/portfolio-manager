@@ -44,6 +44,12 @@ const AppInitializer = ({ children }) => {
   const [initialized, setInitialized] = useState(false);
   const [googleClientId, setGoogleClientId] = useState('');
   
+  // ダークテーマ強制適用
+  useEffect(() => {
+    document.documentElement.classList.add('dark');
+    document.body.classList.add('dark', 'bg-gray-900', 'text-white');
+  }, []);
+  
   useEffect(() => {
     const init = async () => {
       try {
@@ -176,8 +182,8 @@ const App = () => {
                       <Route path="/" element={<Dashboard />} />
                       <Route path="/ai-advisor" element={<AIAdvisor />} />
                       <Route path="/settings" element={<Settings />} />
-                      <Route path="/data" element={<DataIntegration />} />
-                      <Route path="/data-import" element={<DataImport />} />
+                      <Route path="/data" element={<DataImport />} />
+                      <Route path="/data-integration" element={<DataIntegration />} />
                       <Route path="/auth/google/callback" element={<Dashboard />} />
                     </Routes>
                   </main>
