@@ -20,6 +20,9 @@ import MarketSelectionWizard, { INVESTMENT_MARKETS } from '../components/setting
 import PromptOrchestrator from '../components/ai/PromptOrchestrator';
 import promptOrchestrationService from '../services/PromptOrchestrationService';
 import ModernButton from '../components/common/ModernButton';
+import Card from '../components/atlassian/Card';
+import Button from '../components/atlassian/Button';
+import Input, { Select } from '../components/atlassian/Input';
 
 const AIAdvisor = () => {
   const { t, i18n } = useTranslation();
@@ -357,118 +360,121 @@ Based on the above information, please advise me on:
           )}
         </div>
 
-        {/* Progress Bar */}
-        <div className="mb-8">
-          <div className="flex justify-between items-center mb-2">
+        {/* Progress Indicator - Atlassian Design System準拠 */}
+        <Card elevation="low" padding="medium" className="mb-8">
+          <div className="flex justify-between items-center mb-4">
             {steps.map((step, index) => (
               <div
                 key={step.key}
                 className={`flex items-center ${index < steps.length - 1 ? 'flex-1' : ''}`}
               >
                 <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors duration-200 ${
+                  className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300 ${
                     index <= currentStep
-                      ? 'bg-primary-500 text-white'
-                      : 'bg-dark-300 text-gray-400'
+                      ? 'bg-primary-500 text-white shadow-lg border-2 border-primary-400'
+                      : index === currentStep + 1
+                      ? 'bg-primary-100 text-primary-600 border-2 border-primary-300'
+                      : 'bg-neutral-200 text-neutral-500 border-2 border-neutral-300'
                   }`}
                 >
-                  {index + 1}
+                  {index < currentStep ? (
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  ) : (
+                    index + 1
+                  )}
                 </div>
                 {index < steps.length - 1 && (
                   <div
-                    className={`flex-1 h-1 mx-2 rounded transition-colors duration-200 ${
-                      index < currentStep ? 'bg-primary-500' : 'bg-dark-300'
+                    className={`flex-1 h-2 mx-3 rounded-full transition-all duration-300 ${
+                      index < currentStep 
+                        ? 'bg-primary-500 shadow-sm' 
+                        : index === currentStep
+                        ? 'bg-gradient-to-r from-primary-500 to-neutral-300'
+                        : 'bg-neutral-300'
                     }`}
                   />
                 )}
               </div>
             ))}
           </div>
-          <div className="text-center text-sm text-gray-400">
-            {isJapanese ? steps[currentStep].titleJa : steps[currentStep].titleEn}
+          <div className="text-center">
+            <div className="text-lg font-semibold text-neutral-800 mb-1">
+              {isJapanese ? steps[currentStep].titleJa : steps[currentStep].titleEn}
+            </div>
+            <div className="text-sm text-neutral-600">
+              ステップ {currentStep + 1} / {steps.length}
+            </div>
           </div>
-        </div>
+        </Card>
 
         {/* Step Content */}
         <div className="max-w-4xl mx-auto">
-          {/* Step 0: Basic Information */}
+          {/* Step 0: Basic Information - Atlassian Design System準拠 */}
           {currentStep === 0 && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    {isJapanese ? '年齢' : 'Age'}
-                  </label>
-                  <input
-                    type="range"
-                    min="18"
-                    max="80"
-                    value={userData.age}
-                    onChange={(e) => setUserData(prev => ({ ...prev, age: parseInt(e.target.value) }))}
-                    className="w-full h-2 bg-dark-300 rounded-lg appearance-none cursor-pointer slider"
-                  />
-                  <div className="flex justify-between text-sm text-gray-400 mt-1">
-                    <span>18</span>
-                    <span className="text-primary-400 font-bold">{userData.age}歳</span>
-                    <span>80</span>
+            <Card elevation="medium" padding="large">
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium mb-3 text-neutral-700">
+                      {isJapanese ? '年齢' : 'Age'}
+                    </label>
+                    <div className="space-y-3">
+                      <input
+                        type="range"
+                        min="18"
+                        max="80"
+                        value={userData.age}
+                        onChange={(e) => setUserData(prev => ({ ...prev, age: parseInt(e.target.value) }))}
+                        className="w-full h-3 bg-neutral-200 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-400"
+                        style={{
+                          background: `linear-gradient(to right, #0052CC 0%, #0052CC ${((userData.age - 18) / (80 - 18)) * 100}%, #E5E7EA ${((userData.age - 18) / (80 - 18)) * 100}%, #E5E7EA 100%)`
+                        }}
+                      />
+                      <div className="flex justify-between text-sm text-neutral-600">
+                        <span>18</span>
+                        <span className="text-primary-600 font-bold bg-primary-50 px-2 py-1 rounded">{userData.age}歳</span>
+                        <span>80</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Select
+                      label={isJapanese ? '職業' : 'Occupation'}
+                      value={userData.occupation}
+                      onChange={(e) => setUserData(prev => ({ ...prev, occupation: e.target.value }))}
+                      placeholder={isJapanese ? '選択してください' : 'Please select'}
+                      options={occupationOptions}
+                      fullWidth
+                    />
+                  </div>
+
+                  <div>
+                    <Select
+                      label={isJapanese ? '家族構成' : 'Family Status'}
+                      value={userData.familyStatus}
+                      onChange={(e) => setUserData(prev => ({ ...prev, familyStatus: e.target.value }))}
+                      placeholder={isJapanese ? '選択してください' : 'Please select'}
+                      options={familyStatusOptions}
+                      fullWidth
+                    />
+                  </div>
+
+                  <div>
+                    <Select
+                      label={isJapanese ? '実現したい夢' : 'Dream to Achieve'}
+                      value={userData.dream}
+                      onChange={(e) => setUserData(prev => ({ ...prev, dream: e.target.value }))}
+                      placeholder={isJapanese ? '選択してください' : 'Please select'}
+                      options={dreamOptions}
+                      fullWidth
+                    />
                   </div>
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    {isJapanese ? '職業' : 'Occupation'}
-                  </label>
-                  <select
-                    value={userData.occupation}
-                    onChange={(e) => setUserData(prev => ({ ...prev, occupation: e.target.value }))}
-                    className="w-full p-3 bg-dark-300 border border-dark-400 rounded-lg focus:ring-2 focus:ring-primary-400 focus:border-transparent"
-                  >
-                    <option value="">{isJapanese ? '選択してください' : 'Please select'}</option>
-                    {occupationOptions.map(option => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    {isJapanese ? '家族構成' : 'Family Status'}
-                  </label>
-                  <select
-                    value={userData.familyStatus}
-                    onChange={(e) => setUserData(prev => ({ ...prev, familyStatus: e.target.value }))}
-                    className="w-full p-3 bg-dark-300 border border-dark-400 rounded-lg focus:ring-2 focus:ring-primary-400 focus:border-transparent"
-                  >
-                    <option value="">{isJapanese ? '選択してください' : 'Please select'}</option>
-                    {familyStatusOptions.map(option => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    {isJapanese ? '実現したい夢' : 'Dream to Achieve'}
-                  </label>
-                  <select
-                    value={userData.dream}
-                    onChange={(e) => setUserData(prev => ({ ...prev, dream: e.target.value }))}
-                    className="w-full p-3 bg-dark-300 border border-dark-400 rounded-lg focus:ring-2 focus:ring-primary-400 focus:border-transparent"
-                  >
-                    <option value="">{isJapanese ? '選択してください' : 'Please select'}</option>
-                    {dreamOptions.map(option => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
               </div>
-            </div>
+            </Card>
           )}
 
           {/* Step 1: Market Selection */}
@@ -835,35 +841,55 @@ Based on the above information, please advise me on:
           )}
         </div>
 
-        {/* Navigation Buttons */}
-        <div className="flex justify-between mt-8 max-w-4xl mx-auto">
-          <button
-            onClick={handlePrevious}
-            disabled={currentStep === 0}
-            className={`px-6 py-2 rounded-lg transition-colors duration-200 ${
-              currentStep === 0
-                ? 'bg-dark-300 text-gray-500 cursor-not-allowed'
-                : 'bg-dark-300 hover:bg-dark-200 text-white'
-            }`}
-          >
-            {isJapanese ? '戻る' : 'Previous'}
-          </button>
+        {/* Navigation Buttons - Atlassian Design System準拠 */}
+        <Card elevation="low" padding="medium" className="mt-8 max-w-4xl mx-auto">
+          <div className="flex justify-between items-center">
+            <Button
+              variant="secondary"
+              size="large"
+              onClick={handlePrevious}
+              disabled={currentStep === 0}
+              icon={
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              }
+              iconPosition="left"
+            >
+              {isJapanese ? '戻る' : 'Previous'}
+            </Button>
 
-          <button
-            onClick={handleNext}
-            disabled={currentStep === steps.length - 1}
-            className={`px-6 py-2 rounded-lg transition-colors duration-200 ${
-              currentStep === steps.length - 1
-                ? 'bg-dark-300 text-gray-500 cursor-not-allowed'
-                : 'bg-primary-500 hover:bg-primary-600 text-white'
-            }`}
-          >
-            {currentStep === steps.length - 2 
-              ? (isJapanese ? 'プロンプト生成' : 'Generate Prompt')
-              : (isJapanese ? '次へ' : 'Next')
-            }
-          </button>
-        </div>
+            <div className="text-center">
+              <div className="text-sm text-neutral-600">
+                {currentStep + 1} / {steps.length}
+              </div>
+            </div>
+
+            <Button
+              variant="primary"
+              size="large"
+              onClick={handleNext}
+              disabled={currentStep === steps.length - 1}
+              icon={
+                currentStep === steps.length - 2 ? (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                )
+              }
+              iconPosition="right"
+            >
+              {currentStep === steps.length - 2 
+                ? (isJapanese ? 'プロンプト生成' : 'Generate Prompt')
+                : (isJapanese ? '次へ' : 'Next')
+              }
+            </Button>
+          </div>
+        </Card>
       </div>
     </div>
   );
