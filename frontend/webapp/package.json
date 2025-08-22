@@ -5,6 +5,10 @@
   "description": "PortfolioWise - 投資ポートフォリオ管理アプリケーション",
   "main": "src/index.js",
   "homepage": "/",
+  "sideEffects": [
+    "src/components/atlassian/**/*.jsx",
+    "src/tokens/**/*.js"
+  ],
   "dependencies": {
     "@headlessui/react": "^1.7.15",
     "@react-oauth/google": "^0.12.2",
