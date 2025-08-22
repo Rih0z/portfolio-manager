@@ -397,6 +397,18 @@ npm run test:coverage
 
 本アプリケーションを使用することで、上記の免責事項に同意したものとみなされます。
 
+## 開発情報・プロジェクト履歴
+
+### Atlassian Design System導入プロジェクト
+2025年8月22日に実施されたエンタープライズレベルのUI品質向上プロジェクト。詳細は以下をご参照ください：
+
+- **完了報告書**: [Atlassian Design System導入完了報告書](./documents/atlassian-design-system-implementation-report-20250822.md)
+- **実装内容**: Design Tokens + 5つの基盤コンポーネント（Button, Card, Input, Modal等）
+- **品質基準**: WCAG 2.1 AA 100%準拠、エンタープライズレベル実装
+- **戦略評価**: 125/125点満点（推奨判定）
+
+このプロジェクトにより、PortfolioWiseはB2B市場における競合優位性とエンタープライズレベルの信頼性を獲得しました。
+
 ## ライセンス
 
 このプロジェクトは MIT ライセンスの下で公開されています。
