@@ -488,114 +488,108 @@ Based on the above information, please advise me on:
 
           {/* Step 2: Investment Experience */}
           {currentStep === 2 && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    {isJapanese ? '投資経験' : 'Investment Experience'}
-                  </label>
-                  <div className="space-y-2">
-                    {experienceOptions.map(option => (
-                      <button
-                        key={option.value}
-                        onClick={() => setUserData(prev => ({ ...prev, investmentExperience: option.value }))}
-                        className={`w-full p-3 text-left rounded-lg border transition-colors duration-200 ${
-                          userData.investmentExperience === option.value
-                            ? 'bg-primary-500 border-primary-400 text-white'
-                            : 'bg-dark-300 border-dark-400 text-gray-300 hover:bg-dark-200'
-                        }`}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
+            <Card elevation="medium" padding="large">
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium mb-3 text-neutral-700">
+                      {isJapanese ? '投資経験' : 'Investment Experience'}
+                    </label>
+                    <div className="space-y-3">
+                      {experienceOptions.map(option => (
+                        <Button
+                          key={option.value}
+                          variant={userData.investmentExperience === option.value ? "primary" : "secondary"}
+                          size="large"
+                          fullWidth
+                          onClick={() => setUserData(prev => ({ ...prev, investmentExperience: option.value }))}
+                        >
+                          {option.label}
+                        </Button>
+                      ))}
+                    </div>
                   </div>
-                </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    {isJapanese ? 'リスク許容度' : 'Risk Tolerance'}
-                  </label>
-                  <div className="space-y-2">
-                    {riskToleranceOptions.map(option => (
-                      <button
-                        key={option.value}
-                        onClick={() => setUserData(prev => ({ ...prev, riskTolerance: option.value }))}
-                        className={`w-full p-3 text-left rounded-lg border transition-colors duration-200 ${
-                          userData.riskTolerance === option.value
-                            ? 'bg-primary-500 border-primary-400 text-white'
-                            : 'bg-dark-300 border-dark-400 text-gray-300 hover:bg-dark-200'
-                        }`}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
+                  <div>
+                    <label className="block text-sm font-medium mb-3 text-neutral-700">
+                      {isJapanese ? 'リスク許容度' : 'Risk Tolerance'}
+                    </label>
+                    <div className="space-y-3">
+                      {riskToleranceOptions.map(option => (
+                        <Button
+                          key={option.value}
+                          variant={userData.riskTolerance === option.value ? "primary" : "secondary"}
+                          size="large"
+                          fullWidth
+                          onClick={() => setUserData(prev => ({ ...prev, riskTolerance: option.value }))}
+                        >
+                          {option.label}
+                        </Button>
+                      ))}
+                    </div>
                   </div>
-                </div>
 
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium mb-2">
-                    {isJapanese ? '毎月の投資可能額' : 'Monthly Investment Budget'}
-                  </label>
-                  <input
-                    type="text"
-                    value={userData.monthlyInvestment}
-                    onChange={(e) => setUserData(prev => ({ ...prev, monthlyInvestment: e.target.value }))}
-                    placeholder={isJapanese ? '例: 50000' : 'e.g. 50000'}
-                    className="w-full p-3 bg-dark-300 border border-dark-400 rounded-lg focus:ring-2 focus:ring-primary-400 focus:border-transparent"
-                  />
-                  <p className="text-sm text-gray-400 mt-1">
-                    {isJapanese ? '円単位で入力してください' : 'Enter amount in Japanese Yen'}
-                  </p>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium mb-3 text-neutral-700">
+                      {isJapanese ? '毎月の投資可能額' : 'Monthly Investment Budget'}
+                    </label>
+                    <Input
+                      type="text"
+                      value={userData.monthlyInvestment}
+                      onChange={(e) => setUserData(prev => ({ ...prev, monthlyInvestment: e.target.value }))}
+                      placeholder={isJapanese ? '例: 50000' : 'e.g. 50000'}
+                      size="large"
+                      helperText={isJapanese ? '円単位で入力してください' : 'Enter amount in Japanese Yen'}
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
+            </Card>
           )}
 
           {/* Step 3: Goals & Values */}
           {currentStep === 3 && (
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-medium mb-4">
-                  {isJapanese ? '大切にしている価値観（複数選択可）' : 'Important Values (Multiple Selection)'}
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {valueOptions.map(option => (
-                    <button
-                      key={option.value}
-                      onClick={() => handleToggleValue(option.value)}
-                      className={`p-3 text-left rounded-lg border transition-colors duration-200 ${
-                        userData.values.includes(option.value)
-                          ? 'bg-primary-500 border-primary-400 text-white'
-                          : 'bg-dark-300 border-dark-400 text-gray-300 hover:bg-dark-200'
-                      }`}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
+            <Card elevation="medium" padding="large">
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold text-neutral-800 mb-4">
+                    {isJapanese ? '大切にしている価値観（複数選択可）' : 'Important Values (Multiple Selection)'}
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {valueOptions.map(option => (
+                      <Button
+                        key={option.value}
+                        variant={userData.values.includes(option.value) ? "primary" : "secondary"}
+                        size="medium"
+                        fullWidth
+                        onClick={() => handleToggleValue(option.value)}
+                      >
+                        {option.label}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              <div>
-                <h3 className="text-lg font-medium mb-4">
-                  {isJapanese ? '不安に思っていること（複数選択可）' : 'Concerns (Multiple Selection)'}
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {concernOptions.map(option => (
-                    <button
-                      key={option.value}
-                      onClick={() => handleToggleConcern(option.value)}
-                      className={`p-3 text-left rounded-lg border transition-colors duration-200 ${
-                        userData.concerns.includes(option.value)
-                          ? 'bg-red-500 border-red-400 text-white'
-                          : 'bg-dark-300 border-dark-400 text-gray-300 hover:bg-dark-200'
-                      }`}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
+                <div>
+                  <h3 className="text-lg font-semibold text-neutral-800 mb-4">
+                    {isJapanese ? '不安に思っていること（複数選択可）' : 'Concerns (Multiple Selection)'}
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {concernOptions.map(option => (
+                      <Button
+                        key={option.value}
+                        variant={userData.concerns.includes(option.value) ? "danger" : "secondary"}
+                        size="medium"
+                        fullWidth
+                        onClick={() => handleToggleConcern(option.value)}
+                      >
+                        {option.label}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
+            </Card>
           )}
 
           {/* Step 4: Screenshot Analysis Prompt Generation */}
