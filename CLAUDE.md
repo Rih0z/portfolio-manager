@@ -65,6 +65,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Important Workflow Guidelines
 
+### 🚫 Emergency Deploy 完全禁止
+**emergency-deploy/ディレクトリの使用は完全に禁止**
+- ❌ 理由: 不完全なHTMLファイル、React機能欠如、古いバージョン
+- ❌ 結果: 本番環境での機能低下、ユーザー体験悪化
+- ✅ 正解: 常に `frontend/webapp/build/` の完全ビルドを使用
+
 ### Completion of Work
 1. **GitHub Commit**: 作業が完了したらGitHubに追加すること
    - 変更内容を必ずコミットしてプッシュする
