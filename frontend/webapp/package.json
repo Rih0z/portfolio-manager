@@ -7,7 +7,9 @@
   "homepage": "/",
   "sideEffects": [
     "src/components/atlassian/**/*.jsx",
-    "src/tokens/**/*.js"
+    "src/tokens/**/*.js",
+    "src/i18n/**/*.js",
+    "src/i18n/**/*.json"
   ],
   "dependencies": {
     "@headlessui/react": "^1.7.15",
