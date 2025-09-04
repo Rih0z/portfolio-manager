@@ -2,9 +2,9 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 
-// 翻訳リソース
-import enTranslations from './locales/en.json';
-import jaTranslations from './locales/ja.json';
+// 翻訳リソースを動的に読み込み（プロダクションビルド対応）
+const enTranslations = require('./locales/en.json');
+const jaTranslations = require('./locales/ja.json');
 
 const resources = {
   en: {
