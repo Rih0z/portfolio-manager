@@ -96,3 +96,115 @@ backend/dynamodb-local/
 backend/dynamodb-local-metadata.json
 backend-deploy/dynamodb-local/
 backend-deploy/dynamodb-local-metadata.json
+
+# Development and test files
+*.spec.js
+*.test.js
+*.test.jsx
+test-*.js
+*-test.js
+e2e/*.spec.js
+frontend/webapp/e2e/
+frontend/webapp/test-screenshots/
+frontend/webapp/test-results-production/
+frontend/webapp/*.png
+frontend/webapp/*.jpg
+frontend/webapp/comprehensive-*.js
+frontend/webapp/detailed-*.js
+frontend/webapp/simple-*.js
+frontend/webapp/quick-*.js
+frontend/webapp/final-*.js
+frontend/webapp/phase2-*.js
+frontend/webapp/atlassian-*.js
+frontend/webapp/dark-theme-*.js
+frontend/webapp/readability-*.js
+frontend/webapp/production-*.js
+frontend/webapp/tab-*.js
+frontend/webapp/accurate-*.js
+frontend/webapp/analyze-*.js
+frontend/webapp/browser-*.js
+frontend/webapp/font-*.js
+frontend/webapp/page-*.js
+frontend/webapp/playwright-*.js
+frontend/webapp/robust-*.js
+frontend/webapp/screenshot-*.js
+frontend/webapp/test-*.js
+frontend/webapp/user-*.js
+frontend/webapp/yaml-*.js
+
+# Large backup folders
+node_modules_backup_*/
+node_modules_old/
+build-backup-*/
+frontend/webapp/build-backup-*/
+
+# Report files
+frontend/webapp/*.md
+frontend/webapp/*.xml
+frontend/webapp/*.json
+frontend/webapp/*.yaml
+frontend/webapp/*.txt
+!frontend/webapp/package.json
+!frontend/webapp/README.md
+!frontend/webapp/CLAUDE.md
+
+# Analysis and test screenshots
+frontend/webapp/atlassian-design-screenshots/
+frontend/webapp/dark-theme-screenshots/
+frontend/webapp/e2e-screenshots/
+frontend/webapp/new-deployment-analysis/
+frontend/webapp/phase2-analysis-results/
+frontend/webapp/phase2-final-results/
+frontend/webapp/playwright-report-production/
+
+# Emergency directories
+emergency-build/
+emergency-deploy/
+frontend/webapp/emergency-build/
+frontend/webapp/emergency-deploy/
+
+# IDE and tool files
+.claude/
+.mcp.json
+.serena/
+.wrangler/
+frontend/webapp/.wrangler/
+frontend/webapp/.claude/
+
+# Claude analysis files
+Claude-Code-Communication/
+documents/ai_coding_principles.yaml
+documents/auth-refactoring-summary.md
+documents/aws-secrets-manager-implementation-guide.md
+documents/claude-code-deployment-automation.md
+documents/deployment-failure-analysis.md
+documents/deployment-guide.md
+documents/google-auth-error-resolution-guide.md
+documents/troubleshooting-guide.md
+
+# Backend test files (large number)
+backend/__tests__/
+backend/package-lock.json
+backend/src/function/auth/basicGoogleLogin.js
+backend/src/function/auth/statelessGoogleLogin.js
+backend/src/function/auth/temporaryGoogleLogin.js
+backend/src/function/updateFallbackData.js
+
+# Image files
+*.png
+*.jpg
+*.jpeg
+*.gif
+!frontend/webapp/public/*.png
+!frontend/webapp/public/*.ico
+
+# Temporary analysis folders
+frontend/webapp/tmp/
+
+# Auto deploy scripts
+auto-deploy.sh
+deploy-script.sh
+force-build.js
+
+# E2E auth folder
+e2e/.auth/
