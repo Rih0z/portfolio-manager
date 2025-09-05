@@ -1,0 +1,544 @@
+openapi: 3.0.3
+info:
+  title: PortfolioWise API
+  description: AI-powered investment portfolio management API for Japanese and US markets
+  version: 1.0.0
+  contact:
+    email: support@portfolio-wise.com
+    url: https://portfolio-wise.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod
+    description: Production server
+  - url: http://localhost:3000
+    description: Development server
+
+tags:
+  - name: Auth
+    description: Authentication endpoints
+  - name: Market Data
+    description: Market data retrieval
+  - name: Google Drive
+    description: Google Drive integration
+  - name: Config
+    description: Configuration endpoints
+  - name: Admin
+    description: Admin operations (protected)
+
+paths:
+  /auth/google/login:
+    post:
+      tags: [Auth]
+      summary: Authenticate with Google OAuth
+      operationId: googleLogin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [credential]
+              properties:
+                credential:
+                  type: string
+                  description: Google ID token
+      responses:
+        200:
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        401:
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/session:
+    get:
+      tags: [Auth]
+      summary: Get current session
+      operationId: getSession
+      security:
+        - cookieAuth: []
+      responses:
+        200:
+          description: Session data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+        401:
+          description: Not authenticated
+
+  /auth/csrf-token:
+    post:
+      tags: [Auth]
+      summary: Generate CSRF token
+      operationId: generateCSRFToken
+      security:
+        - cookieAuth: []
+      responses:
+        200:
+          description: CSRF token generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout user
+      operationId: logout
+      security:
+        - cookieAuth: []
+      responses:
+        200:
+          description: Logout successful
+
+  /api/market-data:
+    get:
+      tags: [Market Data]
+      summary: Fetch market data
+      operationId: getMarketData
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: symbols
+          in: query
+          required: true
+          description: Comma-separated list of symbols
+          schema:
+            type: string
+            example: "AAPL,7203,USDJPY"
+        - name: types
+          in: query
+          required: true
+          description: Comma-separated list of types
+          schema:
+            type: string
+            enum: [us-stock, jp-stock, mutual-fund, exchange-rate]
+            example: "us-stock,jp-stock,exchange-rate"
+        - name: fallbackToCache
+          in: query
+          description: Use cached data if live data unavailable
+          schema:
+            type: boolean
+            default: true
+      responses:
+        200:
+          description: Market data retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarketDataResponse'
+        429:
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/google/drive/initiate:
+    get:
+      tags: [Google Drive]
+      summary: Initiate Google Drive OAuth
+      operationId: initiateDriveAuth
+      security:
+        - cookieAuth: []
+      responses:
+        302:
+          description: Redirect to Google OAuth
+
+  /auth/google/drive/callback:
+    get:
+      tags: [Google Drive]
+      summary: Handle Drive OAuth callback
+      operationId: driveAuthCallback
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        302:
+          description: Redirect to application
+
+  /drive/save:
+    post:
+      tags: [Google Drive]
+      summary: Save file to Google Drive
+      operationId: saveFile
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fileName, data]
+              properties:
+                fileName:
+                  type: string
+                data:
+                  type: object
+      responses:
+        200:
+          description: File saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SaveFileResponse'
+
+  /drive/load:
+    get:
+      tags: [Google Drive]
+      summary: Load file from Google Drive
+      operationId: loadFile
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: fileId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: File loaded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoadFileResponse'
+
+  /drive/files:
+    get:
+      tags: [Google Drive]
+      summary: List files in Google Drive
+      operationId: listFiles
+      security:
+        - cookieAuth: []
+      responses:
+        200:
+          description: Files listed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListFilesResponse'
+
+  /config/client:
+    get:
+      tags: [Config]
+      summary: Get client configuration
+      operationId: getClientConfig
+      responses:
+        200:
+          description: Client configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientConfigResponse'
+
+  /admin/status:
+    get:
+      tags: [Admin]
+      summary: Get system status
+      operationId: getAdminStatus
+      security:
+        - cookieAuth: []
+        - apiKey: []
+      responses:
+        200:
+          description: System status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminStatusResponse'
+        403:
+          description: Forbidden
+
+  /admin/reset:
+    post:
+      tags: [Admin]
+      summary: Reset usage counters
+      operationId: resetUsage
+      security:
+        - cookieAuth: []
+        - apiKey: []
+      responses:
+        200:
+          description: Reset successful
+        403:
+          description: Forbidden
+
+  /admin/getBudgetStatus:
+    get:
+      tags: [Admin]
+      summary: Get AWS budget status
+      operationId: getBudgetStatus
+      security:
+        - cookieAuth: []
+        - apiKey: []
+      responses:
+        200:
+          description: Budget status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BudgetStatusResponse'
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: session
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  schemas:
+    LoginResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        user:
+          $ref: '#/components/schemas/User'
+        sessionId:
+          type: string
+          format: uuid
+
+    User:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        picture:
+          type: string
+          format: uri
+
+    SessionResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        sessionId:
+          type: string
+          format: uuid
+        expiresAt:
+          type: string
+          format: date-time
+
+    MarketDataResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/MarketData'
+        errors:
+          type: array
+          items:
+            type: string
+        metadata:
+          $ref: '#/components/schemas/Metadata'
+
+    MarketData:
+      type: object
+      properties:
+        symbol:
+          type: string
+        type:
+          type: string
+          enum: [us-stock, jp-stock, mutual-fund, exchange-rate]
+        price:
+          type: number
+        currency:
+          type: string
+        change:
+          type: number
+        changePercent:
+          type: number
+        previousClose:
+          type: number
+        marketCap:
+          type: number
+        volume:
+          type: integer
+        timestamp:
+          type: string
+          format: date-time
+        source:
+          type: string
+
+    Metadata:
+      type: object
+      properties:
+        requestId:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+        sources:
+          type: array
+          items:
+            type: string
+
+    SaveFileResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        fileId:
+          type: string
+        fileName:
+          type: string
+
+    LoadFileResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+        fileName:
+          type: string
+        modifiedTime:
+          type: string
+          format: date-time
+
+    ListFilesResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        files:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              name:
+                type: string
+              modifiedTime:
+                type: string
+                format: date-time
+              size:
+                type: integer
+
+    ClientConfigResponse:
+      type: object
+      properties:
+        googleClientId:
+          type: string
+        features:
+          type: object
+          properties:
+            driveIntegration:
+              type: boolean
+            aiAnalysis:
+              type: boolean
+            darkMode:
+              type: boolean
+        limits:
+          type: object
+          properties:
+            maxPortfolioSize:
+              type: integer
+            maxApiCallsPerDay:
+              type: integer
+        supportedMarkets:
+          type: array
+          items:
+            type: string
+        defaultCurrency:
+          type: string
+        defaultExchangeRate:
+          type: number
+
+    AdminStatusResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        metrics:
+          type: object
+          properties:
+            requestsToday:
+              type: integer
+            requestsThisMonth:
+              type: integer
+            cacheHitRate:
+              type: number
+            errorRate:
+              type: number
+        limits:
+          type: object
+          properties:
+            daily:
+              type: integer
+            monthly:
+              type: integer
+
+    BudgetStatusResponse:
+      type: object
+      properties:
+        currentSpend:
+          type: number
+        budgetLimit:
+          type: number
+        percentUsed:
+          type: number
+        daysRemaining:
+          type: integer
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          default: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              enum:
+                - AUTH_REQUIRED
+                - INVALID_TOKEN
+                - FORBIDDEN
+                - NOT_FOUND
+                - RATE_LIMIT_EXCEEDED
+                - INVALID_REQUEST
+                - INTERNAL_ERROR
+                - SERVICE_UNAVAILABLE
+            message:
+              type: string
+            retryAfter:
+              type: integer
+              description: Seconds to wait before retry (for rate limits)
