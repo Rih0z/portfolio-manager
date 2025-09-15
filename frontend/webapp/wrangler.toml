@@ -1,5 +1,6 @@
-name = "portfolio-manager"
+name = "pfwise-portfolio-manager"
 compatibility_date = "2025-05-29"
+pages_build_output_dir = "build"
 
 [vars]
 REACT_APP_API_BASE_URL = "https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod"

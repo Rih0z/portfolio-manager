@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>i18n Test</title>
+    <script src="https://unpkg.com/i18next@23.7.6/dist/umd/i18next.min.js"></script>
+    <script src="https://unpkg.com/react@18.2.0/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/react-i18next@13.5.0/dist/umd/react-i18next.min.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script>
+        // 修正されたi18n設定をテスト（NO_I18NEXT_INSTANCEエラー対策）
+        const jaTranslations = {
+            "app": {
+                "name": "ポートフォリオワイズ"
+            },
+            "common": {
+                "update": "更新"
+            },
+            "dashboard": {
+                "noPortfolio": "投資を始めましょう",
+                "setupInstructions": "AIがあなたに最適な投資戦略を提案します。",
+                "goToAiStrategy": "AI投資戦略を始める"
+            },
+            "navigation": {
+                "dashboard": "ダッシュボード",
+                "aiPlan": "AI投資戦略",
+                "settings": "設定",
+                "dataImport": "データ同期",
+                "investmentCalculator": "投資配分"
+            }
+        };
+
+        // React i18n環境をシミュレート（useTranslationフックのテスト）
+        const { useTranslation } = ReactI18next;
+        
+        // 英語翻訳も追加
+        const enTranslations = {
+            "app": {
+                "name": "PortfolioWise"
+            },
+            "common": {
+                "update": "Update"
+            },
+            "dashboard": {
+                "noPortfolio": "Let's Start Investing",
+                "setupInstructions": "AI will suggest the optimal investment strategy for you.",
+                "goToAiStrategy": "Start AI Investment Strategy"
+            },
+            "navigation": {
+                "dashboard": "Dashboard",
+                "aiPlan": "AI Strategy",
+                "settings": "Settings",
+                "dataImport": "Data Sync",
+                "investmentCalculator": "Investment Calculator"
+            }
+        };
+
+        const resources = {
+            ja: { translation: jaTranslations },
+            en: { translation: enTranslations }
+        };
+
+        // 同期的にi18n初期化（本番環境と同じ方法）
+        i18next
+            .use(ReactI18next.initReactI18next)
+            .init({
+                lng: 'en', // 英語でテスト
+                resources: resources,
+                fallbackLng: 'en',
+                react: {
+                    useSuspense: false, // Suspenseを使わずに即座に初期化
+                },
+                interpolation: {
+                    escapeValue: false
+                },
+                initImmediate: false
+            });
+
+        console.log('i18n isInitialized:', i18next.isInitialized);
+        console.log('i18n language:', i18next.language);
+        
+        // useTranslationフックを使ったテストコンポーネント
+        const TestComponent = () => {
+            const { t } = useTranslation();
+            
+            console.log('useTranslation hook test:');
+            console.log('t("app.name"):', t('app.name'));
+            console.log('t("common.update"):', t('common.update'));
+            
+            return React.createElement('div', { style: { padding: '20px', fontFamily: 'Arial, sans-serif' } },
+                React.createElement('h1', null, t('app.name')),
+                React.createElement('p', null, t('dashboard.noPortfolio')),
+                React.createElement('p', null, t('dashboard.setupInstructions')),
+                React.createElement('button', { 
+                    style: { padding: '10px 20px', backgroundColor: '#0052CC', color: 'white', border: 'none', borderRadius: '6px' } 
+                }, t('dashboard.goToAiStrategy'))
+            );
+        };
+
+        // ReactDOM.render（実際のアプリと同じ）
+        try {
+            ReactDOM.render(React.createElement(TestComponent), document.getElementById('root'));
+            console.log('React component rendered successfully');
+        } catch (err) {
+            console.error('React render failed:', err);
+            document.getElementById('root').innerHTML = `<div style="color: red;">React render failed: ${err.message}</div>`;
+        }
+    </script>
+</body>
+</html>

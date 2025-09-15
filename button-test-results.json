@@ -1,0 +1,61 @@
+{
+  "totalButtons": 11,
+  "clickable": [
+    {
+      "name": "¥JPY",
+      "changed": false,
+      "newUrl": null
+    },
+    {
+      "name": "更新",
+      "changed": false,
+      "newUrl": null
+    },
+    {
+      "name": "🇯🇵日本語",
+      "changed": false,
+      "newUrl": null
+    },
+    {
+      "name": "🇯🇵日本語",
+      "changed": false,
+      "newUrl": null
+    },
+    {
+      "name": "🇺🇸English",
+      "changed": false,
+      "newUrl": null
+    },
+    {
+      "name": "Googleでログイン（Drive連携含む）",
+      "changed": true,
+      "newUrl": "https://accounts.google.com/v3/signin/identifier?opparams=%253F&dsh=S538720084%3A1757126396234883&access_type=offline&client_id=243939385276-0gga06ocrn3vumf7lasubcpdqjk49j3n.apps.googleusercontent.com&o2v=2&prompt=consent&redirect_uri=https%3A%2F%2Fportfolio-wise.com%2Fauth%2Fgoogle%2Fcallback&response_type=code&scope=openid+email+profile+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdrive.file+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdrive.appdata&service=lso&flowName=GeneralOAuthFlow&continue=https%3A%2F%2Faccounts.google.com%2Fsignin%2Foauth%2Fconsent%3Fauthuser%3Dunknown%26part%3DAJi8hANJWSAfeTNP5c_wL-17VUVhUQgZkGNierbITDkulZxR0Eruv3tKGnn81CjSz6AnD1VYDunCEF7fP_KGfB3_kHYWyiVwXM9vJxCL3Qz3pZg8DzkOoILSeIb_sV23Q4O4XYIH_6GxmZbOPskB5M_o1hXIJ795X7q_v_Hk59OlBqh-ypfYSD4Klc0uO0Tc8YTjD6dXmNeqQVgPQmqeyps-n280_3YhrEsqZtpwAPAkmrWJQO9B9-A-zzPgxes01OgKz1uMJgNTTPOCQYYYh7lkwTEN-ZJ3sGd-h0aExnrULnCEI7EzECYyQZueEtt9GkZxBsG76jv0r3Yr0_oZ7C9Ye5Xd45_mkidpZTjsnMYzLp-MgPjWLJTFllwouROA6EhWafJil_xFKM7YSv5D-HgzYoo_1scETM7zrqArIPkQdA6vhL2SwPjzCW-bMIX1x2UKKNG-lRY3d1hX_0B0ArOAuV0zvUtlKLQHVT1pjNSJOmOXlUjGHgY%26flowName%3DGeneralOAuthFlow%26as%3DS538720084%253A1757126396234883%26client_id%3D243939385276-0gga06ocrn3vumf7lasubcpdqjk49j3n.apps.googleusercontent.com%23&app_domain=https%3A%2F%2Fportfolio-wise.com&rart=ANgoxceYFRIxM5tmsAxjb8-PdWa1F12lb-opTRymHgVhP48u50I5Y_ZgCwrOm4mSyeBiFV3JGNOshocmEky1IwzvvyMjQlyUg27tZaXYhEpZ0c42A3dKs_U"
+    },
+    {
+      "name": "Go to Settings",
+      "changed": true,
+      "newUrl": "https://portfolio-wise.com/settings"
+    },
+    {
+      "name": "Dashboard",
+      "changed": false,
+      "newUrl": null
+    },
+    {
+      "name": "AI投資戦略",
+      "changed": true,
+      "newUrl": "https://portfolio-wise.com/ai-advisor"
+    },
+    {
+      "name": "Settings",
+      "changed": true,
+      "newUrl": "https://portfolio-wise.com/settings"
+    },
+    {
+      "name": "データ取り込み",
+      "changed": true,
+      "newUrl": "https://portfolio-wise.com/data-import"
+    }
+  ],
+  "errors": []
+}

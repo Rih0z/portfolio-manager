@@ -207,7 +207,12 @@ npm install
 npm run build
 
 # 2. Deploy to Cloudflare Pages
-wrangler pages deploy build --project-name=portfolio-manager
+wrangler pages deploy build --project-name=pfwise-portfolio-manager \
+  --branch=main \
+  --commit-hash=$(git rev-parse HEAD) \
+  --commit-message="Deploy updates"
+
+# デプロイに失敗する場合は documents/DEPLOYMENT_TROUBLESHOOTING.md を参照
 ```
 
 ### Backend Deployment to AWS

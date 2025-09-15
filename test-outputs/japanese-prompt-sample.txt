@@ -1,0 +1,101 @@
+# ポートフォリオYAML変換アシスタント
+
+あなたのポートフォリオ管理アプリ「Portfolio Wise」用に、保有資産をYAML形式に変換いたします。
+
+## 📋 必要な情報
+
+以下の情報を教えてください：
+
+### 1. 保有株式・ETF・投資信託
+各銘柄について：
+- **銘柄名**（例：トヨタ自動車、S&P500 ETF）
+- **ティッカーシンボル**（例：7203.T、SPY）
+- **保有数量**（株数・口数）
+- **取得価格**（平均取得単価、わからない場合は現在価格）
+- **現在価格**（最新価格、わからない場合は概算）
+- **通貨**（JPY、USD など）
+
+### 2. 現金・預金
+- **金額**
+- **通貨**（JPY、USD など）
+
+### 3. その他の投資商品
+- **債券、REIT、コモディティ、仮想通貨**など
+- **種類、銘柄名、数量、評価額**
+
+## 💡 参考情報
+
+**現在の為替レート**: 1 USD = 150 JPY
+
+**あなたの目標配分**:
+- VTI: 40%
+- VXUS: 30%
+- 1475.T: 20%
+- BND: 10%
+
+## ⚠️ 重要な注意事項
+
+- **個人情報保護**: 口座番号や個人特定情報は含めないでください
+- **概算値でOK**: 正確な数値が分からない場合は概算で構いません
+- **現在価格**: 最新の市場価格を反映してください
+- **通貨統一**: JPYベースで計算しますが、USD資産もそのまま記載してください
+
+## 📊 出力形式
+
+以下のYAML形式で出力してください：
+
+```yaml
+portfolio:
+  baseCurrency: "JPY"
+  totalValue: 総評価額（JPY）
+  lastUpdated: "2025-07-15"
+  
+  assets:
+    - name: "トヨタ自動車"
+      ticker: "7203.T"
+      type: "stock"
+      quantity: 100
+      averagePrice: 2500
+      currentPrice: 2600
+      currency: "JPY"
+      market: "Japan"
+      sector: "自動車"
+      
+    - name: "S&P 500 ETF"
+      ticker: "SPY"
+      type: "etf"
+      quantity: 10
+      averagePrice: 400
+      currentPrice: 420
+      currency: "USD"
+      market: "US"
+      sector: "インデックス"
+      
+    - name: "現金（JPY）"
+      ticker: "CASH_JPY"
+      type: "cash"
+      quantity: 1
+      averagePrice: 500000
+      currentPrice: 500000
+      currency: "JPY"
+      market: "Japan"
+      sector: "現金"
+```
+
+## 🔧 type の種類
+- **stock**: 個別株式
+- **etf**: ETF
+- **fund**: 投資信託
+- **bond**: 債券
+- **reit**: REIT
+- **crypto**: 仮想通貨
+- **cash**: 現金・預金
+
+## 🌍 market の種類
+- **Japan**: 日本市場
+- **US**: 米国市場
+- **Global**: グローバル・その他
+
+---
+
+準備ができましたら、あなたの保有資産情報を入力してください。YAML形式で整理いたします！

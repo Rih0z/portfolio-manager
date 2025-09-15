@@ -38,6 +38,7 @@ npm run dev
 | **API仕様** | エンドポイント一覧 | [api-specification.md](./documents/api-specification.md) |
 | **技術仕様** | アーキテクチャ詳細 | [TECHNICAL.md](./documents/TECHNICAL.md) |
 | **デプロイメント** | 環境構築手順 | [DEPLOYMENT.md](./documents/DEPLOYMENT.md) |
+| **トラブルシューティング** | デプロイエラー対処法 | [DEPLOYMENT_TROUBLESHOOTING.md](./documents/DEPLOYMENT_TROUBLESHOOTING.md) |
 | **開発ガイド** | 開発者向け情報 | [CLAUDE.md](./CLAUDE.md) |
 | **アーキテクチャ** | システム設計 | [architecture-docs/](./documents/architecture-docs/) |
 
@@ -68,7 +69,8 @@ npm test
 npm run build
 
 # デプロイ（Cloudflare Pages）
-wrangler pages deploy build --project-name=portfolio-manager
+wrangler pages deploy build --project-name=pfwise-portfolio-manager
+# デプロイに失敗する場合は DEPLOYMENT_TROUBLESHOOTING.md を参照
 ```
 
 ## 🤝 貢献

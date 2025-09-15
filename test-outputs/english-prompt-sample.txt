@@ -1,0 +1,101 @@
+# Portfolio YAML Conversion Assistant
+
+I'll help convert your portfolio holdings to YAML format for the "Portfolio Wise" portfolio management app.
+
+## 📋 Required Information
+
+Please provide the following information:
+
+### 1. Stocks, ETFs, Mutual Funds
+For each holding:
+- **Company/Fund Name** (e.g., Toyota Motor, S&P 500 ETF)
+- **Ticker Symbol** (e.g., 7203.T, SPY)
+- **Quantity** (shares/units held)
+- **Average Cost** (average purchase price, use current price if unknown)
+- **Current Price** (latest market price, estimate if unknown)
+- **Currency** (JPY, USD, etc.)
+
+### 2. Cash & Deposits
+- **Amount**
+- **Currency** (JPY, USD, etc.)
+
+### 3. Other Investment Products
+- **Bonds, REITs, Commodities, Cryptocurrencies**, etc.
+- **Type, name, quantity, current value**
+
+## 💡 Reference Information
+
+**Current Exchange Rate**: 1 USD = 150 JPY
+
+**Your Target Allocation**:
+- VTI: 40%
+- VXUS: 30%
+- 1475.T: 20%
+- BND: 10%
+
+## ⚠️ Important Notes
+
+- **Privacy Protection**: Do not include account numbers or personally identifiable information
+- **Estimates OK**: Approximate values are fine if exact numbers are unknown
+- **Current Prices**: Please reflect latest market prices
+- **Currency Handling**: JPY base calculation, but USD assets should be listed as-is
+
+## 📊 Output Format
+
+Please output in the following YAML format:
+
+```yaml
+portfolio:
+  baseCurrency: "JPY"
+  totalValue: Total Portfolio Value (JPY)
+  lastUpdated: "2025-07-15"
+  
+  assets:
+    - name: "Toyota Motor"
+      ticker: "7203.T"
+      type: "stock"
+      quantity: 100
+      averagePrice: 2500
+      currentPrice: 2600
+      currency: "JPY"
+      market: "Japan"
+      sector: "Automotive"
+      
+    - name: "S&P 500 ETF"
+      ticker: "SPY"
+      type: "etf"
+      quantity: 10
+      averagePrice: 400
+      currentPrice: 420
+      currency: "USD"
+      market: "US"
+      sector: "Index"
+      
+    - name: "Cash (JPY)"
+      ticker: "CASH_JPY"
+      type: "cash"
+      quantity: 1
+      averagePrice: 500000
+      currentPrice: 500000
+      currency: "JPY"
+      market: "Japan"
+      sector: "Cash"
+```
+
+## 🔧 Asset Types
+- **stock**: Individual stocks
+- **etf**: Exchange Traded Funds
+- **fund**: Mutual funds
+- **bond**: Bonds
+- **reit**: Real Estate Investment Trusts
+- **crypto**: Cryptocurrencies
+- **cash**: Cash & deposits
+
+## 🌍 Markets
+- **Japan**: Japanese market
+- **US**: US market
+- **Global**: Global/Other markets
+
+---
+
+When you're ready, please provide your portfolio holdings information. I'll organize it in YAML format!

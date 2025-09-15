@@ -1,0 +1,460 @@
+<testsuites id="" name="" tests="36" failures="4" skipped="0" errors="0" time="60.815803">
+<testsuite name="comprehensive-user-flow.spec.js" timestamp="2025-06-11T02:54:48.140Z" hostname="chromium" tests="10" failures="2" skipped="0" time="46.761" errors="0">
+<testcase name="Comprehensive User Flow Tests › ポートフォリオ全体ワークフローのテスト" classname="comprehensive-user-flow.spec.js" time="4.453">
+<failure message="comprehensive-user-flow.spec.js:12:7 ポートフォリオ全体ワークフローのテスト" type="FAILURE">
+<![CDATA[  [chromium] › comprehensive-user-flow.spec.js:12:7 › Comprehensive User Flow Tests › ポートフォリオ全体ワークフローのテスト 
+
+    Error: expect.toBeVisible: Error: strict mode violation: locator('nav, header') resolved to 2 elements:
+        1) <header class="bg-dark-200/90 backdrop-blur-xl border-b border-dark-400 sticky top-0 z-50">…</header> aka getByRole('banner')
+        2) <nav class="fixed bottom-0 left-0 right-0 bg-dark-200/95 backdrop-blur-xl border-t border-dark-400 z-50">…</nav> aka getByRole('navigation')
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('nav, header')
+
+
+      19 |     // ヘッダーナビゲーションのテスト
+      20 |     const navigation = page.locator('nav, header');
+    > 21 |     await expect(navigation).toBeVisible();
+         |                              ^
+      22 |     
+      23 |     // 設定ページへの移動テスト
+      24 |     const settingsButton = page.locator('button, a').filter({ hasText: /設定|Settings|⚙️/i }).first();
+        at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/comprehensive-user-flow.spec.js:21:30
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/comprehensive-user-flow-Co-1facd-w-Tests-ポートフォリオ全体ワークフローのテスト-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/comprehensive-user-flow-Co-1facd-w-Tests-ポートフォリオ全体ワークフローのテスト-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../test-results/comprehensive-user-flow-Co-1facd-w-Tests-ポートフォリオ全体ワークフローのテスト-chromium/error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: expect.toBeVisible: Error: strict mode violation: locator('nav, header') resolved to 2 elements:
+        1) <header class="bg-dark-200/90 backdrop-blur-xl border-b border-dark-400 sticky top-0 z-50">…</header> aka getByRole('banner')
+        2) <nav class="fixed bottom-0 left-0 right-0 bg-dark-200/95 backdrop-blur-xl border-t border-dark-400 z-50">…</nav> aka getByRole('navigation')
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('nav, header')
+
+
+      19 |     // ヘッダーナビゲーションのテスト
+      20 |     const navigation = page.locator('nav, header');
+    > 21 |     await expect(navigation).toBeVisible();
+         |                              ^
+      22 |     
+      23 |     // 設定ページへの移動テスト
+      24 |     const settingsButton = page.locator('button, a').filter({ hasText: /設定|Settings|⚙️/i }).first();
+        at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/comprehensive-user-flow.spec.js:21:30
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/comprehensive-user-flow-Co-1facd-w-Tests-ポートフォリオ全体ワークフローのテスト-chromium-retry1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/comprehensive-user-flow-Co-1facd-w-Tests-ポートフォリオ全体ワークフローのテスト-chromium-retry1/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../test-results/comprehensive-user-flow-Co-1facd-w-Tests-ポートフォリオ全体ワークフローのテスト-chromium-retry1/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/comprehensive-user-flow-Co-1facd-w-Tests-ポートフォリオ全体ワークフローのテスト-chromium-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/comprehensive-user-flow-Co-1facd-w-Tests-ポートフォリオ全体ワークフローのテスト-chromium-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results/comprehensive-user-flow-Co-1facd-w-Tests-ポートフォリオ全体ワークフローのテスト-chromium/test-failed-1.png]]
+
+[[ATTACHMENT|test-results/comprehensive-user-flow-Co-1facd-w-Tests-ポートフォリオ全体ワークフローのテスト-chromium/video.webm]]
+
+[[ATTACHMENT|test-results/comprehensive-user-flow-Co-1facd-w-Tests-ポートフォリオ全体ワークフローのテスト-chromium/error-context.md]]
+
+[[ATTACHMENT|test-results/comprehensive-user-flow-Co-1facd-w-Tests-ポートフォリオ全体ワークフローのテスト-chromium-retry1/test-failed-1.png]]
+
+[[ATTACHMENT|test-results/comprehensive-user-flow-Co-1facd-w-Tests-ポートフォリオ全体ワークフローのテスト-chromium-retry1/video.webm]]
+
+[[ATTACHMENT|test-results/comprehensive-user-flow-Co-1facd-w-Tests-ポートフォリオ全体ワークフローのテスト-chromium-retry1/error-context.md]]
+
+[[ATTACHMENT|test-results/comprehensive-user-flow-Co-1facd-w-Tests-ポートフォリオ全体ワークフローのテスト-chromium-retry1/trace.zip]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Comprehensive User Flow Tests › フォーム入力とインタラクションのテスト" classname="comprehensive-user-flow.spec.js" time="4.694">
+</testcase>
+<testcase name="Comprehensive User Flow Tests › レスポンシブUIコンポーネントのテスト" classname="comprehensive-user-flow.spec.js" time="3.693">
+</testcase>
+<testcase name="Comprehensive User Flow Tests › エラーハンドリングとリカバリのテスト" classname="comprehensive-user-flow.spec.js" time="3.692">
+</testcase>
+<testcase name="Comprehensive User Flow Tests › アクセシビリティとキーボードナビゲーションのテスト" classname="comprehensive-user-flow.spec.js" time="3.739">
+</testcase>
+<testcase name="Comprehensive User Flow Tests › データ可視化コンポーネントのテスト" classname="comprehensive-user-flow.spec.js" time="16.783">
+<failure message="comprehensive-user-flow.spec.js:165:7 データ可視化コンポーネントのテスト" type="FAILURE">
+<![CDATA[  [chromium] › comprehensive-user-flow.spec.js:165:7 › Comprehensive User Flow Tests › データ可視化コンポーネントのテスト 
+
+    Error: Timed out 5000ms waiting for expect(locator).toBeVisible()
+
+    Locator: locator('svg, canvas, .chart, .graph, .recharts').nth(5)
+    Expected: visible
+    Received: hidden
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('svg, canvas, .chart, .graph, .recharts').nth(5)
+        9 × locator resolved to <svg fill="none" class="w-5 h-5" viewBox="0 0 24 24" stroke="currentColor">…</svg>
+          - unexpected value "hidden"
+
+
+      174 |       for (let i = 0; i < chartCount; i++) {
+      175 |         const chart = chartElements.nth(i);
+    > 176 |         await expect(chart).toBeVisible();
+          |                             ^
+      177 |         
+      178 |         // チャートのインタラクション（hover）
+      179 |         await chart.hover();
+        at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/comprehensive-user-flow.spec.js:176:29
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/comprehensive-user-flow-Co-e2d27-low-Tests-データ可視化コンポーネントのテスト-chromium/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/comprehensive-user-flow-Co-e2d27-low-Tests-データ可視化コンポーネントのテスト-chromium/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../test-results/comprehensive-user-flow-Co-e2d27-low-Tests-データ可視化コンポーネントのテスト-chromium/error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: Timed out 5000ms waiting for expect(locator).toBeVisible()
+
+    Locator: locator('svg, canvas, .chart, .graph, .recharts').nth(5)
+    Expected: visible
+    Received: hidden
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('svg, canvas, .chart, .graph, .recharts').nth(5)
+        9 × locator resolved to <svg fill="none" class="w-5 h-5" viewBox="0 0 24 24" stroke="currentColor">…</svg>
+          - unexpected value "hidden"
+
+
+      174 |       for (let i = 0; i < chartCount; i++) {
+      175 |         const chart = chartElements.nth(i);
+    > 176 |         await expect(chart).toBeVisible();
+          |                             ^
+      177 |         
+      178 |         // チャートのインタラクション（hover）
+      179 |         await chart.hover();
+        at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/comprehensive-user-flow.spec.js:176:29
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/comprehensive-user-flow-Co-e2d27-low-Tests-データ可視化コンポーネントのテスト-chromium-retry1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/comprehensive-user-flow-Co-e2d27-low-Tests-データ可視化コンポーネントのテスト-chromium-retry1/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../test-results/comprehensive-user-flow-Co-e2d27-low-Tests-データ可視化コンポーネントのテスト-chromium-retry1/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/comprehensive-user-flow-Co-e2d27-low-Tests-データ可視化コンポーネントのテスト-chromium-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/comprehensive-user-flow-Co-e2d27-low-Tests-データ可視化コンポーネントのテスト-chromium-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results/comprehensive-user-flow-Co-e2d27-low-Tests-データ可視化コンポーネントのテスト-chromium/test-failed-1.png]]
+
+[[ATTACHMENT|test-results/comprehensive-user-flow-Co-e2d27-low-Tests-データ可視化コンポーネントのテスト-chromium/video.webm]]
+
+[[ATTACHMENT|test-results/comprehensive-user-flow-Co-e2d27-low-Tests-データ可視化コンポーネントのテスト-chromium/error-context.md]]
+
+[[ATTACHMENT|test-results/comprehensive-user-flow-Co-e2d27-low-Tests-データ可視化コンポーネントのテスト-chromium-retry1/test-failed-1.png]]
+
+[[ATTACHMENT|test-results/comprehensive-user-flow-Co-e2d27-low-Tests-データ可視化コンポーネントのテスト-chromium-retry1/video.webm]]
+
+[[ATTACHMENT|test-results/comprehensive-user-flow-Co-e2d27-low-Tests-データ可視化コンポーネントのテスト-chromium-retry1/error-context.md]]
+
+[[ATTACHMENT|test-results/comprehensive-user-flow-Co-e2d27-low-Tests-データ可視化コンポーネントのテスト-chromium-retry1/trace.zip]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Comprehensive User Flow Tests › ローカルストレージとセッション管理のテスト" classname="comprehensive-user-flow.spec.js" time="2.66">
+</testcase>
+<testcase name="Comprehensive User Flow Tests › パフォーマンスとメモリ使用量のテスト" classname="comprehensive-user-flow.spec.js" time="0.636">
+<system-out>
+<![CDATA[Performance metrics: {
+  loadTime: [33m540[39m,
+  domContentLoaded: [33m540[39m,
+  firstPaint: [33m80.29999999701977[39m,
+  resourceCount: [33m5[39m
+}
+]]>
+</system-out>
+</testcase>
+<testcase name="Comprehensive User Flow Tests › 複数タブとモーダルダイアログのテスト" classname="comprehensive-user-flow.spec.js" time="1.739">
+</testcase>
+<testcase name="Comprehensive User Flow Tests › URL ルーティングとブラウザ履歴のテスト" classname="comprehensive-user-flow.spec.js" time="4.672">
+</testcase>
+</testsuite>
+<testsuite name="production-test.spec.js" timestamp="2025-06-11T02:54:48.140Z" hostname="chromium" tests="8" failures="0" skipped="0" time="16.679" errors="0">
+<testcase name="Production Environment Tests › 本番環境にアクセスできる" classname="production-test.spec.js" time="0.717">
+</testcase>
+<testcase name="Production Environment Tests › 本番環境でアプリケーションが正常に動作する" classname="production-test.spec.js" time="3.737">
+</testcase>
+<testcase name="Production Environment Tests › 本番環境でナビゲーションが機能する" classname="production-test.spec.js" time="0.777">
+</testcase>
+<testcase name="Production Environment Tests › 本番環境でレスポンシブデザインが正しく動作する" classname="production-test.spec.js" time="0.657">
+</testcase>
+<testcase name="Production Environment Tests › 本番環境でパフォーマンスが適切" classname="production-test.spec.js" time="0.733">
+</testcase>
+<testcase name="Production Environment Tests › 本番環境でエラーハンドリングが正しく動作する" classname="production-test.spec.js" time="5.746">
+</testcase>
+<testcase name="Production Environment Tests › 本番環境でAPIが正常に動作する" classname="production-test.spec.js" time="3.65">
+</testcase>
+<testcase name="Production Environment Tests › 本番環境でセキュリティヘッダーが設定されている" classname="production-test.spec.js" time="0.662">
+</testcase>
+</testsuite>
+<testsuite name="comprehensive-user-flow.spec.js" timestamp="2025-06-11T02:54:48.140Z" hostname="mobile" tests="10" failures="2" skipped="0" time="37.352" errors="0">
+<testcase name="Comprehensive User Flow Tests › ポートフォリオ全体ワークフローのテスト" classname="comprehensive-user-flow.spec.js" time="3.56">
+<failure message="comprehensive-user-flow.spec.js:12:7 ポートフォリオ全体ワークフローのテスト" type="FAILURE">
+<![CDATA[  [mobile] › comprehensive-user-flow.spec.js:12:7 › Comprehensive User Flow Tests › ポートフォリオ全体ワークフローのテスト 
+
+    Error: expect.toBeVisible: Error: strict mode violation: locator('nav, header') resolved to 2 elements:
+        1) <header class="bg-dark-200/90 backdrop-blur-xl border-b border-dark-400 sticky top-0 z-50">…</header> aka getByRole('banner')
+        2) <nav class="fixed bottom-0 left-0 right-0 bg-dark-200/95 backdrop-blur-xl border-t border-dark-400 z-50">…</nav> aka getByRole('navigation')
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('nav, header')
+
+
+      19 |     // ヘッダーナビゲーションのテスト
+      20 |     const navigation = page.locator('nav, header');
+    > 21 |     await expect(navigation).toBeVisible();
+         |                              ^
+      22 |     
+      23 |     // 設定ページへの移動テスト
+      24 |     const settingsButton = page.locator('button, a').filter({ hasText: /設定|Settings|⚙️/i }).first();
+        at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/comprehensive-user-flow.spec.js:21:30
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/comprehensive-user-flow-Co-1facd-w-Tests-ポートフォリオ全体ワークフローのテスト-mobile/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/comprehensive-user-flow-Co-1facd-w-Tests-ポートフォリオ全体ワークフローのテスト-mobile/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../test-results/comprehensive-user-flow-Co-1facd-w-Tests-ポートフォリオ全体ワークフローのテスト-mobile/error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: expect.toBeVisible: Error: strict mode violation: locator('nav, header') resolved to 2 elements:
+        1) <header class="bg-dark-200/90 backdrop-blur-xl border-b border-dark-400 sticky top-0 z-50">…</header> aka getByRole('banner')
+        2) <nav class="fixed bottom-0 left-0 right-0 bg-dark-200/95 backdrop-blur-xl border-t border-dark-400 z-50">…</nav> aka getByRole('navigation')
+
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('nav, header')
+
+
+      19 |     // ヘッダーナビゲーションのテスト
+      20 |     const navigation = page.locator('nav, header');
+    > 21 |     await expect(navigation).toBeVisible();
+         |                              ^
+      22 |     
+      23 |     // 設定ページへの移動テスト
+      24 |     const settingsButton = page.locator('button, a').filter({ hasText: /設定|Settings|⚙️/i }).first();
+        at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/comprehensive-user-flow.spec.js:21:30
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/comprehensive-user-flow-Co-1facd-w-Tests-ポートフォリオ全体ワークフローのテスト-mobile-retry1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/comprehensive-user-flow-Co-1facd-w-Tests-ポートフォリオ全体ワークフローのテスト-mobile-retry1/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../test-results/comprehensive-user-flow-Co-1facd-w-Tests-ポートフォリオ全体ワークフローのテスト-mobile-retry1/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/comprehensive-user-flow-Co-1facd-w-Tests-ポートフォリオ全体ワークフローのテスト-mobile-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/comprehensive-user-flow-Co-1facd-w-Tests-ポートフォリオ全体ワークフローのテスト-mobile-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results/comprehensive-user-flow-Co-1facd-w-Tests-ポートフォリオ全体ワークフローのテスト-mobile/test-failed-1.png]]
+
+[[ATTACHMENT|test-results/comprehensive-user-flow-Co-1facd-w-Tests-ポートフォリオ全体ワークフローのテスト-mobile/video.webm]]
+
+[[ATTACHMENT|test-results/comprehensive-user-flow-Co-1facd-w-Tests-ポートフォリオ全体ワークフローのテスト-mobile/error-context.md]]
+
+[[ATTACHMENT|test-results/comprehensive-user-flow-Co-1facd-w-Tests-ポートフォリオ全体ワークフローのテスト-mobile-retry1/test-failed-1.png]]
+
+[[ATTACHMENT|test-results/comprehensive-user-flow-Co-1facd-w-Tests-ポートフォリオ全体ワークフローのテスト-mobile-retry1/video.webm]]
+
+[[ATTACHMENT|test-results/comprehensive-user-flow-Co-1facd-w-Tests-ポートフォリオ全体ワークフローのテスト-mobile-retry1/error-context.md]]
+
+[[ATTACHMENT|test-results/comprehensive-user-flow-Co-1facd-w-Tests-ポートフォリオ全体ワークフローのテスト-mobile-retry1/trace.zip]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Comprehensive User Flow Tests › フォーム入力とインタラクションのテスト" classname="comprehensive-user-flow.spec.js" time="1.608">
+</testcase>
+<testcase name="Comprehensive User Flow Tests › レスポンシブUIコンポーネントのテスト" classname="comprehensive-user-flow.spec.js" time="3.665">
+</testcase>
+<testcase name="Comprehensive User Flow Tests › エラーハンドリングとリカバリのテスト" classname="comprehensive-user-flow.spec.js" time="3.58">
+</testcase>
+<testcase name="Comprehensive User Flow Tests › アクセシビリティとキーボードナビゲーションのテスト" classname="comprehensive-user-flow.spec.js" time="1.607">
+</testcase>
+<testcase name="Comprehensive User Flow Tests › データ可視化コンポーネントのテスト" classname="comprehensive-user-flow.spec.js" time="13.943">
+<failure message="comprehensive-user-flow.spec.js:165:7 データ可視化コンポーネントのテスト" type="FAILURE">
+<![CDATA[  [mobile] › comprehensive-user-flow.spec.js:165:7 › Comprehensive User Flow Tests › データ可視化コンポーネントのテスト 
+
+    Error: Timed out 5000ms waiting for expect(locator).toBeVisible()
+
+    Locator: locator('svg, canvas, .chart, .graph, .recharts').nth(1)
+    Expected: visible
+    Received: hidden
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('svg, canvas, .chart, .graph, .recharts').nth(1)
+        9 × locator resolved to <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-4 h-4 md:mr-2">…</svg>
+          - unexpected value "hidden"
+
+
+      174 |       for (let i = 0; i < chartCount; i++) {
+      175 |         const chart = chartElements.nth(i);
+    > 176 |         await expect(chart).toBeVisible();
+          |                             ^
+      177 |         
+      178 |         // チャートのインタラクション（hover）
+      179 |         await chart.hover();
+        at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/comprehensive-user-flow.spec.js:176:29
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/comprehensive-user-flow-Co-e2d27-low-Tests-データ可視化コンポーネントのテスト-mobile/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/comprehensive-user-flow-Co-e2d27-low-Tests-データ可視化コンポーネントのテスト-mobile/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../test-results/comprehensive-user-flow-Co-e2d27-low-Tests-データ可視化コンポーネントのテスト-mobile/error-context.md
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+
+    Error: Timed out 5000ms waiting for expect(locator).toBeVisible()
+
+    Locator: locator('svg, canvas, .chart, .graph, .recharts').nth(1)
+    Expected: visible
+    Received: hidden
+    Call log:
+      - Expect "toBeVisible" with timeout 5000ms
+      - waiting for locator('svg, canvas, .chart, .graph, .recharts').nth(1)
+        9 × locator resolved to <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-4 h-4 md:mr-2">…</svg>
+          - unexpected value "hidden"
+
+
+      174 |       for (let i = 0; i < chartCount; i++) {
+      175 |         const chart = chartElements.nth(i);
+    > 176 |         await expect(chart).toBeVisible();
+          |                             ^
+      177 |         
+      178 |         // チャートのインタラクション（hover）
+      179 |         await chart.hover();
+        at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/comprehensive-user-flow.spec.js:176:29
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/comprehensive-user-flow-Co-e2d27-low-Tests-データ可視化コンポーネントのテスト-mobile-retry1/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    test-results/comprehensive-user-flow-Co-e2d27-low-Tests-データ可視化コンポーネントのテスト-mobile-retry1/video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../test-results/comprehensive-user-flow-Co-e2d27-low-Tests-データ可視化コンポーネントのテスト-mobile-retry1/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/comprehensive-user-flow-Co-e2d27-low-Tests-データ可視化コンポーネントのテスト-mobile-retry1/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/comprehensive-user-flow-Co-e2d27-low-Tests-データ可視化コンポーネントのテスト-mobile-retry1/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|test-results/comprehensive-user-flow-Co-e2d27-low-Tests-データ可視化コンポーネントのテスト-mobile/test-failed-1.png]]
+
+[[ATTACHMENT|test-results/comprehensive-user-flow-Co-e2d27-low-Tests-データ可視化コンポーネントのテスト-mobile/video.webm]]
+
+[[ATTACHMENT|test-results/comprehensive-user-flow-Co-e2d27-low-Tests-データ可視化コンポーネントのテスト-mobile/error-context.md]]
+
+[[ATTACHMENT|test-results/comprehensive-user-flow-Co-e2d27-low-Tests-データ可視化コンポーネントのテスト-mobile-retry1/test-failed-1.png]]
+
+[[ATTACHMENT|test-results/comprehensive-user-flow-Co-e2d27-low-Tests-データ可視化コンポーネントのテスト-mobile-retry1/video.webm]]
+
+[[ATTACHMENT|test-results/comprehensive-user-flow-Co-e2d27-low-Tests-データ可視化コンポーネントのテスト-mobile-retry1/error-context.md]]
+
+[[ATTACHMENT|test-results/comprehensive-user-flow-Co-e2d27-low-Tests-データ可視化コンポーネントのテスト-mobile-retry1/trace.zip]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Comprehensive User Flow Tests › ローカルストレージとセッション管理のテスト" classname="comprehensive-user-flow.spec.js" time="2.436">
+</testcase>
+<testcase name="Comprehensive User Flow Tests › パフォーマンスとメモリ使用量のテスト" classname="comprehensive-user-flow.spec.js" time="0.573">
+<system-out>
+<![CDATA[Performance metrics: {
+  loadTime: [33m420[39m,
+  domContentLoaded: [33m419[39m,
+  firstPaint: [33m100[39m,
+  resourceCount: [33m6[39m
+}
+]]>
+</system-out>
+</testcase>
+<testcase name="Comprehensive User Flow Tests › 複数タブとモーダルダイアログのテスト" classname="comprehensive-user-flow.spec.js" time="1.557">
+</testcase>
+<testcase name="Comprehensive User Flow Tests › URL ルーティングとブラウザ履歴のテスト" classname="comprehensive-user-flow.spec.js" time="4.823">
+</testcase>
+</testsuite>
+<testsuite name="production-test.spec.js" timestamp="2025-06-11T02:54:48.140Z" hostname="mobile" tests="8" failures="0" skipped="0" time="15.504" errors="0">
+<testcase name="Production Environment Tests › 本番環境にアクセスできる" classname="production-test.spec.js" time="0.532">
+</testcase>
+<testcase name="Production Environment Tests › 本番環境でアプリケーションが正常に動作する" classname="production-test.spec.js" time="3.571">
+</testcase>
+<testcase name="Production Environment Tests › 本番環境でナビゲーションが機能する" classname="production-test.spec.js" time="0.666">
+</testcase>
+<testcase name="Production Environment Tests › 本番環境でレスポンシブデザインが正しく動作する" classname="production-test.spec.js" time="0.594">
+</testcase>
+<testcase name="Production Environment Tests › 本番環境でパフォーマンスが適切" classname="production-test.spec.js" time="0.499">
+</testcase>
+<testcase name="Production Environment Tests › 本番環境でエラーハンドリングが正しく動作する" classname="production-test.spec.js" time="5.541">
+</testcase>
+<testcase name="Production Environment Tests › 本番環境でAPIが正常に動作する" classname="production-test.spec.js" time="3.559">
+</testcase>
+<testcase name="Production Environment Tests › 本番環境でセキュリティヘッダーが設定されている" classname="production-test.spec.js" time="0.542">
+</testcase>
+</testsuite>
+</testsuites>

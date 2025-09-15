@@ -21,7 +21,7 @@
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider } from './context/AuthContextFix';
 import { PortfolioProvider } from './context/PortfolioContext';
 import Header from './components/layout/Header';
 import TabNavigation from './components/layout/TabNavigation';
