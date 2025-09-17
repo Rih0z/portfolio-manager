@@ -37,7 +37,7 @@ jobs:
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          command: pages deploy frontend/webapp/build --project-name=pfwise-portfolio-manager --branch=main --commit-dirty=true
+          command: pages deploy frontend/webapp/build --project-name=pfwise-portfolio-manager --branch=main --commit-hash=${{ github.sha }} --commit-message="${{ github.event.head_commit.message }}"
           
       - name: Show deployment info
         run: |
