@@ -99,12 +99,12 @@ const BudgetInput = () => {
   const presetAmounts = getPresetAmounts();
 
   return (
-    <div className="bg-white rounded-lg shadow p-4 mb-6">
-      <h2 className="text-lg font-semibold mb-4">追加投資シミュレーション</h2>
+    <div className="bg-white dark:bg-dark-200 rounded-lg shadow dark:shadow-xl border dark:border-dark-400 p-4 mb-6">
+      <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">追加投資シミュレーション</h2>
       
       {/* 通貨選択（新規追加） */}
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           予算通貨
         </label>
         <div className="flex space-x-4">
@@ -117,7 +117,7 @@ const BudgetInput = () => {
               onChange={() => handleCurrencyChange('JPY')}
               className="form-radio h-4 w-4 text-blue-600"
             />
-            <span className="ml-2 text-sm text-gray-700">円 (¥)</span>
+            <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">円 (¥)</span>
           </label>
           <label className="inline-flex items-center">
             <input
@@ -128,22 +128,22 @@ const BudgetInput = () => {
               onChange={() => handleCurrencyChange('USD')}
               className="form-radio h-4 w-4 text-blue-600"
             />
-            <span className="ml-2 text-sm text-gray-700">ドル ($)</span>
+            <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">ドル ($)</span>
           </label>
         </div>
       </div>
       
       <div className="mb-4">
-        <label htmlFor="budget-input" className="block text-sm font-medium text-gray-700 mb-1">
+        <label htmlFor="budget-input" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           追加予算
         </label>
         <div className="flex items-center">
           <div className="relative flex items-center">
-            <span className="absolute left-3 text-gray-500">{currencySymbol}</span>
+            <span className="absolute left-3 text-gray-500 dark:text-gray-400">{currencySymbol}</span>
             <input
               id="budget-input"
               type="number"
-              className="pl-7 pr-3 py-2 border border-gray-300 rounded-md w-40 focus:ring-blue-500 focus:border-blue-500"
+              className="pl-7 pr-3 py-2 border border-gray-300 dark:border-dark-400 dark:bg-dark-300 dark:text-gray-100 rounded-md w-40 focus:ring-blue-500 focus:border-blue-500 dark:focus:ring-primary-400 dark:focus:border-primary-400"
               value={amount}
               onChange={handleAmountChange}
               min="0"
@@ -152,7 +152,7 @@ const BudgetInput = () => {
           </div>
           <button
             type="button"
-            className="ml-2 px-3 py-2 bg-gray-200 hover:bg-gray-300 rounded-md"
+            className="ml-2 px-3 py-2 bg-gray-200 dark:bg-dark-400 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-dark-500 rounded-md"
             onClick={handleDecrease}
             aria-label="予算を減らす"
           >
@@ -160,7 +160,7 @@ const BudgetInput = () => {
           </button>
           <button
             type="button"
-            className="ml-2 px-3 py-2 bg-gray-200 hover:bg-gray-300 rounded-md"
+            className="ml-2 px-3 py-2 bg-gray-200 dark:bg-dark-400 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-dark-500 rounded-md"
             onClick={handleIncrease}
             aria-label="予算を増やす"
           >
@@ -169,7 +169,7 @@ const BudgetInput = () => {
           
           <button
             type="button"
-            className="ml-4 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+            className="ml-4 bg-blue-600 dark:bg-primary-500 text-white px-4 py-2 rounded-md hover:bg-blue-700 dark:hover:bg-primary-600"
             onClick={handleApply}
           >
             適用
@@ -179,7 +179,7 @@ const BudgetInput = () => {
       
       {/* 通貨に応じたプリセットボタン（更新） */}
       <div className="mb-4">
-        <label id="preset-label" className="block text-sm font-medium text-gray-700 mb-1">
+        <label id="preset-label" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           予算プリセット
         </label>
         <div className="flex flex-wrap gap-2" role="group" aria-labelledby="preset-label">
@@ -187,7 +187,7 @@ const BudgetInput = () => {
             <button
               key={presetAmount}
               type="button"
-              className="bg-blue-100 text-blue-800 px-3 py-1 rounded-md hover:bg-blue-200"
+              className="bg-blue-100 dark:bg-primary-500/20 text-blue-800 dark:text-primary-300 px-3 py-1 rounded-md hover:bg-blue-200 dark:hover:bg-primary-500/30 border dark:border-primary-500/30"
               onClick={() => handleSetPreset(presetAmount)}
             >
               {formatPresetLabel(presetAmount)}
@@ -196,9 +196,9 @@ const BudgetInput = () => {
         </div>
       </div>
       
-      <div className="bg-gray-100 p-3 rounded-md">
-        <div className="text-sm text-gray-600 mb-1">現在の設定:</div>
-        <div className="font-bold">
+      <div className="bg-gray-100 dark:bg-dark-300 p-3 rounded-md border dark:border-dark-400">
+        <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">現在の設定:</div>
+        <div className="font-bold text-gray-900 dark:text-gray-100">
           追加予算: {currencySymbol}{additionalBudget.amount.toLocaleString()} {additionalBudget.currency}
         </div>
       </div>

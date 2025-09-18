@@ -52,31 +52,31 @@ const Simulation = () => {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-semibold mb-4">追加投資のシミュレーション</h2>
+      <div className="bg-white dark:bg-dark-200 rounded-lg shadow dark:shadow-xl border dark:border-dark-400 p-6">
+        <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">追加投資のシミュレーション</h2>
         
         <div className="mb-6">
-          <h3 className="text-lg font-medium mb-3">予算の設定</h3>
+          <h3 className="text-lg font-medium mb-3 text-gray-800 dark:text-gray-200">予算の設定</h3>
           <BudgetInput />
         </div>
         
-        <div className="bg-blue-50 p-4 rounded-md mb-6">
+        <div className="bg-blue-50 dark:bg-primary-500/10 p-4 rounded-md mb-6 border dark:border-primary-500/20">
           <div className="flex justify-between items-center">
             <div>
-              <p className="text-sm text-gray-600">現在の総資産</p>
-              <p className="text-lg font-semibold">
+              <p className="text-sm text-gray-600 dark:text-gray-400">現在の総資産</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 {formatCurrencyValue(totalAssets, baseCurrency)}
               </p>
             </div>
             <div className="text-center">
-              <p className="text-sm text-gray-600">追加予算</p>
-              <p className="text-lg font-semibold">
+              <p className="text-sm text-gray-600 dark:text-gray-400">追加予算</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 {formatCurrencyValue(additionalBudget.amount, additionalBudget.currency)}
               </p>
             </div>
             <div className="text-right">
-              <p className="text-sm text-gray-600">シミュレーション後の総資産</p>
-              <p className="text-lg font-semibold">
+              <p className="text-sm text-gray-600 dark:text-gray-400">シミュレーション後の総資産</p>
+              <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 {formatCurrencyValue(totalAssets + additionalBudget.amount, baseCurrency)}
               </p>
             </div>
@@ -84,12 +84,12 @@ const Simulation = () => {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="bg-white dark:bg-dark-200 rounded-lg shadow dark:shadow-xl border dark:border-dark-400 p-6">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">シミュレーション結果</h2>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">シミュレーション結果</h2>
           <button
             onClick={handleBatchPurchase}
-            className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded"
+            className="bg-green-600 hover:bg-green-700 dark:bg-success-500 dark:hover:bg-success-600 text-white font-medium py-2 px-4 rounded"
           >
             一括購入実行
           </button>

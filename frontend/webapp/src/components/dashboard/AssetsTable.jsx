@@ -68,9 +68,9 @@ const AssetsTable = () => {
 
   if (sortedData.length === 0) {
     return (
-      <div className="bg-white rounded-lg shadow p-6 text-center">
-        <h2 className="text-xl font-semibold mb-2">保有資産詳細</h2>
-        <p className="text-gray-500">保有資産が設定されていません。</p>
+      <div className="bg-white dark:bg-dark-200 rounded-lg shadow dark:shadow-xl border dark:border-dark-400 p-6 text-center">
+        <h2 className="text-xl font-semibold mb-2 text-gray-900 dark:text-gray-100">保有資産詳細</h2>
+        <p className="text-gray-500 dark:text-gray-400">保有資産が設定されていません。</p>
       </div>
     );
   }
@@ -87,49 +87,49 @@ const AssetsTable = () => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow overflow-hidden">
-      <h2 className="text-xl font-semibold p-6 pb-4">保有資産詳細</h2>
+    <div className="bg-white dark:bg-dark-200 rounded-lg shadow dark:shadow-xl border dark:border-dark-400 overflow-hidden">
+      <h2 className="text-xl font-semibold p-6 pb-4 text-gray-900 dark:text-gray-100">保有資産詳細</h2>
       
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+          <thead className="bg-gray-50 dark:bg-dark-300">
             <tr>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 銘柄
               </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 価格
               </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 保有数
               </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 評価額
               </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 現在割合
               </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 目標割合
               </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 差分
               </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 手数料
               </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 配当
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-white dark:bg-dark-200 divide-y divide-gray-200 dark:divide-dark-400">
             {sortedData.map((asset) => (
               <tr key={asset.id}>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     <div>
-                      <div className="text-sm font-medium text-gray-900">
+                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                         {(() => {
                           // 日本の投資信託や株式の場合、わかりやすい名前を表示
                           if (/^(\d{8}|\d{7}[A-Z]|[A-Z0-9]{8})$/i.test(asset.ticker) || /^\d{4}(\.T)?$/.test(asset.ticker)) {
@@ -139,17 +139,17 @@ const AssetsTable = () => {
                           return asset.name;
                         })()}
                       </div>
-                      <div className="text-sm text-gray-500">
+                      <div className="text-sm text-gray-500 dark:text-gray-400">
                         {asset.ticker}
                       </div>
                       {/* ファンドタイプバッジを表示 */}
                       <div className="mt-1 space-x-1 flex flex-wrap gap-1">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
                           asset.isStock 
-                            ? 'bg-gray-100 text-gray-800' 
+                            ? 'bg-gray-100 dark:bg-gray-600/20 text-gray-800 dark:text-gray-300' 
                             : asset.isMutualFund
-                              ? 'bg-indigo-100 text-indigo-800'
-                              : 'bg-blue-100 text-blue-800'
+                              ? 'bg-indigo-100 dark:bg-indigo-600/20 text-indigo-800 dark:text-indigo-300'
+                              : 'bg-blue-100 dark:bg-blue-600/20 text-blue-800 dark:text-blue-300'
                         }`}>
                           {asset.fundType}
                         </span>
@@ -161,33 +161,33 @@ const AssetsTable = () => {
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
+                  <div className="text-sm text-gray-900 dark:text-gray-100">
                     {formatCurrency(asset.price, asset.currency)}
                   </div>
                   {/* 投資信託の場合は「基準価額」と表示 */}
                   {asset.isMutualFund && (
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
                       (基準価額)
                     </div>
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
+                  <div className="text-sm text-gray-900 dark:text-gray-100">
                     {asset.holdings.toLocaleString(undefined, {maximumFractionDigits: 4})}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
+                  <div className="text-sm text-gray-900 dark:text-gray-100">
                     {formatCurrency(asset.assetValue, baseCurrency)}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
+                  <div className="text-sm text-gray-900 dark:text-gray-100">
                     {formatPercent(asset.currentPercentage)}
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
+                  <div className="text-sm text-gray-900 dark:text-gray-100">
                     {formatPercent(asset.targetPercentage)}
                   </div>
                 </td>
@@ -201,7 +201,7 @@ const AssetsTable = () => {
                   </div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">
+                  <div className="text-sm text-gray-900 dark:text-gray-100">
                     {formatCurrency(asset.assetValue * (asset.annualFee / 100), baseCurrency)}
                   </div>
                   <div className="text-xs text-gray-500">
@@ -228,7 +228,7 @@ const AssetsTable = () => {
                       <div className="text-sm text-green-600">
                         {formatCurrency(asset.annualDividend, baseCurrency)}
                       </div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
                         ({formatPercent(asset.dividendYield, 2)})
                       </div>
                       {/* 配当頻度バッジ */}
@@ -242,7 +242,7 @@ const AssetsTable = () => {
                       </span>
                     </div>
                   ) : (
-                    <div className="text-xs text-gray-500">なし</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">なし</div>
                   )}
                 </td>
               </tr>
