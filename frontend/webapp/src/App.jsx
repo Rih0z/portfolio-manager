@@ -176,6 +176,8 @@ const App = () => {
                       <Route path="/" element={<Dashboard />} />
                       <Route path="/ai-advisor" element={<AIAdvisor />} />
                       <Route path="/settings" element={<Settings />} />
+                      <Route path="/simulation" element={<Simulation />} />
+                      <Route path="/investment-calculator" element={<Simulation />} />
                       <Route path="/data" element={<DataIntegration />} />
                       <Route path="/data-import" element={<DataImport />} />
                       <Route path="/auth/google/callback" element={<Dashboard />} />
