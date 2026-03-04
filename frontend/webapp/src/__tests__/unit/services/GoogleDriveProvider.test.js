@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * GoogleDriveProviderのユニットテスト
  */
@@ -5,10 +6,10 @@
 import { GoogleDriveProvider } from '../../../services/portfolio/storage/GoogleDriveProvider';
 
 // apiモジュールをモック
-jest.mock('../../../services/api', () => ({
-  saveToGoogleDrive: jest.fn(),
-  loadFromGoogleDrive: jest.fn(),
-  initGoogleDriveAPI: jest.fn()
+vi.mock('../../../services/api', () => ({
+  saveToGoogleDrive: vi.fn(),
+  loadFromGoogleDrive: vi.fn(),
+  initGoogleDriveAPI: vi.fn()
 }));
 
 import { 
@@ -35,7 +36,7 @@ describe('GoogleDriveProvider', () => {
 
   beforeEach(() => {
     provider = new GoogleDriveProvider();
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('save', () => {
@@ -168,7 +169,7 @@ describe('GoogleDriveProvider', () => {
         data: loadedData 
       });
 
-      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation();
 
       const result = await provider.load(mockUser);
 
@@ -211,7 +212,7 @@ describe('GoogleDriveProvider', () => {
     });
 
     it('エラー発生時は未同期を返す', async () => {
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation();
       
       // 実際のGoogleDriveProviderクラスを拡張してエラーを発生させる
       class TestGoogleDriveProvider extends GoogleDriveProvider {

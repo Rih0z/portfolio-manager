@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * PortfolioCalculationServiceのユニットテスト
  */
@@ -190,7 +191,7 @@ describe('PortfolioCalculationService', () => {
     });
 
     it('サポートされていない通貨ペアでは元の値を返す', () => {
-      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation();
       const result = PortfolioCalculationService.convertCurrency(100, 'EUR', 'GBP', 150);
       
       expect(result).toBe(100);

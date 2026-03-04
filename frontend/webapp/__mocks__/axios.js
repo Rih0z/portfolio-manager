@@ -4,15 +4,16 @@
  * Axiosライブラリのモック実装
  * テスト時にAxiosをモック化してHTTPリクエストをシミュレート
  */
+import { vi } from 'vitest';
 
 // モックインスタンスを生成
 const createMock = () => {
   const createInstance = (config = {}) => ({
-    get: jest.fn().mockResolvedValue({ data: {} }),
-    post: jest.fn().mockResolvedValue({ data: {} }),
-    put: jest.fn().mockResolvedValue({ data: {} }),
-    delete: jest.fn().mockResolvedValue({ data: {} }),
-    patch: jest.fn().mockResolvedValue({ data: {} }),
+    get: vi.fn().mockResolvedValue({ data: {} }),
+    post: vi.fn().mockResolvedValue({ data: {} }),
+    put: vi.fn().mockResolvedValue({ data: {} }),
+    delete: vi.fn().mockResolvedValue({ data: {} }),
+    patch: vi.fn().mockResolvedValue({ data: {} }),
     defaults: {
       ...config,
       headers: {
@@ -22,25 +23,25 @@ const createMock = () => {
     },
     interceptors: {
       request: {
-        use: jest.fn(),
-        eject: jest.fn(),
-        clear: jest.fn(),
+        use: vi.fn(),
+        eject: vi.fn(),
+        clear: vi.fn(),
       },
       response: {
-        use: jest.fn(),
-        eject: jest.fn(),
-        clear: jest.fn(),
+        use: vi.fn(),
+        eject: vi.fn(),
+        clear: vi.fn(),
       },
     },
   });
 
   const mock = {
-    get: jest.fn().mockResolvedValue({ data: {} }),
-    post: jest.fn().mockResolvedValue({ data: {} }),
-    put: jest.fn().mockResolvedValue({ data: {} }),
-    delete: jest.fn().mockResolvedValue({ data: {} }),
-    patch: jest.fn().mockResolvedValue({ data: {} }),
-    create: jest.fn((config = {}) => createInstance(config)),
+    get: vi.fn().mockResolvedValue({ data: {} }),
+    post: vi.fn().mockResolvedValue({ data: {} }),
+    put: vi.fn().mockResolvedValue({ data: {} }),
+    delete: vi.fn().mockResolvedValue({ data: {} }),
+    patch: vi.fn().mockResolvedValue({ data: {} }),
+    create: vi.fn((config = {}) => createInstance(config)),
     defaults: {
       headers: {
         common: {},

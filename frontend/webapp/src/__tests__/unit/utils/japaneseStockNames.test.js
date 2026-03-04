@@ -314,16 +314,16 @@ describe('japaneseStockNames', () => {
       expect(defaultExport).toHaveProperty('formatJapaneseStockDisplay');
     });
 
-    it('デフォルトエクスポートの関数が正常に動作する', () => {
-      const defaultExport = require('../../../utils/japaneseStockNames').default;
-      
+    it('デフォルトエクスポートの関数が正常に動作する', async () => {
+      const defaultExport = (await import('../../../utils/japaneseStockNames')).default;
+
       expect(defaultExport.getJapaneseStockName('7203')).toBe('トヨタ自動車');
       expect(defaultExport.formatJapaneseStockDisplay('7203')).toBe('7203 - トヨタ自動車');
     });
 
-    it('デフォルトエクスポートのデータオブジェクトが正しい', () => {
-      const defaultExport = require('../../../utils/japaneseStockNames').default;
-      
+    it('デフォルトエクスポートのデータオブジェクトが正しい', async () => {
+      const defaultExport = (await import('../../../utils/japaneseStockNames')).default;
+
       expect(defaultExport.MUTUAL_FUND_NAMES['0331418A']).toBe('eMAXIS Slim 米国株式(S&P500)');
       expect(defaultExport.JAPAN_STOCK_NAMES['7203']).toBe('トヨタ自動車');
     });

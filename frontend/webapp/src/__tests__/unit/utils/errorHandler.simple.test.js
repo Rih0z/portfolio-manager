@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * errorHandler.js の簡潔なユニットテスト
  * 実際の実装に合わせたテスト
@@ -16,12 +17,12 @@ describe('errorHandler', () => {
 
   beforeEach(() => {
     // コンソールエラーをモック
-    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     
     // イベントリスナーをモック
     mockEventListeners = {};
     global.window = {
-      addEventListener: jest.fn((event, handler) => {
+      addEventListener: vi.fn((event, handler) => {
         mockEventListeners[event] = handler;
       })
     };
@@ -130,7 +131,7 @@ describe('errorHandler', () => {
       
       const mockEvent = {
         reason: error,
-        preventDefault: jest.fn()
+        preventDefault: vi.fn()
       };
       
       mockEventListeners['unhandledrejection'](mockEvent);
@@ -150,7 +151,7 @@ describe('errorHandler', () => {
       
       const mockEvent = {
         error: error,
-        preventDefault: jest.fn()
+        preventDefault: vi.fn()
       };
       
       mockEventListeners['error'](mockEvent);

@@ -1,0 +1,173 @@
+/**
+ * プロジェクト: https://portfolio-wise.com/
+ * ファイルパス: src/utils/formatters.ts
+ *
+ * 作成者: Koki Riho （https://github.com/Rih0z）
+ * 作成日: 2025-03-10 10:30:15
+ *
+ * 更新履歴:
+ * - 2025-03-10 10:30:15 Koki Riho 初回作成
+ * - 2025-03-25 14:40:20 Koki Riho パーセント表示の小数点桁数を調整
+ *
+ * 説明:
+ * 数値や日付のフォーマット関数を提供するユーティリティ。
+ * 通貨表示、パーセント表示、日付表示のフォーマット機能を実装。
+ */
+
+/**
+ * 数値を通貨形式にフォーマットする
+ * @param {number} amount - フォーマットする金額
+ * @param {string} currency - 通貨コード（'JPY'または'USD'）
+ * @returns {string} フォーマットされた通貨文字列
+ */
+export const formatCurrency = (amount: number, currency: string = 'JPY'): string => {
+  // 無効な値やInfinityの場合は0として扱う
+  if (typeof amount !== 'number' || Number.isNaN(amount) || amount === null || amount === undefined || !Number.isFinite(amount)) {
+    amount = 0;
+  }
+
+  const formatter = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency,
+    minimumFractionDigits: currency === 'JPY' ? 0 : 2,
+    maximumFractionDigits: currency === 'JPY' ? 0 : 2
+  });
+
+  return formatter.format(amount);
+};
+
+  /**
+   * 数値をパーセント形式にフォーマットする
+   * @param {number} value - フォーマットする値
+   * @param {number} fractionDigits - 小数点以下の桁数
+   * @returns {string} フォーマットされたパーセント文字列
+   */
+export const formatPercent = (value: number, fractionDigits: number = 2): string => {
+  if (typeof value !== 'number' || Number.isNaN(value)) return 'N/A';
+
+  const formatted = value.toFixed(fractionDigits);
+  return `${formatted.endsWith('.00') ? parseInt(formatted, 10) : formatted}%`;
+};
+
+
+  /**
+   * 日付をフォーマットする
+   * @param {string|Date} date - フォーマットする日付
+   * @returns {string} フォーマットされた日付文字列
+   */
+export const formatDate = (date: string | number | Date | null | undefined, formatStr?: string): string => {
+  if (date === null || date === undefined || date === '') return 'Invalid Date';
+
+  const d =
+    typeof date === 'string' || typeof date === 'number'
+      ? new Date(date)
+      : date;
+  if (Number.isNaN(d?.getTime())) return 'Invalid Date';
+
+  if (formatStr === 'yyyy/MM/dd') {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}/${m}/${day}`;
+  }
+
+  // デフォルトはISO風フォーマット（YYYY-MM-DD）
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
+/**
+ * パーセンテージをフォーマットする
+ * @param {number} value - フォーマットする値（0.1 = 10%）
+ * @param {number} decimals - 小数点以下の桁数
+ * @returns {string} フォーマットされたパーセンテージ文字列
+ */
+export const formatPercentage = (value: number, decimals: number = 1): string => {
+  if (typeof value !== 'number' || Number.isNaN(value) || value === null || value === undefined || !Number.isFinite(value)) {
+    return '0.0%';
+  }
+
+  return `${(value * 100).toFixed(decimals)}%`;
+};
+
+/**
+ * 数値をカンマ区切りでフォーマットする
+ * @param {number} value - フォーマットする数値
+ * @param {number} decimals - 小数点以下の桁数
+ * @returns {string} フォーマットされた数値文字列
+ */
+export const formatNumber = (value: number | string | null | undefined, decimals?: number): string => {
+  const num = Number(value);
+  if (Number.isNaN(num) || value === null || value === undefined || !Number.isFinite(num)) {
+    return '0';
+  }
+
+  if (decimals !== undefined) {
+    return num.toLocaleString('en-US', {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals
+    });
+  }
+
+  return num.toLocaleString('en-US');
+};
+
+/**
+ * 日付をIntl.DateTimeFormatでフォーマットする
+ * @param {Date|string|number} date - フォーマットする日付
+ * @param {object} options - フォーマットオプション
+ * @param {string} locale - ロケール
+ * @returns {string} フォーマットされた日付文字列
+ */
+export const formatDateIntl = (date: Date | string | number | null | undefined, options: Intl.DateTimeFormatOptions = {}, locale: string = 'ja-JP'): string => {
+  if (!date) return 'Invalid Date';
+
+  try {
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return 'Invalid Date';
+
+    const defaultOptions: Intl.DateTimeFormatOptions = {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    };
+
+    return d.toLocaleDateString(locale, { ...defaultOptions, ...options });
+  } catch (error) {
+    return 'Invalid Date';
+  }
+};
+
+/**
+ * 相対時間をフォーマットする
+ * @param {Date|string|number} date - フォーマットする日付
+ * @param {string} locale - ロケール
+ * @returns {string} フォーマットされた相対時間文字列
+ */
+export const formatDateRelative = (date: Date | string | number | null | undefined, locale: string = 'ja-JP'): string => {
+  if (!date) return 'Invalid Date';
+
+  try {
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return 'Invalid Date';
+
+    const now = new Date();
+    const diffMs = now.getTime() - d.getTime();
+
+    const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
+
+    if (Math.abs(diffMs) < 60000) { // 1分未満
+      return rtf.format(-Math.round(diffMs / 1000), 'second');
+    } else if (Math.abs(diffMs) < 3600000) { // 1時間未満
+      return rtf.format(-Math.round(diffMs / 60000), 'minute');
+    } else if (Math.abs(diffMs) < 86400000) { // 1日未満
+      return rtf.format(-Math.round(diffMs / 3600000), 'hour');
+    } else {
+      return rtf.format(-Math.round(diffMs / 86400000), 'day');
+    }
+  } catch (error) {
+    return 'Invalid Date';
+  }
+};

@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import ErrorBoundary from '../../../components/common/ErrorBoundary';
@@ -13,7 +14,7 @@ const ThrowError = ({ shouldThrow = false }) => {
 // コンソールエラーを抑制
 const originalError = console.error;
 beforeAll(() => {
-  console.error = jest.fn();
+  console.error = vi.fn();
 });
 
 afterAll(() => {
@@ -78,7 +79,7 @@ describe('ErrorBoundary', () => {
   });
 
   it('logs error information to console', () => {
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     render(
       <ErrorBoundary>

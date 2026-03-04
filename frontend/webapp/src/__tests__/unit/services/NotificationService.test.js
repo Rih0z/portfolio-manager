@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * NotificationServiceのユニットテスト
  */
@@ -9,11 +10,11 @@ describe('NotificationService', () => {
 
   beforeEach(() => {
     service = new NotificationService();
-    jest.useFakeTimers();
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   describe('add', () => {
@@ -31,7 +32,7 @@ describe('NotificationService', () => {
     it('エラー通知は自動削除されない', () => {
       service.add('エラーメッセージ', 'error');
       
-      jest.advanceTimersByTime(6000);
+      vi.advanceTimersByTime(6000);
       
       expect(service.getAll()).toHaveLength(1);
     });
@@ -43,7 +44,7 @@ describe('NotificationService', () => {
       
       expect(service.getAll()).toHaveLength(3);
       
-      jest.advanceTimersByTime(5000);
+      vi.advanceTimersByTime(5000);
       
       expect(service.getAll()).toHaveLength(0);
     });
@@ -78,7 +79,7 @@ describe('NotificationService', () => {
 
   describe('subscribe', () => {
     it('リスナーが通知の変更を受け取れる', () => {
-      const listener = jest.fn();
+      const listener = vi.fn();
       service.subscribe(listener);
       
       service.add('メッセージ');
@@ -93,8 +94,8 @@ describe('NotificationService', () => {
     });
 
     it('複数のリスナーが登録できる', () => {
-      const listener1 = jest.fn();
-      const listener2 = jest.fn();
+      const listener1 = vi.fn();
+      const listener2 = vi.fn();
       
       service.subscribe(listener1);
       service.subscribe(listener2);
@@ -106,7 +107,7 @@ describe('NotificationService', () => {
     });
 
     it('unsubscribeできる', () => {
-      const listener = jest.fn();
+      const listener = vi.fn();
       const unsubscribe = service.subscribe(listener);
       
       service.add('メッセージ1');

@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * googleDriveService.js のユニットテスト
  * Google Drive連携機能のテスト
@@ -10,13 +11,13 @@ import {
 } from '../../../services/googleDriveService';
 
 // apiUtilsのモック
-jest.mock('../../../utils/apiUtils', () => ({
-  authFetch: jest.fn()
+vi.mock('../../../utils/apiUtils', () => ({
+  authFetch: vi.fn()
 }));
 
 // envUtilsのモック
-jest.mock('../../../utils/envUtils', () => ({
-  getApiEndpoint: jest.fn()
+vi.mock('../../../utils/envUtils', () => ({
+  getApiEndpoint: vi.fn()
 }));
 
 import { authFetch } from '../../../utils/apiUtils';
@@ -27,10 +28,10 @@ describe('googleDriveService', () => {
 
   beforeEach(() => {
     // モックをクリア
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     
     // console.errorをモック
-    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     
     // getApiEndpointのデフォルトモック
     getApiEndpoint.mockResolvedValue('https://mock-api.com/drive');
@@ -453,8 +454,8 @@ describe('googleDriveService', () => {
   });
 
   describe('デフォルトエクスポート', () => {
-    it('全ての必要な関数をエクスポートする', () => {
-      const googleDriveService = require('../../../services/googleDriveService').default;
+    it('全ての必要な関数をエクスポートする', async () => {
+      const googleDriveService = (await import('../../../services/googleDriveService')).default;
       
       expect(googleDriveService).toHaveProperty('fetchDriveFiles');
       expect(googleDriveService).toHaveProperty('saveToDrive');

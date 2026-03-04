@@ -1,0 +1,68 @@
+{
+  "timestamp": "2026-03-04T21:03:51.151Z",
+  "apiBaseUrl": "https://api.portfolio-wise.com",
+  "apiStage": "dev",
+  "endpoints": {
+    "OPTIONS auth/session": {
+      "success": false,
+      "message": "client.options is not a function",
+      "error": "TypeError: client.options is not a function"
+    },
+    "OPTIONS auth/logout": {
+      "success": false,
+      "message": "client.options is not a function",
+      "error": "TypeError: client.options is not a function"
+    },
+    "OPTIONS auth/google/login": {
+      "success": false,
+      "message": "client.options is not a function",
+      "error": "TypeError: client.options is not a function"
+    },
+    "GET (no auth) auth/session": {
+      "success": false,
+      "message": "Session check without token failed: Cannot read properties of undefined (reading 'access-control-allow-origin')",
+      "error": "TypeError: Cannot read properties of undefined (reading 'access-control-allow-origin')"
+    },
+    "GET (with auth) auth/session": {
+      "success": false,
+      "message": "Session check with token failed: Cannot read properties of undefined (reading 'access-control-allow-origin')",
+      "error": "TypeError: Cannot read properties of undefined (reading 'access-control-allow-origin')"
+    },
+    "POST (no auth) auth/logout": {
+      "success": false,
+      "message": "Logout without token failed: Cannot read properties of undefined (reading 'access-control-allow-origin')",
+      "error": "TypeError: Cannot read properties of undefined (reading 'access-control-allow-origin')"
+    },
+    "POST (with auth) auth/logout": {
+      "success": false,
+      "message": "Logout with token failed: Cannot read properties of undefined (reading 'access-control-allow-origin')",
+      "error": "TypeError: Cannot read properties of undefined (reading 'access-control-allow-origin')"
+    },
+    "POST auth/google/login": {
+      "success": false,
+      "message": "Google login test failed: Cannot read properties of undefined (reading 'access-control-allow-origin')",
+      "error": "TypeError: Cannot read properties of undefined (reading 'access-control-allow-origin')"
+    },
+    "http://localhost:3000 - GET auth/session": {
+      "success": false,
+      "message": "Origin test failed for http://localhost:3000: Cannot read properties of undefined (reading 'access-control-allow-origin')"
+    },
+    "https://localhost:3000 - GET auth/session": {
+      "success": false,
+      "message": "Origin test failed for https://localhost:3000: Cannot read properties of undefined (reading 'access-control-allow-origin')"
+    },
+    "https://portfolio-wise.com - GET auth/session": {
+      "success": false,
+      "message": "Origin test failed for https://portfolio-wise.com: Cannot read properties of undefined (reading 'access-control-allow-origin')"
+    },
+    "https://www.portfolio-wise.com - GET auth/session": {
+      "success": false,
+      "message": "Origin test failed for https://www.portfolio-wise.com: Cannot read properties of undefined (reading 'access-control-allow-origin')"
+    }
+  },
+  "summary": {
+    "total": 8,
+    "passed": 0,
+    "failed": 8
+  }
+}

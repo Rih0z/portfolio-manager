@@ -1,0 +1,64 @@
+import { defineConfig } from 'vitest/config';
+import react from '@vitejs/plugin-react';
+import path from 'path';
+
+export default defineConfig({
+  plugins: [
+    react({
+      include: /\.(jsx|js|tsx|ts)$/,
+    }),
+  ],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+    extensions: ['.ts', '.tsx', '.js', '.jsx', '.json'],
+  },
+  define: {
+    'process.env.NODE_ENV': JSON.stringify('test'),
+  },
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: ['./vitest.setup.ts'],
+    testTimeout: 15000,
+    include: [
+      'src/**/__tests__/**/*.{ts,tsx,js,jsx}',
+      'src/**/*.{test,spec}.{ts,tsx,js,jsx}',
+    ],
+    exclude: [
+      'node_modules',
+      'build',
+      'dist',
+      'coverage',
+      'scripts',
+      '__tests__/manual/**',
+      'src/__tests__/mocks/**',
+    ],
+    css: false,
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'json-summary', 'lcov'],
+      reportsDirectory: './coverage',
+      include: [
+        'src/**/*.{ts,tsx}',
+      ],
+      exclude: [
+        'src/**/*.d.ts',
+        'src/**/*.test.{ts,tsx}',
+        'src/**/*.spec.{ts,tsx}',
+        'src/**/__tests__/**',
+        'src/index.tsx',
+        'src/vite-env.d.ts',
+        'src/setupTests.js',
+        'src/test-yaml-repair.js',
+        'node_modules/**',
+      ],
+    },
+    // Mock modules
+    alias: {
+      '\\.(css|less|scss|sass)$': path.resolve(__dirname, '__mocks__/styleMock.js'),
+      '\\.(gif|ttf|eot|svg|png|jpg|jpeg)$': path.resolve(__dirname, '__mocks__/fileMock.js'),
+    },
+  },
+});

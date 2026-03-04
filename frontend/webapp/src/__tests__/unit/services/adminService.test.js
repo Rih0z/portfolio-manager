@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * adminService.js のユニットテスト
  * 管理者API機能のテスト
@@ -10,26 +11,26 @@ import {
 } from '../../../services/adminService';
 
 // axiosのモック
-jest.mock('axios');
+vi.mock('axios');
 import axios from 'axios';
 const mockedAxios = axios;
 
 // envUtilsのモック
-jest.mock('../../../utils/envUtils', () => ({
-  getApiEndpoint: jest.fn()
+vi.mock('../../../utils/envUtils', () => ({
+  getApiEndpoint: vi.fn()
 }));
 import { getApiEndpoint } from '../../../utils/envUtils';
 
 describe('adminService', () => {
   const mockAxiosInstance = {
-    get: jest.fn(),
-    post: jest.fn(),
-    put: jest.fn(),
-    delete: jest.fn()
+    get: vi.fn(),
+    post: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn()
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     
     // axios.createのモック
     mockedAxios.create.mockReturnValue(mockAxiosInstance);
@@ -38,7 +39,7 @@ describe('adminService', () => {
     getApiEndpoint.mockResolvedValue('https://mock-api.com/admin');
     
     // コンソールエラーをモック
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -280,8 +281,8 @@ describe('adminService', () => {
   });
 
   describe('デフォルトエクスポート', () => {
-    it('全ての必要な関数をエクスポートする', () => {
-      const adminService = require('../../../services/adminService').default;
+    it('全ての必要な関数をエクスポートする', async () => {
+      const adminService = (await import('../../../services/adminService')).default;
       
       expect(adminService).toHaveProperty('getStatus');
       expect(adminService).toHaveProperty('resetUsage');
