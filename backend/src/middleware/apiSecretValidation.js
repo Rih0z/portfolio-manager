@@ -12,7 +12,9 @@ let API_SECRET = null;
 const SKIP_VALIDATION_PATHS = [
   '/auth/google/login',  // Google認証は直接アクセス必要
   '/auth/google/callback',
-  '/auth/google/drive/callback'
+  '/auth/google/drive/callback',
+  '/config/client',       // クライアント設定は公開情報のみ（Google Client ID等）
+  '/health'               // ヘルスチェックは外部監視ツールからアクセス必要
 ];
 
 const validateApiSecret = async (event) => {

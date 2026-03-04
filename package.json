@@ -20,9 +20,9 @@
     "e2e:report": "./scripts/run-e2e-tests.sh report"
   },
   "workspaces": [
-    "frontend/webapp",
-    "backend"
+    "frontend/webapp"
   ],
+  "_NOTE_workspaces": "backendはworkspaceから外す。npm workspacesのhoistingによりLambdaデプロイ時にnode_modulesが不完全になるため",
   "overrides": {
     "cookie": "^0.7.0",
     "cross-spawn": "^7.0.5",
