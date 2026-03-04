@@ -134,10 +134,14 @@ PortfolioWise is a cloud-native investment portfolio management system designed 
 
 ### Authentication & Authorization
 - **Method**: OAuth 2.0 with Google
-- **Session Management**: Server-side with DynamoDB
-- **Token Type**: Session cookies (httpOnly, secure, sameSite)
-- **Session Duration**: 24 hours with refresh
+- **Auth Mode**: JWT + Session デュアルモード（JWT優先、Session フォールバック）
+- **Access Token**: JWT HS256, 24時間有効, メモリのみ保存（localStorage禁止）
+- **Refresh Token**: JWT HS256, 7日間有効, httpOnly Cookie
+- **Session Cookie**: レガシー互換フォールバック（httpOnly, secure, sameSite）
+- **Token Reuse Detection**: DynamoDB `currentRefreshTokenId` によるトークン再利用検知
+- **JWT Secret**: AWS Secrets Manager (`pfwise-api/credentials` の `JWT_SECRET` キー)
 - **MFA**: Via Google account settings
+- **CSRF Protection**: Bearer ヘッダーによる暗黙的保護
 
 ### Data Protection
 - **Encryption at Rest**: AES-256 (DynamoDB, S3)
@@ -181,8 +185,14 @@ Capacity: On-demand
 TableName: pfwise-api-{stage}-sessions
 PartitionKey: sessionId (String)
 TTL: ttl (Number)
-Purpose: User session management
+Purpose: User session management + JWT token tracking
 Capacity: On-demand
+Fields:
+  - sessionId (String, PK)
+  - userId (String)
+  - currentRefreshTokenId (String) # Token Reuse Detection用
+  - ttl (Number)
+  - createdAt (String)
 ```
 
 #### 3. Blacklist Table
@@ -230,7 +240,9 @@ Capacity: On-demand
 ### Endpoint Categories
 1. **Authentication** (`/auth/*`)
    - Google OAuth login/logout
-   - Session management
+   - JWT Access/Refresh Token 発行・検証
+   - Session管理（レガシー互換）
+   - Token refresh (`POST /auth/refresh`)
    - CSRF token generation
 
 2. **Market Data** (`/api/market-data`)

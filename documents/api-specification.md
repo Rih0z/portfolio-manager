@@ -4,10 +4,11 @@
 Base URL: `https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod`
 
 ## Authentication
-All endpoints use cookie-based session authentication with Google OAuth 2.0.
+JWT + Session デュアルモード認証（Google OAuth 2.0）。JWT優先、Session フォールバック。
 
 ### Headers Required
-- `Cookie`: Session cookie from authentication
+- `Authorization`: Bearer {accessToken} (JWT Access Token, メモリから取得)
+- `Cookie`: Session cookie / Refresh Token cookie (自動送信)
 - `Content-Type`: application/json (for POST requests)
 
 ---
@@ -22,7 +23,7 @@ All endpoints use cookie-based session authentication with Google OAuth 2.0.
   "credential": "string (Google ID token)"
 }
 ```
-**Response**: 
+**Response**:
 ```json
 {
   "success": true,
@@ -31,7 +32,7 @@ All endpoints use cookie-based session authentication with Google OAuth 2.0.
     "name": "User Name",
     "picture": "https://..."
   },
-  "sessionId": "uuid"
+  "accessToken": "jwt-access-token"
 }
 ```
 
@@ -57,6 +58,23 @@ All endpoints use cookie-based session authentication with Google OAuth 2.0.
   "token": "csrf-token-string"
 }
 ```
+
+### POST /auth/refresh
+**Description**: Refresh expired access token using httpOnly refresh token cookie
+**Headers Required**:
+- `Cookie`: Refresh token cookie (自動送信)
+- `Origin`: Required (CORS検証)
+**Response**:
+```json
+{
+  "success": true,
+  "accessToken": "new-jwt-access-token"
+}
+```
+**Set-Cookie**: New refresh token (httpOnly, secure, sameSite=None)
+**Error Responses**:
+- `401`: Invalid/expired refresh token, token reuse detected
+- `403`: Missing Origin header
 
 ### POST /auth/logout
 **Description**: End user session

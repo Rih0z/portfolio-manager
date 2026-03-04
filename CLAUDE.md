@@ -249,7 +249,7 @@ The backend serverless.yml is configured to allow:
 - Supports multiple market data sources with automatic fallback
 - API keys and authentication handled server-side
 - **Rate Limiting**: Circuit breakers, exponential backoff, request deduplication
-- **Session-based auth**: Uses cookies with `withCredentials: true`
+- **Dual-mode auth**: JWT Bearer Token（メモリ保存）+ Session Cookie のデュアルモード認証。`withCredentials: true` で Cookie も送信
 
 ### Multi-Currency Support
 - Handles JPY and USD
@@ -310,8 +310,12 @@ API configurations are fetched dynamically from AWS. The following environment v
 - API keys and sensitive data never exposed to client
 - CORS restrictions enforced on the backend
 - Rate limiting based on authentication status
-- **Authentication**: Session-based using cookies (no JWT tokens currently)
-- **Important**: Backend needs to implement JWT token response for full functionality
+- **Authentication**: JWT + Session デュアルモード認証
+  - JWT Access Token: HS256, 24時間有効, メモリのみ保存（localStorage禁止）
+  - Refresh Token: httpOnly Cookie, 7日間有効, Token Reuse Detection（DynamoDB管理）
+  - Session Cookie: レガシー互換のフォールバック認証
+  - JWT秘密鍵: AWS Secrets Manager（`pfwise-api/credentials` の `JWT_SECRET` キー）
+  - POST /auth/refresh: Origin必須化、CSRF保護
 
 ### Test Environment Setup
 
