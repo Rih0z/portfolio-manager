@@ -342,6 +342,50 @@ functions:
               - X-Session-Id
             allowCredentials: true
   
+  refreshToken:
+    handler: src/function/auth/refreshToken.handler
+    events:
+      - http:
+          path: auth/refresh
+          method: post
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+      - http:
+          path: auth/refresh
+          method: options
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+
   logout:
     handler: src/function/auth/logout.handler
     events:

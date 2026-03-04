@@ -10,13 +10,14 @@
  */
 'use strict';
 
-const { 
-  exchangeCodeForTokens, 
-  verifyIdToken, 
-  createUserSession 
+const {
+  exchangeCodeForTokens,
+  verifyIdToken,
+  createUserSession
 } = require('../../services/googleAuthService');
 const { formatResponse, formatErrorResponse } = require('../../utils/responseUtils');
-const { createSessionCookie } = require('../../utils/cookieParser');
+const { createSessionCookie, createRefreshTokenCookie } = require('../../utils/cookieParser');
+const { generateAccessToken, generateRefreshToken } = require('../../utils/jwtUtils');
 
 /**
  * Google認証処理ハンドラー
@@ -190,11 +191,33 @@ module.exports.handler = async (event) => {
     }
     
     const session = await createUserSession(sessionData);
-    
+
     // セッションCookieを作成（7日間有効）
     const maxAge = 60 * 60 * 24 * 7; // 7日間（秒単位）
     const sessionCookie = createSessionCookie(session.sessionId, maxAge);
-    
+
+    // JWT Access Token + Refresh Token を生成
+    let accessToken = null;
+    let refreshTokenCookie = null;
+    try {
+      const jwtPayload = {
+        sub: userInfo.sub,
+        email: userInfo.email,
+        name: userInfo.name,
+        picture: userInfo.picture,
+        sessionId: session.sessionId,
+        hasDriveAccess: hasDriveScope || false
+      };
+      accessToken = await generateAccessToken(jwtPayload);
+      const refreshToken = await generateRefreshToken({
+        sub: userInfo.sub,
+        sessionId: session.sessionId
+      });
+      refreshTokenCookie = createRefreshTokenCookie(refreshToken, maxAge);
+    } catch (jwtError) {
+      console.warn('JWT生成に失敗しました（セッションCookieで継続）:', jwtError.message);
+    }
+
     // テスト用のフックが指定されていたら呼び出し
     if (typeof event._formatResponse === 'function') {
       event._formatResponse({
@@ -208,28 +231,45 @@ module.exports.handler = async (event) => {
         }
       }, { 'Set-Cookie': sessionCookie });
     }
-    
-    // レスポンスを整形 - テストが期待する形式に合わせる
+
+    // レスポンスデータ
+    const responseData = {
+      success: true,
+      isAuthenticated: true,
+      user: {
+        id: userInfo.sub,
+        email: userInfo.email,
+        name: userInfo.name,
+        picture: userInfo.picture
+      },
+      requiresOAuth: tokens.requires_oauth || false,
+      hasDriveAccess: hasDriveScope || false,
+      // フロントエンドがトークンを期待している場合のため、セッションIDも返す
+      sessionId: session.sessionId,
+      token: session.sessionId // 後方互換: session Cookie用
+    };
+
+    // JWT Access Token をレスポンスに含める（生成成功時）
+    if (accessToken) {
+      responseData.accessToken = accessToken;
+    }
+
+    // Set-Cookie ヘッダーの構築（複数Cookie送信）
+    const setCookies = [sessionCookie];
+    if (refreshTokenCookie) {
+      setCookies.push(refreshTokenCookie);
+    }
+
+    // レスポンスを整形
     return formatResponse({
       statusCode: 200,
-      data: {
-        success: true,
-        isAuthenticated: true,
-        user: {
-          id: userInfo.sub,
-          email: userInfo.email,
-          name: userInfo.name,
-          picture: userInfo.picture
-        },
-        requiresOAuth: tokens.requires_oauth || false,
-        hasDriveAccess: hasDriveScope || false,
-        // フロントエンドがトークンを期待している場合のため、セッションIDも返す
-        sessionId: session.sessionId,
-        token: session.sessionId // 互換性のため
-      },
+      data: responseData,
       headers: {
+        // 単一Set-Cookie（後方互換: session cookie）
         'Set-Cookie': sessionCookie
       },
+      // 複数Set-Cookieが必要な場合にmultiValueHeadersを使用
+      multiValueHeaders: setCookies.length > 1 ? { 'Set-Cookie': setCookies } : undefined,
       event // eventオブジェクトを渡してCORSヘッダーを適切に設定
     });
   } catch (error) {

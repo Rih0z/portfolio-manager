@@ -152,9 +152,29 @@ const createClearSessionCookie = (secure = true) => {
   return `session=; HttpOnly; Secure; SameSite=None; Max-Age=0; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT`;
 };
 
+/**
+ * Refresh Token Cookie を生成する（JWT用）
+ * @param {string} token - JWT Refresh Token
+ * @param {number} [maxAge=604800] - Cookieの有効期間（秒）、デフォルトは7日
+ * @returns {string} - Cookie文字列
+ */
+const createRefreshTokenCookie = (token, maxAge = 604800) => {
+  return `refreshToken=${encodeURIComponent(token)}; HttpOnly; Secure; SameSite=None; Max-Age=${maxAge}; Path=/`;
+};
+
+/**
+ * Refresh Token Cookie を削除するためのCookieを生成する
+ * @returns {string} - Cookie文字列
+ */
+const createClearRefreshTokenCookie = () => {
+  return `refreshToken=; HttpOnly; Secure; SameSite=None; Max-Age=0; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+};
+
 module.exports = {
   parseCookies,
   createSessionCookie,
-  createClearSessionCookie
+  createClearSessionCookie,
+  createRefreshTokenCookie,
+  createClearRefreshTokenCookie
 };
 

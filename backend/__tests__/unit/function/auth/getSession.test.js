@@ -22,6 +22,9 @@ const { setupLocalStackEmulator } = require('../../../testUtils/awsEmulator');
 jest.mock('../../../../src/services/googleAuthService');
 jest.mock('../../../../src/utils/responseUtils');
 jest.mock('../../../../src/utils/cookieParser');
+jest.mock('../../../../src/utils/jwtUtils', () => ({
+  verifyAccessToken: jest.fn().mockRejectedValue(new Error('Not a JWT'))
+}));
 
 describe('Get Session Handler', () => {
   // テスト用のレスポンスオブジェクト

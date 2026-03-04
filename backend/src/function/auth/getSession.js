@@ -17,6 +17,7 @@
 
 const googleAuthService = require('../../services/googleAuthService');
 const cookieParser = require('../../utils/cookieParser');
+const { verifyAccessToken } = require('../../utils/jwtUtils');
 
 // モジュールパス修正: モジュール全体を参照
 const responseUtils = require('../../utils/responseUtils');
@@ -34,8 +35,41 @@ const handler = async (event) => {
     
     // ヘッダーオブジェクトの初期化（常にオブジェクトとして扱う）
     const headers = event.headers || {};
+
+    // JWT Authorization header がある場合はJWTデコードのみ（DynamoDB不要）
+    const authHeader = headers.Authorization || headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      try {
+        const decoded = await verifyAccessToken(token);
+        const responseData = {
+          isAuthenticated: true,
+          user: {
+            id: decoded.sub,
+            email: decoded.email,
+            name: decoded.name || '',
+            picture: decoded.picture || ''
+          },
+          driveAuth: {
+            hasAccess: decoded.hasDriveAccess || false,
+            requiresOAuth: false
+          },
+          hasDriveAccess: decoded.hasDriveAccess || false
+        };
+
+        if (typeof event._formatResponse === 'function') {
+          event._formatResponse(responseData);
+        }
+
+        return await responseUtils.formatResponse({ data: responseData, event });
+      } catch (jwtError) {
+        // JWT検証失敗 → Cookie sessionにフォールバック
+        console.log('JWT verification failed in getSession, falling back to cookie:', jwtError.message);
+      }
+    }
+
     const cookieHeader = headers.Cookie || headers.cookie || '';
-    
+
     // 重要: ヘッダーがない場合を明示的に処理
     if (!cookieHeader) {
       const errorParams = {
@@ -43,12 +77,12 @@ const handler = async (event) => {
         code: 'NO_SESSION',
         message: '認証セッションが存在しません'
       };
-      
+
       // モック関数を呼び出す
       if (typeof event._formatErrorResponse === 'function') {
         event._formatErrorResponse(errorParams);
       }
-      
+
       // モジュール経由で関数を呼び出し（Jestのスパイ対応）
       return await responseUtils.formatErrorResponse({ ...errorParams, event });
     }

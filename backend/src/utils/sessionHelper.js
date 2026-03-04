@@ -10,6 +10,7 @@
 const { getSession } = require('../services/googleAuthService');
 const { parseCookies } = require('./cookieParser');
 const { verifyIdToken } = require('./tokenManager');
+const { verifyAccessToken } = require('./jwtUtils');
 
 /**
  * リクエストからセッション情報を取得する
@@ -52,7 +53,7 @@ const getSessionFromRequest = async (event) => {
     }
   }
   
-  // 2. AuthorizationヘッダーからBearerトークンを探す（大文字小文字の両方をチェック）
+  // 2. Authorization: Bearer {JWT} → pfwise JWT Access Token を優先検証
   const authHeader = headers.Authorization || headers.authorization || headers.AUTHORIZATION;
   console.log('Authorization header search:', {
     'Authorization': headers.Authorization,
@@ -60,16 +61,39 @@ const getSessionFromRequest = async (event) => {
     'AUTHORIZATION': headers.AUTHORIZATION,
     'found': authHeader
   });
-  
+
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.substring(7);
     console.log('Bearer token found in Authorization header');
-    
+
+    // 2a. pfwise JWT Access Token として検証（DynamoDB不要）
     try {
-      // JWTトークンを検証
+      const decoded = await verifyAccessToken(token);
+      console.log('JWT Access Token verified successfully for:', decoded.email);
+      return {
+        success: true,
+        session: {
+          sessionId: decoded.sessionId,
+          googleId: decoded.sub,
+          email: decoded.email,
+          name: decoded.name || '',
+          picture: decoded.picture || '',
+          hasDriveAccess: decoded.hasDriveAccess || false,
+          requiresOAuth: false,
+          isTemporary: false
+        },
+        source: 'jwt',
+        authMethod: 'jwt'
+      };
+    } catch (jwtError) {
+      // JWT検証失敗 → Google ID Token としてフォールバック
+      console.log('JWT verification failed, trying Google ID token:', jwtError.message);
+    }
+
+    // 2b. Google ID Token としてフォールバック検証
+    try {
       const userInfo = await verifyIdToken(token);
-      
-      // 仮のセッション情報を作成（実際のセッションではない）
+
       return {
         success: true,
         session: {
@@ -77,9 +101,8 @@ const getSessionFromRequest = async (event) => {
           email: userInfo.email,
           name: userInfo.name,
           picture: userInfo.picture,
-          // Drive認証が必要であることを示す
           requiresOAuth: true,
-          isTemporary: true // 一時的なセッションであることを示す
+          isTemporary: true
         },
         source: 'bearer'
       };

@@ -130,23 +130,34 @@ const formatResponse = async (options = {}) => {
     responseBody.budgetWarning = warningMessage;
   }
   
+  // multiValueHeaders のサポート（複数Set-Cookie等）
+  let multiValueHeaders = undefined;
+  if (options.multiValueHeaders) {
+    multiValueHeaders = options.multiValueHeaders;
+  }
+
   // API Gateway形式のレスポンスを返却
   const response = {
     statusCode,
     headers: responseHeaders,
     body: JSON.stringify(responseBody)
   };
-  
+
+  // multiValueHeaders がある場合は追加
+  if (multiValueHeaders) {
+    response.multiValueHeaders = multiValueHeaders;
+  }
+
   // テスト用フックが提供されている場合は実行
   if (_formatResponse) {
     _formatResponse(response, options);
   }
-  
+
   // テスト互換性対応: スキップが指定されていない限りaddBudgetWarningToResponseを呼び出す
   if (!skipBudgetWarning) {
     return await addBudgetWarningToResponse(response);
   }
-  
+
   return response;
 };
 

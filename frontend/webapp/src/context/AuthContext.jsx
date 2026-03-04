@@ -17,7 +17,7 @@
 
 import React, { createContext, useState, useEffect, useCallback, useRef } from 'react';
 import { getApiEndpoint, getGoogleClientId } from '../utils/envUtils';
-import { authFetch, setAuthToken, getAuthToken, clearAuthToken } from '../utils/apiUtils';
+import { authFetch, setAuthToken, getAuthToken, clearAuthToken, refreshAccessToken } from '../utils/apiUtils';
 
 export const AuthContext = createContext();
 
@@ -32,9 +32,9 @@ const MAX_SESSION_CHECK_FAILURES = 3;
 
 const saveSession = (sessionData) => {
   try {
+    // セキュリティ: JWT Access Token は localStorage に保存しない（メモリのみ）
     localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({
       user: sessionData.user,
-      token: sessionData.token,
       hasDriveAccess: sessionData.hasDriveAccess,
       timestamp: Date.now(),
     }));
@@ -96,7 +96,8 @@ export const AuthProvider = ({ children }) => {
 
     if (authenticated && userData) {
       if (token) setAuthToken(token);
-      saveSession({ user: userData, token, hasDriveAccess: driveAccess });
+      // トークンはメモリのみ保存、localStorageにはユーザー情報のみ
+      saveSession({ user: userData, hasDriveAccess: driveAccess });
     } else {
       clearAuthToken();
       clearSession();
@@ -106,6 +107,29 @@ export const AuthProvider = ({ children }) => {
   const notifyPortfolioContext = useCallback((authenticated, userData) => {
     if (portfolioContextRef.current?.handleAuthStateChange) {
       portfolioContextRef.current.handleAuthStateChange(authenticated, userData);
+    }
+  }, []);
+
+  /**
+   * JWT Access Token をデコードして有効期限を確認する（ローカル検証、API不要）
+   * @param {string} token - JWT Access Token
+   * @returns {{ valid: boolean, payload: Object|null }}
+   */
+  const checkTokenLocally = useCallback((token) => {
+    if (!token) return { valid: false, payload: null };
+    try {
+      // JWTペイロードをBase64デコード（署名検証はサーバー側で実施済み）
+      const parts = token.split('.');
+      if (parts.length !== 3) return { valid: false, payload: null };
+      const payload = JSON.parse(atob(parts[1]));
+      const now = Math.floor(Date.now() / 1000);
+      // 5分のバッファを持って期限切れ判定
+      if (payload.exp && payload.exp > (now + 300)) {
+        return { valid: true, payload };
+      }
+      return { valid: false, payload };
+    } catch {
+      return { valid: false, payload: null };
     }
   }, []);
 
@@ -122,24 +146,67 @@ export const AuthProvider = ({ children }) => {
         return false;
       }
 
-      // ストレージから復元してトークンがある場合、まずローカル復元
-      if (stored && stored.token) {
-        setAuthToken(stored.token);
+      // 1. メモリにJWTがある場合、ローカルデコードで有効期限確認（API不要）
+      if (token) {
+        const { valid, payload } = checkTokenLocally(token);
+        if (valid && payload) {
+          // JWT有効 → UI更新のみ（APIコール不要）
+          const userData = {
+            id: payload.sub,
+            email: payload.email,
+            name: payload.name || '',
+            picture: payload.picture || ''
+          };
+          setAuthState(userData, true, payload.hasDriveAccess || false, token);
+          sessionCheckFailureCount.current = 0;
+          lastCheckTimeRef.current = Date.now();
+          setLoading(false);
+          return true;
+        }
       }
 
+      // 2. JWT期限切れまたは無し → POST /auth/refresh でトークン取得
       setLoading(true);
 
-      const sessionEndpoint = await getApiEndpoint('auth/session');
-      const response = await authFetch(sessionEndpoint, 'get');
+      try {
+        const newToken = await refreshAccessToken();
+        if (newToken) {
+          const { valid, payload } = checkTokenLocally(newToken);
+          if (valid && payload) {
+            const userData = {
+              id: payload.sub,
+              email: payload.email,
+              name: payload.name || '',
+              picture: payload.picture || ''
+            };
+            setAuthState(userData, true, payload.hasDriveAccess || false, newToken);
+            notifyPortfolioContext(true, userData);
+            sessionCheckFailureCount.current = 0;
+            lastCheckTimeRef.current = Date.now();
+            setLoading(false);
+            return true;
+          }
+        }
+      } catch (refreshErr) {
+        console.warn('JWT refresh failed:', refreshErr.message);
+      }
 
-      if (response?.success && response.isAuthenticated) {
-        const newToken = response.token || getAuthToken();
-        setAuthState(response.user, true, response.hasDriveAccess || false, newToken);
-        notifyPortfolioContext(true, response.user);
-        sessionCheckFailureCount.current = 0;
-        lastCheckTimeRef.current = Date.now();
-        setLoading(false);
-        return true;
+      // 3. フォールバック: GET /auth/session（レガシーCookieセッション）
+      try {
+        const sessionEndpoint = await getApiEndpoint('auth/session');
+        const response = await authFetch(sessionEndpoint, 'get');
+
+        if (response?.success && response.isAuthenticated) {
+          const newToken = response.accessToken || response.token || getAuthToken();
+          setAuthState(response.user, true, response.hasDriveAccess || false, newToken);
+          notifyPortfolioContext(true, response.user);
+          sessionCheckFailureCount.current = 0;
+          lastCheckTimeRef.current = Date.now();
+          setLoading(false);
+          return true;
+        }
+      } catch (sessionErr) {
+        console.warn('Session check fallback failed:', sessionErr.message);
       }
 
       // セッション無効
@@ -156,7 +223,7 @@ export const AuthProvider = ({ children }) => {
       if (sessionCheckFailureCount.current >= MAX_SESSION_CHECK_FAILURES) {
         const stored = loadSession();
         if (stored) {
-          setAuthState(stored.user, true, stored.hasDriveAccess, stored.token);
+          setAuthState(stored.user, true, stored.hasDriveAccess, null);
           if (sessionIntervalRef.current) {
             clearInterval(sessionIntervalRef.current);
             sessionIntervalRef.current = null;
@@ -169,7 +236,7 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
       return false;
     }
-  }, [setAuthState, notifyPortfolioContext]);
+  }, [setAuthState, notifyPortfolioContext, checkTokenLocally]);
 
   // --- Google ログイン ---
   const loginWithGoogle = useCallback(async (credentialResponse) => {
@@ -207,11 +274,12 @@ export const AuthProvider = ({ children }) => {
       }
 
       if (response.success) {
-        // トークンを探す（複数フィールド対応）
-        const token = response.token || response.accessToken ||
-                      response.data?.token || response.data?.accessToken;
-        const userData = response.user || response.data?.user;
-        const driveAccess = response.hasDriveAccess || response.data?.hasDriveAccess || false;
+        // JWT Access Token を優先的に検出
+        const data = response.data || response;
+        const token = data.accessToken || data.token ||
+                      response.accessToken || response.token;
+        const userData = data.user || response.user;
+        const driveAccess = data.hasDriveAccess || response.hasDriveAccess || false;
 
         setAuthState(userData, true, driveAccess, token);
         notifyPortfolioContext(true, userData);
@@ -300,16 +368,16 @@ export const AuthProvider = ({ children }) => {
 
   // --- 初期化時のセッション確認 ---
   useEffect(() => {
-    // まずローカルセッションで即座に復元
+    // まずローカルセッションでUI即座復元（トークンはメモリになし→refreshで取得）
     const stored = loadSession();
     if (stored) {
       setUser(stored.user);
       setIsAuthenticated(true);
       setHasDriveAccess(stored.hasDriveAccess || false);
-      if (stored.token) setAuthToken(stored.token);
+      // JWT Access Token はlocalStorageに保存していないため、refreshで取得
     }
 
-    // その後API確認
+    // API確認（JWT refresh → fallback to session check）
     checkSession();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 

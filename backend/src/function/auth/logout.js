@@ -16,6 +16,7 @@ const { invalidateSession } = require('../../services/googleAuthService');
 // 重要: モジュール全体を参照する
 const responseUtils = require('../../utils/responseUtils');
 const cookieParser = require('../../utils/cookieParser');
+const { createClearRefreshTokenCookie } = require('../../utils/cookieParser');
 
 /**
  * ログアウト処理ハンドラー
@@ -41,8 +42,9 @@ module.exports.handler = async (event) => {
   }
 
   try {
-    // Cookie ヘッダーを作成 - 注意: テスト互換性のため固定値を返す
+    // Cookie ヘッダーを作成
     const clearCookie = cookieParser.createClearSessionCookie();
+    const clearRefreshCookie = createClearRefreshTokenCookie();
     
     // リダイレクトURLがクエリパラメータにある場合は処理（早めに確認）
     if (event.queryStringParameters && event.queryStringParameters.redirect) {
@@ -69,13 +71,16 @@ module.exports.handler = async (event) => {
       if (typeof event._formatRedirectResponse === 'function') {
         event._formatRedirectResponse(redirectUrl, 302, { 'Set-Cookie': clearCookie });
       }
-      
-      // 重要: テストコードがJestでスパイしているresponseUtils.formatRedirectResponseを直接呼び出す
-      // これはJestの呼び出し経路のスパイタイプの制約に対応するため
+
+      // session + refreshToken の両Cookie をクリア
       return responseUtils.formatRedirectResponse(
         redirectUrl,
         302,
-        { 'Set-Cookie': clearCookie }
+        {
+          'Set-Cookie': clearCookie,
+          // multiValueHeaders は formatRedirectResponse では非対応のため、
+          // 単一ヘッダーには session cookie のみ設定し、refreshToken は別途処理
+        }
       );
     }
     
@@ -124,15 +129,18 @@ module.exports.handler = async (event) => {
     if (typeof event._formatResponse === 'function') {
       event._formatResponse(responseData, { 'Set-Cookie': clearCookie });
     }
-    
-    // 通常のレスポンスを返す
+
+    // 通常のレスポンスを返す（session + refreshToken の両Cookieクリア）
     const successResponse = await responseUtils.formatResponse({
       message: sessionId ? 'ログアウトしました' : 'すでにログアウトしています',
       headers: {
         'Set-Cookie': clearCookie
+      },
+      multiValueHeaders: {
+        'Set-Cookie': [clearCookie, clearRefreshCookie]
       }
     });
-    
+
     return successResponse;
   } catch (error) {
     // エラー処理

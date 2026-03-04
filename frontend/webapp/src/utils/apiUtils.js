@@ -43,8 +43,12 @@ export const TIMEOUT = {
   MUTUAL_FUND: 20000     // 20秒
 };
 
-// 認証トークンの保存（メモリ内）
+// 認証トークンの保存（メモリ内 — localStorage禁止）
 let authToken = null;
+
+// リフレッシュ中フラグ（重複リクエスト防止）
+let isRefreshing = false;
+let refreshSubscribers = [];
 
 // サーキットブレーカーの状態管理
 const circuitBreakers = new Map();
@@ -128,6 +132,49 @@ export const getAuthToken = () => {
 // トークンをクリアする関数
 export const clearAuthToken = () => {
   authToken = null;
+};
+
+/**
+ * JWT Access Token をリフレッシュする
+ * httpOnly Cookie の Refresh Token を使って新しい Access Token を取得
+ * @returns {Promise<string|null>} 新しいアクセストークン、または null
+ */
+export const refreshAccessToken = async () => {
+  if (isRefreshing) {
+    // 既にリフレッシュ中の場合は完了を待つ
+    return new Promise((resolve) => {
+      refreshSubscribers.push((token) => resolve(token));
+    });
+  }
+
+  isRefreshing = true;
+
+  try {
+    const refreshEndpoint = await getApiEndpoint('auth/refresh');
+    const response = await axios.post(refreshEndpoint, {}, {
+      withCredentials: true, // Refresh Token Cookie を送信
+      timeout: TIMEOUT.DEFAULT
+    });
+
+    const newToken = response.data?.data?.accessToken || response.data?.accessToken;
+    if (newToken) {
+      setAuthToken(newToken);
+      // 待機中のリクエストに新しいトークンを通知
+      refreshSubscribers.forEach(cb => cb(newToken));
+      refreshSubscribers = [];
+      return newToken;
+    }
+
+    return null;
+  } catch (error) {
+    console.warn('Token refresh failed:', error.message);
+    clearAuthToken();
+    refreshSubscribers.forEach(cb => cb(null));
+    refreshSubscribers = [];
+    return null;
+  } finally {
+    isRefreshing = false;
+  }
 };
 
 // Axiosインスタンスの作成
@@ -223,52 +270,70 @@ export const createApiClient = (withAuth = false) => {
       if (process.env.NODE_ENV === 'development') {
         console.log(`API Response: ${response.config.method?.toUpperCase()} ${response.config.url} -> ${response.status}`);
       }
-      
-      // トークンがレスポンスに含まれていれば保存（複数の可能な場所をチェック）
-      const possibleToken = response.data?.token || 
-                           response.data?.accessToken || 
-                           response.data?.access_token ||
-                           response.data?.authToken ||
-                           response.data?.auth_token ||
-                           response.data?.jwt ||
-                           response.data?.jwtToken;
-      
-      if (possibleToken) {
-        setAuthToken(possibleToken);
+
+      // JWT Access Token を優先的に検出（簡素化）
+      const data = response.data?.data || response.data;
+      const jwtToken = data?.accessToken;
+      if (jwtToken) {
+        setAuthToken(jwtToken);
+      } else {
+        // レガシー互換: 7種トークン検出
+        const possibleToken = data?.token ||
+                             data?.access_token ||
+                             data?.authToken ||
+                             data?.auth_token ||
+                             data?.jwt ||
+                             data?.jwtToken;
+        if (possibleToken) {
+          setAuthToken(possibleToken);
+        }
       }
-      
+
       return response;
     },
-      error => {
-        // 認証エラーの詳細をログ出力
-        if (error.response && error.response.status === 401) {
+      async error => {
+        const originalRequest = error.config;
+
+        // 401エラー: JWT自動リフレッシュ → リトライ
+        if (error.response && error.response.status === 401 && !originalRequest._retry) {
+          const url = originalRequest.url || '';
+          const isRefreshEndpoint = url.includes('/auth/refresh');
+          const isLoginEndpoint = url.includes('/auth/google/login');
+
+          // refresh/login エンドポイント自体の401はリトライしない
+          if (!isRefreshEndpoint && !isLoginEndpoint) {
+            originalRequest._retry = true;
+
+            try {
+              const newToken = await refreshAccessToken();
+              if (newToken) {
+                // 新しいトークンでリトライ
+                originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
+                return client(originalRequest);
+              }
+            } catch (refreshError) {
+              console.warn('Auto-refresh failed:', refreshError.message);
+            }
+          }
+
+          // リフレッシュ失敗またはリフレッシュ不可
           console.error('認証エラー:', {
             status: error.response.status,
-            data: error.response.data,
-            url: error.config.url,
-            method: error.config.method,
+            url: originalRequest.url,
             hasToken: !!authToken
           });
 
-          // Google Drive関連のエンドポイントの場合は、トークンをクリアしない
-          // （Drive権限が不足している可能性があるため）
-          const isDriveEndpoint = error.config.url && error.config.url.includes('/drive/');
-          
-          // セッション確認エンドポイントの場合のみトークンをクリア
-          const isSessionEndpoint = error.config.url && error.config.url.includes('/auth/session');
-          
+          const isDriveEndpoint = url.includes('/drive/');
+          const isSessionEndpoint = url.includes('/auth/session');
+
           if (isSessionEndpoint || (!isDriveEndpoint && error.response.data?.message?.includes('Invalid token'))) {
-            console.error('トークンが無効です。クリアします。');
             clearAuthToken();
-          } else {
-            console.log('Drive APIエンドポイントの401エラー。トークンは保持します。');
           }
         }
-        
+
         // エラーをサニタイズして返す
         const sanitizedError = handleApiError(error);
-        
-        // 開発環境でのみ詳細をログ出力
+
         if (process.env.NODE_ENV === 'development') {
           console.error('API Error Details:', error);
         }
@@ -534,6 +599,7 @@ export default {
   setAuthToken,
   getAuthToken,
   clearAuthToken,
+  refreshAccessToken,
   TIMEOUT,
   RETRY
 };
