@@ -69,64 +69,64 @@ describe('api service', () => {
 
   describe('getApiEndpoint', () => {
     it('market-dataエンドポイントを正しく生成する（本番環境）', () => {
-      process.env.REACT_APP_MARKET_DATA_API_URL = 'https://api.example.com';
-      process.env.REACT_APP_API_STAGE = 'prod';
+      import.meta.env.VITE_MARKET_DATA_API_URL = 'https://api.example.com';
+      import.meta.env.VITE_API_STAGE = 'prod';
 
       const endpoint = getApiEndpoint('market-data');
       expect(endpoint).toBe('https://api.example.com/prod/api/market-data');
     });
 
     it('authエンドポイントを正しく生成する（本番環境）', () => {
-      process.env.REACT_APP_MARKET_DATA_API_URL = 'https://api.example.com';
-      process.env.REACT_APP_API_STAGE = 'prod';
+      import.meta.env.VITE_MARKET_DATA_API_URL = 'https://api.example.com';
+      import.meta.env.VITE_API_STAGE = 'prod';
 
       const endpoint = getApiEndpoint('auth');
       expect(endpoint).toBe('https://api.example.com/prod/auth');
     });
 
     it('driveエンドポイントを正しく生成する（本番環境）', () => {
-      process.env.REACT_APP_MARKET_DATA_API_URL = 'https://api.example.com';
-      process.env.REACT_APP_API_STAGE = 'prod';
+      import.meta.env.VITE_MARKET_DATA_API_URL = 'https://api.example.com';
+      import.meta.env.VITE_API_STAGE = 'prod';
 
       const endpoint = getApiEndpoint('drive');
       expect(endpoint).toBe('https://api.example.com/prod/drive');
     });
 
     it('デフォルトエンドポイントを正しく生成する（本番環境）', () => {
-      process.env.REACT_APP_MARKET_DATA_API_URL = 'https://api.example.com';
-      process.env.REACT_APP_API_STAGE = 'prod';
+      import.meta.env.VITE_MARKET_DATA_API_URL = 'https://api.example.com';
+      import.meta.env.VITE_API_STAGE = 'prod';
 
       const endpoint = getApiEndpoint('unknown');
       expect(endpoint).toBe('https://api.example.com/prod');
     });
 
     it('localhostの場合はステージプレフィックスを追加しない', () => {
-      process.env.REACT_APP_MARKET_DATA_API_URL = 'http://localhost:3000';
-      process.env.REACT_APP_API_STAGE = 'dev';
+      import.meta.env.VITE_MARKET_DATA_API_URL = 'http://localhost:3000';
+      import.meta.env.VITE_API_STAGE = 'dev';
 
       const endpoint = getApiEndpoint('market-data');
       expect(endpoint).toBe('http://localhost:3000/api/market-data');
     });
 
     it('localhost（HTTPS）の場合もステージプレフィックスを追加しない', () => {
-      process.env.REACT_APP_MARKET_DATA_API_URL = 'https://localhost:3001';
-      process.env.REACT_APP_API_STAGE = 'dev';
+      import.meta.env.VITE_MARKET_DATA_API_URL = 'https://localhost:3001';
+      import.meta.env.VITE_API_STAGE = 'dev';
 
       const endpoint = getApiEndpoint('auth');
       expect(endpoint).toBe('https://localhost:3001/auth');
     });
 
     it('環境変数が未設定の場合はデフォルト値を使用する', () => {
-      delete process.env.REACT_APP_MARKET_DATA_API_URL;
-      delete process.env.REACT_APP_API_STAGE;
+      delete import.meta.env.VITE_MARKET_DATA_API_URL;
+      delete import.meta.env.VITE_API_STAGE;
 
       const endpoint = getApiEndpoint('market-data');
       expect(endpoint).toBe('http://localhost:3000/api/market-data');
     });
 
     it('API_STAGEのみ未設定の場合はデフォルト値を使用する', () => {
-      process.env.REACT_APP_MARKET_DATA_API_URL = 'https://api.example.com';
-      delete process.env.REACT_APP_API_STAGE;
+      import.meta.env.VITE_MARKET_DATA_API_URL = 'https://api.example.com';
+      delete import.meta.env.VITE_API_STAGE;
 
       const endpoint = getApiEndpoint('market-data');
       expect(endpoint).toBe('https://api.example.com/dev/api/market-data');
@@ -333,8 +333,8 @@ describe('api service', () => {
 
   describe('パフォーマンステスト', () => {
     it('複数のエンドポイント生成を効率的に処理する', () => {
-      process.env.REACT_APP_MARKET_DATA_API_URL = 'https://api.example.com';
-      process.env.REACT_APP_API_STAGE = 'prod';
+      import.meta.env.VITE_MARKET_DATA_API_URL = 'https://api.example.com';
+      import.meta.env.VITE_API_STAGE = 'prod';
 
       const startTime = Date.now();
       
@@ -366,24 +366,24 @@ describe('api service', () => {
 
   describe('エッジケース', () => {
     it('空文字列のエンドポイントタイプでもエラーを起こさない', () => {
-      process.env.REACT_APP_MARKET_DATA_API_URL = 'https://api.example.com';
-      process.env.REACT_APP_API_STAGE = 'prod';
+      import.meta.env.VITE_MARKET_DATA_API_URL = 'https://api.example.com';
+      import.meta.env.VITE_API_STAGE = 'prod';
 
       const endpoint = getApiEndpoint('');
       expect(endpoint).toBe('https://api.example.com/prod');
     });
 
     it('undefinedのエンドポイントタイプでもエラーを起こさない', () => {
-      process.env.REACT_APP_MARKET_DATA_API_URL = 'https://api.example.com';
-      process.env.REACT_APP_API_STAGE = 'prod';
+      import.meta.env.VITE_MARKET_DATA_API_URL = 'https://api.example.com';
+      import.meta.env.VITE_API_STAGE = 'prod';
 
       const endpoint = getApiEndpoint(undefined);
       expect(endpoint).toBe('https://api.example.com/prod');
     });
 
     it('nullのエンドポイントタイプでもエラーを起こさない', () => {
-      process.env.REACT_APP_MARKET_DATA_API_URL = 'https://api.example.com';
-      process.env.REACT_APP_API_STAGE = 'prod';
+      import.meta.env.VITE_MARKET_DATA_API_URL = 'https://api.example.com';
+      import.meta.env.VITE_API_STAGE = 'prod';
 
       const endpoint = getApiEndpoint(null);
       expect(endpoint).toBe('https://api.example.com/prod');
@@ -416,13 +416,13 @@ describe('api service', () => {
 
     it('環境に応じてエンドポイントが正しく切り替わる', () => {
       // 開発環境
-      process.env.REACT_APP_MARKET_DATA_API_URL = 'http://localhost:3000';
-      process.env.REACT_APP_API_STAGE = 'dev';
+      import.meta.env.VITE_MARKET_DATA_API_URL = 'http://localhost:3000';
+      import.meta.env.VITE_API_STAGE = 'dev';
       expect(getApiEndpoint('auth')).toBe('http://localhost:3000/auth');
 
       // 本番環境
-      process.env.REACT_APP_MARKET_DATA_API_URL = 'https://api.example.com';
-      process.env.REACT_APP_API_STAGE = 'prod';
+      import.meta.env.VITE_MARKET_DATA_API_URL = 'https://api.example.com';
+      import.meta.env.VITE_API_STAGE = 'prod';
       expect(getApiEndpoint('auth')).toBe('https://api.example.com/prod/auth');
     });
   });

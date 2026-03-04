@@ -23,7 +23,7 @@
 import '@testing-library/jest-dom';
 
 // Polyfills for MSW - must be set before MSW import
-const { TextEncoder, TextDecoder } = require('util');
+import { TextEncoder, TextDecoder } from 'util';
 Object.assign(global, { TextEncoder, TextDecoder });
 
 // MSWのセットアップ（カバレッジテスト中は一時無効化）

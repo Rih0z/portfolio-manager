@@ -22,10 +22,10 @@ const debugLog = (message, data = null) => {
 process.env = {
   ...process.env,
   NODE_ENV: 'test',
-  REACT_APP_MARKET_DATA_API_URL: process.env.REACT_APP_MARKET_DATA_API_URL || 'https://api.example.com',
-  REACT_APP_API_STAGE: process.env.REACT_APP_API_STAGE || 'test',
-  REACT_APP_GOOGLE_CLIENT_ID: process.env.REACT_APP_GOOGLE_CLIENT_ID || 'test-client-id',
-  REACT_APP_DEFAULT_EXCHANGE_RATE: process.env.REACT_APP_DEFAULT_EXCHANGE_RATE || '150.0',
+  VITE_MARKET_DATA_API_URL: process.env.VITE_MARKET_DATA_API_URL || 'https://api.example.com',
+  VITE_API_STAGE: process.env.VITE_API_STAGE || 'test',
+  VITE_GOOGLE_CLIENT_ID: process.env.VITE_GOOGLE_CLIENT_ID || 'test-client-id',
+  VITE_DEFAULT_EXCHANGE_RATE: process.env.VITE_DEFAULT_EXCHANGE_RATE || '150.0',
   
   // カバレッジ関連の環境変数を強制設定
   JEST_COVERAGE: process.env.JEST_COVERAGE || 'true',
@@ -361,7 +361,7 @@ try {
 // テスト開始時のログメッセージ
 console.log('------------- テスト環境設定 -------------');
 console.log('NODE_ENV:', process.env.NODE_ENV);
-console.log('API_BASE_URL:', process.env.REACT_APP_MARKET_DATA_API_URL);
+console.log('API_BASE_URL:', process.env.VITE_MARKET_DATA_API_URL);
 console.log('カバレッジ目標:', process.env.COVERAGE_TARGET);
 console.log('カバレッジ有効:', process.env.JEST_COVERAGE);
 console.log('現在のテスト日時:', mockDate.toISOString());

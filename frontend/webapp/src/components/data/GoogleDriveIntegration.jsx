@@ -174,7 +174,7 @@ const GoogleDriveIntegration = () => {
               ].join(' ');
               
               const params = new URLSearchParams({
-                client_id: process.env.REACT_APP_GOOGLE_CLIENT_ID,
+                client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
                 redirect_uri: redirectUri,
                 response_type: 'code',
                 scope: scopes,

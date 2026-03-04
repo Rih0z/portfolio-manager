@@ -39,7 +39,7 @@ const getApiConfig = async () => {
       console.warn('API設定の取得に失敗しました（フォールバック設定を使用）:', error.message);
       // 403エラーの場合でもアプリを動作させるため、適切なフォールバック設定を提供
       apiConfigCache = {
-        marketDataApiUrl: process.env.REACT_APP_API_BASE_URL || 'https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod',
+        marketDataApiUrl: import.meta.env.VITE_API_BASE_URL || 'https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod',
         apiStage: 'prod',
         googleClientId: '', // 動的に設定される
         features: {
@@ -130,7 +130,7 @@ export const getRedirectUri = (path = '/auth/callback') => {
 
 // デフォルト為替レートを取得
 export const getDefaultExchangeRate = () => {
-  const defaultRate = parseFloat(process.env.REACT_APP_DEFAULT_EXCHANGE_RATE);
+  const defaultRate = parseFloat(import.meta.env.VITE_DEFAULT_EXCHANGE_RATE);
   return isNaN(defaultRate) ? 150.0 : defaultRate;
 };
 

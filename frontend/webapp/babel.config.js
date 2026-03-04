@@ -16,5 +16,7 @@ module.exports = {
       runtime: 'automatic',
     }],
   ],
-  plugins: []
+  plugins: [
+    'babel-plugin-transform-vite-meta-env',
+  ]
 };

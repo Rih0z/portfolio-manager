@@ -18,15 +18,15 @@ let configCache = null;
 let configFetchPromise = null;
 
 // AWS設定エンドポイント
-const CONFIG_ENDPOINT = process.env.REACT_APP_API_BASE_URL 
-  ? `${process.env.REACT_APP_API_BASE_URL}/config/client`
+const CONFIG_ENDPOINT = import.meta.env.VITE_API_BASE_URL 
+  ? `${import.meta.env.VITE_API_BASE_URL}/config/client`
   : '/api-proxy/config/client'; // フォールバックとしてプロキシを使用
 
 // デバッグ用（開発環境のみ）
 if (process.env.NODE_ENV === 'development') {
   console.log('ConfigService initialization:', {
     CONFIG_ENDPOINT,
-    REACT_APP_API_BASE_URL: process.env.REACT_APP_API_BASE_URL,
+    REACT_APP_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
     NODE_ENV: process.env.NODE_ENV
   });
 }
@@ -50,7 +50,7 @@ export const fetchApiConfig = async () => {
   if (!CONFIG_ENDPOINT) {
     console.error('REACT_APP_API_BASE_URL が設定されていません。.env ファイルを確認してください。');
     console.error('Current env:', {
-      REACT_APP_API_BASE_URL: process.env.REACT_APP_API_BASE_URL,
+      REACT_APP_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
       NODE_ENV: process.env.NODE_ENV,
       allEnvVars: Object.keys(process.env).filter(key => key.startsWith('REACT_APP_'))
     });
@@ -93,7 +93,7 @@ export const fetchApiConfig = async () => {
       }
       
       // フォールバック設定を返す
-      const baseUrl = process.env.REACT_APP_API_BASE_URL || '';
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
       configCache = {
         marketDataApiUrl: baseUrl,
         apiStage: baseUrl.includes('/prod') ? 'prod' : 'dev',

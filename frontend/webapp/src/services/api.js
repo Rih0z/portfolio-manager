@@ -33,8 +33,8 @@ import {
 import useGoogleDrive from '../hooks/useGoogleDrive';
 
 // APIの基本URL
-const MARKET_DATA_API_URL = process.env.REACT_APP_MARKET_DATA_API_URL || 'http://localhost:3000';
-const API_STAGE = process.env.REACT_APP_API_STAGE || 'dev';
+const MARKET_DATA_API_URL = import.meta.env.VITE_MARKET_DATA_API_URL || 'http://localhost:3000';
+const API_STAGE = import.meta.env.VITE_API_STAGE || 'dev';
 
 /**
  * APIエンドポイントを取得する

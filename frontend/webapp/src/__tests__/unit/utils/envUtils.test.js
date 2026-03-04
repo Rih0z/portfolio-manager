@@ -40,7 +40,7 @@ describe('envUtils', () => {
     // 環境変数をバックアップ
     originalEnv = {
       NODE_ENV: process.env.NODE_ENV,
-      REACT_APP_DEFAULT_EXCHANGE_RATE: process.env.REACT_APP_DEFAULT_EXCHANGE_RATE
+      REACT_APP_DEFAULT_EXCHANGE_RATE: import.meta.env.VITE_DEFAULT_EXCHANGE_RATE
     };
     
     // コンソールエラーをモック
@@ -68,7 +68,7 @@ describe('envUtils', () => {
   afterEach(() => {
     // 環境変数を復元
     process.env.NODE_ENV = originalEnv.NODE_ENV;
-    process.env.REACT_APP_DEFAULT_EXCHANGE_RATE = originalEnv.REACT_APP_DEFAULT_EXCHANGE_RATE;
+    import.meta.env.VITE_DEFAULT_EXCHANGE_RATE = originalEnv.REACT_APP_DEFAULT_EXCHANGE_RATE;
     
     // コンソールモックを復元
     consoleErrorSpy.mockRestore();
@@ -399,7 +399,7 @@ describe('envUtils', () => {
 
   describe('getDefaultExchangeRate', () => {
     it('環境変数が設定されている場合はその値を返す', () => {
-      process.env.REACT_APP_DEFAULT_EXCHANGE_RATE = '160.5';
+      import.meta.env.VITE_DEFAULT_EXCHANGE_RATE = '160.5';
       
       const result = getDefaultExchangeRate();
       
@@ -407,7 +407,7 @@ describe('envUtils', () => {
     });
 
     it('環境変数が未設定の場合はデフォルト値150.0を返す', () => {
-      delete process.env.REACT_APP_DEFAULT_EXCHANGE_RATE;
+      delete import.meta.env.VITE_DEFAULT_EXCHANGE_RATE;
       
       const result = getDefaultExchangeRate();
       
@@ -415,7 +415,7 @@ describe('envUtils', () => {
     });
 
     it('環境変数が無効な値の場合はデフォルト値150.0を返す', () => {
-      process.env.REACT_APP_DEFAULT_EXCHANGE_RATE = 'invalid';
+      import.meta.env.VITE_DEFAULT_EXCHANGE_RATE = 'invalid';
       
       const result = getDefaultExchangeRate();
       
@@ -423,7 +423,7 @@ describe('envUtils', () => {
     });
 
     it('環境変数が空文字の場合はデフォルト値150.0を返す', () => {
-      process.env.REACT_APP_DEFAULT_EXCHANGE_RATE = '';
+      import.meta.env.VITE_DEFAULT_EXCHANGE_RATE = '';
       
       const result = getDefaultExchangeRate();
       
@@ -431,7 +431,7 @@ describe('envUtils', () => {
     });
 
     it('環境変数が0の場合は0を返す', () => {
-      process.env.REACT_APP_DEFAULT_EXCHANGE_RATE = '0';
+      import.meta.env.VITE_DEFAULT_EXCHANGE_RATE = '0';
       
       const result = getDefaultExchangeRate();
       
@@ -439,7 +439,7 @@ describe('envUtils', () => {
     });
 
     it('負の値も正しく処理する', () => {
-      process.env.REACT_APP_DEFAULT_EXCHANGE_RATE = '-10.5';
+      import.meta.env.VITE_DEFAULT_EXCHANGE_RATE = '-10.5';
       
       const result = getDefaultExchangeRate();
       

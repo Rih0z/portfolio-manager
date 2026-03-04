@@ -7,7 +7,7 @@ import { getApiEndpoint } from '../utils/envUtils';
 import { fetchWithRetry, formatErrorResponse, generateFallbackData, TIMEOUT } from '../utils/apiUtils';
 
 // モックAPIを使用するかどうか
-const USE_MOCK = process.env.REACT_APP_USE_MOCK_API === 'true';
+const USE_MOCK = import.meta.env.VITE_USE_MOCK_API === 'true';
 
 // 開発用のログ出力
 const logApiCall = (method, params, response, error = null) => {
@@ -124,9 +124,11 @@ export const fetchStockData = async (ticker, refresh = false) => {
 // エクスポート
 export { fetchMultipleStocks, fetchApiStatus } from './marketDataService';
 
+import { fetchMultipleStocks as _fetchMultipleStocks, fetchApiStatus as _fetchApiStatus } from './marketDataService';
+
 export default {
   fetchExchangeRate,
   fetchStockData,
-  fetchMultipleStocks: require('./marketDataService').fetchMultipleStocks,
-  fetchApiStatus: require('./marketDataService').fetchApiStatus
+  fetchMultipleStocks: _fetchMultipleStocks,
+  fetchApiStatus: _fetchApiStatus
 };

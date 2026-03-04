@@ -21,6 +21,8 @@ import axios from 'axios';
 import { getApiEndpoint, isLocalDevelopment } from './envUtils';
 import csrfManager from './csrfManager';
 import { handleApiError } from './errorHandler';
+import { getJapaneseStockName } from './japaneseStockNames';
+import { guessFundType, FUND_TYPES } from './fundUtils';
 
 // リトライ設定
 export const RETRY = {
@@ -494,8 +496,6 @@ export const generateFallbackData = (ticker) => {
   const isMutualFund = /^(\d{8}|\d{7}[A-Z]|[A-Z0-9]{8})$/i.test(ticker);
   
   // 日本の銘柄名を取得
-  const { getJapaneseStockName } = require('./japaneseStockNames');
-  const { guessFundType, FUND_TYPES } = require('./fundUtils');
   const japaneseName = getJapaneseStockName(ticker);
   const displayName = japaneseName !== ticker ? japaneseName : `${ticker} (フォールバック)`;
   

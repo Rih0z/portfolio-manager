@@ -134,9 +134,11 @@ frontend/webapp/yaml-*.js
 
 # Large backup folders
 node_modules_backup_*/
+**/node_modules_backup_*/
 node_modules_old/
 build-backup-*/
 frontend/webapp/build-backup-*/
+frontend/webapp-build/
 
 # Report files
 frontend/webapp/*.md

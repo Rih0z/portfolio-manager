@@ -28,7 +28,7 @@ describe('csrfManager', () => {
 
   beforeEach(() => {
     // 環境変数をバックアップ
-    originalEnv = process.env.REACT_APP_API_BASE_URL;
+    originalEnv = import.meta.env.VITE_API_BASE_URL;
     
     // コンソールメソッドをモック
     consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -56,7 +56,7 @@ describe('csrfManager', () => {
 
   afterEach(() => {
     // 環境変数を復元
-    process.env.REACT_APP_API_BASE_URL = originalEnv;
+    import.meta.env.VITE_API_BASE_URL = originalEnv;
     
     // コンソールモックを復元
     consoleErrorSpy.mockRestore();
@@ -99,7 +99,7 @@ describe('csrfManager', () => {
     });
 
     it('環境変数に関係なくダミートークンを返す', async () => {
-      process.env.REACT_APP_API_BASE_URL = 'https://api.example.com';
+      import.meta.env.VITE_API_BASE_URL = 'https://api.example.com';
       const token = await csrfManager.getToken();
       
       expect(token).toBe('dummy-csrf-token');

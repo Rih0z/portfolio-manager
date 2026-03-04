@@ -54,7 +54,7 @@ describe('configService', () => {
 
   describe('fetchApiConfig', () => {
     it('正常にAPI設定を取得してキャッシュする', async () => {
-      process.env.REACT_APP_API_BASE_URL = 'https://api.example.com';
+      import.meta.env.VITE_API_BASE_URL = 'https://api.example.com';
       
       const mockResponse = {
         data: {
@@ -81,7 +81,7 @@ describe('configService', () => {
     });
 
     it('キャッシュされた設定を再利用する', async () => {
-      process.env.REACT_APP_API_BASE_URL = 'https://api.example.com';
+      import.meta.env.VITE_API_BASE_URL = 'https://api.example.com';
       
       const mockResponse = {
         data: {
@@ -105,7 +105,7 @@ describe('configService', () => {
     });
 
     it('並行リクエストが同じPromiseを共有する', async () => {
-      process.env.REACT_APP_API_BASE_URL = 'https://api.example.com';
+      import.meta.env.VITE_API_BASE_URL = 'https://api.example.com';
       
       const mockResponse = {
         data: {
@@ -133,7 +133,7 @@ describe('configService', () => {
     });
 
     it('REACT_APP_API_BASE_URLが未設定の場合はフォールバック設定を返す', async () => {
-      delete process.env.REACT_APP_API_BASE_URL;
+      delete import.meta.env.VITE_API_BASE_URL;
 
       const config = await fetchApiConfig();
 
@@ -153,7 +153,7 @@ describe('configService', () => {
     });
 
     it('API取得に失敗した場合はフォールバック設定を返す', async () => {
-      process.env.REACT_APP_API_BASE_URL = 'https://api.example.com';
+      import.meta.env.VITE_API_BASE_URL = 'https://api.example.com';
       
       const error = new Error('Network Error');
       mockedAxios.get.mockRejectedValue(error);
@@ -174,7 +174,7 @@ describe('configService', () => {
     });
 
     it('AWS URL（prod）の場合はステージを正しく設定する', async () => {
-      process.env.REACT_APP_API_BASE_URL = 'https://abc123.execute-api.us-west-2.amazonaws.com/prod';
+      import.meta.env.VITE_API_BASE_URL = 'https://abc123.execute-api.us-west-2.amazonaws.com/prod';
       
       const error = new Error('Network Error');
       mockedAxios.get.mockRejectedValue(error);
@@ -186,7 +186,7 @@ describe('configService', () => {
 
     it('本番環境でプロキシ経由の再試行が成功する', async () => {
       process.env.NODE_ENV = 'production';
-      process.env.REACT_APP_API_BASE_URL = 'https://abc123.execute-api.us-west-2.amazonaws.com/prod';
+      import.meta.env.VITE_API_BASE_URL = 'https://abc123.execute-api.us-west-2.amazonaws.com/prod';
       
       const proxyResponse = {
         data: {
@@ -214,7 +214,7 @@ describe('configService', () => {
 
     it('本番環境でプロキシ経由の再試行も失敗した場合はフォールバック設定を返す', async () => {
       process.env.NODE_ENV = 'production';
-      process.env.REACT_APP_API_BASE_URL = 'https://abc123.execute-api.us-west-2.amazonaws.com/prod';
+      import.meta.env.VITE_API_BASE_URL = 'https://abc123.execute-api.us-west-2.amazonaws.com/prod';
       
       // 両方のリクエストが失敗
       mockedAxios.get
@@ -230,7 +230,7 @@ describe('configService', () => {
     });
 
     it('無効なレスポンス形式の場合はエラーを投げる', async () => {
-      process.env.REACT_APP_API_BASE_URL = 'https://api.example.com';
+      import.meta.env.VITE_API_BASE_URL = 'https://api.example.com';
       
       const mockResponse = {
         data: {
@@ -250,7 +250,7 @@ describe('configService', () => {
 
   describe('getApiUrl', () => {
     it('API URLを正しく取得する', async () => {
-      process.env.REACT_APP_API_BASE_URL = 'https://api.example.com';
+      import.meta.env.VITE_API_BASE_URL = 'https://api.example.com';
       
       const mockResponse = {
         data: {
@@ -269,7 +269,7 @@ describe('configService', () => {
     });
 
     it('API URLが空の場合は空文字を返す', async () => {
-      process.env.REACT_APP_API_BASE_URL = 'https://api.example.com';
+      import.meta.env.VITE_API_BASE_URL = 'https://api.example.com';
       
       const mockResponse = {
         data: {
@@ -288,7 +288,7 @@ describe('configService', () => {
 
   describe('getApiStage', () => {
     it('APIステージを正しく取得する', async () => {
-      process.env.REACT_APP_API_BASE_URL = 'https://api.example.com';
+      import.meta.env.VITE_API_BASE_URL = 'https://api.example.com';
       
       const mockResponse = {
         data: {
@@ -307,7 +307,7 @@ describe('configService', () => {
     });
 
     it('APIステージが未設定の場合はdevを返す', async () => {
-      process.env.REACT_APP_API_BASE_URL = 'https://api.example.com';
+      import.meta.env.VITE_API_BASE_URL = 'https://api.example.com';
       
       const mockResponse = {
         data: {
@@ -326,7 +326,7 @@ describe('configService', () => {
 
   describe('getGoogleClientId', () => {
     it('Google Client IDを正しく取得する', async () => {
-      process.env.REACT_APP_API_BASE_URL = 'https://api.example.com';
+      import.meta.env.VITE_API_BASE_URL = 'https://api.example.com';
       
       const mockResponse = {
         data: {
@@ -345,7 +345,7 @@ describe('configService', () => {
     });
 
     it('Google Client IDが未設定の場合は空文字を返す', async () => {
-      process.env.REACT_APP_API_BASE_URL = 'https://api.example.com';
+      import.meta.env.VITE_API_BASE_URL = 'https://api.example.com';
       
       const mockResponse = {
         data: {
@@ -364,7 +364,7 @@ describe('configService', () => {
 
   describe('getFeatureFlags', () => {
     it('機能フラグを正しく取得する', async () => {
-      process.env.REACT_APP_API_BASE_URL = 'https://api.example.com';
+      import.meta.env.VITE_API_BASE_URL = 'https://api.example.com';
       
       const mockResponse = {
         data: {
@@ -393,7 +393,7 @@ describe('configService', () => {
     });
 
     it('機能フラグが未設定の場合は空オブジェクトを返す', async () => {
-      process.env.REACT_APP_API_BASE_URL = 'https://api.example.com';
+      import.meta.env.VITE_API_BASE_URL = 'https://api.example.com';
       
       const mockResponse = {
         data: {
@@ -412,7 +412,7 @@ describe('configService', () => {
 
   describe('clearConfigCache', () => {
     it('キャッシュを正しくクリアする', async () => {
-      process.env.REACT_APP_API_BASE_URL = 'https://api.example.com';
+      import.meta.env.VITE_API_BASE_URL = 'https://api.example.com';
       
       const mockResponse = {
         data: {
@@ -449,7 +449,7 @@ describe('configService', () => {
   describe('開発環境デバッグログ', () => {
     it('開発環境でデバッグ情報を出力する', () => {
       process.env.NODE_ENV = 'development';
-      process.env.REACT_APP_API_BASE_URL = 'https://api.example.com';
+      import.meta.env.VITE_API_BASE_URL = 'https://api.example.com';
 
       // モジュールを再読み込みしてデバッグログをトリガー
       delete require.cache[require.resolve('../../../services/configService')];
@@ -464,7 +464,7 @@ describe('configService', () => {
 
     it('本番環境ではデバッグ情報を出力しない', () => {
       process.env.NODE_ENV = 'production';
-      process.env.REACT_APP_API_BASE_URL = 'https://api.example.com';
+      import.meta.env.VITE_API_BASE_URL = 'https://api.example.com';
 
       // モジュールを再読み込み
       delete require.cache[require.resolve('../../../services/configService')];
@@ -498,7 +498,7 @@ describe('configService', () => {
 
   describe('エラーケース詳細テスト', () => {
     it('undefined レスポンスを正しく処理する', async () => {
-      process.env.REACT_APP_API_BASE_URL = 'https://api.example.com';
+      import.meta.env.VITE_API_BASE_URL = 'https://api.example.com';
       
       mockedAxios.get.mockResolvedValue(undefined);
 
@@ -509,7 +509,7 @@ describe('configService', () => {
     });
 
     it('null データレスポンスを正しく処理する', async () => {
-      process.env.REACT_APP_API_BASE_URL = 'https://api.example.com';
+      import.meta.env.VITE_API_BASE_URL = 'https://api.example.com';
       
       const mockResponse = {
         data: null
@@ -523,7 +523,7 @@ describe('configService', () => {
     });
 
     it('空のデータレスポンスを正しく処理する', async () => {
-      process.env.REACT_APP_API_BASE_URL = 'https://api.example.com';
+      import.meta.env.VITE_API_BASE_URL = 'https://api.example.com';
       
       const mockResponse = {
         data: {
@@ -542,7 +542,7 @@ describe('configService', () => {
 
   describe('パフォーマンステスト', () => {
     it('大量の並行リクエストを効率的に処理する', async () => {
-      process.env.REACT_APP_API_BASE_URL = 'https://api.example.com';
+      import.meta.env.VITE_API_BASE_URL = 'https://api.example.com';
       
       const mockResponse = {
         data: {
