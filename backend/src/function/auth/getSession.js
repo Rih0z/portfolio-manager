@@ -163,11 +163,9 @@ const handler = async (event) => {
       hasDriveAccess: !!session.driveAccessToken
     };
     
-    // デバッグモードの場合、追加情報を含める
-    if (process.env.NODE_ENV === 'development' || process.env.DEBUG === 'true' || 
-        (event.queryStringParameters && event.queryStringParameters.debug === 'true')) {
+    // デバッグモードの場合、追加情報を含める（本番環境ではクエリパラメータによる有効化を禁止）
+    if (process.env.NODE_ENV === 'development' || process.env.DEBUG === 'true') {
       responseData.debug = {
-        sessionId,
         expiresAt: session.expiresAt,
         createdAt: session.createdAt
       };

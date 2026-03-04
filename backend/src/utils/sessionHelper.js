@@ -22,17 +22,12 @@ const { verifyAccessToken } = require('./jwtUtils');
 const getSessionFromRequest = async (event) => {
   const headers = event.headers || {};
   
-  // デバッグ: 全ヘッダーを出力
-  console.log('All headers received:', JSON.stringify(headers, null, 2));
+  // デバッグ: ヘッダーキーのみ出力（認証情報はマスク）
+  console.log('Headers received (keys):', Object.keys(headers));
   
   // 1. まずCookieからセッションIDを探す（大文字小文字の両方をチェック）
   const cookieHeader = headers.Cookie || headers.cookie || headers.COOKIE;
-  console.log('Cookie header search:', {
-    'Cookie': headers.Cookie,
-    'cookie': headers.cookie,
-    'COOKIE': headers.COOKIE,
-    'found': cookieHeader
-  });
+  console.log('Cookie header present:', !!cookieHeader);
   
   const cookies = parseCookies(headers);
   const sessionId = cookies.session;
@@ -55,16 +50,11 @@ const getSessionFromRequest = async (event) => {
   
   // 2. Authorization: Bearer {JWT} → pfwise JWT Access Token を優先検証
   const authHeader = headers.Authorization || headers.authorization || headers.AUTHORIZATION;
-  console.log('Authorization header search:', {
-    'Authorization': headers.Authorization,
-    'authorization': headers.authorization,
-    'AUTHORIZATION': headers.AUTHORIZATION,
-    'found': authHeader
-  });
+  console.log('Authorization header present:', !!authHeader);
 
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.substring(7);
-    console.log('Bearer token found in Authorization header');
+    console.log('Bearer token found in Authorization header (length:', token.length, ')');
 
     // 2a. pfwise JWT Access Token として検証（DynamoDB不要）
     try {
@@ -119,7 +109,7 @@ const getSessionFromRequest = async (event) => {
     details: {
       hasCookie: !!sessionId,
       hasAuthHeader: !!authHeader,
-      cookieHeader: headers.Cookie || headers.cookie || 'none',
+      hasCookieHeader: !!(headers.Cookie || headers.cookie),
       authHeaderType: authHeader ? authHeader.split(' ')[0] : 'none'
     }
   };

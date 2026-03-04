@@ -68,7 +68,8 @@ describe('Logout Handler', () => {
     });
     
     cookieParser.createClearSessionCookie.mockReturnValue('session=; Max-Age=0; HttpOnly; Secure');
-    
+    cookieParser.createClearRefreshTokenCookie = jest.fn().mockReturnValue('refreshToken=; Max-Age=0; HttpOnly; Secure; SameSite=None; Path=/');
+
     // googleAuthServiceのモック実装
     googleAuthService.invalidateSession.mockResolvedValue(true);
   });
@@ -196,38 +197,60 @@ describe('Logout Handler', () => {
     );
   });
   
-  test('特定のリダイレクトURLが指定された場合はリダイレクトレスポンスを返す', async () => {
-    // テスト用のリクエストイベントを作成（リダイレクトパラメータ付き）
+  test('許可されたドメインへのリダイレクトURLが指定された場合はリダイレクトレスポンスを返す', async () => {
     const event = {
       headers: {
         Cookie: 'session=session-123'
       },
       queryStringParameters: {
-        redirect: 'https://example.com/'
+        redirect: 'https://portfolio-wise.com/'
       }
     };
-    
-    // リダイレクトレスポンスをモック
+
     responseUtils.formatRedirectResponse = jest.fn().mockReturnValue({
       statusCode: 302,
       headers: {
-        Location: 'https://example.com/',
+        Location: 'https://portfolio-wise.com/',
         'Set-Cookie': 'session=; Max-Age=0; HttpOnly; Secure'
       },
       body: ''
     });
-    
-    // テスト対象の関数を実行
+
     await handler(event);
-    
-    // formatRedirectResponseが呼び出されたことを検証
+
     expect(responseUtils.formatRedirectResponse).toHaveBeenCalledWith(
-      'https://example.com/',
+      'https://portfolio-wise.com/',
       expect.any(Number),
       expect.objectContaining({
         'Set-Cookie': expect.any(String)
+      }),
+      expect.anything(),
+      expect.objectContaining({
+        'Set-Cookie': expect.any(Array)
       })
     );
+  });
+
+  test('許可されていないドメインへのリダイレクトURLはブロックされる', async () => {
+    const event = {
+      headers: {
+        Cookie: 'session=session-123'
+      },
+      queryStringParameters: {
+        redirect: 'https://evil-phishing-site.com/'
+      }
+    };
+
+    await handler(event);
+
+    expect(responseUtils.formatErrorResponse).toHaveBeenCalledWith(
+      expect.objectContaining({
+        statusCode: 400,
+        code: 'INVALID_REDIRECT'
+      })
+    );
+    // リダイレクトレスポンスが呼ばれていないことを検証
+    expect(responseUtils.formatRedirectResponse).not.toHaveBeenCalled();
   });
   
   test('DynamoDBからのセッション削除をテスト（LocalStackを使用）', async () => {

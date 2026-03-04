@@ -19,6 +19,38 @@ const cookieParser = require('../../utils/cookieParser');
 const { createClearRefreshTokenCookie } = require('../../utils/cookieParser');
 
 /**
+ * リダイレクトURLがホワイトリストに含まれるドメインか検証する
+ * @param {string} url - リダイレクト先URL
+ * @returns {boolean}
+ */
+const isAllowedRedirectUrl = (url) => {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url);
+    const allowedDomains = [
+      'portfolio-wise.com',
+      'www.portfolio-wise.com',
+      'app.portfolio-wise.com',
+      'pfwise-portfolio-manager.pages.dev',
+      'localhost'
+    ];
+    // 環境変数から追加の許可ドメインを取得
+    const extraDomains = (process.env.ALLOWED_REDIRECT_DOMAINS || '')
+      .split(',').map(d => d.trim()).filter(d => d);
+    const allAllowed = [...allowedDomains, ...extraDomains];
+
+    return allAllowed.some(domain => {
+      if (domain === 'localhost') {
+        return parsed.hostname === 'localhost';
+      }
+      return parsed.hostname === domain || parsed.hostname.endsWith('.' + domain);
+    });
+  } catch {
+    return false;
+  }
+};
+
+/**
  * ログアウト処理ハンドラー
  * @param {Object} event - API Gatewayイベント
  * @returns {Object} - API Gatewayレスポンス
@@ -49,7 +81,18 @@ module.exports.handler = async (event) => {
     // リダイレクトURLがクエリパラメータにある場合は処理（早めに確認）
     if (event.queryStringParameters && event.queryStringParameters.redirect) {
       const redirectUrl = event.queryStringParameters.redirect;
-      
+
+      // オープンリダイレクト防止: ホワイトリスト検証
+      if (!isAllowedRedirectUrl(redirectUrl)) {
+        logger.warn('Blocked redirect to disallowed URL:', redirectUrl);
+        return responseUtils.formatErrorResponse({
+          statusCode: 400,
+          code: 'INVALID_REDIRECT',
+          message: '許可されていないリダイレクト先です',
+          event
+        });
+      }
+
       // セッション無効化を先に行う（必要であれば）
       const headers = event.headers || {};
       let cookieString = headers.Cookie || headers.cookie || '';
@@ -78,9 +121,9 @@ module.exports.handler = async (event) => {
         302,
         {
           'Set-Cookie': clearCookie,
-          // multiValueHeaders は formatRedirectResponse では非対応のため、
-          // 単一ヘッダーには session cookie のみ設定し、refreshToken は別途処理
-        }
+        },
+        event,
+        { 'Set-Cookie': [clearCookie, clearRefreshCookie] }
       );
     }
     

@@ -22,6 +22,7 @@ const ACCESS_TOKEN_EXPIRY = '24h';
 const REFRESH_TOKEN_EXPIRY = '7d';
 const JWT_ALGORITHM = 'HS256';
 const JWT_ISSUER = 'pfwise-api';
+const JWT_AUDIENCE = 'pfwise-web';
 
 // 秘密鍵キャッシュ
 let cachedSecret = null;
@@ -90,7 +91,8 @@ const generateAccessToken = async (payload) => {
   return jwt.sign(claims, secret, {
     algorithm: JWT_ALGORITHM,
     expiresIn: ACCESS_TOKEN_EXPIRY,
-    issuer: JWT_ISSUER
+    issuer: JWT_ISSUER,
+    audience: JWT_AUDIENCE
   });
 };
 
@@ -116,7 +118,8 @@ const generateRefreshToken = async (payload) => {
   return jwt.sign(claims, secret, {
     algorithm: JWT_ALGORITHM,
     expiresIn: REFRESH_TOKEN_EXPIRY,
-    issuer: JWT_ISSUER
+    issuer: JWT_ISSUER,
+    audience: JWT_AUDIENCE
   });
 };
 
@@ -133,7 +136,8 @@ const verifyAccessToken = async (token) => {
   try {
     const decoded = jwt.verify(token, secret, {
       algorithms: [JWT_ALGORITHM],
-      issuer: JWT_ISSUER
+      issuer: JWT_ISSUER,
+      audience: JWT_AUDIENCE
     });
 
     if (decoded.type !== 'access') {
@@ -165,7 +169,8 @@ const verifyRefreshToken = async (token) => {
   try {
     const decoded = jwt.verify(token, secret, {
       algorithms: [JWT_ALGORITHM],
-      issuer: JWT_ISSUER
+      issuer: JWT_ISSUER,
+      audience: JWT_AUDIENCE
     });
 
     if (decoded.type !== 'refresh') {
@@ -203,5 +208,6 @@ module.exports = {
   ACCESS_TOKEN_EXPIRY,
   REFRESH_TOKEN_EXPIRY,
   JWT_ALGORITHM,
-  JWT_ISSUER
+  JWT_ISSUER,
+  JWT_AUDIENCE
 };

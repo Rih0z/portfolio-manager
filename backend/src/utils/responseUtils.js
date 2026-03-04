@@ -275,20 +275,31 @@ const formatErrorResponse = async (options = {}) => {
  * @param {string} url - リダイレクト先URL
  * @param {number} statusCode - HTTPステータスコード（デフォルト: 302）
  * @param {Object} headers - 追加のレスポンスヘッダー
+ * @param {Object} event - API Gatewayイベント（CORS用、省略可）
+ * @param {Object} multiValueHeaders - 複数値ヘッダー（複数Set-Cookie等）
  * @returns {Object} API Gateway形式のリダイレクトレスポンス
  */
-const formatRedirectResponse = (url, statusCode = 302, headers = {}) => {
-  // バグ修正: body を空文字列に変更
-  return {
+const formatRedirectResponse = (url, statusCode = 302, headers = {}, event = null, multiValueHeaders = undefined) => {
+  const corsHeaders = event ? getCorsHeaders({}, event) : {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Credentials': 'true'
+  };
+
+  const response = {
     statusCode,
     headers: {
       'Location': url,
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Credentials': 'true', // テスト互換性のために追加
+      ...corsHeaders,
       ...headers
     },
     body: ''
   };
+
+  if (multiValueHeaders) {
+    response.multiValueHeaders = multiValueHeaders;
+  }
+
+  return response;
 };
 
 /**

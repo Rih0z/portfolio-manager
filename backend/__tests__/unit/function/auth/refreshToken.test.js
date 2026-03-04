@@ -24,7 +24,9 @@ jest.mock('../../../../src/utils/logger', () => ({
 }));
 
 jest.mock('../../../../src/services/googleAuthService', () => ({
-  getSession: jest.fn()
+  getSession: jest.fn(),
+  updateSession: jest.fn().mockResolvedValue({}),
+  invalidateSession: jest.fn().mockResolvedValue({})
 }));
 
 jest.mock('../../../../src/utils/budgetCheck', () => ({
@@ -46,7 +48,7 @@ jest.mock('../../../../src/utils/securityHeaders', () => ({
 }));
 
 const { handler } = require('../../../../src/function/auth/refreshToken');
-const { getSession } = require('../../../../src/services/googleAuthService');
+const { getSession, invalidateSession } = require('../../../../src/services/googleAuthService');
 const { generateRefreshToken } = require('../../../../src/utils/jwtUtils');
 
 describe('refreshToken handler', () => {
@@ -193,6 +195,74 @@ describe('refreshToken handler', () => {
 
       expect(result.statusCode).toBe(403);
       expect(body.error.code).toBe('FORBIDDEN_ORIGIN');
+    });
+
+    it('Originヘッダーが無い場合403を返す', async () => {
+      const refreshToken = await createValidRefreshToken();
+      const event = createEvent({
+        cookie: `refreshToken=${refreshToken}`,
+      });
+      // Originヘッダーを削除
+      delete event.headers.Origin;
+
+      const result = await handler(event);
+      const body = JSON.parse(result.body);
+
+      expect(result.statusCode).toBe(403);
+      expect(body.error.code).toBe('MISSING_ORIGIN');
+    });
+  });
+
+  describe('Token Reuse Detection', () => {
+    it('旧tokenIdが再利用された場合セッションを無効化する', async () => {
+      const refreshToken = await createValidRefreshToken();
+
+      // セッションに別のtokenIdが保存されている（ローテーション済み）
+      getSession.mockResolvedValue({
+        sessionId: 'session-456',
+        googleId: 'google-123',
+        email: 'test@example.com',
+        expiresAt: new Date(Date.now() + 86400000).toISOString(),
+        currentRefreshTokenId: 'different-token-id-after-rotation'
+      });
+
+      const event = createEvent({
+        cookie: `refreshToken=${refreshToken}`
+      });
+
+      const result = await handler(event);
+      const body = JSON.parse(result.body);
+
+      expect(result.statusCode).toBe(401);
+      expect(body.error.code).toBe('TOKEN_REUSE_DETECTED');
+      expect(invalidateSession).toHaveBeenCalledWith('session-456');
+    });
+
+    it('currentRefreshTokenIdが未設定の場合スキップして正常処理する', async () => {
+      const refreshToken = await createValidRefreshToken();
+
+      // currentRefreshTokenId未設定（初回ログイン直後など）
+      getSession.mockResolvedValue({
+        sessionId: 'session-456',
+        googleId: 'google-123',
+        email: 'test@example.com',
+        name: 'Test User',
+        picture: '',
+        driveAccessToken: null,
+        expiresAt: new Date(Date.now() + 86400000).toISOString(),
+        currentRefreshTokenId: null
+      });
+
+      const event = createEvent({
+        cookie: `refreshToken=${refreshToken}`
+      });
+
+      const result = await handler(event);
+      const body = JSON.parse(result.body);
+
+      expect(result.statusCode).toBe(200);
+      expect(body.success).toBe(true);
+      expect(body.data.accessToken).toBeDefined();
     });
   });
 });

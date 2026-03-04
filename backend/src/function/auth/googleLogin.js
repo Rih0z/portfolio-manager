@@ -13,7 +13,8 @@
 const {
   exchangeCodeForTokens,
   verifyIdToken,
-  createUserSession
+  createUserSession,
+  updateSession
 } = require('../../services/googleAuthService');
 const { formatResponse, formatErrorResponse } = require('../../utils/responseUtils');
 const { createSessionCookie, createRefreshTokenCookie } = require('../../utils/cookieParser');
@@ -50,15 +51,12 @@ module.exports.handler = async (event) => {
     // リクエストボディをパース（ボディが存在しない場合は空オブジェクトを使用）
     let requestBody;
     try {
-      console.log('Body type:', typeof event.body);
-      console.log('Body length:', event.body ? event.body.length : 0);
-      console.log('Body first 100 chars:', event.body ? event.body.substring(0, 100) : 'null');
-      
+      console.log('Body type:', typeof event.body, 'length:', event.body ? event.body.length : 0);
+
       requestBody = JSON.parse(event.body || '{}');
       console.log('Parsed successfully, keys:', Object.keys(requestBody));
     } catch (parseError) {
       console.error('JSON parse error:', parseError.message);
-      console.error('Invalid body:', event.body);
       
       return formatErrorResponse({
         statusCode: 400,
@@ -106,9 +104,9 @@ module.exports.handler = async (event) => {
     }
     
     console.log('Processing Google authentication:', {
-      code: code ? `${code.substring(0, 10)}...` : 'missing',
-      credential: credential ? `${credential.substring(0, 10)}...` : 'missing',
-      redirectUri
+      hasCode: !!code,
+      hasCredential: !!credential,
+      hasRedirectUri: !!redirectUri
     });
     
     let tokens, userInfo;
@@ -214,6 +212,19 @@ module.exports.handler = async (event) => {
         sessionId: session.sessionId
       });
       refreshTokenCookie = createRefreshTokenCookie(refreshToken, maxAge);
+
+      // Token Reuse Detection: 初期tokenIdをセッションに保存
+      try {
+        const jwt = require('jsonwebtoken');
+        const refreshDecoded = jwt.decode(refreshToken);
+        if (refreshDecoded && refreshDecoded.tokenId) {
+          await updateSession(session.sessionId, {
+            currentRefreshTokenId: refreshDecoded.tokenId
+          });
+        }
+      } catch (tokenIdError) {
+        console.warn('Failed to save initial tokenId:', tokenIdError.message);
+      }
     } catch (jwtError) {
       console.warn('JWT生成に失敗しました（セッションCookieで継続）:', jwtError.message);
     }
@@ -243,10 +254,7 @@ module.exports.handler = async (event) => {
         picture: userInfo.picture
       },
       requiresOAuth: tokens.requires_oauth || false,
-      hasDriveAccess: hasDriveScope || false,
-      // フロントエンドがトークンを期待している場合のため、セッションIDも返す
-      sessionId: session.sessionId,
-      token: session.sessionId // 後方互換: session Cookie用
+      hasDriveAccess: hasDriveScope || false
     };
 
     // JWT Access Token をレスポンスに含める（生成成功時）

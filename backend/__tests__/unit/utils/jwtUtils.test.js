@@ -31,7 +31,8 @@ const {
   verifyRefreshToken,
   _resetSecretCache,
   JWT_ALGORITHM,
-  JWT_ISSUER
+  JWT_ISSUER,
+  JWT_AUDIENCE
 } = require('../../../src/utils/jwtUtils');
 
 const { getSecret } = require('../../../src/utils/secretsManager');
@@ -175,7 +176,7 @@ describe('jwtUtils', () => {
 
     it('期限切れトークンでエラーをスローする', async () => {
       const token = jwt.sign(
-        { sub: 'user-1', type: 'access', iss: JWT_ISSUER },
+        { sub: 'user-1', type: 'access', iss: JWT_ISSUER, aud: JWT_AUDIENCE },
         TEST_JWT_SECRET,
         { expiresIn: '0s', algorithm: JWT_ALGORITHM }
       );
@@ -188,7 +189,7 @@ describe('jwtUtils', () => {
 
     it('不正な署名のトークンでエラーをスローする', async () => {
       const token = jwt.sign(
-        { sub: 'user-1', type: 'access', iss: JWT_ISSUER },
+        { sub: 'user-1', type: 'access', iss: JWT_ISSUER, aud: JWT_AUDIENCE },
         'wrong-secret',
         { algorithm: JWT_ALGORITHM }
       );
@@ -228,7 +229,7 @@ describe('jwtUtils', () => {
 
     it('期限切れトークンでエラーをスローする', async () => {
       const token = jwt.sign(
-        { sub: 'user-1', type: 'refresh', sessionId: 'sess-1', tokenId: 'tid-1', iss: JWT_ISSUER },
+        { sub: 'user-1', type: 'refresh', sessionId: 'sess-1', tokenId: 'tid-1', iss: JWT_ISSUER, aud: JWT_AUDIENCE },
         TEST_JWT_SECRET,
         { expiresIn: '0s', algorithm: JWT_ALGORITHM }
       );
@@ -250,12 +251,72 @@ describe('jwtUtils', () => {
 
     it('不正な署名のトークンでエラーをスローする', async () => {
       const token = jwt.sign(
-        { sub: 'user-1', type: 'refresh', iss: JWT_ISSUER },
+        { sub: 'user-1', type: 'refresh', iss: JWT_ISSUER, aud: JWT_AUDIENCE },
         'wrong-secret',
         { algorithm: JWT_ALGORITHM }
       );
 
       await expect(verifyRefreshToken(token)).rejects.toThrow('Invalid refresh token');
+    });
+  });
+
+  describe('セキュリティ検証', () => {
+    it('alg:none のトークンを拒否する', async () => {
+      // alg:none で署名なしトークンを作成（攻撃手法）
+      const header = Buffer.from(JSON.stringify({ alg: 'none', typ: 'JWT' })).toString('base64url');
+      const payload = Buffer.from(JSON.stringify({
+        sub: 'attacker',
+        email: 'attacker@evil.com',
+        type: 'access',
+        iss: JWT_ISSUER,
+        aud: JWT_AUDIENCE
+      })).toString('base64url');
+      const unsignedToken = `${header}.${payload}.`;
+
+      await expect(verifyAccessToken(unsignedToken)).rejects.toThrow('Invalid access token');
+    });
+
+    it('issuerが異なるトークンを拒否する', async () => {
+      const token = jwt.sign(
+        { sub: 'user-1', type: 'access', aud: JWT_AUDIENCE },
+        TEST_JWT_SECRET,
+        { algorithm: JWT_ALGORITHM, issuer: 'evil-issuer' }
+      );
+
+      await expect(verifyAccessToken(token)).rejects.toThrow('Invalid access token');
+    });
+
+    it('audienceが異なるトークンを拒否する', async () => {
+      const token = jwt.sign(
+        { sub: 'user-1', type: 'access', iss: JWT_ISSUER },
+        TEST_JWT_SECRET,
+        { algorithm: JWT_ALGORITHM, audience: 'wrong-audience' }
+      );
+
+      await expect(verifyAccessToken(token)).rejects.toThrow('Invalid access token');
+    });
+
+    it('RS256アルゴリズムで署名されたトークンを拒否する', async () => {
+      // HS256以外のアルゴリズムは algorithms: ['HS256'] により拒否される
+      // RS256はRSA秘密鍵が必要なので、代わりにHS384を使ったトークンで検証
+      const token = jwt.sign(
+        { sub: 'user-1', type: 'access', iss: JWT_ISSUER, aud: JWT_AUDIENCE },
+        TEST_JWT_SECRET,
+        { algorithm: 'HS384' }
+      );
+
+      await expect(verifyAccessToken(token)).rejects.toThrow('Invalid access token');
+    });
+
+    it('生成されたトークンにaud claimが含まれる', async () => {
+      const token = await generateAccessToken({
+        sub: 'user-1',
+        email: 'test@example.com',
+        sessionId: 'sess-1'
+      });
+
+      const decoded = jwt.decode(token);
+      expect(decoded.aud).toBe(JWT_AUDIENCE);
     });
   });
 });

@@ -10,7 +10,7 @@
  */
 'use strict';
 
-const { getSession } = require('../../services/googleAuthService');
+const { getSession, updateSession, invalidateSession } = require('../../services/googleAuthService');
 const { formatResponse, formatErrorResponse } = require('../../utils/responseUtils');
 const { parseCookies, createRefreshTokenCookie, createClearRefreshTokenCookie } = require('../../utils/cookieParser');
 const { generateAccessToken, generateRefreshToken: generateNewRefreshToken, verifyRefreshToken } = require('../../utils/jwtUtils');
@@ -81,9 +81,18 @@ module.exports.handler = async (event) => {
   try {
     const headers = event.headers || {};
 
-    // Origin検証（CSRF防止）
+    // Origin検証（CSRF防止） - Origin必須
     const origin = headers.Origin || headers.origin;
-    if (origin && !isAllowedOrigin(origin)) {
+    if (!origin) {
+      console.warn('Refresh token request missing Origin header');
+      return formatErrorResponse({
+        statusCode: 403,
+        code: 'MISSING_ORIGIN',
+        message: 'Originヘッダーが必要です',
+        event
+      });
+    }
+    if (!isAllowedOrigin(origin)) {
       console.warn('Refresh token request from disallowed origin:', origin);
       return formatErrorResponse({
         statusCode: 403,
@@ -151,6 +160,26 @@ module.exports.handler = async (event) => {
       });
     }
 
+    // Token Reuse Detection: セッションに保存された最新tokenIdと照合
+    const currentTokenId = session.currentRefreshTokenId;
+    if (currentTokenId && decoded.tokenId !== currentTokenId) {
+      // 旧トークンが再利用された → セッション全体を無効化（攻撃検出）
+      console.error('SECURITY: Refresh token reuse detected! Invalidating session:', decoded.sessionId);
+      try {
+        await invalidateSession(decoded.sessionId);
+      } catch (invalidateError) {
+        console.error('Failed to invalidate compromised session:', invalidateError.message);
+      }
+      const clearCookie = createClearRefreshTokenCookie();
+      return formatErrorResponse({
+        statusCode: 401,
+        code: 'TOKEN_REUSE_DETECTED',
+        message: 'セキュリティ上の理由でセッションが無効化されました。再度ログインしてください。',
+        headers: { 'Set-Cookie': clearCookie },
+        event
+      });
+    }
+
     // 新しい Access Token を生成
     const accessToken = await generateAccessToken({
       sub: session.googleId,
@@ -166,6 +195,18 @@ module.exports.handler = async (event) => {
       sub: session.googleId,
       sessionId: decoded.sessionId
     });
+
+    // 新しいtokenIdをDynamoDBに保存（次回のReuse Detection用）
+    const jwt = require('jsonwebtoken');
+    const newDecoded = jwt.decode(newRefreshToken);
+    try {
+      await updateSession(decoded.sessionId, {
+        currentRefreshTokenId: newDecoded.tokenId
+      });
+    } catch (updateError) {
+      console.error('Failed to update token ID in session:', updateError.message);
+      // 更新失敗してもトークン自体は有効なので処理を継続
+    }
 
     const maxAge = 60 * 60 * 24 * 7; // 7日
     const refreshTokenCookie = createRefreshTokenCookie(newRefreshToken, maxAge);
