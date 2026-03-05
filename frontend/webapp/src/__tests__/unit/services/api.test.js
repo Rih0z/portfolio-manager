@@ -1,24 +1,12 @@
 import { vi } from "vitest";
 /**
- * api.js のユニットテスト
+ * api.ts のユニットテスト
  * APIエントリーポイントとエンドポイント管理のテスト
+ *
+ * NOTE: getApiEndpoint() はモジュールレベルで import.meta.env を読み込むため、
+ * テスト内で import.meta.env を変更しても反映されない。
+ * そのため getApiEndpoint テストはモジュール読み込み時のデフォルト値に基づく。
  */
-
-import {
-  getApiEndpoint,
-  fetchTickerData,
-  fetchExchangeRate,
-  fetchMultipleTickerData,
-  fetchApiStatus,
-  fetchFundInfo,
-  fetchDividendData,
-  checkDataFreshness,
-  initGoogleDriveAPI,
-  setGoogleAccessToken,
-  getGoogleAccessToken,
-  saveToGoogleDrive,
-  loadFromGoogleDrive
-} from '../../../services/api';
 
 // marketDataServiceのモック
 vi.mock('../../../services/marketDataService', () => ({
@@ -38,99 +26,84 @@ vi.mock('../../../hooks/useGoogleDrive', () => ({
   }))
 }));
 
-import { 
+import {
+  getApiEndpoint,
+  fetchTickerData,
+  fetchExchangeRate,
+  fetchMultipleTickerData,
+  fetchApiStatus,
+  fetchFundInfo,
+  fetchDividendData,
+  checkDataFreshness,
+  initGoogleDriveAPI,
+  setGoogleAccessToken,
+  getGoogleAccessToken,
+  saveToGoogleDrive,
+  loadFromGoogleDrive
+} from '../../../services/api';
+
+import {
   fetchStockData,
   fetchExchangeRate as marketFetchExchangeRate,
   fetchMultipleStocks,
   fetchApiStatus as marketFetchApiStatus
 } from '../../../services/marketDataService';
 
-describe.skip('api service', () => {
-  let originalEnv;
+describe('api service', () => {
   let consoleWarnSpy;
 
   beforeEach(() => {
-    // 環境変数をバックアップ
-    originalEnv = process.env;
-    
     // console.warnをモック
     consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    
+
     // モックをクリア
     vi.clearAllMocks();
   });
 
   afterEach(() => {
-    // 環境変数を復元
-    process.env = originalEnv;
-    
     // console.warnモックを復元
     consoleWarnSpy.mockRestore();
   });
 
   describe('getApiEndpoint', () => {
-    it('market-dataエンドポイントを正しく生成する（本番環境）', () => {
-      import.meta.env.VITE_MARKET_DATA_API_URL = 'https://api.example.com';
-      import.meta.env.VITE_API_STAGE = 'prod';
+    // getApiEndpoint はモジュールレベルの定数(MARKET_DATA_API_URL, API_STAGE)を使用する。
+    // vitest.setup.ts で VITE_MARKET_DATA_API_URL='https://api.example.com',
+    // VITE_API_STAGE='test' が設定されるため、これらの値が使われる。
+    // localhostではないのでステージプレフィックス(/test)が付く。
 
+    it('market-dataエンドポイントを正しく生成する', () => {
       const endpoint = getApiEndpoint('market-data');
-      expect(endpoint).toBe('https://api.example.com/prod/api/market-data');
+      expect(endpoint).toBe('https://api.example.com/test/api/market-data');
     });
 
-    it('authエンドポイントを正しく生成する（本番環境）', () => {
-      import.meta.env.VITE_MARKET_DATA_API_URL = 'https://api.example.com';
-      import.meta.env.VITE_API_STAGE = 'prod';
-
+    it('authエンドポイントを正しく生成する', () => {
       const endpoint = getApiEndpoint('auth');
-      expect(endpoint).toBe('https://api.example.com/prod/auth');
+      expect(endpoint).toBe('https://api.example.com/test/auth');
     });
 
-    it('driveエンドポイントを正しく生成する（本番環境）', () => {
-      import.meta.env.VITE_MARKET_DATA_API_URL = 'https://api.example.com';
-      import.meta.env.VITE_API_STAGE = 'prod';
-
+    it('driveエンドポイントを正しく生成する', () => {
       const endpoint = getApiEndpoint('drive');
-      expect(endpoint).toBe('https://api.example.com/prod/drive');
+      expect(endpoint).toBe('https://api.example.com/test/drive');
     });
 
-    it('デフォルトエンドポイントを正しく生成する（本番環境）', () => {
-      import.meta.env.VITE_MARKET_DATA_API_URL = 'https://api.example.com';
-      import.meta.env.VITE_API_STAGE = 'prod';
-
+    it('デフォルトエンドポイントを正しく生成する（unknownタイプ）', () => {
       const endpoint = getApiEndpoint('unknown');
-      expect(endpoint).toBe('https://api.example.com/prod');
+      expect(endpoint).toBe('https://api.example.com/test');
     });
 
-    it('localhostの場合はステージプレフィックスを追加しない', () => {
-      import.meta.env.VITE_MARKET_DATA_API_URL = 'http://localhost:3000';
-      import.meta.env.VITE_API_STAGE = 'dev';
-
-      const endpoint = getApiEndpoint('market-data');
-      expect(endpoint).toBe('http://localhost:3000/api/market-data');
+    it('空文字列のエンドポイントタイプでもエラーを起こさない', () => {
+      const endpoint = getApiEndpoint('');
+      expect(endpoint).toBe('https://api.example.com/test');
     });
 
-    it('localhost（HTTPS）の場合もステージプレフィックスを追加しない', () => {
-      import.meta.env.VITE_MARKET_DATA_API_URL = 'https://localhost:3001';
-      import.meta.env.VITE_API_STAGE = 'dev';
-
-      const endpoint = getApiEndpoint('auth');
-      expect(endpoint).toBe('https://localhost:3001/auth');
+    it('undefinedのエンドポイントタイプでもエラーを起こさない', () => {
+      const endpoint = getApiEndpoint(undefined);
+      expect(endpoint).toBe('https://api.example.com/test');
     });
 
-    it('環境変数が未設定の場合はデフォルト値を使用する', () => {
-      delete import.meta.env.VITE_MARKET_DATA_API_URL;
-      delete import.meta.env.VITE_API_STAGE;
-
-      const endpoint = getApiEndpoint('market-data');
-      expect(endpoint).toBe('http://localhost:3000/api/market-data');
-    });
-
-    it('API_STAGEのみ未設定の場合はデフォルト値を使用する', () => {
-      import.meta.env.VITE_MARKET_DATA_API_URL = 'https://api.example.com';
-      delete import.meta.env.VITE_API_STAGE;
-
-      const endpoint = getApiEndpoint('market-data');
-      expect(endpoint).toBe('https://api.example.com/dev/api/market-data');
+    it('nullのエンドポイントタイプでもエラーを起こさない', () => {
+      const endpoint = getApiEndpoint(null);
+      expect(endpoint).toBe('https://api.example.com/test');
     });
   });
 
@@ -271,7 +244,7 @@ describe.skip('api service', () => {
       setGoogleAccessToken('test_token');
 
       expect(consoleWarnSpy).toHaveBeenCalledWith(
-        '[API] setGoogleAccessToken is deprecated. Use AuthContext methods instead.'
+        '[API] setGoogleAccessToken is deprecated. Use authStore methods instead.'
       );
     });
 
@@ -279,7 +252,7 @@ describe.skip('api service', () => {
       const result = await getGoogleAccessToken();
 
       expect(consoleWarnSpy).toHaveBeenCalledWith(
-        '[API] getGoogleAccessToken is deprecated. Use AuthContext methods instead.'
+        '[API] getGoogleAccessToken is deprecated. Use authStore methods instead.'
       );
       expect(result).toBeNull();
     });
@@ -288,11 +261,11 @@ describe.skip('api service', () => {
       const result = await saveToGoogleDrive({ test: 'data' }, { user: 'test' });
 
       expect(consoleWarnSpy).toHaveBeenCalledWith(
-        '[API] saveToGoogleDrive is deprecated. Use AuthContext.saveToDrive instead.'
+        '[API] saveToGoogleDrive is deprecated. Use portfolioStore.saveToGoogleDrive instead.'
       );
       expect(result).toEqual({
         success: false,
-        message: 'この関数は非推奨です。AuthContext.saveToDriveを使用してください。'
+        message: 'この関数は非推奨です。portfolioStore.saveToGoogleDriveを使用してください。'
       });
     });
 
@@ -300,11 +273,11 @@ describe.skip('api service', () => {
       const result = await loadFromGoogleDrive({ user: 'test' });
 
       expect(consoleWarnSpy).toHaveBeenCalledWith(
-        '[API] loadFromGoogleDrive is deprecated. Use AuthContext.loadFromDrive instead.'
+        '[API] loadFromGoogleDrive is deprecated. Use portfolioStore.loadFromGoogleDrive instead.'
       );
       expect(result).toEqual({
         success: false,
-        message: 'この関数は非推奨です。AuthContext.loadFromDriveを使用してください。'
+        message: 'この関数は非推奨です。portfolioStore.loadFromGoogleDriveを使用してください。'
       });
     });
   });
@@ -334,63 +307,39 @@ describe.skip('api service', () => {
 
   describe('パフォーマンステスト', () => {
     it('複数のエンドポイント生成を効率的に処理する', () => {
-      import.meta.env.VITE_MARKET_DATA_API_URL = 'https://api.example.com';
-      import.meta.env.VITE_API_STAGE = 'prod';
-
       const startTime = Date.now();
-      
+
       for (let i = 0; i < 1000; i++) {
         getApiEndpoint('market-data');
         getApiEndpoint('auth');
         getApiEndpoint('drive');
       }
-      
+
       const endTime = Date.now();
       expect(endTime - startTime).toBeLessThan(100); // 100ms以内
     });
 
     it('大量の非推奨関数呼び出しを効率的に処理する', async () => {
       const startTime = Date.now();
-      
+
       const promises = Array.from({ length: 100 }, async () => {
         await checkDataFreshness();
         setGoogleAccessToken('token');
         await getGoogleAccessToken();
       });
-      
+
       await Promise.all(promises);
-      
+
       const endTime = Date.now();
       expect(endTime - startTime).toBeLessThan(1000); // 1秒以内
     });
   });
 
   describe('エッジケース', () => {
-    it('空文字列のエンドポイントタイプでもエラーを起こさない', () => {
-      import.meta.env.VITE_MARKET_DATA_API_URL = 'https://api.example.com';
-      import.meta.env.VITE_API_STAGE = 'prod';
-
-      const endpoint = getApiEndpoint('');
-      expect(endpoint).toBe('https://api.example.com/prod');
-    });
-
-    it('undefinedのエンドポイントタイプでもエラーを起こさない', () => {
-      import.meta.env.VITE_MARKET_DATA_API_URL = 'https://api.example.com';
-      import.meta.env.VITE_API_STAGE = 'prod';
-
-      const endpoint = getApiEndpoint(undefined);
-      expect(endpoint).toBe('https://api.example.com/prod');
-    });
-
-    it('nullのエンドポイントタイプでもエラーを起こさない', () => {
-      import.meta.env.VITE_MARKET_DATA_API_URL = 'https://api.example.com';
-      import.meta.env.VITE_API_STAGE = 'prod';
-
-      const endpoint = getApiEndpoint(null);
-      expect(endpoint).toBe('https://api.example.com/prod');
-    });
-
     it('空のオブジェクトを非推奨関数に渡してもエラーを起こさない', async () => {
+      // fetchFundInfo/fetchDividendDataはfetchStockDataを呼ぶので先にモック設定
+      fetchStockData.mockResolvedValue({});
+
       await expect(fetchFundInfo({})).resolves.toBeDefined();
       await expect(fetchDividendData({})).resolves.toBeDefined();
       await expect(saveToGoogleDrive({}, {})).resolves.toBeDefined();
@@ -415,16 +364,12 @@ describe.skip('api service', () => {
       expect(typeof loadFromGoogleDrive).toBe('function');
     });
 
-    it('環境に応じてエンドポイントが正しく切り替わる', () => {
-      // 開発環境
-      import.meta.env.VITE_MARKET_DATA_API_URL = 'http://localhost:3000';
-      import.meta.env.VITE_API_STAGE = 'dev';
-      expect(getApiEndpoint('auth')).toBe('http://localhost:3000/auth');
-
-      // 本番環境
-      import.meta.env.VITE_MARKET_DATA_API_URL = 'https://api.example.com';
-      import.meta.env.VITE_API_STAGE = 'prod';
-      expect(getApiEndpoint('auth')).toBe('https://api.example.com/prod/auth');
+    it('getApiEndpointの全エンドポイントタイプが動作する', () => {
+      // デフォルト値 (localhost) で全タイプが動作することを確認
+      expect(getApiEndpoint('market-data')).toContain('/api/market-data');
+      expect(getApiEndpoint('auth')).toContain('/auth');
+      expect(getApiEndpoint('drive')).toContain('/drive');
+      expect(getApiEndpoint('other')).toBeDefined();
     });
   });
 });

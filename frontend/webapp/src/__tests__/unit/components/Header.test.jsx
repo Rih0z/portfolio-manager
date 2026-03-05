@@ -3,12 +3,35 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import Header from '../../../components/layout/Header';
 
+// i18n モック
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key) => {
+      const translations = {
+        'app.name': 'PortfolioWise',
+        'settings.baseCurrency': '基準通貨',
+        'common.loading': '読み込み中',
+        'common.update': '更新',
+        'settings.dataRefresh': 'データ更新'
+      };
+      return translations[key] || key;
+    },
+    i18n: { language: 'ja' }
+  })
+}));
+
 // useAuthのモック
 vi.mock('../../../hooks/useAuth', () => ({
   useAuth: vi.fn()
 }));
 
+// usePortfolioContextのモック
+vi.mock('../../../hooks/usePortfolioContext', () => ({
+  usePortfolioContext: vi.fn()
+}));
+
 import { useAuth } from '../../../hooks/useAuth';
+import { usePortfolioContext } from '../../../hooks/usePortfolioContext';
 
 // Mock the LanguageSwitcher component
 vi.mock('../../../components/common/LanguageSwitcher', () => ({
@@ -17,9 +40,9 @@ vi.mock('../../../components/common/LanguageSwitcher', () => ({
   },
 }));
 
-// Mock the LoginButton component
-vi.mock('../../../components/auth/LoginButton', () => ({
-  default: function LoginButton() {
+// Mock the OAuthLoginButton component (actual component name used in Header)
+vi.mock('../../../components/auth/OAuthLoginButton', () => ({
+  default: function OAuthLoginButton() {
     return <button data-testid="login-button">Login</button>;
   },
 }));
@@ -31,7 +54,7 @@ vi.mock('../../../components/auth/UserProfile', () => ({
   },
 }));
 
-describe.skip('Header', () => {
+describe('Header', () => {
   const mockAuthContext = {
     user: null,
     isAuthenticated: false,
@@ -39,6 +62,17 @@ describe.skip('Header', () => {
     logout: vi.fn(),
     getAccessToken: vi.fn(),
     loading: false
+  };
+
+  const mockPortfolioContext = {
+    baseCurrency: 'JPY',
+    toggleCurrency: vi.fn(),
+    refreshMarketPrices: vi.fn(),
+    lastUpdated: null,
+    isLoading: false,
+    currentAssets: [{ ticker: 'AAPL' }],
+    targetPortfolio: [{ ticker: 'AAPL', targetPercentage: 100 }],
+    additionalBudget: { amount: 0, currency: 'JPY' }
   };
 
   const authenticatedAuthContext = {
@@ -52,26 +86,35 @@ describe.skip('Header', () => {
 
   beforeEach(() => {
     useAuth.mockReturnValue(mockAuthContext);
+    usePortfolioContext.mockReturnValue(mockPortfolioContext);
+    // localStorage mock for initialSetupCompleted
+    Storage.prototype.getItem = vi.fn(() => 'true');
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('renders header with logo and title', () => {
     render(<Header />);
 
-    // ロゴやタイトルが表示されることを確認
-    const logo = screen.getByText(/Portfolio|ポートフォリオ/i);
-    expect(logo).toBeInTheDocument();
+    // アプリ名が表示されることを確認
+    expect(screen.getByText('PortfolioWise')).toBeInTheDocument();
   });
 
   it('renders language switcher', () => {
     render(<Header />);
 
-    expect(screen.getByTestId('language-switcher')).toBeInTheDocument();
+    // 複数のLanguageSwitcherが表示される（デスクトップ + モバイル）
+    const switchers = screen.getAllByTestId('language-switcher');
+    expect(switchers.length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders login button when user is not authenticated', () => {
     render(<Header />);
 
-    expect(screen.getByTestId('login-button')).toBeInTheDocument();
+    const loginButtons = screen.getAllByTestId('login-button');
+    expect(loginButtons.length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByTestId('user-profile')).not.toBeInTheDocument();
   });
 
@@ -80,7 +123,8 @@ describe.skip('Header', () => {
 
     render(<Header />);
 
-    expect(screen.getByTestId('user-profile')).toBeInTheDocument();
+    const userProfiles = screen.getAllByTestId('user-profile');
+    expect(userProfiles.length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByTestId('login-button')).not.toBeInTheDocument();
   });
 
@@ -93,42 +137,31 @@ describe.skip('Header', () => {
     render(<Header />);
 
     // ローディング中でもクラッシュしないことを確認
-    expect(screen.getByTestId('language-switcher')).toBeInTheDocument();
+    const switchers = screen.getAllByTestId('language-switcher');
+    expect(switchers.length).toBeGreaterThanOrEqual(1);
   });
 
   it('has proper navigation structure', () => {
     render(<Header />);
 
-    // ナビゲーション要素があることを確認
-    const nav = document.querySelector('nav, header, .header');
-    expect(nav).toBeInTheDocument();
+    // header要素があることを確認
+    const header = document.querySelector('header');
+    expect(header).toBeInTheDocument();
   });
 
   it('renders responsive design elements', () => {
     render(<Header />);
 
     // レスポンシブクラスが存在することを確認
-    const responsiveElements = document.querySelectorAll('.md\\:flex, .sm\\:hidden, .lg\\:block');
+    const responsiveElements = document.querySelectorAll('.hidden.sm\\:flex, .flex.sm\\:hidden');
     expect(responsiveElements.length).toBeGreaterThanOrEqual(0);
-  });
-
-  it('handles mobile menu toggle', () => {
-    render(<Header />);
-
-    // モバイルメニューボタンがあれば操作テスト
-    const menuButton = document.querySelector('[aria-label*="menu"], .mobile-menu-button, .hamburger');
-    if (menuButton) {
-      fireEvent.click(menuButton);
-      // クラッシュしないことを確認
-      expect(screen.getByTestId('language-switcher')).toBeInTheDocument();
-    }
   });
 
   it('has accessibility features', () => {
     render(<Header />);
 
     // アクセシビリティ属性があることを確認
-    const accessibleElements = document.querySelectorAll('[aria-label], [role], [tabindex]');
+    const accessibleElements = document.querySelectorAll('[aria-label], [role], [tabindex], [title]');
     expect(accessibleElements.length).toBeGreaterThanOrEqual(0);
   });
 
@@ -136,20 +169,22 @@ describe.skip('Header', () => {
     render(<Header />);
 
     // ヘッダーのスタイリングクラスが存在することを確認
-    const styledElements = document.querySelectorAll('.bg-white, .shadow, .border-b, .fixed, .sticky');
-    expect(styledElements.length).toBeGreaterThan(0);
+    const header = document.querySelector('header');
+    expect(header).toHaveClass('sticky');
   });
 
   it('handles auth state changes correctly', () => {
     const { rerender } = render(<Header />);
 
-    expect(screen.getByTestId('login-button')).toBeInTheDocument();
+    const loginButtons = screen.getAllByTestId('login-button');
+    expect(loginButtons.length).toBeGreaterThanOrEqual(1);
 
     // 認証状態を変更
     useAuth.mockReturnValue(authenticatedAuthContext);
     rerender(<Header />);
 
-    expect(screen.getByTestId('user-profile')).toBeInTheDocument();
+    const userProfiles = screen.getAllByTestId('user-profile');
+    expect(userProfiles.length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByTestId('login-button')).not.toBeInTheDocument();
   });
 
@@ -166,6 +201,23 @@ describe.skip('Header', () => {
     render(<Header />);
 
     // エッジケースでもクラッシュしないことを確認
-    expect(screen.getByTestId('language-switcher')).toBeInTheDocument();
+    const switchers = screen.getAllByTestId('language-switcher');
+    expect(switchers.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('shows simple header when no settings exist', () => {
+    usePortfolioContext.mockReturnValue({
+      ...mockPortfolioContext,
+      currentAssets: [],
+      targetPortfolio: [],
+      additionalBudget: { amount: 0, currency: 'JPY' }
+    });
+    // initialSetupCompleted is not set
+    Storage.prototype.getItem = vi.fn(() => null);
+
+    render(<Header />);
+
+    // シンプルなヘッダーが表示される（通貨切替ボタンなし）
+    expect(screen.getByText('PortfolioWise')).toBeInTheDocument();
   });
 });

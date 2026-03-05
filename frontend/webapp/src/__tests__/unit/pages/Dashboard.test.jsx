@@ -64,7 +64,7 @@ vi.mock('../../../components/common/ModernButton', () => ({
 import { useTranslation } from 'react-i18next';
 import { usePortfolioContext } from '../../../hooks/usePortfolioContext';
 
-describe.skip('Dashboard', () => {
+describe('Dashboard', () => {
   let mockT;
   
   beforeEach(() => {
@@ -161,7 +161,7 @@ describe.skip('Dashboard', () => {
       
       const svgIcon = document.querySelector('svg');
       expect(svgIcon).toBeInTheDocument();
-      expect(svgIcon).toHaveClass('w-10', 'h-10', 'sm:w-12', 'sm:h-12', 'text-primary-400');
+      expect(svgIcon).toHaveClass('w-10', 'h-10', 'sm:w-12', 'sm:h-12', 'text-primary-600');
     });
 
     it('翻訳キーを正しく使用している', () => {

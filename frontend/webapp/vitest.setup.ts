@@ -81,11 +81,11 @@ const sessionStorageMock = {
   thresholds: options?.threshold || [0],
 }));
 
-(global as any).MutationObserver = vi.fn().mockImplementation(() => ({
-  observe: vi.fn(),
-  disconnect: vi.fn(),
-  takeRecords: vi.fn(() => []),
-}));
+(global as any).MutationObserver = class {
+  observe = vi.fn();
+  disconnect = vi.fn();
+  takeRecords = vi.fn(() => []);
+};
 
 // Media Query モック
 (window as any).matchMedia = vi.fn().mockImplementation((query: string) => ({

@@ -23,7 +23,7 @@ const TestWrapper = ({ children }) => (
   </I18nextProvider>
 );
 
-describe.skip('MarketSelectionWizard', () => {
+describe('MarketSelectionWizard', () => {
   const mockOnMarketsChange = vi.fn();
 
   beforeEach(() => {
@@ -112,15 +112,17 @@ describe.skip('MarketSelectionWizard', () => {
   test('handles market deselection correctly', () => {
     render(
       <TestWrapper>
-        <MarketSelectionWizard 
-          selectedMarkets={['US']} 
+        <MarketSelectionWizard
+          selectedMarkets={['US']}
           onMarketsChange={mockOnMarketsChange}
         />
       </TestWrapper>
     );
 
     // 既に選択されている米国市場を再度クリックして選択解除
-    const usMarketButton = screen.getByText('米国市場').closest('button');
+    // selectedMarkets={['US']}の場合、米国市場は市場カードと選択サマリーの両方に表示される
+    const usMarketButtons = screen.getAllByText('米国市場');
+    const usMarketButton = usMarketButtons[0].closest('button');
     fireEvent.click(usMarketButton);
 
     expect(mockOnMarketsChange).toHaveBeenCalledWith([]);
@@ -179,29 +181,32 @@ describe.skip('MarketSelectionWizard', () => {
   test('displays selection summary when markets are selected', () => {
     render(
       <TestWrapper>
-        <MarketSelectionWizard 
-          selectedMarkets={['US', 'JAPAN']} 
+        <MarketSelectionWizard
+          selectedMarkets={['US', 'JAPAN']}
           onMarketsChange={mockOnMarketsChange}
         />
       </TestWrapper>
     );
 
     expect(screen.getByText('選択された市場:')).toBeInTheDocument();
-    expect(screen.getByText('米国市場')).toBeInTheDocument();
-    expect(screen.getByText('日本市場')).toBeInTheDocument();
+    // 米国市場・日本市場は市場カードと選択サマリーの両方に表示される
+    expect(screen.getAllByText('米国市場').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByText('日本市場').length).toBeGreaterThanOrEqual(2);
   });
 
   test('shows selected state for markets', () => {
     render(
       <TestWrapper>
-        <MarketSelectionWizard 
-          selectedMarkets={['US']} 
+        <MarketSelectionWizard
+          selectedMarkets={['US']}
           onMarketsChange={mockOnMarketsChange}
         />
       </TestWrapper>
     );
 
-    const usMarketButton = screen.getByText('米国市場').closest('button');
+    // selectedMarkets={['US']}の場合、米国市場は市場カードと選択サマリーの両方に表示される
+    const usMarketElements = screen.getAllByText('米国市場');
+    const usMarketButton = usMarketElements[0].closest('button');
     expect(usMarketButton).toHaveClass('scale-105');
   });
 
@@ -236,16 +241,13 @@ describe.skip('MarketSelectionWizard', () => {
   });
 
   test('renders in English when language is set to English', () => {
-    // i18nのモック言語を英語に設定
-    const englishI18n = {
-      ...i18n,
-      language: 'en'
-    };
+    // i18nの言語を英語に変更
+    i18n.changeLanguage('en');
 
     render(
-      <I18nextProvider i18n={englishI18n}>
-        <MarketSelectionWizard 
-          selectedMarkets={[]} 
+      <I18nextProvider i18n={i18n}>
+        <MarketSelectionWizard
+          selectedMarkets={[]}
           onMarketsChange={mockOnMarketsChange}
         />
       </I18nextProvider>
@@ -253,6 +255,9 @@ describe.skip('MarketSelectionWizard', () => {
 
     expect(screen.getByText('Which markets would you like to invest in?')).toBeInTheDocument();
     expect(screen.getByText('US Market')).toBeInTheDocument();
+
+    // 日本語に戻す
+    i18n.changeLanguage('ja');
   });
 
   test('INVESTMENT_MARKETS constant has correct structure', () => {

@@ -18,13 +18,48 @@ import {
 } from '../../../utils/apiUtils';
 import axios from 'axios';
 
+// vi.hoisted でモック変数を定義（vi.mock ファクトリ内からアクセス可能）
+const { mockAxiosInstance } = vi.hoisted(() => {
+  const mockAxiosInstance = {
+    get: vi.fn(),
+    post: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn(),
+    interceptors: {
+      request: { use: vi.fn() },
+      response: { use: vi.fn() }
+    },
+    defaults: {
+      withCredentials: true,
+      timeout: 10000,
+      headers: {}
+    }
+  };
+  return { mockAxiosInstance };
+});
+
 // Mock dependencies
-vi.mock('axios');
+// axios.create がモジュール読み込み時に呼ばれるため、ファクトリで mockAxiosInstance を返す
+vi.mock('axios', () => {
+  const createMock = vi.fn(() => mockAxiosInstance);
+  return {
+    default: {
+      create: createMock,
+      post: vi.fn(),
+      get: vi.fn(),
+      isAxiosError: vi.fn((e) => !!e?.response)
+    },
+    __esModule: true
+  };
+});
 vi.mock('../../../utils/envUtils', () => ({
   getApiEndpoint: vi.fn((endpoint) => `http://localhost:3000/${endpoint}`),
   isLocalDevelopment: vi.fn(() => true)
 }));
 vi.mock('../../../utils/csrfManager', () => ({
+  default: {
+    addTokenToRequest: vi.fn()
+  },
   addTokenToRequest: vi.fn()
 }));
 vi.mock('../../../utils/errorHandler', () => ({
@@ -44,38 +79,22 @@ vi.mock('../../../utils/fundUtils', () => ({
 }));
 
 const mockedAxios = axios;
-// Ensure axios.create is a mock function
-mockedAxios.create = vi.fn();
 
-describe.skip('apiUtils', () => {
-  const mockAxiosInstance = {
-    get: vi.fn(),
-    post: vi.fn(),
-    put: vi.fn(),
-    delete: vi.fn(),
-    interceptors: {
-      request: { use: vi.fn() },
-      response: { use: vi.fn() }
-    },
-    defaults: {
-      withCredentials: true,
-      timeout: 10000,
-      headers: {}
-    }
-  };
-
+describe('apiUtils', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     clearAuthToken();
     resetAllCircuitBreakers();
+    // clearAllMocksでaxios.createのモック実装がクリアされるため再設定
     mockedAxios.create.mockReturnValue(mockAxiosInstance);
-    
-    // Reset mock instance
-    Object.keys(mockAxiosInstance).forEach(key => {
-      if (typeof mockAxiosInstance[key].mockClear === 'function') {
-        mockAxiosInstance[key].mockClear();
-      }
-    });
+
+    // Reset mock instance methods
+    mockAxiosInstance.get.mockReset();
+    mockAxiosInstance.post.mockReset();
+    mockAxiosInstance.put.mockReset();
+    mockAxiosInstance.delete.mockReset();
+    mockAxiosInstance.interceptors.request.use.mockReset();
+    mockAxiosInstance.interceptors.response.use.mockReset();
   });
 
   describe('Constants', () => {
@@ -491,7 +510,7 @@ describe.skip('apiUtils', () => {
 
     it('generates fallback for mutual fund', () => {
       const result = generateFallbackData('12345678');
-      
+
       expect(result).toEqual({
         ticker: '12345678',
         price: 10000,
@@ -501,7 +520,7 @@ describe.skip('apiUtils', () => {
         source: 'Fallback',
         isStock: false,
         isMutualFund: true,
-        fundType: 'STOCK'
+        fundType: 'MUTUAL_FUND' // 8桁ティッカーはisMutualFund判定でMUTUAL_FUNDが直接設定される
       });
     });
 

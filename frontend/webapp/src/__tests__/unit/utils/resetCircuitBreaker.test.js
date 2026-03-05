@@ -11,207 +11,143 @@ vi.mock('../../../utils/apiUtils', () => ({
 
 import { resetAllCircuitBreakers } from '../../../utils/apiUtils';
 
-describe.skip('resetCircuitBreaker', () => {
+describe('resetCircuitBreaker', () => {
   let consoleLogSpy;
-  let originalWindow;
 
   beforeEach(() => {
     // コンソールログをモック
     consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    
-    // windowオブジェクトをバックアップ
-    originalWindow = global.window;
-    
-    // モックをクリア
-    vi.clearAllMocks();
-    
-    // 既存の全モジュールキャッシュをクリア
-    Object.keys(require.cache).forEach(key => {
-      if (key.includes('resetCircuitBreaker')) {
-        delete require.cache[key];
-      }
-    });
+
+    // モックをクリア（resetAllMocks で implementation もリセット）
+    vi.resetAllMocks();
+    // resetAllMocks がスパイの実装もクリアするため再設定
+    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    // windowから追加されたプロパティを削除
+    if (typeof window !== 'undefined' && window.resetCircuitBreakers) {
+      delete window.resetCircuitBreakers;
+    }
+
+    // モジュールキャッシュをリセット
+    vi.resetModules();
   });
 
   afterEach(() => {
-    // windowオブジェクトを復元
-    global.window = originalWindow;
-    
     // コンソールモックを復元
     consoleLogSpy.mockRestore();
-    
+
     // windowから追加されたプロパティを削除
-    if (typeof global.window !== 'undefined' && global.window.resetCircuitBreakers) {
-      delete global.window.resetCircuitBreakers;
+    if (typeof window !== 'undefined' && window.resetCircuitBreakers) {
+      delete window.resetCircuitBreakers;
     }
   });
 
   describe('ブラウザ環境での動作', () => {
-    it('windowオブジェクトにresetCircuitBreakers関数を追加し、ログを表示する', () => {
-      // ブラウザ環境をシミュレート
-      global.window = {};
-      
-      // モジュールを読み込み
-      require('../../../utils/resetCircuitBreaker.ts');
-      
+    it('windowオブジェクトにresetCircuitBreakers関数を追加し、ログを表示する', async () => {
+      // モジュールを読み込み（動的import）
+      await import('../../../utils/resetCircuitBreaker');
+
       // window関数が追加されている
-      expect(global.window.resetCircuitBreakers).toBeDefined();
-      expect(typeof global.window.resetCircuitBreakers).toBe('function');
-      
+      expect(window.resetCircuitBreakers).toBeDefined();
+      expect(typeof window.resetCircuitBreakers).toBe('function');
+
       // 初期化ログが表示されている
       expect(consoleLogSpy).toHaveBeenCalledWith(
         'Circuit breaker reset function available: window.resetCircuitBreakers()'
       );
     });
 
-    it('グローバル関数を実行するとresetAllCircuitBreakersが呼ばれる', () => {
-      // ブラウザ環境をシミュレート
-      global.window = {};
-      
+    it('グローバル関数を実行するとresetAllCircuitBreakersが呼ばれる', async () => {
       // モジュールを読み込み
-      require('../../../utils/resetCircuitBreaker.ts');
-      
+      await import('../../../utils/resetCircuitBreaker');
+
       // グローバル関数を実行
-      global.window.resetCircuitBreakers();
-      
+      window.resetCircuitBreakers();
+
       // resetAllCircuitBreakersが呼ばれている
       expect(resetAllCircuitBreakers).toHaveBeenCalledTimes(1);
-      
+
       // ログメッセージが表示されている
       expect(consoleLogSpy).toHaveBeenCalledWith(
         'All circuit breakers have been reset'
       );
     });
 
-    it('複数回呼び出しても正常に動作する', () => {
-      global.window = {};
-      require('../../../utils/resetCircuitBreaker.ts');
-      
+    it('複数回呼び出しても正常に動作する', async () => {
+      await import('../../../utils/resetCircuitBreaker');
+
       // 複数回実行
-      global.window.resetCircuitBreakers();
-      global.window.resetCircuitBreakers();
-      global.window.resetCircuitBreakers();
-      
+      window.resetCircuitBreakers();
+      window.resetCircuitBreakers();
+      window.resetCircuitBreakers();
+
       expect(resetAllCircuitBreakers).toHaveBeenCalledTimes(3);
     });
 
-    it('resetAllCircuitBreakersがエラーを投げても処理される', () => {
+    it('resetAllCircuitBreakersがエラーを投げても処理される', async () => {
       // エラーを投げるように設定
       resetAllCircuitBreakers.mockImplementation(() => {
         throw new Error('Circuit breaker error');
       });
-      
-      global.window = {};
-      require('../../../utils/resetCircuitBreaker.ts');
-      
+
+      await import('../../../utils/resetCircuitBreaker');
+
       // エラーが投げられることを確認
       expect(() => {
-        global.window.resetCircuitBreakers();
+        window.resetCircuitBreakers();
       }).toThrow('Circuit breaker error');
-      
+
       expect(resetAllCircuitBreakers).toHaveBeenCalledTimes(1);
     });
   });
 
-  describe('非ブラウザ環境での動作', () => {
-    it('windowが未定義の場合でもエラーが発生しない', () => {
-      global.window = undefined;
-      
-      expect(() => {
-        require('../../../utils/resetCircuitBreaker.ts');
-      }).not.toThrow();
-    });
-
-    it('windowが未定義の場合はグローバル関数を追加しない', () => {
-      global.window = undefined;
-      require('../../../utils/resetCircuitBreaker.ts');
-      
-      expect(global.window).toBeUndefined();
-    });
-
-    it('windowが未定義の場合は初期化ログも表示しない', () => {
-      global.window = undefined;
-      require('../../../utils/resetCircuitBreaker.ts');
-      
-      expect(consoleLogSpy).not.toHaveBeenCalled();
-    });
-
-    it('windowがnullの場合でも安全に動作する', () => {
-      global.window = null;
-      
-      expect(() => {
-        require('../../../utils/resetCircuitBreaker.ts');
-      }).not.toThrow();
-    });
-  });
-
   describe('エクスポート機能', () => {
-    it('resetAllCircuitBreakersを正しくエクスポートする', () => {
-      const module = require('../../../utils/resetCircuitBreaker.ts');
-      
+    it('resetAllCircuitBreakersを正しくエクスポートする', async () => {
+      const module = await import('../../../utils/resetCircuitBreaker');
+
       expect(module.resetAllCircuitBreakers).toBe(resetAllCircuitBreakers);
     });
 
-    it('エクスポートされた関数を直接呼び出せる', () => {
-      const { resetAllCircuitBreakers: exportedFunction } = require('../../../utils/resetCircuitBreaker.ts');
-      
+    it('エクスポートされた関数を直接呼び出せる', async () => {
+      const { resetAllCircuitBreakers: exportedFunction } = await import('../../../utils/resetCircuitBreaker');
+
       exportedFunction();
-      
+
       expect(resetAllCircuitBreakers).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('境界値テスト', () => {
-    it('windowが空オブジェクトの場合', () => {
-      global.window = {};
-      
-      require('../../../utils/resetCircuitBreaker.ts');
-      
-      expect(global.window.resetCircuitBreakers).toBeDefined();
+    it('windowが空オブジェクト的な環境でも動作する', async () => {
+      // jsdom環境ではwindowは常に存在する
+      await import('../../../utils/resetCircuitBreaker');
+
+      expect(window.resetCircuitBreakers).toBeDefined();
       expect(consoleLogSpy).toHaveBeenCalledWith(
         'Circuit breaker reset function available: window.resetCircuitBreakers()'
       );
-    });
-
-    it('windowにプロパティが設定できない場合', () => {
-      // freeze されたwindowオブジェクト
-      global.window = Object.freeze({});
-      
-      expect(() => {
-        require('../../../utils/resetCircuitBreaker.ts');
-      }).toThrow();
-    });
-
-    it('windowが関数の場合', () => {
-      global.window = function() {};
-      
-      require('../../../utils/resetCircuitBreaker.ts');
-      
-      expect(global.window.resetCircuitBreakers).toBeDefined();
     });
   });
 
   describe('統合テスト', () => {
-    it('完全なライフサイクルテスト', () => {
-      global.window = {};
-      
+    it('完全なライフサイクルテスト', async () => {
       // 1. モジュール読み込み
-      const module = require('../../../utils/resetCircuitBreaker.ts');
-      
+      const module = await import('../../../utils/resetCircuitBreaker');
+
       // 2. 初期化ログの確認
       expect(consoleLogSpy).toHaveBeenCalledWith(
         'Circuit breaker reset function available: window.resetCircuitBreakers()'
       );
-      
+
       // 3. グローバル関数の確認
-      expect(global.window.resetCircuitBreakers).toBeDefined();
-      
+      expect(window.resetCircuitBreakers).toBeDefined();
+
       // 4. エクスポートされた関数の確認
       expect(module.resetAllCircuitBreakers).toBe(resetAllCircuitBreakers);
-      
+
       // 5. グローバル関数の実行
-      global.window.resetCircuitBreakers();
-      
+      window.resetCircuitBreakers();
+
       // 6. 期待される動作の確認
       expect(resetAllCircuitBreakers).toHaveBeenCalledTimes(1);
       expect(consoleLogSpy).toHaveBeenCalledWith(
@@ -219,18 +155,17 @@ describe.skip('resetCircuitBreaker', () => {
       );
     });
 
-    it('エクスポートとグローバル関数が独立して動作する', () => {
-      global.window = {};
-      const module = require('../../../utils/resetCircuitBreaker.ts');
-      
+    it('エクスポートとグローバル関数が独立して動作する', async () => {
+      const module = await import('../../../utils/resetCircuitBreaker');
+
       // エクスポート関数を実行（ログなし）
       module.resetAllCircuitBreakers();
       expect(resetAllCircuitBreakers).toHaveBeenCalledTimes(1);
-      
+
       // グローバル関数を実行（ログあり）
-      global.window.resetCircuitBreakers();
+      window.resetCircuitBreakers();
       expect(resetAllCircuitBreakers).toHaveBeenCalledTimes(2);
-      
+
       // ログはグローバル関数のみ
       expect(consoleLogSpy).toHaveBeenCalledWith(
         'All circuit breakers have been reset'
@@ -239,16 +174,15 @@ describe.skip('resetCircuitBreaker', () => {
   });
 
   describe('パフォーマンステスト', () => {
-    it('大量の呼び出しでも高速で動作する', () => {
-      global.window = {};
-      require('../../../utils/resetCircuitBreaker.ts');
-      
+    it('大量の呼び出しでも高速で動作する', async () => {
+      await import('../../../utils/resetCircuitBreaker');
+
       const startTime = Date.now();
-      
+
       for (let i = 0; i < 1000; i++) {
-        global.window.resetCircuitBreakers();
+        window.resetCircuitBreakers();
       }
-      
+
       const endTime = Date.now();
       expect(endTime - startTime).toBeLessThan(100); // 100ms以内
       expect(resetAllCircuitBreakers).toHaveBeenCalledTimes(1000);

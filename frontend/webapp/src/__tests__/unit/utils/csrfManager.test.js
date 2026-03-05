@@ -5,7 +5,14 @@ import { vi } from "vitest";
  */
 
 // axiosのモック
-vi.mock('axios');
+vi.mock('axios', () => ({
+  default: {
+    post: vi.fn(),
+    get: vi.fn()
+  },
+  __esModule: true
+}));
+
 import axios from 'axios';
 const mockedAxios = axios;
 
@@ -20,32 +27,29 @@ Object.defineProperty(window, 'localStorage', {
   value: localStorageMock
 });
 
-describe.skip('csrfManager', () => {
-  let csrfManager;
-  let originalEnv;
+// csrfManager は default export の singleton インスタンス
+import csrfManager from '../../../utils/csrfManager';
+
+describe('csrfManager', () => {
   let consoleErrorSpy;
   let consoleWarnSpy;
   let consoleDebugSpy;
 
   beforeEach(() => {
-    // 環境変数をバックアップ
-    originalEnv = import.meta.env.VITE_API_BASE_URL;
-    
-    // コンソールメソッドをモック
+    // モックをクリア
+    vi.resetAllMocks();
+
+    // コンソールメソッドをモック（resetAllMocks の後）
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     consoleDebugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
-    
-    // モックをクリア
-    vi.clearAllMocks();
-    
-    // csrfManagerをリセット
-    vi.resetModules();
-    csrfManager = require('../../../utils/csrfManager.ts').default;
-    
+
+    // csrfManagerの状態をクリア
+    csrfManager.clearToken();
+
     // localStorageのデフォルトモック
     localStorageMock.getItem.mockReturnValue('test-session-id');
-    
+
     // axiosのデフォルトモック（使用されないが念のため）
     mockedAxios.post.mockResolvedValue({
       data: {
@@ -56,14 +60,11 @@ describe.skip('csrfManager', () => {
   });
 
   afterEach(() => {
-    // 環境変数を復元
-    import.meta.env.VITE_API_BASE_URL = originalEnv;
-    
     // コンソールモックを復元
     consoleErrorSpy.mockRestore();
     consoleWarnSpy.mockRestore();
     consoleDebugSpy.mockRestore();
-    
+
     // csrfManagerの状態をクリア
     csrfManager.clearToken();
   });
@@ -71,7 +72,7 @@ describe.skip('csrfManager', () => {
   describe('getToken', () => {
     it('セッションベース認証でダミートークンを返す', async () => {
       const token = await csrfManager.getToken();
-      
+
       expect(token).toBe('dummy-csrf-token');
       // セッションベース認証では実際のAPI呼び出しは行わない
       expect(mockedAxios.post).not.toHaveBeenCalled();
@@ -80,7 +81,7 @@ describe.skip('csrfManager', () => {
     it('キャッシュされたダミートークンを返す', async () => {
       const token1 = await csrfManager.getToken();
       const token2 = await csrfManager.getToken();
-      
+
       expect(token1).toBe('dummy-csrf-token');
       expect(token2).toBe('dummy-csrf-token');
       expect(mockedAxios.post).not.toHaveBeenCalled();
@@ -92,9 +93,9 @@ describe.skip('csrfManager', () => {
         csrfManager.getToken(),
         csrfManager.getToken()
       ];
-      
+
       const tokens = await Promise.all(promises);
-      
+
       expect(tokens).toEqual(['dummy-csrf-token', 'dummy-csrf-token', 'dummy-csrf-token']);
       expect(mockedAxios.post).not.toHaveBeenCalled();
     });
@@ -102,14 +103,14 @@ describe.skip('csrfManager', () => {
     it('環境変数に関係なくダミートークンを返す', async () => {
       import.meta.env.VITE_API_BASE_URL = 'https://api.example.com';
       const token = await csrfManager.getToken();
-      
+
       expect(token).toBe('dummy-csrf-token');
       expect(mockedAxios.post).not.toHaveBeenCalled();
     });
 
     it('セッションIDがなくてもダミートークンを返す', async () => {
       localStorageMock.getItem.mockReturnValue(null);
-      
+
       const token = await csrfManager.getToken();
       expect(token).toBe('dummy-csrf-token');
       expect(consoleErrorSpy).not.toHaveBeenCalled();
@@ -119,7 +120,7 @@ describe.skip('csrfManager', () => {
   describe('clearToken', () => {
     it('トークンとキャッシュをクリアする', () => {
       csrfManager.clearToken();
-      
+
       // プライベートプロパティのテストは困難だが、エラーが出ないことを確認
       expect(() => csrfManager.clearToken()).not.toThrow();
     });
@@ -129,7 +130,7 @@ describe.skip('csrfManager', () => {
     it('GETリクエストには何も追加しない', async () => {
       const config = { method: 'get', headers: {} };
       const result = await csrfManager.addTokenToRequest(config);
-      
+
       expect(result).toEqual(config);
       expect(result.headers['X-CSRF-Token']).toBeUndefined();
     });
@@ -137,42 +138,42 @@ describe.skip('csrfManager', () => {
     it('POSTリクエストにCSRFトークンを追加する', async () => {
       const config = { method: 'post', headers: {} };
       const result = await csrfManager.addTokenToRequest(config);
-      
+
       expect(result.headers['X-CSRF-Token']).toBe('dummy-csrf-token');
     });
 
     it('PUTリクエストにCSRFトークンを追加する', async () => {
       const config = { method: 'put', headers: {} };
       const result = await csrfManager.addTokenToRequest(config);
-      
+
       expect(result.headers['X-CSRF-Token']).toBe('dummy-csrf-token');
     });
 
     it('DELETEリクエストにCSRFトークンを追加する', async () => {
       const config = { method: 'delete', headers: {} };
       const result = await csrfManager.addTokenToRequest(config);
-      
+
       expect(result.headers['X-CSRF-Token']).toBe('dummy-csrf-token');
     });
 
     it('既存のヘッダーがない場合はヘッダーオブジェクトを作成する', async () => {
       const config = { method: 'post' };
       const result = await csrfManager.addTokenToRequest(config);
-      
+
       expect(result.headers).toBeDefined();
       expect(result.headers['X-CSRF-Token']).toBe('dummy-csrf-token');
     });
 
     it('既存のヘッダーを保持する', async () => {
-      const config = { 
-        method: 'post', 
-        headers: { 
+      const config = {
+        method: 'post',
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer token'
         }
       };
       const result = await csrfManager.addTokenToRequest(config);
-      
+
       expect(result.headers['Content-Type']).toBe('application/json');
       expect(result.headers['Authorization']).toBe('Bearer token');
       expect(result.headers['X-CSRF-Token']).toBe('dummy-csrf-token');
@@ -181,20 +182,20 @@ describe.skip('csrfManager', () => {
     it('開発環境でデバッグメッセージを出力する（トークン取得エラー時）', async () => {
       const originalEnv = process.env.NODE_ENV;
       process.env.NODE_ENV = 'development';
-      
+
       try {
-        // トークン取得を強制的に失敗させる
-        const originalRefreshToken = csrfManager.refreshToken;
-        csrfManager.refreshToken = vi.fn().mockRejectedValue(new Error('Test error'));
-        
+        // getToken を一時的にエラーを投げるようにする
+        const originalGetToken = csrfManager.getToken.bind(csrfManager);
+        csrfManager.getToken = vi.fn().mockRejectedValue(new Error('Test error'));
+
         const config = { method: 'post', headers: {} };
         const result = await csrfManager.addTokenToRequest(config);
-        
+
         expect(result).toEqual(config);
         expect(consoleDebugSpy).toHaveBeenCalledWith('CSRF token not required for this request');
-        
+
         // 元の関数を復元
-        csrfManager.refreshToken = originalRefreshToken;
+        csrfManager.getToken = originalGetToken;
       } finally {
         process.env.NODE_ENV = originalEnv;
       }

@@ -4,6 +4,11 @@ import { vi } from "vitest";
  * Web Crypto APIを使用した現代的な暗号化サービスの100%カバレッジテスト
  */
 
+// TextEncoder/TextDecoder polyfill for jsdom
+const { TextEncoder: TE, TextDecoder: TD } = require('util');
+globalThis.TextEncoder = globalThis.TextEncoder || TE;
+globalThis.TextDecoder = globalThis.TextDecoder || TD;
+
 import { ModernEncryptionService } from '../../../services/portfolio/ModernEncryptionService';
 
 // Web Crypto API のモック設定
@@ -30,11 +35,24 @@ Object.defineProperty(global, 'crypto', {
   configurable: true
 });
 
-describe.skip('ModernEncryptionService - Enhanced Coverage', () => {
+describe('ModernEncryptionService - Enhanced Coverage', () => {
+  let store;
+
   beforeEach(() => {
     // モックをクリア
     vi.clearAllMocks();
-    localStorage.clear();
+    // 実際に動作するlocalStorageモック
+    store = {};
+    Object.defineProperty(global, 'localStorage', {
+      value: {
+        getItem: vi.fn((key) => store[key] ?? null),
+        setItem: vi.fn((key, value) => { store[key] = String(value); }),
+        removeItem: vi.fn((key) => { delete store[key]; }),
+        clear: vi.fn(() => { store = {}; }),
+      },
+      writable: true,
+      configurable: true,
+    });
     
     // デフォルトのモック実装を再設定
     mockCrypto.getRandomValues.mockImplementation((array) => {
@@ -207,14 +225,11 @@ describe.skip('ModernEncryptionService - Enhanced Coverage', () => {
       expect(deriveKeySpy).toHaveBeenCalledWith(password);
       
       // crypto.subtle.encryptが正しく呼ばれることを確認
-      expect(mockCrypto.subtle.encrypt).toHaveBeenCalledWith(
-        {
-          name: 'AES-GCM',
-          iv: mockIV
-        },
-        {},
-        expect.any(Uint8Array) // JSON文字列をエンコードしたもの
-      );
+      expect(mockCrypto.subtle.encrypt).toHaveBeenCalledTimes(1);
+      const encryptArgs = mockCrypto.subtle.encrypt.mock.calls[0];
+      expect(encryptArgs[0]).toEqual({ name: 'AES-GCM', iv: mockIV });
+      // plaintext引数はTextEncoder.encodeの結果（Uint8Array）
+      expect(encryptArgs[2].constructor.name).toBe('Uint8Array');
       
       // 結果がBase64文字列であることを確認
       expect(typeof result).toBe('string');

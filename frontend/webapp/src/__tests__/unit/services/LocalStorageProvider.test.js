@@ -9,8 +9,9 @@ import { EncryptionService } from '../../../services/portfolio/EncryptionService
 // EncryptionServiceをモック
 vi.mock('../../../services/portfolio/EncryptionService');
 
-describe.skip('LocalStorageProvider', () => {
+describe('LocalStorageProvider', () => {
   let provider;
+  let store;
   const mockData = {
     name: 'テストポートフォリオ',
     assets: [
@@ -20,9 +21,27 @@ describe.skip('LocalStorageProvider', () => {
   };
 
   beforeEach(() => {
-    localStorage.clear();
+    // 実際にデータを保存できるlocalStorageモック
+    store = {};
+    const localStorageMock = {
+      getItem: vi.fn((key) => store[key] ?? null),
+      setItem: vi.fn((key, value) => { store[key] = String(value); }),
+      removeItem: vi.fn((key) => { delete store[key]; }),
+      clear: vi.fn(() => { store = {}; }),
+    };
+    Object.defineProperty(global, 'localStorage', {
+      value: localStorageMock,
+      writable: true,
+      configurable: true,
+    });
+
     EncryptionService.encrypt.mockClear();
     EncryptionService.decrypt.mockClear();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   describe('暗号化なし', () => {
@@ -32,14 +51,14 @@ describe.skip('LocalStorageProvider', () => {
 
     it('データを保存できる', async () => {
       await provider.save('test-key', mockData);
-      
+
       const stored = localStorage.getItem('test-key');
       expect(stored).toBe(JSON.stringify(mockData));
     });
 
     it('データを読み込める', async () => {
       localStorage.setItem('test-key', JSON.stringify(mockData));
-      
+
       const loaded = await provider.load('test-key');
       expect(loaded).toEqual(mockData);
     });
@@ -51,16 +70,16 @@ describe.skip('LocalStorageProvider', () => {
 
     it('データを削除できる', async () => {
       localStorage.setItem('test-key', JSON.stringify(mockData));
-      
+
       await provider.clear('test-key');
-      
+
       const stored = localStorage.getItem('test-key');
       expect(stored).toBeNull();
     });
 
     it('不正なJSONデータを読み込む際はエラーを投げる', async () => {
       localStorage.setItem('test-key', 'invalid-json');
-      
+
       await expect(provider.load('test-key')).rejects.toThrow('Failed to load data from LocalStorage');
     });
   });
@@ -69,7 +88,7 @@ describe.skip('LocalStorageProvider', () => {
     beforeEach(() => {
       provider = new LocalStorageProvider(true);
       provider.setPassword('test-password');
-      
+
       // EncryptionServiceのモック設定
       EncryptionService.encrypt.mockReturnValue('encrypted-data');
       EncryptionService.decrypt.mockReturnValue(mockData);
@@ -77,18 +96,18 @@ describe.skip('LocalStorageProvider', () => {
 
     it('データを暗号化して保存する', async () => {
       await provider.save('test-key', mockData);
-      
+
       expect(EncryptionService.encrypt).toHaveBeenCalledWith(mockData, 'test-password');
-      
+
       const stored = localStorage.getItem('test-key');
       expect(stored).toBe('encrypted-data');
     });
 
     it('暗号化されたデータを復号化して読み込む', async () => {
       localStorage.setItem('test-key', 'encrypted-data');
-      
+
       const loaded = await provider.load('test-key');
-      
+
       expect(EncryptionService.decrypt).toHaveBeenCalledWith('encrypted-data', 'test-password');
       expect(loaded).toEqual(mockData);
     });
@@ -98,17 +117,17 @@ describe.skip('LocalStorageProvider', () => {
       EncryptionService.decrypt.mockImplementation(() => {
         throw new Error('データの復号化に失敗しました');
       });
-      
+
       await expect(provider.load('test-key')).rejects.toThrow('データの復号化に失敗しました');
     });
 
     it('パスワードが設定されていない場合は暗号化しない', async () => {
       provider.setPassword(null);
-      
+
       await provider.save('test-key', mockData);
-      
+
       expect(EncryptionService.encrypt).not.toHaveBeenCalled();
-      
+
       const stored = localStorage.getItem('test-key');
       expect(stored).toBe(JSON.stringify(mockData));
     });
@@ -140,7 +159,7 @@ describe.skip('LocalStorageProvider', () => {
       expect(localStorage.getItem('portfolio_password_hash')).toBeNull();
       expect(localStorage.getItem('exchangeRate_JPY')).toBeNull();
       expect(localStorage.getItem('exchangeRate_USD')).toBeNull();
-      
+
       // ポートフォリオに関係ないキーは残る
       expect(localStorage.getItem('other_key')).not.toBeNull();
     });
@@ -153,25 +172,19 @@ describe.skip('LocalStorageProvider', () => {
 
     it('保存エラー時は適切なエラーメッセージを返す', async () => {
       // localStorage.setItemでエラーが発生する状況をシミュレート
-      const originalSetItem = Storage.prototype.setItem;
-      Storage.prototype.setItem = vi.fn(() => {
+      localStorage.setItem = vi.fn(() => {
         throw new Error('Storage quota exceeded');
       });
 
       await expect(provider.save('test-key', mockData)).rejects.toThrow('Failed to save data to LocalStorage: Storage quota exceeded');
-
-      Storage.prototype.setItem = originalSetItem;
     });
 
     it('削除エラー時は適切なエラーメッセージを返す', async () => {
-      const originalRemoveItem = Storage.prototype.removeItem;
-      Storage.prototype.removeItem = vi.fn(() => {
+      localStorage.removeItem = vi.fn(() => {
         throw new Error('Access denied');
       });
 
       await expect(provider.clear('test-key')).rejects.toThrow('Failed to clear data from LocalStorage: Access denied');
-
-      Storage.prototype.removeItem = originalRemoveItem;
     });
   });
 
@@ -179,7 +192,7 @@ describe.skip('LocalStorageProvider', () => {
     it('パスワードを設定できる', () => {
       provider = new LocalStorageProvider(true);
       provider.setPassword('new-password');
-      
+
       expect(provider.password).toBe('new-password');
     });
   });
@@ -194,7 +207,7 @@ describe.skip('LocalStorageProvider', () => {
     it('encryptionEnabledを明示的に設定できる', () => {
       const enabledProvider = new LocalStorageProvider(true);
       expect(enabledProvider.encryptionEnabled).toBe(true);
-      
+
       const disabledProvider = new LocalStorageProvider(false);
       expect(disabledProvider.encryptionEnabled).toBe(false);
     });

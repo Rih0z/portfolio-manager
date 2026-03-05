@@ -1,21 +1,28 @@
 import { vi } from "vitest";
 /**
- * App.jsx のユニットテスト
+ * App.tsx のユニットテスト
  * アプリケーションのルートコンポーネントのテスト
  */
 
 import React from 'react';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import App from '../../../App';
-import { BrowserRouter } from 'react-router-dom';
+
+// vi.hoisted で mock 関数を作成（vi.mockファクトリ内で参照可能）
+const { mockInitializeApiConfig, mockGetGoogleClientId } = vi.hoisted(() => ({
+  mockInitializeApiConfig: vi.fn(),
+  mockGetGoogleClientId: vi.fn()
+}));
 
 // 必要なモジュールをモック
 vi.mock('react-router-dom', () => ({
-  ...vi.importActual('react-router-dom'),
   BrowserRouter: ({ children }) => <div data-testid="router">{children}</div>,
   Routes: ({ children }) => <div data-testid="routes">{children}</div>,
-  Route: ({ element }) => <div data-testid="route">{element}</div>
+  Route: ({ element }) => <div data-testid="route">{element}</div>,
+  NavLink: ({ children, to, className }) => {
+    const cls = typeof className === 'function' ? className({ isActive: false }) : className;
+    return <a href={to} className={cls}>{typeof children === 'function' ? children({ isActive: false }) : children}</a>;
+  }
 }));
 
 vi.mock('@react-oauth/google', () => ({
@@ -26,33 +33,72 @@ vi.mock('@react-oauth/google', () => ({
   )
 }));
 
+// Zustand storesのモック
 vi.mock('../../../stores/authStore', () => ({
-  useAuthStore: vi.fn(() => ({
-    setPortfolioContextRef: vi.fn()
-  }))
+  useAuthStore: vi.fn((selector) => {
+    const state = {
+      initializeAuth: vi.fn(),
+      setupSessionInterval: vi.fn(() => () => {}),
+      setupVisibilityHandler: vi.fn(() => () => {}),
+      isAuthenticated: false
+    };
+    return typeof selector === 'function' ? selector(state) : state;
+  })
 }));
 
 vi.mock('../../../stores/portfolioStore', () => ({
-  usePortfolioStore: vi.fn(() => ({
-    portfolioData: {}
-  }))
+  usePortfolioStore: vi.fn((selector) => {
+    const state = {
+      initializeData: vi.fn(),
+      updateExchangeRate: vi.fn(),
+      baseCurrency: 'JPY',
+      initialized: false
+    };
+    return typeof selector === 'function' ? selector(state) : state;
+  })
 }));
 
+vi.mock('../../../stores/uiStore', () => ({
+  useUIStore: vi.fn((selector) => {
+    const state = {
+      notifications: [],
+      removeNotification: vi.fn()
+    };
+    return typeof selector === 'function' ? selector(state) : state;
+  })
+}));
+
+// hooks のモック
 vi.mock('../../../hooks/useAuth', () => ({
   useAuth: vi.fn(() => ({
-    setPortfolioContextRef: vi.fn()
+    isAuthenticated: false,
+    loading: false,
+    user: null
   }))
 }));
 
 vi.mock('../../../hooks/usePortfolioContext', () => ({
   usePortfolioContext: vi.fn(() => ({
-    portfolioData: {}
+    currentAssets: [{ ticker: 'AAPL' }],
+    targetPortfolio: [{ ticker: 'AAPL', targetPercentage: 100 }],
+    additionalBudget: { amount: 10000, currency: 'JPY' },
+    baseCurrency: 'JPY',
+    toggleCurrency: vi.fn(),
+    refreshMarketPrices: vi.fn(),
+    lastUpdated: null,
+    isLoading: false,
+    portfolio: []
   }))
 }));
 
 vi.mock('../../../utils/envUtils', () => ({
-  initializeApiConfig: vi.fn(),
-  getGoogleClientId: vi.fn()
+  initializeApiConfig: mockInitializeApiConfig,
+  getGoogleClientId: mockGetGoogleClientId
+}));
+
+// QueryProviderのモック
+vi.mock('../../../providers/QueryProvider', () => ({
+  QueryProvider: ({ children }) => <div data-testid="query-provider">{children}</div>
 }));
 
 // ページコンポーネントをモック
@@ -114,26 +160,34 @@ vi.mock('../../../components/common/SettingsChecker', () => ({
 // i18nモック
 vi.mock('../../../i18n', () => ({}));
 
-import { initializeApiConfig, getGoogleClientId } from '../../../utils/envUtils';
-import { useAuth } from '../../../hooks/useAuth';
-import { usePortfolioContext } from '../../../hooks/usePortfolioContext';
+import App from '../../../App';
 
-describe.skip('App', () => {
+// Promiseを全てフラッシュするヘルパー
+const flushPromises = () => new Promise(resolve => setTimeout(resolve, 0));
+
+// Appをレンダリングして初期化完了を待つヘルパー
+const renderAndWaitForInit = async () => {
+  let result;
+  await act(async () => {
+    result = render(<App />);
+    await flushPromises();
+  });
+  return result;
+};
+
+describe('App', () => {
   let consoleErrorSpy;
 
   beforeEach(() => {
     vi.clearAllMocks();
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    
-    // デフォルトのモック値を設定
-    initializeApiConfig.mockResolvedValue();
-    getGoogleClientId.mockResolvedValue('test-client-id');
-    useAuth.mockReturnValue({
-      setPortfolioContextRef: vi.fn()
-    });
-    usePortfolioContext.mockReturnValue({
-      portfolioData: {}
-    });
+
+    // デフォルトのモック値を設定（即座に解決するPromise）
+    mockInitializeApiConfig.mockResolvedValue(undefined);
+    mockGetGoogleClientId.mockResolvedValue('test-client-id');
+
+    // localStorage mock
+    Storage.prototype.getItem = vi.fn(() => 'true');
   });
 
   afterEach(() => {
@@ -141,139 +195,51 @@ describe.skip('App', () => {
   });
 
   describe('アプリケーション初期化', () => {
-    it('ロード中の状態を表示する', async () => {
-      // API初期化を遅延させる
-      initializeApiConfig.mockImplementation(() => new Promise(() => {}));
-      
+    it('ロード中の状態を表示する', () => {
+      // API初期化を遅延させる（永遠に解決しないPromise）
+      mockInitializeApiConfig.mockImplementation(() => new Promise(() => {}));
+
       render(<App />);
-      
+
       expect(screen.getByText('PortfolioWise を起動しています...')).toBeInTheDocument();
-      
+
       // SVGアイコンの存在を確認
       const svgIcon = document.querySelector('svg');
       expect(svgIcon).toBeInTheDocument();
     });
 
     it('初期化完了後にアプリケーションを表示する', async () => {
-      initializeApiConfig.mockResolvedValue();
-      getGoogleClientId.mockResolvedValue('test-client-id');
-      
-      render(<App />);
-      
-      await waitFor(() => {
-        expect(screen.getByTestId('google-oauth-provider')).toBeInTheDocument();
-      });
-      
-      expect(screen.getByTestId('auth-provider')).toBeInTheDocument();
-      expect(screen.getByTestId('portfolio-provider')).toBeInTheDocument();
+      await renderAndWaitForInit();
+
+      expect(screen.getByTestId('google-oauth-provider')).toBeInTheDocument();
+      expect(screen.getByTestId('router')).toBeInTheDocument();
     });
 
     it('API初期化エラー後もアプリケーションを続行する', async () => {
-      initializeApiConfig.mockRejectedValue(new Error('API初期化失敗'));
-      getGoogleClientId.mockResolvedValue('test-client-id');
-      
-      render(<App />);
-      
-      await waitFor(() => {
-        expect(screen.getByTestId('google-oauth-provider')).toBeInTheDocument();
-      });
-      
+      mockInitializeApiConfig.mockRejectedValue(new Error('API初期化失敗'));
+
+      await renderAndWaitForInit();
+
+      expect(screen.getByTestId('google-oauth-provider')).toBeInTheDocument();
       expect(consoleErrorSpy).toHaveBeenCalledWith('API設定の初期化に失敗しました:', expect.any(Error));
     });
 
     it('Google Client ID取得失敗時にダミーIDを使用する', async () => {
-      initializeApiConfig.mockResolvedValue();
-      getGoogleClientId.mockRejectedValue(new Error('Client ID取得失敗'));
-      
-      render(<App />);
-      
-      await waitFor(() => {
-        const googleProvider = screen.getByTestId('google-oauth-provider');
-        expect(googleProvider).toHaveAttribute('data-client-id', 'dummy-client-id');
-      });
-    });
+      mockGetGoogleClientId.mockRejectedValue(new Error('Client ID取得失敗'));
 
-    it('Google OAuth script load errorを処理する', async () => {
-      initializeApiConfig.mockResolvedValue();
-      getGoogleClientId.mockResolvedValue('test-client-id');
-      
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      
-      render(<App />);
-      
-      await waitFor(() => {
-        expect(screen.getByTestId('google-oauth-provider')).toBeInTheDocument();
-      });
-      
-      consoleSpy.mockRestore();
-    });
-  });
+      await renderAndWaitForInit();
 
-  describe('ContextConnector', () => {
-    it('AuthContextとPortfolioContextを正しく接続する', async () => {
-      const mockSetPortfolioContextRef = vi.fn();
-      const mockAuth = { setPortfolioContextRef: mockSetPortfolioContextRef };
-      const mockPortfolio = { portfolioData: {} };
-      
-      useAuth.mockReturnValue(mockAuth);
-      usePortfolioContext.mockReturnValue(mockPortfolio);
-      
-      render(<App />);
-      
-      await waitFor(() => {
-        expect(screen.getByTestId('auth-provider')).toBeInTheDocument();
-      });
-      
-      await waitFor(() => {
-        expect(mockSetPortfolioContextRef).toHaveBeenCalledWith(mockPortfolio);
-      });
-    });
-
-    it('コンテキスト接続中のエラーを安全に処理する', async () => {
-      const mockSetPortfolioContextRef = vi.fn(() => {
-        throw new Error('コンテキスト接続エラー');
-      });
-      
-      useAuth.mockReturnValue({ setPortfolioContextRef: mockSetPortfolioContextRef });
-      usePortfolioContext.mockReturnValue({ portfolioData: {} });
-      
-      render(<App />);
-      
-      await waitFor(() => {
-        expect(screen.getByTestId('auth-provider')).toBeInTheDocument();
-      });
-      
-      await waitFor(() => {
-        expect(consoleErrorSpy).toHaveBeenCalledWith(
-          'コンテキスト接続中にエラーが発生しました:', 
-          expect.any(Error)
-        );
-      });
-    });
-
-    it('authまたはportfolioが未定義の場合を処理する', async () => {
-      useAuth.mockReturnValue(null);
-      usePortfolioContext.mockReturnValue(null);
-      
-      render(<App />);
-      
-      await waitFor(() => {
-        expect(screen.getByTestId('auth-provider')).toBeInTheDocument();
-      });
-      
-      // エラーが発生しないことを確認
-      expect(consoleErrorSpy).not.toHaveBeenCalled();
+      const googleProvider = screen.getByTestId('google-oauth-provider');
+      expect(googleProvider).toHaveAttribute('data-client-id', 'dummy-client-id');
     });
   });
 
   describe('ErrorBoundary', () => {
     it('ErrorBoundaryクラスが正しく定義されている', () => {
-      // ErrorBoundaryがクラスコンポーネントとして存在することを確認
       expect(typeof App).toBe('function');
     });
 
-    it('エラーキャッチ時のUI構造をテストする', async () => {
-      // ErrorBoundaryの静的メソッドをテスト
+    it('エラーキャッチ時のUI構造をテストする', () => {
       class TestErrorBoundary extends React.Component {
         constructor(props) {
           super(props);
@@ -308,8 +274,6 @@ describe.skip('App', () => {
         throw new Error('テストエラー');
       };
 
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      
       render(
         <TestErrorBoundary>
           <ThrowError />
@@ -319,163 +283,78 @@ describe.skip('App', () => {
       expect(screen.getByText('エラーが発生しました')).toBeInTheDocument();
       expect(screen.getByText('申し訳ありませんが、アプリケーションにエラーが発生しました。')).toBeInTheDocument();
       expect(screen.getByText('リロードする')).toBeInTheDocument();
-      
-      consoleErrorSpy.mockRestore();
     });
   });
 
   describe('レイアウトとルーティング', () => {
     it('ヘッダーとタブナビゲーションを表示する', async () => {
-      render(<App />);
-      
-      await waitFor(() => {
-        expect(screen.getByTestId('header')).toBeInTheDocument();
-        expect(screen.getByTestId('tab-navigation')).toBeInTheDocument();
-      });
+      await renderAndWaitForInit();
+
+      expect(screen.getByTestId('header')).toBeInTheDocument();
+      expect(screen.getByTestId('tab-navigation')).toBeInTheDocument();
     });
 
     it('ルーターが正しく設定されている', async () => {
-      render(<App />);
-      
-      await waitFor(() => {
-        expect(screen.getByTestId('router')).toBeInTheDocument();
-        expect(screen.getByTestId('routes')).toBeInTheDocument();
-      });
+      await renderAndWaitForInit();
+
+      expect(screen.getByTestId('router')).toBeInTheDocument();
+      expect(screen.getByTestId('routes')).toBeInTheDocument();
     });
 
-    it('正しいCSS クラスが適用されている', async () => {
-      render(<App />);
-      
-      await waitFor(() => {
-        const mainContainer = screen.getByRole('main');
-        expect(mainContainer).toHaveClass('max-w-7xl', 'mx-auto');
-      });
-    });
-  });
+    it('正しいCSSクラスが適用されている', async () => {
+      await renderAndWaitForInit();
 
-  describe('プロバイダーの階層', () => {
-    it('プロバイダーが正しい順序で配置されている', async () => {
-      render(<App />);
-      
-      await waitFor(() => {
-        const authProvider = screen.getByTestId('auth-provider');
-        const portfolioProvider = screen.getByTestId('portfolio-provider');
-        const googleProvider = screen.getByTestId('google-oauth-provider');
-        
-        expect(authProvider).toBeInTheDocument();
-        expect(portfolioProvider).toBeInTheDocument();
-        expect(googleProvider).toBeInTheDocument();
-      });
+      const mainContainer = screen.getByRole('main');
+      expect(mainContainer).toHaveClass('max-w-7xl', 'mx-auto');
     });
   });
 
   describe('レスポンシブデザイン', () => {
     it('モバイル向けのクラスが適用されている', async () => {
-      render(<App />);
-      
-      await waitFor(() => {
-        const appContainer = document.querySelector('.min-h-screen.bg-dark-100.text-gray-100');
-        expect(appContainer).toBeInTheDocument();
-      });
+      await renderAndWaitForInit();
+
+      const appContainer = document.querySelector('.min-h-screen.bg-dark-100.text-gray-100');
+      expect(appContainer).toBeInTheDocument();
     });
 
     it('メインコンテンツが適切なパディングを持つ', async () => {
-      render(<App />);
-      
-      await waitFor(() => {
-        const main = screen.getByRole('main');
-        expect(main).toHaveClass('pb-20', 'sm:pb-6');
-      });
-    });
-  });
+      await renderAndWaitForInit();
 
-  describe('エラーハンドリング', () => {
-    it('Google OAuth Provider errorを処理する', async () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      
-      render(<App />);
-      
-      await waitFor(() => {
-        expect(screen.getByTestId('google-oauth-provider')).toBeInTheDocument();
-      });
-      
-      // onScriptLoadError のテストは実際のGoogle Script読み込みが必要なため
-      // ここでは関数が設定されていることのみ確認
-      
-      consoleSpy.mockRestore();
-    });
-
-    it('初期化中の例外を安全に処理する', async () => {
-      initializeApiConfig.mockImplementation(() => {
-        throw new Error('同期エラー');
-      });
-      
-      render(<App />);
-      
-      await waitFor(() => {
-        expect(screen.getByTestId('google-oauth-provider')).toBeInTheDocument();
-      });
+      const main = screen.getByRole('main');
+      expect(main).toHaveClass('pb-20', 'sm:pb-6');
     });
   });
 
   describe('パフォーマンス', () => {
     it('初期化が完了するまでレンダリングを遅延する', async () => {
       let resolveInit;
-      initializeApiConfig.mockImplementation(() => new Promise(resolve => {
+      mockInitializeApiConfig.mockImplementation(() => new Promise(resolve => {
         resolveInit = resolve;
       }));
-      
+
       render(<App />);
-      
+
       expect(screen.getByText('PortfolioWise を起動しています...')).toBeInTheDocument();
-      expect(screen.queryByTestId('auth-provider')).not.toBeInTheDocument();
-      
-      act(() => {
+      expect(screen.queryByTestId('header')).not.toBeInTheDocument();
+
+      await act(async () => {
         resolveInit();
+        await flushPromises();
       });
-      
-      await waitFor(() => {
-        expect(screen.getByTestId('auth-provider')).toBeInTheDocument();
-      });
+
+      expect(screen.getByTestId('header')).toBeInTheDocument();
     });
   });
 
   describe('統合テスト', () => {
     it('完全なアプリケーション起動フローが正常に動作する', async () => {
-      initializeApiConfig.mockResolvedValue();
-      getGoogleClientId.mockResolvedValue('production-client-id');
-      
-      const mockAuth = { setPortfolioContextRef: vi.fn() };
-      const mockPortfolio = { portfolioData: { holdings: [] } };
-      
-      useAuth.mockReturnValue(mockAuth);
-      usePortfolioContext.mockReturnValue(mockPortfolio);
-      
-      render(<App />);
-      
-      // 1. 初期化表示
-      expect(screen.getByText('PortfolioWise を起動しています...')).toBeInTheDocument();
-      
-      // 2. 初期化完了後のアプリケーション表示
-      await waitFor(() => {
-        expect(screen.getByTestId('google-oauth-provider')).toBeInTheDocument();
-      });
-      
-      // 3. プロバイダーの設定
-      expect(screen.getByTestId('auth-provider')).toBeInTheDocument();
-      expect(screen.getByTestId('portfolio-provider')).toBeInTheDocument();
-      
-      // 4. レイアウトコンポーネントの表示
+      await renderAndWaitForInit();
+
+      // レイアウトコンポーネントの表示
+      expect(screen.getByTestId('google-oauth-provider')).toBeInTheDocument();
       expect(screen.getByTestId('header')).toBeInTheDocument();
       expect(screen.getByTestId('tab-navigation')).toBeInTheDocument();
-      
-      // 5. ルーターの設定
       expect(screen.getByTestId('router')).toBeInTheDocument();
-      
-      // 6. コンテキスト接続
-      await waitFor(() => {
-        expect(mockAuth.setPortfolioContextRef).toHaveBeenCalledWith(mockPortfolio);
-      });
     });
   });
 });

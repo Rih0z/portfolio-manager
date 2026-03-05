@@ -1,212 +1,162 @@
 import { vi } from "vitest";
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import TabNavigation from '../../../components/layout/TabNavigation';
 
-describe.skip('TabNavigation', () => {
-  const mockTabs = [
-    { id: 'dashboard', label: 'ダッシュボード', icon: '📊' },
-    { id: 'settings', label: '設定', icon: '⚙️' },
-    { id: 'data', label: 'データ連携', icon: '🔄' },
-    { id: 'simulation', label: 'シミュレーション', icon: '📈' }
-  ];
+// i18n モック
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key) => {
+      const translations = {
+        'navigation.dashboard': 'ダッシュボード',
+        'navigation.aiPlan': 'AI分析',
+        'navigation.simulation': 'シミュレーション',
+        'navigation.settings': '設定',
+        'navigation.dataImport': 'データ'
+      };
+      return translations[key] || key;
+    },
+    i18n: { language: 'ja' }
+  })
+}));
 
-  const mockOnTabChange = vi.fn();
+// usePortfolioContextのモック
+vi.mock('../../../hooks/usePortfolioContext', () => ({
+  usePortfolioContext: vi.fn()
+}));
+
+import { usePortfolioContext } from '../../../hooks/usePortfolioContext';
+
+describe('TabNavigation', () => {
+  const mockPortfolioContext = {
+    currentAssets: [{ ticker: 'AAPL' }],
+    targetPortfolio: [{ ticker: 'AAPL', targetPercentage: 100 }],
+    additionalBudget: { amount: 10000, currency: 'JPY' }
+  };
 
   beforeEach(() => {
-    mockOnTabChange.mockClear();
+    usePortfolioContext.mockReturnValue(mockPortfolioContext);
+    // initialSetupCompleted を設定
+    Storage.prototype.getItem = vi.fn(() => 'true');
   });
 
-  it('renders all provided tabs', () => {
-    render(
-      <TabNavigation 
-        tabs={mockTabs} 
-        activeTab="dashboard" 
-        onTabChange={mockOnTabChange} 
-      />
-    );
-
-    mockTabs.forEach(tab => {
-      expect(screen.getByText(tab.label)).toBeInTheDocument();
-    });
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
-  it('renders tab icons when provided', () => {
-    render(
-      <TabNavigation 
-        tabs={mockTabs} 
-        activeTab="dashboard" 
-        onTabChange={mockOnTabChange} 
-      />
+  const renderWithRouter = (initialRoute = '/') => {
+    return render(
+      <MemoryRouter initialEntries={[initialRoute]}>
+        <TabNavigation />
+      </MemoryRouter>
     );
+  };
 
-    mockTabs.forEach(tab => {
-      if (tab.icon) {
-        expect(screen.getByText(tab.icon)).toBeInTheDocument();
-      }
-    });
-  });
+  it('renders all navigation tabs', () => {
+    renderWithRouter();
 
-  it('highlights the active tab', () => {
-    render(
-      <TabNavigation 
-        tabs={mockTabs} 
-        activeTab="settings" 
-        onTabChange={mockOnTabChange} 
-      />
-    );
-
-    const settingsTab = screen.getByText('設定').closest('button, div, [role="tab"]');
-    expect(settingsTab).toHaveClass(/active|selected|current/);
-  });
-
-  it('calls onTabChange when a tab is clicked', () => {
-    render(
-      <TabNavigation 
-        tabs={mockTabs} 
-        activeTab="dashboard" 
-        onTabChange={mockOnTabChange} 
-      />
-    );
-
-    fireEvent.click(screen.getByText('設定'));
-    expect(mockOnTabChange).toHaveBeenCalledWith('settings');
-  });
-
-  it('renders with default props when minimal props provided', () => {
-    render(
-      <TabNavigation 
-        tabs={[{ id: 'test', label: 'Test' }]} 
-        activeTab="test" 
-      />
-    );
-
-    expect(screen.getByText('Test')).toBeInTheDocument();
-  });
-
-  it('handles empty tabs array gracefully', () => {
-    render(
-      <TabNavigation 
-        tabs={[]} 
-        activeTab="" 
-        onTabChange={mockOnTabChange} 
-      />
-    );
-
-    // 空のタブ配列でもクラッシュしないことを確認
-    const tabContainer = document.querySelector('[role="tablist"], .tab-navigation, .tabs');
-    expect(tabContainer).toBeInTheDocument();
-  });
-
-  it('renders proper ARIA attributes for accessibility', () => {
-    render(
-      <TabNavigation 
-        tabs={mockTabs} 
-        activeTab="dashboard" 
-        onTabChange={mockOnTabChange} 
-      />
-    );
-
-    // ARIA属性が適切に設定されていることを確認
-    const tabList = document.querySelector('[role="tablist"]');
-    expect(tabList).toBeInTheDocument();
-
-    const tabs = document.querySelectorAll('[role="tab"]');
-    expect(tabs.length).toBeGreaterThan(0);
-  });
-
-  it('renders responsive design for mobile', () => {
-    render(
-      <TabNavigation 
-        tabs={mockTabs} 
-        activeTab="dashboard" 
-        onTabChange={mockOnTabChange} 
-      />
-    );
-
-    // レスポンシブクラスが存在することを確認
-    const responsiveElements = document.querySelectorAll('.sm\\:flex, .md\\:grid, .lg\\:block');
-    expect(responsiveElements.length).toBeGreaterThanOrEqual(0);
-  });
-
-  it('handles keyboard navigation', () => {
-    render(
-      <TabNavigation 
-        tabs={mockTabs} 
-        activeTab="dashboard" 
-        onTabChange={mockOnTabChange} 
-      />
-    );
-
-    const firstTab = screen.getByText('ダッシュボード');
-    
-    // キーボードナビゲーションをテスト
-    fireEvent.keyDown(firstTab, { key: 'ArrowRight' });
-    fireEvent.keyDown(firstTab, { key: 'Enter' });
-    
-    // エラーが発生しないことを確認
-    expect(firstTab).toBeInTheDocument();
-  });
-
-  it('renders correct tab states (active, inactive, hover)', () => {
-    render(
-      <TabNavigation 
-        tabs={mockTabs} 
-        activeTab="dashboard" 
-        onTabChange={mockOnTabChange} 
-      />
-    );
-
-    const activeTab = screen.getByText('ダッシュボード').closest('button, div, [role="tab"]');
-    const inactiveTab = screen.getByText('設定').closest('button, div, [role="tab"]');
-
-    // アクティブタブのスタイルが適用されていることを確認
-    expect(activeTab).toHaveClass(/active|selected|current/);
-    
-    // 非アクティブタブにはアクティブスタイルが適用されていないことを確認
-    expect(inactiveTab).not.toHaveClass(/active|selected|current/);
-  });
-
-  it('handles tab change with undefined onTabChange gracefully', () => {
-    render(
-      <TabNavigation 
-        tabs={mockTabs} 
-        activeTab="dashboard" 
-      />
-    );
-
-    // onTabChangeが未定義でもクラッシュしないことを確認
-    fireEvent.click(screen.getByText('設定'));
+    expect(screen.getByText('ダッシュボード')).toBeInTheDocument();
+    expect(screen.getByText('AI分析')).toBeInTheDocument();
+    expect(screen.getByText('シミュレーション')).toBeInTheDocument();
     expect(screen.getByText('設定')).toBeInTheDocument();
+    expect(screen.getByText('データ')).toBeInTheDocument();
   });
 
-  it('renders proper tab styling and layout', () => {
-    render(
-      <TabNavigation 
-        tabs={mockTabs} 
-        activeTab="dashboard" 
-        onTabChange={mockOnTabChange} 
-      />
+  it('renders as a nav element', () => {
+    renderWithRouter();
+
+    const nav = document.querySelector('nav');
+    expect(nav).toBeInTheDocument();
+  });
+
+  it('renders SVG icons for each tab', () => {
+    renderWithRouter();
+
+    const svgIcons = document.querySelectorAll('svg');
+    expect(svgIcons.length).toBeGreaterThanOrEqual(5);
+  });
+
+  it('has proper fixed positioning for mobile bottom nav', () => {
+    renderWithRouter();
+
+    const nav = document.querySelector('nav');
+    expect(nav).toHaveClass('fixed', 'bottom-0');
+  });
+
+  it('renders 5 navigation links', () => {
+    renderWithRouter();
+
+    const links = document.querySelectorAll('a');
+    expect(links.length).toBe(5);
+  });
+
+  it('highlights active tab based on route', () => {
+    renderWithRouter('/');
+
+    // ダッシュボードのリンクがアクティブ
+    const dashboardLink = screen.getByText('ダッシュボード').closest('a');
+    expect(dashboardLink).toHaveClass('text-primary-400');
+  });
+
+  it('navigates using NavLink components', () => {
+    renderWithRouter();
+
+    const links = document.querySelectorAll('a');
+    const hrefs = Array.from(links).map(l => l.getAttribute('href'));
+
+    expect(hrefs).toContain('/');
+    expect(hrefs).toContain('/ai-advisor');
+    expect(hrefs).toContain('/simulation');
+    expect(hrefs).toContain('/settings');
+    expect(hrefs).toContain('/data-import');
+  });
+
+  it('renders grid layout for tabs', () => {
+    renderWithRouter();
+
+    const grid = document.querySelector('.grid.grid-cols-5');
+    expect(grid).toBeInTheDocument();
+  });
+
+  it('returns null when no settings and no initial setup', () => {
+    usePortfolioContext.mockReturnValue({
+      currentAssets: [],
+      targetPortfolio: [],
+      additionalBudget: { amount: 0, currency: 'JPY' }
+    });
+    Storage.prototype.getItem = vi.fn(() => null);
+
+    const { container } = render(
+      <MemoryRouter>
+        <TabNavigation />
+      </MemoryRouter>
     );
 
-    // タブのスタイリングクラスが存在することを確認
-    const styledElements = document.querySelectorAll('.flex, .border, .rounded, .bg-white, .shadow');
-    expect(styledElements.length).toBeGreaterThan(0);
+    // コンポーネントがnullを返す（設定がない場合はタブ非表示）
+    expect(container.innerHTML).toBe('');
   });
 
   it('handles long tab labels without breaking layout', () => {
-    const longLabelTabs = [
-      { id: 'long', label: 'とても長いタブのラベルテキストです', icon: '📊' }
-    ];
+    renderWithRouter();
 
-    render(
-      <TabNavigation 
-        tabs={longLabelTabs} 
-        activeTab="long" 
-        onTabChange={mockOnTabChange} 
-      />
-    );
+    // 全てのラベルが表示されていることを確認
+    expect(screen.getByText('ダッシュボード')).toBeInTheDocument();
+    expect(screen.getByText('シミュレーション')).toBeInTheDocument();
+  });
 
-    expect(screen.getByText('とても長いタブのラベルテキストです')).toBeInTheDocument();
+  it('renders with proper responsive design classes', () => {
+    renderWithRouter();
+
+    // max-w制約がある
+    const container = document.querySelector('.max-w-sm');
+    expect(container).toBeInTheDocument();
+  });
+
+  it('includes safe-area for iPhone home indicator', () => {
+    renderWithRouter();
+
+    const safeArea = document.querySelector('.h-safe-bottom');
+    expect(safeArea).toBeInTheDocument();
   });
 });
