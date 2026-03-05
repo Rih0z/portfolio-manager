@@ -76,6 +76,7 @@ const SESSION_CHECK_INTERVAL_MS = 30 * 60 * 1000; // 30分
 const VISIBILITY_CHECK_DEBOUNCE_MS = 1000;
 const MIN_CHECK_INTERVAL_MS = 60 * 1000; // 1分
 const MAX_SESSION_CHECK_FAILURES = 3;
+const FAILURE_COOLDOWN_MS = 5 * 60 * 1000; // 5分: 失敗カウンターリセットまでの待機時間
 
 // --- localStorage セッション永続化 ---
 
@@ -133,6 +134,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const portfolioContextRef = useRef<PortfolioContextRef | null>(null);
   const sessionIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sessionCheckFailureCount = useRef<number>(0);
+  const lastFailureTimeRef = useRef<number>(0);
   const lastCheckTimeRef = useRef<number>(0);
 
   // Google Client ID 取得
@@ -269,19 +271,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (err: any) {
       console.warn('セッション確認エラー:', err.message);
       sessionCheckFailureCount.current++;
+      lastFailureTimeRef.current = Date.now();
 
       // 最大失敗回数に達した場合、ローカルセッションにフォールバック
+      // ただしインターバルは停止しない（復帰可能にするため）
       if (sessionCheckFailureCount.current >= MAX_SESSION_CHECK_FAILURES) {
         const stored = loadSession();
         if (stored) {
+          // ローカルセッションで表示は維持、チェックは継続
           setAuthState(stored.user, true, stored.hasDriveAccess, null);
-          if (sessionIntervalRef.current) {
-            clearInterval(sessionIntervalRef.current);
-            sessionIntervalRef.current = null;
-          }
-        } else {
-          setAuthState(null, false, false, null);
         }
+        // localStorageにもセッションがない場合でも、すぐにはログアウトしない
+        // 次のタブ復帰時にクールダウン後にリトライする
       }
 
       setLoading(false);
@@ -460,7 +461,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     const handleVisibilityChange = (): void => {
       if (!document.hidden && isAuthenticated) {
-        if (sessionCheckFailureCount.current >= MAX_SESSION_CHECK_FAILURES) return;
+        // 失敗カウンターが上限に達していても、クールダウン期間が過ぎたらリセットしてリトライ
+        if (sessionCheckFailureCount.current >= MAX_SESSION_CHECK_FAILURES) {
+          const timeSinceLastFailure = Date.now() - lastFailureTimeRef.current;
+          if (timeSinceLastFailure < FAILURE_COOLDOWN_MS) return;
+          // クールダウン経過 → カウンターリセットしてリトライ
+          sessionCheckFailureCount.current = 0;
+        }
 
         const timeSinceLastCheck = Date.now() - lastCheckTimeRef.current;
         if (timeSinceLastCheck < MIN_CHECK_INTERVAL_MS) return;

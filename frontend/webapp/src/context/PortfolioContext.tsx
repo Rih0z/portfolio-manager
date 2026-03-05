@@ -24,8 +24,8 @@ import {
   fetchExchangeRate,
   fetchFundInfo,
   fetchDividendData,
-  saveToGoogleDrive as apiSaveToGoogleDrive
 } from '../services/api';
+import { saveToDrive, loadFromDrive } from '../services/googleDriveService';
 import { fetchMultipleStocks } from '../services/marketDataService';
 import {
   FUND_TYPES,
@@ -1448,9 +1448,8 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }
         timestamp: new Date().toISOString()
       };
 
-      // 実際のGoogleドライブAPI呼び出し
-      console.log('Googleドライブに保存:', portfolioData);
-      const result = await apiSaveToGoogleDrive(portfolioData, user);
+      // Google Drive APIでデータを保存
+      const result = await saveToDrive(portfolioData);
 
       if (result.success) {
         // 同期時間を更新
@@ -1481,10 +1480,8 @@ export const PortfolioProvider: React.FC<PortfolioProviderProps> = ({ children }
     }
 
     try {
-      // Google Drive API の loadFromGoogleDrive 関数は削除されました
-      // ダミーのエラーレスポンスを返してフォールバック処理を実行
-      console.log('Google Drive読み込み機能は現在無効です');
-      const result: any = { success: false, message: 'Google Drive読み込み機能は現在無効です' };
+      // Google Drive APIからデータを読み込み
+      const result: any = await loadFromDrive('latest');
 
       // API呼び出し結果を確認
       if (result.success && result.data) {

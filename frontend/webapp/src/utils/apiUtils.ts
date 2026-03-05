@@ -177,7 +177,14 @@ export const refreshAccessToken = async (): Promise<string | null> => {
     return null;
   } catch (error: any) {
     console.warn('Token refresh failed:', error.message);
-    clearAuthToken();
+
+    // サーバーが明示的にトークンを拒否した場合のみクリア（401/403）
+    // ネットワークエラー（タイムアウト、接続断等）ではトークンを保持
+    const status = error.response?.status;
+    if (status === 401 || status === 403) {
+      clearAuthToken();
+    }
+
     refreshSubscribers.forEach(cb => cb(null));
     refreshSubscribers = [];
     return null;
@@ -333,9 +340,11 @@ export const createApiClient = (withAuth: boolean = false): AxiosInstance => {
           });
 
           const isDriveEndpoint = url.includes('/drive/');
-          const isSessionEndpoint = url.includes('/auth/session');
 
-          if (isSessionEndpoint || (!isDriveEndpoint && error.response.data?.message?.includes('Invalid token'))) {
+          // セッションエンドポイントの401ではトークンをクリアしない
+          // （AuthContextのcheckSessionがフォールバック処理を完了してから判断する）
+          // 明示的な「Invalid token」メッセージの場合のみクリア
+          if (!isDriveEndpoint && error.response.data?.message?.includes('Invalid token')) {
             clearAuthToken();
           }
         }
