@@ -2,7 +2,8 @@
  * usePortfolioContext - ポートフォリオデータアクセスフック
  *
  * Zustand portfolioStore + uiStore のセレクタフック。
- * PortfolioContext は廃止。全コンポーネントはこのフック経由でポートフォリオデータにアクセスする。
+ * 旧 PortfolioContext (React Context API) は廃止済み。
+ * 全コンポーネントはこのフック経由で portfolioStore / uiStore にアクセスする。
  */
 import { usePortfolioStore, selectTotalAssets, selectAnnualFees, selectAnnualDividends } from '../stores/portfolioStore';
 import { useUIStore } from '../stores/uiStore';

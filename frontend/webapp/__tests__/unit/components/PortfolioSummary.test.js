@@ -2,15 +2,15 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import PortfolioSummary from '@/components/dashboard/PortfolioSummary';
 
-jest.mock('@/hooks/usePortfolioContext', () => ({
-  usePortfolioContext: jest.fn(),
+vi.mock('@/hooks/usePortfolioContext', () => ({
+  usePortfolioContext: vi.fn(),
 }));
 
 const { usePortfolioContext } = require('@/hooks/usePortfolioContext');
 
 describe('PortfolioSummary', () => {
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders summary information', () => {

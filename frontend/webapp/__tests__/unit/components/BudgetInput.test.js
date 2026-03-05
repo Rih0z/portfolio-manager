@@ -3,19 +3,19 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import BudgetInput from '@/components/simulation/BudgetInput';
 
-jest.mock('@/hooks/usePortfolioContext', () => ({
-  usePortfolioContext: jest.fn(),
+vi.mock('@/hooks/usePortfolioContext', () => ({
+  usePortfolioContext: vi.fn(),
 }));
 
 const { usePortfolioContext } = require('@/hooks/usePortfolioContext');
 
 describe('BudgetInput', () => {
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('updates amount when increase and decrease buttons clicked', async () => {
-    const setAdditionalBudget = jest.fn();
+    const setAdditionalBudget = vi.fn();
     usePortfolioContext.mockReturnValue({
       additionalBudget: { amount: 1000, currency: 'USD' },
       setAdditionalBudget,

@@ -4,8 +4,8 @@ import { act } from 'react-dom/test-utils';
 import userEvent from '@testing-library/user-event';
 import AiPromptSettings from '@/components/settings/AiPromptSettings';
 
-jest.mock('@/hooks/usePortfolioContext', () => ({
-  usePortfolioContext: jest.fn()
+vi.mock('@/hooks/usePortfolioContext', () => ({
+  usePortfolioContext: vi.fn()
 }));
 
 const { usePortfolioContext } = require('@/hooks/usePortfolioContext');
@@ -14,18 +14,18 @@ const DEFAULT_SUBSTRING = 'あなたは投資分析に特化した AI アシス�
 
 describe('AiPromptSettings', () => {
   beforeEach(() => {
-    jest.useFakeTimers('legacy');
+    vi.useFakeTimers({ legacyFakeTimers: true });
   });
   afterEach(() => {
-    jest.clearAllMocks();
-    jest.runOnlyPendingTimers();
-    jest.useRealTimers();
+    vi.clearAllMocks();
+    vi.runOnlyPendingTimers();
+    vi.useRealTimers();
   });
 
   it('renders default template when no template is provided', () => {
     usePortfolioContext.mockReturnValue({
       aiPromptTemplate: null,
-      updateAiPromptTemplate: jest.fn()
+      updateAiPromptTemplate: vi.fn()
     });
 
     render(<AiPromptSettings />);
@@ -35,7 +35,7 @@ describe('AiPromptSettings', () => {
   });
 
   it('allows editing and saving template', async () => {
-    const updateAiPromptTemplate = jest.fn();
+    const updateAiPromptTemplate = vi.fn();
     usePortfolioContext.mockReturnValue({
       aiPromptTemplate: 'Initial Template',
       updateAiPromptTemplate
@@ -59,14 +59,14 @@ describe('AiPromptSettings', () => {
 
     // タイマーでメッセージが非表示になる処理を即座に実行
     act(() => {
-      jest.runAllTimers();
+      vi.runAllTimers();
     });
   });
 
   it('reset button restores default template', async () => {
     usePortfolioContext.mockReturnValue({
       aiPromptTemplate: 'Custom Template',
-      updateAiPromptTemplate: jest.fn()
+      updateAiPromptTemplate: vi.fn()
     });
 
     render(<AiPromptSettings />);

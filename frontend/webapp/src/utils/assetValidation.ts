@@ -1,7 +1,7 @@
 /**
  * アセット検証ユーティリティ
  *
- * PortfolioContextから分離した検証ロジック
+ * portfolioStoreから分離した検証ロジック
  */
 
 import { Asset, ValidationChanges } from '../types/portfolio.types';

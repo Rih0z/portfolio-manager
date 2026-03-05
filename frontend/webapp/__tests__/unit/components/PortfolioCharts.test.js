@@ -2,13 +2,13 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import PortfolioCharts from '@/components/dashboard/PortfolioCharts';
 
-jest.mock('@/hooks/usePortfolioContext', () => ({
-  usePortfolioContext: jest.fn(),
+vi.mock('@/hooks/usePortfolioContext', () => ({
+  usePortfolioContext: vi.fn(),
 }));
 
 // Mock recharts similar to Chart tests
-jest.mock('recharts', () => {
-  const Original = jest.requireActual('recharts');
+vi.mock('recharts', async () => {
+  const Original = await vi.importActual('recharts');
   return {
     ...Original,
     ResponsiveContainer: ({ children }) => <div data-testid="responsive-container">{children}</div>,
@@ -24,7 +24,7 @@ const { usePortfolioContext } = require('@/hooks/usePortfolioContext');
 
 describe('PortfolioCharts', () => {
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders two pie charts', () => {

@@ -1,8 +1,14 @@
 import { vi } from "vitest";
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { AuthContext } from '../../../context/AuthContext';
 import Header from '../../../components/layout/Header';
+
+// useAuthのモック
+vi.mock('../../../hooks/useAuth', () => ({
+  useAuth: vi.fn()
+}));
+
+import { useAuth } from '../../../hooks/useAuth';
 
 // Mock the LanguageSwitcher component
 vi.mock('../../../components/common/LanguageSwitcher', () => ({
@@ -44,12 +50,12 @@ describe.skip('Header', () => {
     loading: false
   };
 
+  beforeEach(() => {
+    useAuth.mockReturnValue(mockAuthContext);
+  });
+
   it('renders header with logo and title', () => {
-    render(
-      <AuthContext.Provider value={mockAuthContext}>
-        <Header />
-      </AuthContext.Provider>
-    );
+    render(<Header />);
 
     // ロゴやタイトルが表示されることを確認
     const logo = screen.getByText(/Portfolio|ポートフォリオ/i);
@@ -57,59 +63,41 @@ describe.skip('Header', () => {
   });
 
   it('renders language switcher', () => {
-    render(
-      <AuthContext.Provider value={mockAuthContext}>
-        <Header />
-      </AuthContext.Provider>
-    );
+    render(<Header />);
 
     expect(screen.getByTestId('language-switcher')).toBeInTheDocument();
   });
 
   it('renders login button when user is not authenticated', () => {
-    render(
-      <AuthContext.Provider value={mockAuthContext}>
-        <Header />
-      </AuthContext.Provider>
-    );
+    render(<Header />);
 
     expect(screen.getByTestId('login-button')).toBeInTheDocument();
     expect(screen.queryByTestId('user-profile')).not.toBeInTheDocument();
   });
 
   it('renders user profile when user is authenticated', () => {
-    render(
-      <AuthContext.Provider value={authenticatedAuthContext}>
-        <Header />
-      </AuthContext.Provider>
-    );
+    useAuth.mockReturnValue(authenticatedAuthContext);
+
+    render(<Header />);
 
     expect(screen.getByTestId('user-profile')).toBeInTheDocument();
     expect(screen.queryByTestId('login-button')).not.toBeInTheDocument();
   });
 
   it('renders loading state properly', () => {
-    const loadingContext = {
+    useAuth.mockReturnValue({
       ...mockAuthContext,
       loading: true
-    };
+    });
 
-    render(
-      <AuthContext.Provider value={loadingContext}>
-        <Header />
-      </AuthContext.Provider>
-    );
+    render(<Header />);
 
     // ローディング中でもクラッシュしないことを確認
     expect(screen.getByTestId('language-switcher')).toBeInTheDocument();
   });
 
   it('has proper navigation structure', () => {
-    render(
-      <AuthContext.Provider value={mockAuthContext}>
-        <Header />
-      </AuthContext.Provider>
-    );
+    render(<Header />);
 
     // ナビゲーション要素があることを確認
     const nav = document.querySelector('nav, header, .header');
@@ -117,11 +105,7 @@ describe.skip('Header', () => {
   });
 
   it('renders responsive design elements', () => {
-    render(
-      <AuthContext.Provider value={mockAuthContext}>
-        <Header />
-      </AuthContext.Provider>
-    );
+    render(<Header />);
 
     // レスポンシブクラスが存在することを確認
     const responsiveElements = document.querySelectorAll('.md\\:flex, .sm\\:hidden, .lg\\:block');
@@ -129,11 +113,7 @@ describe.skip('Header', () => {
   });
 
   it('handles mobile menu toggle', () => {
-    render(
-      <AuthContext.Provider value={mockAuthContext}>
-        <Header />
-      </AuthContext.Provider>
-    );
+    render(<Header />);
 
     // モバイルメニューボタンがあれば操作テスト
     const menuButton = document.querySelector('[aria-label*="menu"], .mobile-menu-button, .hamburger');
@@ -145,11 +125,7 @@ describe.skip('Header', () => {
   });
 
   it('has accessibility features', () => {
-    render(
-      <AuthContext.Provider value={mockAuthContext}>
-        <Header />
-      </AuthContext.Provider>
-    );
+    render(<Header />);
 
     // アクセシビリティ属性があることを確認
     const accessibleElements = document.querySelectorAll('[aria-label], [role], [tabindex]');
@@ -157,11 +133,7 @@ describe.skip('Header', () => {
   });
 
   it('renders proper header styling', () => {
-    render(
-      <AuthContext.Provider value={mockAuthContext}>
-        <Header />
-      </AuthContext.Provider>
-    );
+    render(<Header />);
 
     // ヘッダーのスタイリングクラスが存在することを確認
     const styledElements = document.querySelectorAll('.bg-white, .shadow, .border-b, .fixed, .sticky');
@@ -169,40 +141,29 @@ describe.skip('Header', () => {
   });
 
   it('handles auth state changes correctly', () => {
-    const { rerender } = render(
-      <AuthContext.Provider value={mockAuthContext}>
-        <Header />
-      </AuthContext.Provider>
-    );
+    const { rerender } = render(<Header />);
 
     expect(screen.getByTestId('login-button')).toBeInTheDocument();
 
     // 認証状態を変更
-    rerender(
-      <AuthContext.Provider value={authenticatedAuthContext}>
-        <Header />
-      </AuthContext.Provider>
-    );
+    useAuth.mockReturnValue(authenticatedAuthContext);
+    rerender(<Header />);
 
     expect(screen.getByTestId('user-profile')).toBeInTheDocument();
     expect(screen.queryByTestId('login-button')).not.toBeInTheDocument();
   });
 
   it('renders without crashing on edge cases', () => {
-    const edgeCaseContext = {
+    useAuth.mockReturnValue({
       user: undefined,
       isAuthenticated: undefined,
       login: vi.fn(),
       logout: vi.fn(),
       getAccessToken: vi.fn(),
       loading: undefined
-    };
+    });
 
-    render(
-      <AuthContext.Provider value={edgeCaseContext}>
-        <Header />
-      </AuthContext.Provider>
-    );
+    render(<Header />);
 
     // エッジケースでもクラッシュしないことを確認
     expect(screen.getByTestId('language-switcher')).toBeInTheDocument();

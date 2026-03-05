@@ -3,19 +3,19 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import PopularTickers from '@/components/settings/PopularTickers';
 
-jest.mock('@/hooks/usePortfolioContext', () => ({
-  usePortfolioContext: jest.fn(),
+vi.mock('@/hooks/usePortfolioContext', () => ({
+  usePortfolioContext: vi.fn(),
 }));
 
 const { usePortfolioContext } = require('@/hooks/usePortfolioContext');
 
 describe('PopularTickers', () => {
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('changes category when tab clicked', async () => {
-    usePortfolioContext.mockReturnValue({ addTicker: jest.fn() });
+    usePortfolioContext.mockReturnValue({ addTicker: vi.fn() });
     render(<PopularTickers />);
 
     expect(

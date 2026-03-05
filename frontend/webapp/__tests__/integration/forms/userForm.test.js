@@ -1,14 +1,19 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { PortfolioProvider } from '@/context/PortfolioContext';
 import TickerSearch from '@/components/settings/TickerSearch';
 import * as api from '@/services/api';
 
-jest.mock('@/services/api');
+vi.mock('@/services/api');
+
+vi.mock('@/hooks/usePortfolioContext', () => ({
+  usePortfolioContext: vi.fn(),
+}));
+
+const { usePortfolioContext } = require('@/hooks/usePortfolioContext');
 
 beforeEach(() => {
-  jest.resetAllMocks();
+  vi.resetAllMocks();
   api.fetchTickerData.mockResolvedValue({
     success: true,
     data: {
@@ -35,12 +40,16 @@ beforeEach(() => {
       dividendIsEstimated: false
     }
   });
+
+  // Mock usePortfolioContext to provide addTicker
+  usePortfolioContext.mockReturnValue({
+    addTicker: vi.fn().mockResolvedValue({ success: true, message: '銘柄を追加しました' }),
+  });
 });
 
-const wrapper = ({ children }) => <PortfolioProvider>{children}</PortfolioProvider>;
-
+// Zustand移行後: PortfolioProvider不要。フックをモックして直接レンダリング。
 test('user can add ticker via form', async () => {
-  render(<TickerSearch />, { wrapper });
+  render(<TickerSearch />);
   const input = screen.getByPlaceholderText(/例: AAPL/i);
   await userEvent.type(input, 'AAPL');
   await userEvent.click(screen.getByRole('button', { name: '追加' }));

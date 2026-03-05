@@ -3,11 +3,11 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import HoldingsEditor from '@/components/settings/HoldingsEditor';
 
-jest.mock('@/hooks/usePortfolioContext', () => ({
-  usePortfolioContext: jest.fn(),
+vi.mock('@/hooks/usePortfolioContext', () => ({
+  usePortfolioContext: vi.fn(),
 }));
 
-jest.mock('@/utils/formatters', () => ({
+vi.mock('@/utils/formatters', () => ({
   formatCurrency: (v) => `¥${v}`,
   formatPercent: (v) => `${v}%`,
 }));
@@ -16,7 +16,7 @@ const { usePortfolioContext } = require('@/hooks/usePortfolioContext');
 
 describe('HoldingsEditor', () => {
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders message when no assets', () => {
@@ -34,7 +34,7 @@ describe('HoldingsEditor', () => {
   });
 
   it('increments holdings via button', async () => {
-    const update = jest.fn();
+    const update = vi.fn();
     usePortfolioContext.mockReturnValue({
       currentAssets: [
         {
@@ -53,7 +53,7 @@ describe('HoldingsEditor', () => {
       baseCurrency: 'USD',
       exchangeRate: { rate: 150 },
       updateHoldings: update,
-      removeTicker: jest.fn(),
+      removeTicker: vi.fn(),
     });
 
     render(<HoldingsEditor />);
@@ -64,7 +64,7 @@ describe('HoldingsEditor', () => {
   });
 
   it('saves edited holdings', async () => {
-    const update = jest.fn();
+    const update = vi.fn();
     usePortfolioContext.mockReturnValue({
       currentAssets: [
         {
@@ -83,7 +83,7 @@ describe('HoldingsEditor', () => {
       baseCurrency: 'USD',
       exchangeRate: { rate: 150 },
       updateHoldings: update,
-      removeTicker: jest.fn(),
+      removeTicker: vi.fn(),
     });
 
     render(<HoldingsEditor />);

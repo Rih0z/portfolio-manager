@@ -3,12 +3,12 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ImportOptions from '@/components/data/ImportOptions';
 
-jest.mock('papaparse', () => ({
+vi.mock('papaparse', () => ({
   parse: jest.fn(() => ({ data: [] })),
 }));
 
-jest.mock('@/hooks/usePortfolioContext', () => ({
-  usePortfolioContext: jest.fn(),
+vi.mock('@/hooks/usePortfolioContext', () => ({
+  usePortfolioContext: vi.fn(),
 }));
 
 const { usePortfolioContext } = require('@/hooks/usePortfolioContext');
@@ -16,11 +16,11 @@ const Papa = require('papaparse');
 
 describe('ImportOptions', () => {
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('imports data from text input', async () => {
-    const importPortfolioData = jest.fn();
+    const importPortfolioData = vi.fn();
     usePortfolioContext.mockReturnValue({ importPortfolioData });
 
     render(<ImportOptions />);

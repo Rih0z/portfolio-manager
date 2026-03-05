@@ -1,29 +1,37 @@
 const React = require('react');
 const { render, fireEvent } = require('@testing-library/react');
 const ExportOptions = require('@/components/data/ExportOptions').default;
-const { PortfolioContext } = require('@/context/PortfolioContext');
 const { mockPortfolioContextData } = require('../../mocks/data');
 
+vi.mock('@/hooks/usePortfolioContext', () => ({
+  usePortfolioContext: vi.fn(),
+}));
+
+const { usePortfolioContext } = require('@/hooks/usePortfolioContext');
+
 describe('ExportOptions component', () => {
-  const Wrapper = ({ children }) => (
-    React.createElement(PortfolioContext.Provider, { value: mockPortfolioContextData }, children)
-  );
   beforeEach(() => {
-    jest.useFakeTimers();
-    global.URL.createObjectURL = jest.fn(() => 'blob:url');
-    global.URL.revokeObjectURL = jest.fn();
-    document.createElement = jest.fn(() => ({ click: jest.fn() }));
-    document.body.appendChild = jest.fn();
-    document.body.removeChild = jest.fn();
-    navigator.clipboard = { writeText: jest.fn().mockResolvedValue() };
+    vi.useFakeTimers();
+    global.URL.createObjectURL = vi.fn(() => 'blob:url');
+    global.URL.revokeObjectURL = vi.fn();
+    document.createElement = vi.fn(() => ({ click: vi.fn() }));
+    document.body.appendChild = vi.fn();
+    document.body.removeChild = vi.fn();
+    navigator.clipboard = { writeText: vi.fn().mockResolvedValue() };
+
+    // Mock the hook to return portfolio context data
+    usePortfolioContext.mockReturnValue({
+      ...mockPortfolioContextData,
+      exportData: () => mockPortfolioContextData,
+    });
   });
   afterEach(() => {
-    jest.useRealTimers();
-    jest.clearAllMocks();
+    vi.useRealTimers();
+    vi.clearAllMocks();
   });
 
   test('copies portfolio data as JSON to clipboard', async () => {
-    const { getByText } = render(React.createElement(ExportOptions, {}, null), { wrapper: Wrapper });
+    const { getByText } = render(React.createElement(ExportOptions, {}, null));
     fireEvent.click(getByText('クリップボードにコピー'));
     await Promise.resolve();
     expect(navigator.clipboard.writeText).toHaveBeenCalled();
@@ -34,7 +42,7 @@ describe('ExportOptions component', () => {
   });
 
   test('switches to CSV and copies CSV data', async () => {
-    const { getByText } = render(React.createElement(ExportOptions, {}, null), { wrapper: Wrapper });
+    const { getByText } = render(React.createElement(ExportOptions, {}, null));
     fireEvent.click(getByText('CSV'));
     fireEvent.click(getByText('クリップボードにコピー'));
     await Promise.resolve();
@@ -45,9 +53,9 @@ describe('ExportOptions component', () => {
   });
 
   test('downloads JSON file', () => {
-    const anchor = { click: jest.fn() };
+    const anchor = { click: vi.fn() };
     document.createElement.mockReturnValue(anchor);
-    const { getByText } = render(React.createElement(ExportOptions, {}, null), { wrapper: Wrapper });
+    const { getByText } = render(React.createElement(ExportOptions, {}, null));
     fireEvent.click(getByText('ダウンロード'));
     expect(URL.createObjectURL).toHaveBeenCalled();
     expect(anchor.click).toHaveBeenCalled();

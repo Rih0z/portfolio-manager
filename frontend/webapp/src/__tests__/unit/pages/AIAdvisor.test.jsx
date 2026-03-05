@@ -15,8 +15,14 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { I18nextProvider } from 'react-i18next';
 import i18n from '../../mocks/i18n';
-import { PortfolioContext } from '../../../context/PortfolioContext';
 import AIAdvisor from '../../../pages/AIAdvisor';
+
+// usePortfolioContextのモック
+vi.mock('../../../hooks/usePortfolioContext', () => ({
+  usePortfolioContext: vi.fn()
+}));
+
+import { usePortfolioContext } from '../../../hooks/usePortfolioContext';
 
 // テスト用のラッパーコンポーネント
 const TestWrapper = ({ children, portfolioValue = {} }) => {
@@ -28,12 +34,12 @@ const TestWrapper = ({ children, portfolioValue = {} }) => {
     }
   };
 
+  usePortfolioContext.mockReturnValue(mockPortfolioContext);
+
   return (
     <MemoryRouter>
       <I18nextProvider i18n={i18n}>
-        <PortfolioContext.Provider value={mockPortfolioContext}>
-          {children}
-        </PortfolioContext.Provider>
+        {children}
       </I18nextProvider>
     </MemoryRouter>
   );

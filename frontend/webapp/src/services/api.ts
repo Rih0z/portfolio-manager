@@ -126,25 +126,25 @@ export const initGoogleDriveAPI = (): GoogleDriveAPI => {
 };
 
 /**
- * Deprecated: これらの関数はAuthContext経由で提供されるため、直接使用しないでください。
+ * Deprecated: これらの関数はauthStore経由で提供されるため、直接使用しないでください。
  * 互換性のために残していますが、新しいコードでは使用しないでください。
  */
 
 export const setGoogleAccessToken = (token: string): void => {
-  console.warn('[API] setGoogleAccessToken is deprecated. Use AuthContext methods instead.');
+  console.warn('[API] setGoogleAccessToken is deprecated. Use authStore methods instead.');
 };
 
 export const getGoogleAccessToken = async (): Promise<string | null> => {
-  console.warn('[API] getGoogleAccessToken is deprecated. Use AuthContext methods instead.');
+  console.warn('[API] getGoogleAccessToken is deprecated. Use authStore methods instead.');
   return null;
 };
 
 export const saveToGoogleDrive = async (data: any, userData: any, filename: string = 'portfolio_data.json'): Promise<GoogleDriveResult> => {
-  console.warn('[API] saveToGoogleDrive is deprecated. Use AuthContext.saveToDrive instead.');
-  return { success: false, message: 'この関数は非推奨です。AuthContext.saveToDriveを使用してください。' };
+  console.warn('[API] saveToGoogleDrive is deprecated. Use portfolioStore.saveToGoogleDrive instead.');
+  return { success: false, message: 'この関数は非推奨です。portfolioStore.saveToGoogleDriveを使用してください。' };
 };
 
 export const loadFromGoogleDrive = async (userData: any, filename: string = 'portfolio_data.json'): Promise<GoogleDriveResult> => {
-  console.warn('[API] loadFromGoogleDrive is deprecated. Use AuthContext.loadFromDrive instead.');
-  return { success: false, message: 'この関数は非推奨です。AuthContext.loadFromDriveを使用してください。' };
+  console.warn('[API] loadFromGoogleDrive is deprecated. Use portfolioStore.loadFromGoogleDrive instead.');
+  return { success: false, message: 'この関数は非推奨です。portfolioStore.loadFromGoogleDriveを使用してください。' };
 };

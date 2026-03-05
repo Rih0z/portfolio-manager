@@ -342,7 +342,7 @@ export const createApiClient = (withAuth: boolean = false): AxiosInstance => {
           const isDriveEndpoint = url.includes('/drive/');
 
           // セッションエンドポイントの401ではトークンをクリアしない
-          // （AuthContextのcheckSessionがフォールバック処理を完了してから判断する）
+          // （authStoreのcheckSessionがフォールバック処理を完了してから判断する）
           // 明示的な「Invalid token」メッセージの場合のみクリア
           if (!isDriveEndpoint && error.response.data?.message?.includes('Invalid token')) {
             clearAuthToken();

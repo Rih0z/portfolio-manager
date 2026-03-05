@@ -2,9 +2,9 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import GoogleDriveIntegration from '@/components/data/GoogleDriveIntegration';
 
-jest.mock('@/hooks/useAuth', () => ({ useAuth: jest.fn() }));
-jest.mock('@/hooks/useGoogleDrive', () => ({ useGoogleDrive: jest.fn() }));
-jest.mock('@/hooks/usePortfolioContext', () => ({ usePortfolioContext: jest.fn() }));
+vi.mock('@/hooks/useAuth', () => ({ useAuth: vi.fn() }));
+vi.mock('@/hooks/useGoogleDrive', () => ({ useGoogleDrive: vi.fn() }));
+vi.mock('@/hooks/usePortfolioContext', () => ({ usePortfolioContext: vi.fn() }));
 
 const { useAuth } = require('@/hooks/useAuth');
 const { useGoogleDrive } = require('@/hooks/useGoogleDrive');
@@ -12,7 +12,7 @@ const { usePortfolioContext } = require('@/hooks/usePortfolioContext');
 
 describe('GoogleDriveIntegration', () => {
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('prompts login when unauthenticated', () => {

@@ -2,15 +2,15 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import SimulationResult from '@/components/simulation/SimulationResult';
 
-jest.mock('@/hooks/usePortfolioContext', () => ({
-  usePortfolioContext: jest.fn(),
+vi.mock('@/hooks/usePortfolioContext', () => ({
+  usePortfolioContext: vi.fn(),
 }));
 
 const { usePortfolioContext } = require('@/hooks/usePortfolioContext');
 
 describe('SimulationResult', () => {
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders message when no results', () => {
@@ -18,7 +18,7 @@ describe('SimulationResult', () => {
       baseCurrency: 'USD',
       exchangeRate: { rate: 150 },
       calculateSimulation: () => [],
-      executePurchase: jest.fn(),
+      executePurchase: vi.fn(),
     });
 
     render(<SimulationResult />);
@@ -45,7 +45,7 @@ describe('SimulationResult', () => {
           purchaseAmount: 100,
         },
       ],
-      executePurchase: jest.fn(),
+      executePurchase: vi.fn(),
     });
 
     render(<SimulationResult />);

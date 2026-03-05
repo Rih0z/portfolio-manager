@@ -3,21 +3,21 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import AllocationEditor from '@/components/settings/AllocationEditor';
 
-jest.mock('@/hooks/usePortfolioContext', () => ({
-  usePortfolioContext: jest.fn(),
+vi.mock('@/hooks/usePortfolioContext', () => ({
+  usePortfolioContext: vi.fn(),
 }));
 
 const { usePortfolioContext } = require('@/hooks/usePortfolioContext');
 
 describe('AllocationEditor', () => {
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders message when no target portfolio', () => {
     usePortfolioContext.mockReturnValue({
       targetPortfolio: [],
-      updateTargetAllocation: jest.fn(),
+      updateTargetAllocation: vi.fn(),
     });
 
     render(<AllocationEditor />);
@@ -28,7 +28,7 @@ describe('AllocationEditor', () => {
   });
 
   it('updates allocation on input change', async () => {
-    const update = jest.fn();
+    const update = vi.fn();
     usePortfolioContext.mockReturnValue({
       targetPortfolio: [
         { id: '1', name: 'Apple', ticker: 'AAPL', targetPercentage: 30 },
@@ -48,7 +48,7 @@ describe('AllocationEditor', () => {
   });
 
   it('auto adjusts allocations', async () => {
-    const update = jest.fn();
+    const update = vi.fn();
     usePortfolioContext.mockReturnValue({
       targetPortfolio: [
         { id: '1', name: 'AAPL', ticker: 'AAPL', targetPercentage: 50 },

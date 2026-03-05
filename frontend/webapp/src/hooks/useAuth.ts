@@ -6,7 +6,7 @@
  */
 import { useAuthStore } from '../stores/authStore';
 
-export interface AuthContextValue {
+export interface AuthStoreValue {
   user: any;
   isAuthenticated: boolean;
   loading: boolean;
@@ -20,11 +20,14 @@ export interface AuthContextValue {
   handleLogout: () => Promise<void>;
   login: (credentialResponse: any) => Promise<any>;
   authorizeDrive: () => Promise<boolean>;
-  // 後方互換: ContextConnector 用（noop）
+  // 後方互換: 旧ContextConnector呼び出し元用（noop）
   setPortfolioContextRef?: (context: any) => void;
 }
 
-export const useAuth = (): AuthContextValue => {
+/** @deprecated AuthContextValue は AuthStoreValue にリネームされました */
+export type AuthContextValue = AuthStoreValue;
+
+export const useAuth = (): AuthStoreValue => {
   const store = useAuthStore();
 
   return {

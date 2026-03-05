@@ -3,8 +3,8 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import AiAnalysisPrompt from '@/components/simulation/AiAnalysisPrompt';
 
-jest.mock('@/hooks/usePortfolioContext', () => ({
-  usePortfolioContext: jest.fn(),
+vi.mock('@/hooks/usePortfolioContext', () => ({
+  usePortfolioContext: vi.fn(),
 }));
 
 const { usePortfolioContext } = require('@/hooks/usePortfolioContext');
@@ -12,12 +12,12 @@ const { usePortfolioContext } = require('@/hooks/usePortfolioContext');
 describe('AiAnalysisPrompt', () => {
   beforeEach(() => {
     Object.assign(navigator, {
-      clipboard: { writeText: jest.fn().mockResolvedValue() },
+      clipboard: { writeText: vi.fn().mockResolvedValue() },
     });
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('copies prompt to clipboard', async () => {

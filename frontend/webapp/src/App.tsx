@@ -243,7 +243,7 @@ const App = () => {
             </SettingsChecker>
           </Router>
 
-          {/* 通知表示（PortfolioProvider内の通知UIを移行） */}
+          {/* 通知表示（uiStore経由で管理） */}
           <NotificationDisplay />
         </AppInitializer>
       </QueryProvider>

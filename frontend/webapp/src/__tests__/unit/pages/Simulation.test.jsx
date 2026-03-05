@@ -9,14 +9,12 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import Simulation from '../../../pages/Simulation';
 
-// useContextをモック
-vi.mock('react', async (importOriginal) => {
-  const actual = await importOriginal();
-  return {
-    ...actual,
-    useContext: vi.fn()
-  };
-});
+// usePortfolioContextをモック
+vi.mock('../../../hooks/usePortfolioContext', () => ({
+  usePortfolioContext: vi.fn()
+}));
+
+import { usePortfolioContext } from '../../../hooks/usePortfolioContext';
 
 // シミュレーションコンポーネントをモック
 vi.mock('../../../components/simulation/BudgetInput', () => ({
@@ -47,7 +45,7 @@ describe.skip('Simulation', () => {
     vi.clearAllMocks();
     
     // デフォルトのPortfolioContextモック
-    React.useContext.mockReturnValue({
+    usePortfolioContext.mockReturnValue({
       totalAssets: 1000000,
       additionalBudget: {
         amount: 100000,
@@ -113,7 +111,7 @@ describe.skip('Simulation', () => {
 
   describe('通貨フォーマット', () => {
     it('JPY通貨を正しくフォーマットする', () => {
-      React.useContext.mockReturnValue({
+      usePortfolioContext.mockReturnValue({
         totalAssets: 1500000,
         additionalBudget: { amount: 200000, currency: 'JPY' },
         calculateSimulation: vi.fn(() => ({})),
@@ -128,7 +126,7 @@ describe.skip('Simulation', () => {
     });
 
     it('USD通貨を正しくフォーマットする', () => {
-      React.useContext.mockReturnValue({
+      usePortfolioContext.mockReturnValue({
         totalAssets: 10000.50,
         additionalBudget: { amount: 1500.25, currency: 'USD' },
         calculateSimulation: vi.fn(() => ({})),
@@ -165,7 +163,7 @@ describe.skip('Simulation', () => {
       const mockExecuteBatchPurchase = vi.fn();
       const mockSimulationResults = { recommendations: [] };
       
-      React.useContext.mockReturnValue({
+      usePortfolioContext.mockReturnValue({
         totalAssets: 1000000,
         additionalBudget: { amount: 100000, currency: 'JPY' },
         calculateSimulation: vi.fn(() => mockSimulationResults),
@@ -186,7 +184,7 @@ describe.skip('Simulation', () => {
       global.confirm = vi.fn(() => false);
       const mockExecuteBatchPurchase = vi.fn();
       
-      React.useContext.mockReturnValue({
+      usePortfolioContext.mockReturnValue({
         totalAssets: 1000000,
         additionalBudget: { amount: 100000, currency: 'JPY' },
         calculateSimulation: vi.fn(() => ({})),
@@ -214,7 +212,7 @@ describe.skip('Simulation', () => {
       };
       const mockCalculateSimulation = vi.fn(() => mockSimulationResults);
       
-      React.useContext.mockReturnValue({
+      usePortfolioContext.mockReturnValue({
         totalAssets: 1000000,
         additionalBudget: { amount: 100000, currency: 'JPY' },
         calculateSimulation: mockCalculateSimulation,
@@ -254,13 +252,13 @@ describe.skip('Simulation', () => {
 
   describe('エラーハンドリング', () => {
     it('PortfolioContextが未定義でもエラーが発生しない', () => {
-      React.useContext.mockReturnValue({});
+      usePortfolioContext.mockReturnValue({});
       
       expect(() => render(<Simulation />)).not.toThrow();
     });
 
     it('calculateSimulationが未定義でも動作する', () => {
-      React.useContext.mockReturnValue({
+      usePortfolioContext.mockReturnValue({
         totalAssets: 1000000,
         additionalBudget: { amount: 100000, currency: 'JPY' },
         executeBatchPurchase: vi.fn(),
@@ -278,7 +276,7 @@ describe.skip('Simulation', () => {
       }));
       const mockExecuteBatchPurchase = vi.fn();
       
-      React.useContext.mockReturnValue({
+      usePortfolioContext.mockReturnValue({
         totalAssets: 2000000,
         additionalBudget: { amount: 300000, currency: 'JPY' },
         calculateSimulation: mockCalculateSimulation,

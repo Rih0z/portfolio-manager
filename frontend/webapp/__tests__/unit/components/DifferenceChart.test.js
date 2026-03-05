@@ -2,12 +2,12 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import DifferenceChart from '@/components/dashboard/DifferenceChart';
 
-jest.mock('@/hooks/usePortfolioContext', () => ({
-  usePortfolioContext: jest.fn(),
+vi.mock('@/hooks/usePortfolioContext', () => ({
+  usePortfolioContext: vi.fn(),
 }));
 
-jest.mock('recharts', () => {
-  const Original = jest.requireActual('recharts');
+vi.mock('recharts', async () => {
+  const Original = await vi.importActual('recharts');
   return {
     ...Original,
     ResponsiveContainer: ({ children }) => <div data-testid="responsive-container">{children}</div>,
@@ -24,7 +24,7 @@ const { usePortfolioContext } = require('@/hooks/usePortfolioContext');
 
 describe('DifferenceChart', () => {
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('renders placeholder when no data', () => {

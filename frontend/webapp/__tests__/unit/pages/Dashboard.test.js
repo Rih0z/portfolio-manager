@@ -2,15 +2,15 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 
 // Mock hooks and child components
-jest.mock('@/hooks/usePortfolioContext', () => ({
-  usePortfolioContext: jest.fn()
+vi.mock('@/hooks/usePortfolioContext', () => ({
+  usePortfolioContext: vi.fn()
 }));
 
-jest.mock('@/components/layout/DataStatusBar', () => () => <div>DataStatusBar</div>);
-jest.mock('@/components/dashboard/PortfolioSummary', () => () => <div>PortfolioSummary</div>);
-jest.mock('@/components/dashboard/PortfolioCharts', () => () => <div>PortfolioCharts</div>);
-jest.mock('@/components/dashboard/DifferenceChart', () => () => <div>DifferenceChart</div>);
-jest.mock('@/components/dashboard/AssetsTable', () => () => <div>AssetsTable</div>);
+vi.mock('@/components/layout/DataStatusBar', () => () => <div>DataStatusBar</div>);
+vi.mock('@/components/dashboard/PortfolioSummary', () => () => <div>PortfolioSummary</div>);
+vi.mock('@/components/dashboard/PortfolioCharts', () => () => <div>PortfolioCharts</div>);
+vi.mock('@/components/dashboard/DifferenceChart', () => () => <div>DifferenceChart</div>);
+vi.mock('@/components/dashboard/AssetsTable', () => () => <div>AssetsTable</div>);
 
 const { usePortfolioContext } = require('@/hooks/usePortfolioContext');
 
@@ -18,7 +18,7 @@ import Dashboard from '@/pages/Dashboard';
 
 describe('Dashboard page', () => {
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('shows empty state when there are no assets', () => {

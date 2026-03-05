@@ -3,19 +3,19 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import TickerSearch from '@/components/settings/TickerSearch';
 
-jest.mock('@/hooks/usePortfolioContext', () => ({
-  usePortfolioContext: jest.fn()
+vi.mock('@/hooks/usePortfolioContext', () => ({
+  usePortfolioContext: vi.fn()
 }));
 
 const { usePortfolioContext } = require('@/hooks/usePortfolioContext');
 
 describe('TickerSearch', () => {
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('validates empty input', async () => {
-    usePortfolioContext.mockReturnValue({ addTicker: jest.fn() });
+    usePortfolioContext.mockReturnValue({ addTicker: vi.fn() });
     render(<TickerSearch />);
 
     const user = userEvent.setup();
@@ -25,7 +25,7 @@ describe('TickerSearch', () => {
   });
 
   it('validates ticker format', async () => {
-    usePortfolioContext.mockReturnValue({ addTicker: jest.fn() });
+    usePortfolioContext.mockReturnValue({ addTicker: vi.fn() });
     render(<TickerSearch />);
 
     const input = screen.getByPlaceholderText('例: AAPL, 7203.T');
@@ -37,7 +37,7 @@ describe('TickerSearch', () => {
   });
 
   it('calls addTicker and clears input on success', async () => {
-    const addTicker = jest.fn().mockResolvedValue({ success: true, message: 'ok' });
+    const addTicker = vi.fn().mockResolvedValue({ success: true, message: 'ok' });
     usePortfolioContext.mockReturnValue({ addTicker });
     render(<TickerSearch />);
 

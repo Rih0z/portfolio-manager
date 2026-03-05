@@ -26,16 +26,16 @@ vi.mock('@react-oauth/google', () => ({
   )
 }));
 
-vi.mock('../../../context/AuthContext', () => ({
-  AuthProvider: ({ children }) => (
-    <div data-testid="auth-provider">{children}</div>
-  )
+vi.mock('../../../stores/authStore', () => ({
+  useAuthStore: vi.fn(() => ({
+    setPortfolioContextRef: vi.fn()
+  }))
 }));
 
-vi.mock('../../../context/PortfolioContext', () => ({
-  PortfolioProvider: ({ children }) => (
-    <div data-testid="portfolio-provider">{children}</div>
-  )
+vi.mock('../../../stores/portfolioStore', () => ({
+  usePortfolioStore: vi.fn(() => ({
+    portfolioData: {}
+  }))
 }));
 
 vi.mock('../../../hooks/useAuth', () => ({

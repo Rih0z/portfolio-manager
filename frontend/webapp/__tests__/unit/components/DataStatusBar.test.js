@@ -3,15 +3,15 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import DataStatusBar from '@/components/layout/DataStatusBar';
 
-jest.mock('@/hooks/usePortfolioContext', () => ({
-  usePortfolioContext: jest.fn()
+vi.mock('@/hooks/usePortfolioContext', () => ({
+  usePortfolioContext: vi.fn()
 }));
 
 const { usePortfolioContext } = require('@/hooks/usePortfolioContext');
 
 describe('DataStatusBar', () => {
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('shows warning when data is not updated', () => {
@@ -19,7 +19,7 @@ describe('DataStatusBar', () => {
       lastUpdated: null,
       exchangeRate: null,
       baseCurrency: 'JPY',
-      refreshMarketPrices: jest.fn(),
+      refreshMarketPrices: vi.fn(),
       isLoading: false
     });
 
@@ -30,7 +30,7 @@ describe('DataStatusBar', () => {
   });
 
   it('calls refreshMarketPrices on button click', async () => {
-    const refreshMarketPrices = jest.fn();
+    const refreshMarketPrices = vi.fn();
     usePortfolioContext.mockReturnValue({
       lastUpdated: new Date().toISOString(),
       exchangeRate: { rate: 150, source: 'Test' },
@@ -50,7 +50,7 @@ describe('DataStatusBar', () => {
       lastUpdated: new Date().toISOString(),
       exchangeRate: { rate: 150, source: 'Test' },
       baseCurrency: 'JPY',
-      refreshMarketPrices: jest.fn(),
+      refreshMarketPrices: vi.fn(),
       isLoading: true
     });
 

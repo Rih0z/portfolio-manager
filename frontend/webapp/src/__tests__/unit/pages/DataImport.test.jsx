@@ -15,8 +15,14 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { I18nextProvider } from 'react-i18next';
 import i18n from '../../mocks/i18n';
-import { PortfolioContext } from '../../../context/PortfolioContext';
 import DataImport from '../../../pages/DataImport';
+
+// usePortfolioContextのモック
+vi.mock('../../../hooks/usePortfolioContext', () => ({
+  usePortfolioContext: vi.fn()
+}));
+
+import { usePortfolioContext } from '../../../hooks/usePortfolioContext';
 
 // モックコンポーネント
 vi.mock('../../../components/ai/ScreenshotAnalyzer', () => ({
@@ -67,12 +73,12 @@ const TestWrapper = ({ children, portfolioValue = {} }) => {
     updatePortfolio: vi.fn()
   };
 
+  usePortfolioContext.mockReturnValue(mockPortfolioContext);
+
   return (
     <MemoryRouter>
       <I18nextProvider i18n={i18n}>
-        <PortfolioContext.Provider value={mockPortfolioContext}>
-          {children}
-        </PortfolioContext.Provider>
+        {children}
       </I18nextProvider>
     </MemoryRouter>
   );
@@ -156,15 +162,15 @@ describe.skip('DataImport', () => {
 
   test('handles data extraction from screenshot analyzer', () => {
     const mockUpdatePortfolio = vi.fn();
-    
+
+    usePortfolioContext.mockReturnValue({
+      portfolio: { assets: [], totalValue: 0 },
+      updatePortfolio: mockUpdatePortfolio
+    });
+
     render(
       <TestWrapper>
-        <PortfolioContext.Provider value={{
-          portfolio: { assets: [], totalValue: 0 },
-          updatePortfolio: mockUpdatePortfolio
-        }}>
-          <DataImport />
-        </PortfolioContext.Provider>
+        <DataImport />
       </TestWrapper>
     );
 
@@ -238,14 +244,14 @@ describe.skip('DataImport', () => {
 
     const mockUpdatePortfolio = vi.fn();
 
+    usePortfolioContext.mockReturnValue({
+      portfolio: existingPortfolio,
+      updatePortfolio: mockUpdatePortfolio
+    });
+
     render(
       <TestWrapper>
-        <PortfolioContext.Provider value={{
-          portfolio: existingPortfolio,
-          updatePortfolio: mockUpdatePortfolio
-        }}>
-          <DataImport />
-        </PortfolioContext.Provider>
+        <DataImport />
       </TestWrapper>
     );
 

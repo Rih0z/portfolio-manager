@@ -3,26 +3,26 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Header from '@/components/layout/Header';
 
-jest.mock('@/hooks/useAuth', () => ({ useAuth: jest.fn() }));
-jest.mock('@/hooks/usePortfolioContext', () => ({ usePortfolioContext: jest.fn() }));
+vi.mock('@/hooks/useAuth', () => ({ useAuth: vi.fn() }));
+vi.mock('@/hooks/usePortfolioContext', () => ({ usePortfolioContext: vi.fn() }));
 
-jest.mock('@/components/auth/LoginButton', () => () => <div>LoginButton</div>);
-jest.mock('@/components/auth/UserProfile', () => () => <div>UserProfile</div>);
+vi.mock('@/components/auth/LoginButton', () => () => <div>LoginButton</div>);
+vi.mock('@/components/auth/UserProfile', () => () => <div>UserProfile</div>);
 
 const { useAuth } = require('@/hooks/useAuth');
 const { usePortfolioContext } = require('@/hooks/usePortfolioContext');
 
 describe('Header', () => {
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('shows login button when not authenticated', () => {
     useAuth.mockReturnValue({ isAuthenticated: false, loading: false });
     usePortfolioContext.mockReturnValue({
       baseCurrency: 'JPY',
-      toggleCurrency: jest.fn(),
-      refreshMarketPrices: jest.fn(),
+      toggleCurrency: vi.fn(),
+      refreshMarketPrices: vi.fn(),
       lastUpdated: null,
       isLoading: false
     });
@@ -32,8 +32,8 @@ describe('Header', () => {
   });
 
   it('handles actions and shows user profile when authenticated', async () => {
-    const toggleCurrency = jest.fn();
-    const refreshMarketPrices = jest.fn();
+    const toggleCurrency = vi.fn();
+    const refreshMarketPrices = vi.fn();
     useAuth.mockReturnValue({ isAuthenticated: true, loading: false });
     usePortfolioContext.mockReturnValue({
       baseCurrency: 'JPY',
