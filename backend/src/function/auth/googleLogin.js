@@ -19,6 +19,7 @@ const {
 const { formatResponse, formatErrorResponse } = require('../../utils/responseUtils');
 const { createSessionCookie, createRefreshTokenCookie } = require('../../utils/cookieParser');
 const { generateAccessToken, generateRefreshToken } = require('../../utils/jwtUtils');
+const { getOrCreateUser } = require('../../services/userService');
 
 /**
  * Google認証処理ハンドラー
@@ -190,6 +191,20 @@ module.exports.handler = async (event) => {
     
     const session = await createUserSession(sessionData);
 
+    // ユーザーレコードを取得/作成（プラン情報を保持）
+    let userRecord;
+    try {
+      userRecord = await getOrCreateUser({
+        userId: userInfo.sub,
+        email: userInfo.email,
+        name: userInfo.name,
+        picture: userInfo.picture,
+      });
+    } catch (userServiceError) {
+      console.warn('ユーザーサービスエラー（継続）:', userServiceError.message);
+      userRecord = { planType: 'free' };
+    }
+
     // セッションCookieを作成（7日間有効）
     const maxAge = 60 * 60 * 24 * 7; // 7日間（秒単位）
     const sessionCookie = createSessionCookie(session.sessionId, maxAge);
@@ -204,7 +219,8 @@ module.exports.handler = async (event) => {
         name: userInfo.name,
         picture: userInfo.picture,
         sessionId: session.sessionId,
-        hasDriveAccess: hasDriveScope || false
+        hasDriveAccess: hasDriveScope || false,
+        planType: userRecord.planType || 'free'
       };
       accessToken = await generateAccessToken(jwtPayload);
       const refreshToken = await generateRefreshToken({

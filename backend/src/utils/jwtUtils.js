@@ -85,6 +85,7 @@ const generateAccessToken = async (payload) => {
     picture: payload.picture,
     sessionId: payload.sessionId,
     hasDriveAccess: payload.hasDriveAccess || false,
+    planType: payload.planType || 'free',
     type: 'access'
   };
 

@@ -19,7 +19,7 @@ const RATE_LIMIT_TABLE = process.env.RATE_LIMIT_TABLE || 'pfwise-api-dev-rate-li
 // 環境別レート制限設定
 const getRateLimits = () => {
   const isProd = process.env.NODE_ENV === 'production';
-  
+
   if (isProd) {
     return {
       public: {
@@ -33,10 +33,19 @@ const getRateLimits = () => {
       admin: {
         hourly: 300,
         daily: 3000
+      },
+      // プラン別レート制限
+      free: {
+        hourly: 30,
+        daily: 100
+      },
+      standard: {
+        hourly: 300,
+        daily: 3000
       }
     };
   }
-  
+
   // 開発環境では緩い制限
   return {
     public: {
@@ -48,6 +57,15 @@ const getRateLimits = () => {
       daily: 5000
     },
     admin: {
+      hourly: 1000,
+      daily: 10000
+    },
+    // プラン別レート制限（開発環境）
+    free: {
+      hourly: 100,
+      daily: 500
+    },
+    standard: {
       hourly: 1000,
       daily: 10000
     }

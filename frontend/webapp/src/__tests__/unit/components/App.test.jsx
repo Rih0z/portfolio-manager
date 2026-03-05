@@ -22,7 +22,9 @@ vi.mock('react-router-dom', () => ({
   NavLink: ({ children, to, className }) => {
     const cls = typeof className === 'function' ? className({ isActive: false }) : className;
     return <a href={to} className={cls}>{typeof children === 'function' ? children({ isActive: false }) : children}</a>;
-  }
+  },
+  Link: ({ children, to, ...props }) => <a href={to} {...props}>{children}</a>,
+  useNavigate: () => vi.fn()
 }));
 
 vi.mock('@react-oauth/google', () => ({
@@ -53,6 +55,25 @@ vi.mock('../../../stores/portfolioStore', () => ({
       updateExchangeRate: vi.fn(),
       baseCurrency: 'JPY',
       initialized: false
+    };
+    return typeof selector === 'function' ? selector(state) : state;
+  })
+}));
+
+vi.mock('../../../stores/subscriptionStore', () => ({
+  useSubscriptionStore: vi.fn((selector) => {
+    const state = {
+      planType: 'free',
+      subscription: null,
+      limits: {},
+      loading: false,
+      error: null,
+      isPremium: () => false,
+      canUseFeature: () => true,
+      fetchStatus: vi.fn(),
+      startCheckout: vi.fn(),
+      openPortal: vi.fn(),
+      setPlanType: vi.fn()
     };
     return typeof selector === 'function' ? selector(state) : state;
   })

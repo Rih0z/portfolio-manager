@@ -52,6 +52,7 @@
     "lodash": "^4.17.21",
     "node-cache": "^5.1.2",
     "p-retry": "^6.1.0",
+    "stripe": "^14.0.0",
     "user-agents": "^1.1.124",
     "uuid": "^9.0.1",
     "winston": "^3.11.0",

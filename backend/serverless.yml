@@ -69,6 +69,12 @@ provider:
     # データベーステーブル
     SESSION_TABLE: ${env:SESSION_TABLE, '${self:service}-${self:provider.stage}-sessions'}
     CACHE_TABLE: ${env:CACHE_TABLE, '${self:service}-${self:provider.stage}-cache'}
+    USERS_TABLE: ${env:USERS_TABLE, '${self:service}-${self:provider.stage}-users'}
+    SUBSCRIPTIONS_TABLE: ${env:SUBSCRIPTIONS_TABLE, '${self:service}-${self:provider.stage}-subscriptions'}
+    USAGE_TABLE: ${env:USAGE_TABLE, '${self:service}-${self:provider.stage}-usage'}
+
+    # Stripe設定
+    STRIPE_WEBHOOK_SECRET_NAME: ${env:STRIPE_WEBHOOK_SECRET_NAME, 'pfwise-api/stripe'}
     
     # セキュリティ設定
     CORS_ALLOW_ORIGIN: ${env:CORS_ALLOW_ORIGIN, '*.portfoliomanager.com'}
@@ -115,11 +121,16 @@ provider:
         - dynamodb:UpdateItem
         - dynamodb:DeleteItem
         - dynamodb:DescribeTable
-      Resource: 
+      Resource:
         - !GetAtt MarketDataCacheTable.Arn
         - !GetAtt SessionsTable.Arn
         - !GetAtt ScrapingBlacklistTable.Arn
         - !GetAtt RateLimitTable.Arn
+        - !GetAtt UsersTable.Arn
+        - !Join ['/', [!GetAtt UsersTable.Arn, 'index/*']]
+        - !GetAtt SubscriptionsTable.Arn
+        - !Join ['/', [!GetAtt SubscriptionsTable.Arn, 'index/*']]
+        - !GetAtt UsageTable.Arn
     # Secrets Manager アクセス権限
     - Effect: Allow
       Action:
@@ -130,6 +141,7 @@ provider:
         - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pfwise-api/github-token-*'
         - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pfwise-api/api-secret-*'
         - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pfwise-api/external-apis-*'
+        - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:pfwise-api/stripe-*'
     # SNS権限を一時的に無効化
     # - Effect: Allow
     #   Action:
@@ -578,6 +590,129 @@ functions:
               - Cookie
             allowCredentials: true
 
+  # ヘルスチェック
+  healthCheck:
+    handler: src/function/common/health.handler
+    events:
+      - http:
+          path: health
+          method: get
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - Authorization
+            allowCredentials: true
+
+  # Stripe Webhook（署名検証のためCORSなし、rawBody必要）
+  stripeWebhook:
+    handler: src/function/stripe/webhook.handler
+    events:
+      - http:
+          path: v1/subscription/webhook
+          method: post
+
+  # Stripe Checkout セッション作成
+  stripeCheckout:
+    handler: src/function/stripe/checkout.handler
+    events:
+      - http:
+          path: v1/subscription/checkout
+          method: post
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - Authorization
+              - Cookie
+            allowCredentials: true
+      - http:
+          path: v1/subscription/checkout
+          method: options
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - Authorization
+              - Cookie
+            allowCredentials: true
+
+  # Stripe Customer Portal
+  stripePortal:
+    handler: src/function/stripe/portal.handler
+    events:
+      - http:
+          path: v1/subscription/portal
+          method: post
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - Authorization
+              - Cookie
+            allowCredentials: true
+      - http:
+          path: v1/subscription/portal
+          method: options
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - Authorization
+              - Cookie
+            allowCredentials: true
+
+  # サブスクリプションステータス取得
+  subscriptionStatus:
+    handler: src/function/stripe/status.handler
+    events:
+      - http:
+          path: v1/subscription/status
+          method: get
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - Authorization
+              - Cookie
+            allowCredentials: true
+
   # デバッグエンドポイント（開発環境のみ）
   # 本番環境ではコメントアウトすること
   # debugGoogleConfig:
@@ -653,6 +788,78 @@ resources:
           AttributeName: ttl
           Enabled: true
     
+    # ユーザー管理テーブル
+    UsersTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-${self:provider.stage}-users
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
+          - AttributeName: email
+            AttributeType: S
+          - AttributeName: stripeCustomerId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: email-index
+            KeySchema:
+              - AttributeName: email
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+          - IndexName: stripeCustomerId-index
+            KeySchema:
+              - AttributeName: stripeCustomerId
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+
+    # サブスクリプション管理テーブル
+    SubscriptionsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-${self:provider.stage}-subscriptions
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: subscriptionId
+            AttributeType: S
+          - AttributeName: userId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: subscriptionId
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: userId-index
+            KeySchema:
+              - AttributeName: userId
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+
+    # 使用量追跡テーブル
+    UsageTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-${self:provider.stage}-usage
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
+          - AttributeName: date
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
+          - AttributeName: date
+            KeyType: RANGE
+        TimeToLiveSpecification:
+          AttributeName: ttl
+          Enabled: true
+
     # AlertTopic を一時的に無効化
     # AlertTopic:
     #   Type: AWS::SNS::Topic

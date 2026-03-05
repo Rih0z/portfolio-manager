@@ -9,6 +9,7 @@ import { create } from 'zustand';
 import { getApiEndpoint, getGoogleClientId } from '../utils/envUtils';
 import { authFetch, setAuthToken, getAuthToken, clearAuthToken, refreshAccessToken } from '../utils/apiUtils';
 import { usePortfolioStore } from './portfolioStore';
+import { useSubscriptionStore } from './subscriptionStore';
 
 interface UserData {
   id: string;
@@ -114,11 +115,19 @@ const setAuthState = (userData: UserData | null, authenticated: boolean, driveAc
   });
 
   if (authenticated && userData) {
-    if (token) setAuthToken(token);
+    if (token) {
+      setAuthToken(token);
+      // JWT から planType を抽出して subscriptionStore に反映
+      const { payload } = checkTokenLocally(token);
+      if (payload?.planType) {
+        useSubscriptionStore.getState().setPlanType(payload.planType);
+      }
+    }
     saveSession(userData, driveAccess);
   } else {
     clearAuthToken();
     clearSession();
+    useSubscriptionStore.getState().setPlanType('free');
   }
 };
 

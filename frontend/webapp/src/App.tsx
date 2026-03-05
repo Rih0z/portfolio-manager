@@ -28,10 +28,17 @@ import Simulation from './pages/Simulation';
 import DataIntegration from './pages/DataIntegration';
 import DataImport from './pages/DataImport';
 import AIAdvisor from './pages/AIAdvisor';
+import Pricing from './pages/Pricing';
+import Terms from './pages/legal/Terms';
+import Privacy from './pages/legal/Privacy';
+import KKKR from './pages/legal/KKKR';
+import Disclaimer from './pages/legal/Disclaimer';
 import SettingsChecker from './components/common/SettingsChecker';
 import { useAuthStore } from './stores/authStore';
 import { usePortfolioStore } from './stores/portfolioStore';
 import { useUIStore } from './stores/uiStore';
+import { useSubscriptionStore } from './stores/subscriptionStore';
+import Footer from './components/layout/Footer';
 import { initializeApiConfig, getGoogleClientId } from './utils/envUtils';
 
 // i18n初期化
@@ -131,6 +138,14 @@ const StoreInitializer = () => {
       updateExchangeRate();
     }
   }, [baseCurrency, initialized]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Subscription status fetch (when authenticated)
+  const fetchSubscriptionStatus = useSubscriptionStore(s => s.fetchStatus);
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchSubscriptionStatus();
+    }
+  }, [isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return null;
 };
@@ -235,9 +250,15 @@ const App = () => {
                     <Route path="/investment-calculator" element={<Simulation />} />
                     <Route path="/data" element={<DataIntegration />} />
                     <Route path="/data-import" element={<DataImport />} />
+                    <Route path="/pricing" element={<Pricing />} />
+                    <Route path="/legal/terms" element={<Terms />} />
+                    <Route path="/legal/privacy" element={<Privacy />} />
+                    <Route path="/legal/kkkr" element={<KKKR />} />
+                    <Route path="/legal/disclaimer" element={<Disclaimer />} />
                     <Route path="/auth/google/callback" element={<Dashboard />} />
                   </Routes>
                 </main>
+                <Footer />
                 <TabNavigation />
               </div>
             </SettingsChecker>
