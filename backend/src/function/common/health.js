@@ -3,6 +3,7 @@
  *
  * GET /health
  * DynamoDB 接続確認を含むアプリケーション状態チェック。
+ * 内部情報（テーブル名、リージョン、ステージ等）は外部に公開しない。
  *
  * @file src/function/common/health.js
  */
@@ -23,9 +24,9 @@ module.exports.handler = async (event) => {
   try {
     const tableName = process.env.CACHE_TABLE || 'pfwise-api-dev-cache';
     await dynamoClient.send(new DescribeTableCommand({ TableName: tableName }));
-    checks.dynamodb = 'ok';
-  } catch (error) {
-    checks.dynamodb = `error: ${error.message}`;
+    checks.database = 'ok';
+  } catch (_error) {
+    checks.database = 'error';
   }
 
   const allOk = Object.values(checks).every(v => v === 'ok');
@@ -34,7 +35,6 @@ module.exports.handler = async (event) => {
   const body = {
     status: allOk ? 'healthy' : 'degraded',
     version: '1.0.0',
-    stage: process.env.NODE_ENV || 'dev',
     timestamp: new Date().toISOString(),
     responseTime: `${responseTime}ms`,
     checks,

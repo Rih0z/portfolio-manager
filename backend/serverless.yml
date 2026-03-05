@@ -610,7 +610,11 @@ functions:
               - Authorization
             allowCredentials: true
 
-  # Stripe Webhook（署名検証のためCORSなし、rawBody必要）
+  # Stripe Webhook
+  # 認証: Stripe-Signature ヘッダーによる署名検証（ハンドラー内で実施）
+  # CORS なし: Stripe サーバー→API Gateway 直通のため不要
+  # rawBody 必要: 署名検証に生のリクエストボディが必要
+  # 冪等性: イベント ID で重複排除（DynamoDB CacheTable に 24h TTL で記録）
   stripeWebhook:
     handler: src/function/stripe/webhook.handler
     events:

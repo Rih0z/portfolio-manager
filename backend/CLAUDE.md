@@ -22,6 +22,36 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run deploy:prod` - Deploy to production stage
 - `npm run logs` - View Lambda function logs
 
+### Stripe Webhook ローカルテスト
+Stripe CLI を使用して Webhook イベントをローカル環境に転送する:
+
+```bash
+# 1. Stripe CLI のインストール（macOS）
+brew install stripe/stripe-cli/stripe
+
+# 2. Stripe アカウントにログイン
+stripe login
+
+# 3. ローカルサーバーへ Webhook イベントを転送
+# serverless-offline 使用時（デフォルト: http://localhost:3000）
+stripe listen --forward-to http://localhost:3000/dev/v1/subscription/webhook
+
+# 4. 別ターミナルでテストイベントを送信
+stripe trigger checkout.session.completed
+stripe trigger customer.subscription.updated
+stripe trigger customer.subscription.deleted
+stripe trigger invoice.payment_succeeded
+stripe trigger invoice.payment_failed
+
+# 5. stripe listen 出力の webhook signing secret を .env に設定
+# STRIPE_WEBHOOK_SECRET=whsec_xxxxx
+```
+
+注意事項:
+- `stripe listen` は起動のたびに新しい signing secret を生成する
+- テストモードのイベントは本番 Webhook には影響しない
+- ローカルテスト時は Secrets Manager の代わりに環境変数から secret を読み込む
+
 ### Utilities
 - `npm run test:clean` - Clean test results directory
 
