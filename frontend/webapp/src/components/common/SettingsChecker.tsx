@@ -9,10 +9,10 @@
  * 設定の有無をチェックし、設定がない場合は初期設定ウィザードを表示する。
  */
 
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { PortfolioContext } from '../../context/PortfolioContext';
+import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 
 const SettingsChecker = ({ children }) => {
   const [hasChecked, setHasChecked] = useState(false);
@@ -24,7 +24,7 @@ const SettingsChecker = ({ children }) => {
     currentAssets,
     targetPortfolio,
     additionalBudget
-  } = useContext(PortfolioContext);
+  } = usePortfolioContext();
 
   useEffect(() => {
     // 初回チェック時のみ実行

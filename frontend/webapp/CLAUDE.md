@@ -12,21 +12,19 @@ npm start
 # Build for production
 npm run build
 
-# Run all tests with coverage
-npm test
+# Run all tests
+npm test                   # vitest run
+npm run test:watch         # vitest (watch mode)
+npm run test:coverage      # vitest run --coverage
 
-# Run specific test suites
-npm run test:unit          # Unit tests only
-npm run test:integration   # Integration tests
-npm run test:e2e          # End-to-end tests
+# TypeScript type checking
+npm run typecheck          # tsc --noEmit
 
-# Advanced test options (using scripts/run-tests.sh)
-npm run test:all          # All tests
-npm run test:coverage-chart  # Generate visual coverage report
-npm run test:visual       # Open coverage in browser
+# View coverage report
+npm run test:view-coverage
 
 # Run a single test file
-npm test -- path/to/test.js
+npx vitest run path/to/test.ts
 ```
 
 ## Architecture Overview
@@ -34,19 +32,21 @@ npm test -- path/to/test.js
 This is a React-based portfolio management application with AI-powered investment analysis capabilities. Key architectural decisions:
 
 ### Frontend Architecture
+- **TypeScript** (strict: false, allowJs: true — インクリメンタル移行中)
 - **React 18** with functional components and hooks
-- **Context API** for state management (AuthContext for auth, PortfolioContext for portfolio data)
+- **Vite** for build and dev server
+- **Zustand** for client state management (authStore, portfolioStore, uiStore)
+- **TanStack Query** for server state caching
 - **TailwindCSS** for styling with custom theme colors
 - **Recharts** for data visualization
 - **Google OAuth** for authentication
 - **Axios** for API calls with retry logic
 
 ### Testing Architecture
-- **Jest + React Testing Library** for unit/integration tests
-- **MSW (Mock Service Worker)** for API mocking
-- Custom test runner script (`scripts/run-tests.sh`) with advanced options
-- Coverage thresholds enforced (70-80% target)
-- Visual coverage reporting with chart generation
+- **Vitest + React Testing Library** for unit/integration tests
+- **MSW (Mock Service Worker) v1** for API mocking
+- Coverage via `@vitest/coverage-v8`
+- Setup: `vitest.config.ts` + `vitest.setup.ts`
 
 ### Key Patterns
 
@@ -55,7 +55,7 @@ This is a React-based portfolio management application with AI-powered investmen
    - `marketDataService.js`: Market data fetching with fallbacks
    - `adminService.js`: Admin functionality
 
-2. **Context Bridge Pattern**: `ContextConnector` component bridges AuthContext and PortfolioContext
+2. **Zustand Store Pattern**: Three stores (authStore, portfolioStore, uiStore) with cross-store communication via `getState()`
 
 3. **Environment Configuration**: All API settings are dynamically fetched from AWS
    - No API URLs or keys stored in client

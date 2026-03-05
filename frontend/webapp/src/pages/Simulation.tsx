@@ -15,11 +15,11 @@
  * 予算設定、最適な購入配分のシミュレーション、一括購入実行機能を実装。
  */
 
-import React, { useContext } from 'react';
+import React from 'react';
 import BudgetInput from '../components/simulation/BudgetInput';
 import SimulationResult from '../components/simulation/SimulationResult';
 import AiAnalysisPrompt from '../components/simulation/AiAnalysisPrompt';
-import { PortfolioContext } from '../context/PortfolioContext';
+import { usePortfolioContext } from '../hooks/usePortfolioContext';
 
 const Simulation = () => {
   const {
@@ -28,7 +28,7 @@ const Simulation = () => {
     calculateSimulation,
     executeBatchPurchase,
     baseCurrency
-  } = useContext(PortfolioContext);
+  } = usePortfolioContext();
 
   // シミュレーション結果を計算
   const simulationResults = calculateSimulation();

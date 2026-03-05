@@ -13,10 +13,10 @@
  * ホーム、設定、シミュレーション、データの各タブを表示し、現在のページを強調表示する。
  * モバイル対応のタブナビゲーションで、画面下部に固定表示される。
  */
-import React, { useContext } from 'react';
+import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { PortfolioContext } from '../../context/PortfolioContext';
+import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 
 const TabNavigation = () => {
   const { t } = useTranslation();
@@ -25,7 +25,7 @@ const TabNavigation = () => {
     currentAssets,
     targetPortfolio,
     additionalBudget
-  } = useContext(PortfolioContext);
+  } = usePortfolioContext();
 
   // 設定がない場合は判定
   const hasNoSettings = 

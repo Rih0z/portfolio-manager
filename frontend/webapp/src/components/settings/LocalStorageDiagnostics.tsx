@@ -10,13 +10,13 @@
  * ブラウザ保存されたポートフォリオデータの状態確認とデバッグを支援する。
  */
 
-import React, { useState, useContext } from 'react';
-import { PortfolioContext } from '../../context/PortfolioContext';
+import React, { useState } from 'react';
+import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 import ModernButton from '../common/ModernButton';
 import { FaExclamationTriangle, FaCheckCircle, FaTools, FaTrash, FaSync } from 'react-icons/fa';
 
 const LocalStorageDiagnostics = () => {
-  const { debugLocalStorage, clearLocalStorage, loadFromLocalStorage, initializeData } = useContext(PortfolioContext);
+  const { debugLocalStorage, clearLocalStorage, loadFromLocalStorage, initializeData } = usePortfolioContext();
   const [diagnosticsResult, setDiagnosticsResult] = useState(null);
   const [isRunning, setIsRunning] = useState(false);
 

@@ -11,8 +11,8 @@
  * リセット後は初期設定ウィザードが表示される。
  */
 
-import React, { useState, useContext } from 'react';
-import { PortfolioContext } from '../../context/PortfolioContext';
+import React, { useState } from 'react';
+import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 import ModernButton from '../common/ModernButton';
 import ModernCard from '../common/ModernCard';
 
@@ -25,7 +25,7 @@ const ResetSettings = () => {
     addNotification,
     currentAssets,
     targetPortfolio
-  } = useContext(PortfolioContext);
+  } = usePortfolioContext();
 
   const hasData = currentAssets.length > 0 || targetPortfolio.length > 0;
 

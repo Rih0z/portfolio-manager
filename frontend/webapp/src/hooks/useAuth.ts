@@ -1,33 +1,37 @@
 /**
- * プロジェクト: https://portfolio-wise.com/
- * ファイルパス: src/hooks/useAuth.ts
+ * useAuth - 認証状態アクセスフック
  *
- * 作成者: Koki Riho （https://github.com/Rih0z）
- * 作成日: 2025-03-15 13:45:22
- * 更新日: 2025-05-19 13:00:00
- *
- * 更新履歴:
- * - 2025-03-15 13:45:22 Koki Riho 初回作成
- * - 2025-05-12 15:30:00 Koki Riho バックエンド連携型認証に対応
- * - 2025-05-19 13:00:00 System Admin AWS環境対応に修正
- *
- * 説明:
- * AuthContextから認証状態と認証関連機能を取得するためのカスタムフック。
- * このフックを使用することで、コンポーネントは認証情報にアクセスできる。
+ * Zustand authStore のセレクタフック。
+ * AuthContext は廃止。全コンポーネントはこのフック経由で認証状態にアクセスする。
  */
-import { useContext } from 'react';
-import { AuthContext, AuthContextValue } from '../context/AuthContext';
+import { useAuthStore } from '../stores/authStore';
 
-// AuthContextから値を取得するカスタムフック
+export interface AuthContextValue {
+  user: any;
+  isAuthenticated: boolean;
+  loading: boolean;
+  error: string | null;
+  hasDriveAccess: boolean;
+  googleClientId: string;
+  loginWithGoogle: (credentialResponse: any) => Promise<any>;
+  logout: () => Promise<void>;
+  checkSession: () => Promise<boolean>;
+  initiateDriveAuth: () => Promise<boolean>;
+  handleLogout: () => Promise<void>;
+  login: (credentialResponse: any) => Promise<any>;
+  authorizeDrive: () => Promise<boolean>;
+  // 後方互換: ContextConnector 用（noop）
+  setPortfolioContextRef?: (context: any) => void;
+}
+
 export const useAuth = (): AuthContextValue => {
-  const context = useContext(AuthContext);
+  const store = useAuthStore();
 
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-
-  return context as AuthContextValue;
+  return {
+    ...store,
+    // setPortfolioContextRef is no longer needed (stores communicate directly)
+    setPortfolioContextRef: () => {},
+  };
 };
 
-// デフォルトエクスポートも提供
 export default useAuth;

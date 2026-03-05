@@ -12,10 +12,10 @@
  * そのものは外部AIに委託する。
  */
 
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { PortfolioContext } from '../context/PortfolioContext';
+import { usePortfolioContext } from '../hooks/usePortfolioContext';
 import MarketSelectionWizard, { INVESTMENT_MARKETS } from '../components/settings/MarketSelectionWizard';
 import PromptOrchestrator from '../components/ai/PromptOrchestrator';
 import promptOrchestrationService from '../services/PromptOrchestrationService';
@@ -32,7 +32,7 @@ const AIAdvisor = () => {
     currentAssets,
     targetPortfolio,
     additionalBudget
-  } = useContext(PortfolioContext);
+  } = usePortfolioContext();
 
   // 設定がない場合の判定
   const hasNoSettings =

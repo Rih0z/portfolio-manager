@@ -1,46 +1,18 @@
 /**
- * 通知管理用カスタムフック
- *
- * NotificationServiceをReactで使いやすくラップ
+ * 通知管理用カスタムフック — UIStore セレクタ
  */
-
-import { useState, useEffect, useCallback } from 'react';
-import { notificationService } from '../../services/portfolio/NotificationService';
-import type { Notification } from '../../types/portfolio.types';
+import { useUIStore } from '../../stores/uiStore';
 
 interface UseNotificationsReturn {
-  notifications: Notification[];
-  addNotification: (message: string, type?: Notification['type']) => string;
+  notifications: any[];
+  addNotification: (message: string, type?: string) => string;
   removeNotification: (id: string) => void;
 }
 
-/**
- * 通知を管理するフック
- * @returns 通知とアクション
- */
 export const useNotifications = (): UseNotificationsReturn => {
-  const [notifications, setNotifications] = useState<Notification[]>(notificationService.getAll());
+  const notifications = useUIStore(s => s.notifications);
+  const addNotification = useUIStore(s => s.addNotification);
+  const removeNotification = useUIStore(s => s.removeNotification);
 
-  useEffect(() => {
-    // NotificationServiceの変更を購読
-    const unsubscribe = notificationService.subscribe((newNotifications: Notification[]) => {
-      setNotifications(newNotifications);
-    });
-
-    return unsubscribe;
-  }, []);
-
-  const addNotification = useCallback((message: string, type: Notification['type'] = 'info'): string => {
-    return notificationService.add(message, type);
-  }, []);
-
-  const removeNotification = useCallback((id: string): void => {
-    notificationService.remove(id);
-  }, []);
-
-  return {
-    notifications,
-    addNotification,
-    removeNotification
-  };
+  return { notifications, addNotification, removeNotification };
 };

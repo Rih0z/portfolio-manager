@@ -4,25 +4,22 @@
  *
  * 作成者: Koki Riho （https://github.com/Rih0z）
  * 作成日: 2025-03-01 10:00:00
+ * 更新日: 2026-03-05
  *
  * 更新履歴:
- * - 2025-03-01 10:00:00 Koki Riho 初回作成
- * - 2025-03-15 14:30:00 Koki Riho エラーバウンダリを追加
- * - 2025-04-20 09:45:00 Yuta Sato コンテキスト接続コンポーネントを改善
- * - 2025-05-08 11:20:00 Koki Riho ファイルヘッダーを追加
- * - 2025-05-12 14:30:00 Koki Riho 認可コードフロー対応
+ * - 2025-03-01 Koki Riho 初回作成
+ * - 2026-03-05 Claude Code Zustand + TanStack Query 移行（Context廃止）
  *
  * 説明:
  * アプリケーションのルートコンポーネント。
- * ルーティング、認証プロバイダー、ポートフォリオプロバイダー、エラーバウンダリを設定し、
- * ヘッダーとタブナビゲーションを備えたアプリケーションのレイアウトを提供する。
+ * Zustand stores + TanStack Query でグローバル状態管理。
+ * AuthProvider/PortfolioProvider/ContextConnector は廃止。
  */
 
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
-import { AuthProvider } from './context/AuthContext';
-import { PortfolioProvider } from './context/PortfolioContext';
+import { QueryProvider } from './providers/QueryProvider';
 import Header from './components/layout/Header';
 import TabNavigation from './components/layout/TabNavigation';
 import Dashboard from './pages/Dashboard';
@@ -32,8 +29,9 @@ import DataIntegration from './pages/DataIntegration';
 import DataImport from './pages/DataImport';
 import AIAdvisor from './pages/AIAdvisor';
 import SettingsChecker from './components/common/SettingsChecker';
-import { useAuth } from './hooks/useAuth';
-import { usePortfolioContext } from './hooks/usePortfolioContext';
+import { useAuthStore } from './stores/authStore';
+import { usePortfolioStore } from './stores/portfolioStore';
+import { useUIStore } from './stores/uiStore';
 import { initializeApiConfig, getGoogleClientId } from './utils/envUtils';
 
 // i18n初期化
@@ -47,14 +45,13 @@ const AppInitializer = ({ children }: any) => {
   useEffect(() => {
     const init = async () => {
       try {
-        // API設定をAWSから取得
         await initializeApiConfig();
         const clientId = await getGoogleClientId();
         setGoogleClientId(clientId);
         setInitialized(true);
       } catch (error) {
         console.error('API設定の初期化に失敗しました:', error);
-        setInitialized(true); // エラーでもアプリを続行
+        setInitialized(true);
       }
     };
     init();
@@ -93,23 +90,83 @@ const AppInitializer = ({ children }: any) => {
   );
 };
 
-// コンテキスト接続コンポーネント（安全版）
-const ContextConnector = () => {
-  const auth = useAuth();
-  const portfolio = usePortfolioContext();
+// Store初期化コンポーネント（AuthStore + PortfolioStore のサイドエフェクトを管理）
+const StoreInitializer = () => {
+  const initializeAuth = useAuthStore(s => s.initializeAuth);
+  const setupSessionInterval = useAuthStore(s => s.setupSessionInterval);
+  const setupVisibilityHandler = useAuthStore(s => s.setupVisibilityHandler);
+  const isAuthenticated = useAuthStore(s => s.isAuthenticated);
+  const initializeData = usePortfolioStore(s => s.initializeData);
+  const updateExchangeRate = usePortfolioStore(s => s.updateExchangeRate);
+  const baseCurrency = usePortfolioStore(s => s.baseCurrency);
+  const initialized = usePortfolioStore(s => s.initialized);
 
-  // マウント時にAuthContextにPortfolioContextへの参照を渡す
+  // Auth initialization (once)
   useEffect(() => {
-    try {
-      if (auth && (auth as any).setPortfolioContextRef && portfolio) {
-        (auth as any).setPortfolioContextRef(portfolio);
-      }
-    } catch (err) {
-      console.error('コンテキスト接続中にエラーが発生しました:', err);
+    initializeAuth();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Session interval (when authenticated)
+  useEffect(() => {
+    if (isAuthenticated) {
+      return setupSessionInterval();
     }
-  }, [auth, portfolio]);
+  }, [isAuthenticated, setupSessionInterval]);
+
+  // Visibility handler (when authenticated)
+  useEffect(() => {
+    if (isAuthenticated) {
+      return setupVisibilityHandler();
+    }
+  }, [isAuthenticated, setupVisibilityHandler]);
+
+  // Portfolio initialization (once)
+  useEffect(() => {
+    initializeData();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Currency change → exchange rate update
+  useEffect(() => {
+    if (initialized && baseCurrency) {
+      updateExchangeRate();
+    }
+  }, [baseCurrency, initialized]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return null;
+};
+
+// 通知表示コンポーネント
+const NotificationDisplay = () => {
+  const notifications = useUIStore(s => s.notifications);
+  const removeNotification = useUIStore(s => s.removeNotification);
+
+  if (notifications.length === 0) return null;
+
+  return (
+    <div className="fixed bottom-0 right-0 p-4 space-y-2 z-50">
+      {notifications.map((notification: any) => (
+        <div
+          key={notification.id}
+          className={`p-3 rounded-md shadow-md text-sm ${
+            notification.type === 'error' ? 'bg-red-100 text-red-700' :
+            notification.type === 'warning' ? 'bg-yellow-100 text-yellow-700' :
+            notification.type === 'success' ? 'bg-green-100 text-green-700' :
+            'bg-blue-100 text-blue-700'
+          }`}
+        >
+          <div className="flex justify-between items-start">
+            <span>{notification.message}</span>
+            <button
+              onClick={() => removeNotification(notification.id)}
+              className="ml-2 text-gray-500 hover:text-gray-700"
+            >
+              &times;
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 };
 
 // エラー境界コンポーネント
@@ -160,37 +217,36 @@ class ErrorBoundary extends React.Component<any, any> {
 const App = () => {
   return (
     <ErrorBoundary>
-      <AppInitializer>
-        <AuthProvider>
-          <PortfolioProvider>
-            {/* コンテキスト間の接続を処理するコンポーネント */}
-            <ContextConnector />
+      <QueryProvider>
+        <AppInitializer>
+          {/* Store初期化（認証・ポートフォリオのサイドエフェクト管理） */}
+          <StoreInitializer />
 
-            <Router>
-              <SettingsChecker>
-                <div className="min-h-screen bg-dark-100 text-gray-100">
-                  <Header />
-                  {/* Mobile-optimized main content with dark theme */}
-                  <main className="max-w-7xl mx-auto pt-2 sm:pt-4 lg:pt-6 pb-20 sm:pb-6">
-                    <Routes>
-                      <Route path="/" element={<Dashboard />} />
-                      <Route path="/ai-advisor" element={<AIAdvisor />} />
-                      <Route path="/settings" element={<Settings />} />
-                      <Route path="/simulation" element={<Simulation />} />
-                      <Route path="/investment-calculator" element={<Simulation />} />
-                      <Route path="/data" element={<DataIntegration />} />
-                      <Route path="/data-import" element={<DataImport />} />
-                      <Route path="/auth/google/callback" element={<Dashboard />} />
-                    </Routes>
-                  </main>
-                  {/* Mobile-friendly tab navigation */}
-                  <TabNavigation />
-                </div>
-              </SettingsChecker>
-            </Router>
-          </PortfolioProvider>
-        </AuthProvider>
-      </AppInitializer>
+          <Router>
+            <SettingsChecker>
+              <div className="min-h-screen bg-dark-100 text-gray-100">
+                <Header />
+                <main className="max-w-7xl mx-auto pt-2 sm:pt-4 lg:pt-6 pb-20 sm:pb-6">
+                  <Routes>
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/ai-advisor" element={<AIAdvisor />} />
+                    <Route path="/settings" element={<Settings />} />
+                    <Route path="/simulation" element={<Simulation />} />
+                    <Route path="/investment-calculator" element={<Simulation />} />
+                    <Route path="/data" element={<DataIntegration />} />
+                    <Route path="/data-import" element={<DataImport />} />
+                    <Route path="/auth/google/callback" element={<Dashboard />} />
+                  </Routes>
+                </main>
+                <TabNavigation />
+              </div>
+            </SettingsChecker>
+          </Router>
+
+          {/* 通知表示（PortfolioProvider内の通知UIを移行） */}
+          <NotificationDisplay />
+        </AppInitializer>
+      </QueryProvider>
     </ErrorBoundary>
   );
 }

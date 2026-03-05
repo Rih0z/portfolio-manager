@@ -11,8 +11,8 @@
  * ユーザーに基本的な設定を案内する。
  */
 
-import React, { useState, useContext } from 'react';
-import { PortfolioContext } from '../../context/PortfolioContext';
+import React, { useState } from 'react';
+import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 import ModernButton from './ModernButton';
 import ModernCard from './ModernCard';
 import ModernInput from './ModernInput';
@@ -28,7 +28,7 @@ const InitialSetupWizard = ({ onComplete }) => {
     setBaseCurrency: updateBaseCurrency,
     setAdditionalBudget,
     addNotification
-  } = useContext(PortfolioContext);
+  } = usePortfolioContext();
 
   const handleNext = () => {
     if (step === 1) {

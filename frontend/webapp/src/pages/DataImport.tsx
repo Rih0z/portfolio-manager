@@ -12,14 +12,14 @@
  * プロンプト生成機能はAIアドバイザータブに集約済み
  */
 
-import React, { useState, useContext } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { PortfolioContext } from '../context/PortfolioContext';
+import { usePortfolioContext } from '../hooks/usePortfolioContext';
 import ScreenshotAnalyzer from '../components/ai/ScreenshotAnalyzer';
 
 const DataImport = () => {
   const { t, i18n } = useTranslation();
-  const { portfolio, updatePortfolio } = useContext(PortfolioContext);
+  const { portfolio, updatePortfolio } = usePortfolioContext();
   const [activeTab, setActiveTab] = useState('ai-result');
   const [importHistory, setImportHistory] = useState<any[]>([]);
   const [importStats, setImportStats] = useState({

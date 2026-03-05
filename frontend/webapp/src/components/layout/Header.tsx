@@ -14,11 +14,10 @@
  * アプリ名の表示、通貨切り替えボタン、データ更新ボタン、最終更新日時の表示、
  * および認証状態に応じたユーザープロフィールまたはログインボタンを表示する。
  */
-import React, { useContext } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../hooks/useAuth';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
-import { PortfolioContext } from '../../context/PortfolioContext';
 import UserProfile from '../auth/UserProfile';
 import OAuthLoginButton from '../auth/OAuthLoginButton';
 import LanguageSwitcher from '../common/LanguageSwitcher';
@@ -34,11 +33,11 @@ const Header = () => {
     isLoading: dataLoading 
   } = usePortfolioContext();
 
-  const { 
+  const {
     currentAssets,
     targetPortfolio,
     additionalBudget
-  } = useContext(PortfolioContext);
+  } = usePortfolioContext();
 
   // 設定がない場合の判定
   const hasNoSettings = 
