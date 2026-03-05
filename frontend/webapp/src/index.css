@@ -1,49 +1,102 @@
-/** 
- * プロジェクト: https://portfolio-wise.com/ 
- * ファイルパス: src/index.css 
- * 
- * 作成者: Koki Riho （https://github.com/Rih0z） 
- * 作成日: 2025-03-01 10:00:00 
- * 
- * 更新履歴: 
- * - 2025-03-01 10:00:00 Koki Riho 初回作成
- * - 2025-03-10 15:45:00 Koki Riho Tailwind CSSの設定を追加
- * - 2025-03-20 11:30:00 Yuta Sato iOS風のUIスタイルを追加
- * - 2025-05-08 11:20:00 Koki Riho ファイルヘッダーを追加
- * 
- * 説明: 
- * グローバルCSSスタイルシート。
- * Tailwind CSSのディレクティブとカスタムスタイルを含む。
- * iOS風のUIを実現するためのスタイル定義や、セーフエリア対応のユーティリティクラスを提供する。
+/**
+ * グローバルCSSスタイルシート
+ * CSS変数ベースのテーマシステム + Tailwind CSS
+ * @file src/index.css
  */
 
 @import 'tailwindcss/base';
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
 
-/* iPhone用の安全領域（ノッチやホームバー）への対応 */
+/* ========================================
+   テーマ CSS 変数
+   ======================================== */
+
+/* ライトモード（デフォルト） */
+:root {
+  --background: #F8FAFC;
+  --foreground: #0F172A;
+  --card: #FFFFFF;
+  --card-foreground: #0F172A;
+  --muted: #F1F5F9;
+  --muted-foreground: #64748B;
+  --accent: #F1F5F9;
+  --accent-foreground: #0F172A;
+  --border: #E2E8F0;
+  --input: #E2E8F0;
+  --ring: #1A56DB;
+  --radius: 0.75rem;
+}
+
+/* ダークモード */
+.dark {
+  --background: #0F172A;
+  --foreground: #F8FAFC;
+  --card: #1E293B;
+  --card-foreground: #F8FAFC;
+  --muted: #1E293B;
+  --muted-foreground: #94A3B8;
+  --accent: #1E293B;
+  --accent-foreground: #F8FAFC;
+  --border: #334155;
+  --input: #334155;
+  --ring: #60A5FA;
+}
+
+/* 後方互換: 旧ダークテーマ変数 */
+.dark {
+  --dark-100: #0A0A0B;
+  --dark-200: #141416;
+  --dark-300: #1C1C1F;
+  --dark-400: #28282C;
+}
+
+/* ========================================
+   グローバルスタイル
+   ======================================== */
+
+body {
+  font-family: 'Inter', 'Noto Sans JP', -apple-system, BlinkMacSystemFont,
+    'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--background);
+  color: var(--foreground);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* ========================================
+   タイポグラフィ
+   ======================================== */
+
+/* 金額・数値表示に等幅フォント */
+.font-mono,
+[data-numeric] {
+  font-family: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ========================================
+   iOS セーフエリア対応
+   ======================================== */
+
 .h-safe-bottom {
   height: env(safe-area-inset-bottom, 0);
 }
 
-/* iOS風のタブバースタイル */
 .tab-nav-ios {
   -webkit-backdrop-filter: saturate(180%) blur(20px);
   backdrop-filter: saturate(180%) blur(20px);
-  background-color: rgba(255, 255, 255, 0.8);
 }
 
-/* コンテンツがタブバーの下に隠れないようにするためのマージン */
 .ios-content-margin {
   margin-bottom: calc(4rem + env(safe-area-inset-bottom, 0));
 }
 
-/* iOS風のアニメーション */
 .ios-animation {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* アクティブタブのインジケーター */
 .ios-active-indicator {
   position: relative;
 }
@@ -58,4 +111,38 @@
   height: 5px;
   border-radius: 50%;
   background-color: currentColor;
+}
+
+/* ========================================
+   コンポーネントレイヤー
+   ======================================== */
+
+@layer components {
+  /* shadcn/ui スタイルのフォーカスリング */
+  .focus-ring {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+}
+
+/* ========================================
+   スクロールバー
+   ======================================== */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--muted-foreground);
+  border-radius: 3px;
+  opacity: 0.3;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  opacity: 0.5;
 }

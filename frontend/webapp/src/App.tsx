@@ -66,21 +66,21 @@ const AppInitializer = ({ children }: any) => {
 
   if (!initialized) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-dark-100 px-4">
+      <div className="flex items-center justify-center min-h-screen bg-background px-4">
         <div className="text-center">
           <div className="w-16 h-16 mx-auto mb-6 relative">
             <div className="absolute inset-0 bg-primary-500/20 rounded-full blur-xl animate-pulse"></div>
-            <div className="relative w-16 h-16 bg-dark-300 rounded-full flex items-center justify-center border border-dark-400">
-              <svg className="w-8 h-8 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="relative w-16 h-16 bg-card rounded-full flex items-center justify-center border border-border">
+              <svg className="w-8 h-8 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
           </div>
-          <p className="text-gray-300 text-sm sm:text-base font-medium">PortfolioWise を起動しています...</p>
+          <p className="text-muted-foreground text-sm sm:text-base font-medium">PortfolioWise を起動しています...</p>
           <div className="mt-4 flex items-center justify-center space-x-1">
-            <div className="w-2 h-2 bg-primary-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-            <div className="w-2 h-2 bg-primary-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-            <div className="w-2 h-2 bg-primary-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+            <div className="w-2 h-2 bg-primary-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+            <div className="w-2 h-2 bg-primary-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+            <div className="w-2 h-2 bg-primary-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
           </div>
         </div>
       </div>
@@ -97,7 +97,7 @@ const AppInitializer = ({ children }: any) => {
   );
 };
 
-// Store初期化コンポーネント（AuthStore + PortfolioStore のサイドエフェクトを管理）
+// Store初期化コンポーネント（AuthStore + PortfolioStore + UIStore のサイドエフェクトを管理）
 const StoreInitializer = () => {
   const initializeAuth = useAuthStore(s => s.initializeAuth);
   const setupSessionInterval = useAuthStore(s => s.setupSessionInterval);
@@ -107,6 +107,12 @@ const StoreInitializer = () => {
   const updateExchangeRate = usePortfolioStore(s => s.updateExchangeRate);
   const baseCurrency = usePortfolioStore(s => s.baseCurrency);
   const initialized = usePortfolioStore(s => s.initialized);
+  const initializeTheme = useUIStore(s => s.initializeTheme);
+
+  // Theme initialization (once)
+  useEffect(() => {
+    initializeTheme();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auth initialization (once)
   useEffect(() => {
@@ -202,20 +208,20 @@ class ErrorBoundary extends React.Component<any, any> {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-dark-100 px-4">
-          <div className="bg-dark-200 border border-dark-400 p-6 sm:p-8 rounded-2xl max-w-md w-full text-center">
-            <div className="w-16 h-16 mx-auto mb-4 bg-danger-500/10 rounded-full flex items-center justify-center border border-danger-500/20">
-              <svg className="w-8 h-8 text-danger-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="min-h-screen flex items-center justify-center bg-background px-4">
+          <div className="bg-card border border-border p-6 sm:p-8 rounded-2xl max-w-md w-full text-center shadow-large">
+            <div className="w-16 h-16 mx-auto mb-4 bg-danger-50 dark:bg-danger-500/10 rounded-full flex items-center justify-center border border-danger-200 dark:border-danger-500/20">
+              <svg className="w-8 h-8 text-danger-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
               </svg>
             </div>
-            <h2 className="text-gray-100 text-xl sm:text-2xl font-bold mb-4">エラーが発生しました</h2>
-            <p className="text-gray-300 mb-2 text-sm sm:text-base">申し訳ありませんが、アプリケーションにエラーが発生しました。</p>
-            <p className="text-gray-400 mb-6 text-xs sm:text-sm bg-dark-300 border border-dark-400 p-3 rounded-lg font-mono">
+            <h2 className="text-foreground text-xl sm:text-2xl font-bold mb-4">エラーが発生しました</h2>
+            <p className="text-muted-foreground mb-2 text-sm sm:text-base">申し訳ありませんが、アプリケーションにエラーが発生しました。</p>
+            <p className="text-muted-foreground mb-6 text-xs sm:text-sm bg-muted border border-border p-3 rounded-lg font-mono">
               {this.state.error?.message || '不明なエラー'}
             </p>
             <button
-              className="w-full sm:w-auto bg-primary-500 text-white px-6 py-3 rounded-xl hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-dark-100 transition-all duration-200 font-medium shadow-lg hover:shadow-glow"
+              className="w-full sm:w-auto bg-primary-500 text-white px-6 py-3 rounded-xl hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-all duration-200 font-medium shadow-lg hover:shadow-glow"
               onClick={() => window.location.reload()}
             >
               リロードする
@@ -239,7 +245,7 @@ const App = () => {
 
           <Router>
             <SettingsChecker>
-              <div className="min-h-screen bg-dark-100 text-gray-100">
+              <div className="min-h-screen bg-background text-foreground">
                 <Header />
                 <main className="max-w-7xl mx-auto pt-2 sm:pt-4 lg:pt-6 pb-20 sm:pb-6">
                   <Routes>

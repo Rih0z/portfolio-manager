@@ -11,13 +11,13 @@ import { useAuthStore } from '../stores/authStore';
 import { useSubscriptionStore } from '../stores/subscriptionStore';
 
 const CheckIcon = () => (
-  <svg className="w-5 h-5 text-green-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <svg className="w-5 h-5 text-success-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
   </svg>
 );
 
 const CrossIcon = () => (
-  <svg className="w-5 h-5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <svg className="w-5 h-5 text-muted-foreground flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
   </svg>
 );
@@ -55,7 +55,6 @@ const Pricing: React.FC = () => {
 
   const handleUpgrade = () => {
     if (!isAuthenticated) {
-      // 未ログインの場合はログインを促す
       window.location.href = '/';
       return;
     }
@@ -65,21 +64,21 @@ const Pricing: React.FC = () => {
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-5xl mx-auto">
       <div className="text-center mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-100 mb-2">料金プラン</h1>
-        <p className="text-gray-400 text-sm sm:text-base">
+        <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">料金プラン</h1>
+        <p className="text-muted-foreground text-sm sm:text-base">
           あなたの投資スタイルに合ったプランを選択してください
         </p>
       </div>
 
       {/* 課金期間切替 */}
       <div className="flex items-center justify-center mb-8">
-        <div className="bg-dark-300 rounded-xl p-1 flex">
+        <div className="bg-muted rounded-xl p-1 flex">
           <button
             onClick={() => setBillingPeriod('monthly')}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
               billingPeriod === 'monthly'
                 ? 'bg-primary-500 text-white shadow-lg'
-                : 'text-gray-400 hover:text-gray-200'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             月額
@@ -89,11 +88,11 @@ const Pricing: React.FC = () => {
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
               billingPeriod === 'annual'
                 ? 'bg-primary-500 text-white shadow-lg'
-                : 'text-gray-400 hover:text-gray-200'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             年額
-            <span className="ml-1 text-xs text-green-400">
+            <span className="ml-1 text-xs text-success-500">
               ¥{annualSavings.toLocaleString()}お得
             </span>
           </button>
@@ -103,23 +102,23 @@ const Pricing: React.FC = () => {
       {/* プランカード */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
         {/* Free プラン */}
-        <div className={`bg-dark-200 border rounded-2xl p-6 ${
-          isCurrentPlan('free') ? 'border-primary-500/50' : 'border-dark-400'
+        <div className={`bg-card border rounded-2xl p-6 ${
+          isCurrentPlan('free') ? 'border-primary-500/50' : 'border-border'
         }`}>
           <div className="mb-4">
-            <h2 className="text-xl font-bold text-gray-100">Free</h2>
-            <p className="text-gray-400 text-sm mt-1">基本的なポートフォリオ管理</p>
+            <h2 className="text-xl font-bold text-foreground">Free</h2>
+            <p className="text-muted-foreground text-sm mt-1">基本的なポートフォリオ管理</p>
           </div>
           <div className="mb-6">
-            <span className="text-3xl font-bold text-gray-100">¥0</span>
-            <span className="text-gray-400 text-sm">/永久</span>
+            <span className="text-3xl font-bold text-foreground">¥0</span>
+            <span className="text-muted-foreground text-sm">/永久</span>
           </div>
           {isCurrentPlan('free') ? (
-            <div className="w-full py-3 rounded-xl bg-dark-400 text-gray-300 text-center font-medium text-sm">
+            <div className="w-full py-3 rounded-xl bg-accent text-muted-foreground text-center font-medium text-sm">
               現在のプラン
             </div>
           ) : (
-            <div className="w-full py-3 rounded-xl bg-dark-400 text-gray-300 text-center font-medium text-sm">
+            <div className="w-full py-3 rounded-xl bg-accent text-muted-foreground text-center font-medium text-sm">
               Free プラン
             </div>
           )}
@@ -128,8 +127,8 @@ const Pricing: React.FC = () => {
               <li key={f.label} className="flex items-start gap-3 text-sm">
                 {f.freeAvailable ? <CheckIcon /> : <CrossIcon />}
                 <div>
-                  <span className="text-gray-200">{f.label}</span>
-                  {f.free && <span className="text-gray-400 ml-1">— {f.free}</span>}
+                  <span className="text-foreground">{f.label}</span>
+                  {f.free && <span className="text-muted-foreground ml-1">— {f.free}</span>}
                 </div>
               </li>
             ))}
@@ -137,25 +136,25 @@ const Pricing: React.FC = () => {
         </div>
 
         {/* Standard プラン */}
-        <div className={`bg-dark-200 border rounded-2xl p-6 relative ${
+        <div className={`bg-card border rounded-2xl p-6 relative ${
           isCurrentPlan('standard') ? 'border-primary-500' : 'border-primary-500/30'
         }`}>
           <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary-500 text-white text-xs font-bold px-3 py-1 rounded-full">
             おすすめ
           </div>
           <div className="mb-4">
-            <h2 className="text-xl font-bold text-gray-100">Standard</h2>
-            <p className="text-gray-400 text-sm mt-1">本格的な投資分析ツール</p>
+            <h2 className="text-xl font-bold text-foreground">Standard</h2>
+            <p className="text-muted-foreground text-sm mt-1">本格的な投資分析ツール</p>
           </div>
           <div className="mb-6">
-            <span className="text-3xl font-bold text-primary-400">¥{displayPrice.toLocaleString()}</span>
-            <span className="text-gray-400 text-sm">{periodLabel}</span>
+            <span className="text-3xl font-bold text-primary-500">¥{displayPrice.toLocaleString()}</span>
+            <span className="text-muted-foreground text-sm">{periodLabel}</span>
           </div>
           {isCurrentPlan('standard') ? (
             <button
               onClick={() => openPortal()}
               disabled={loading}
-              className="w-full py-3 rounded-xl bg-dark-400 text-gray-200 font-medium text-sm hover:bg-dark-500 transition-colors disabled:opacity-50"
+              className="w-full py-3 rounded-xl bg-accent text-foreground font-medium text-sm hover:bg-muted transition-colors disabled:opacity-50"
             >
               {loading ? '読み込み中...' : 'プランを管理'}
             </button>
@@ -173,8 +172,8 @@ const Pricing: React.FC = () => {
               <li key={f.label} className="flex items-start gap-3 text-sm">
                 <CheckIcon />
                 <div>
-                  <span className="text-gray-200">{f.label}</span>
-                  {f.standard && <span className="text-primary-400 ml-1">— {f.standard}</span>}
+                  <span className="text-foreground">{f.label}</span>
+                  {f.standard && <span className="text-primary-500 ml-1">— {f.standard}</span>}
                 </div>
               </li>
             ))}
@@ -183,7 +182,7 @@ const Pricing: React.FC = () => {
       </div>
 
       {/* FAQ / 注記 */}
-      <div className="text-center text-gray-500 text-xs space-y-1">
+      <div className="text-center text-muted-foreground/70 text-xs space-y-1">
         <p>価格はすべて税込です。Stripeによる安全な決済処理を使用しています。</p>
         <p>いつでもキャンセル可能です。解約後も請求期間終了まで Standard 機能をご利用いただけます。</p>
       </div>

@@ -49,6 +49,12 @@ vi.mock('../../../components/layout/DataStatusBar', () => ({
   },
 }));
 
+vi.mock('../../../components/dashboard/PortfolioScoreCard', () => ({
+  default: function PortfolioScoreCard() {
+    return <div data-testid="portfolio-score-card">Portfolio Score Card</div>;
+  },
+}));
+
 vi.mock('../../../components/common/ModernCard', () => ({
   default: function ModernCard({ children }) {
     return <div data-testid="modern-card">{children}</div>;

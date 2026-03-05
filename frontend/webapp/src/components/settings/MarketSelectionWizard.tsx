@@ -153,7 +153,7 @@ const MarketSelectionWizard = ({
           <h3 className="text-xl font-semibold text-white mb-2">
             {isJapanese ? 'どの市場に投資したいですか？' : 'Which markets would you like to invest in?'}
           </h3>
-          <p className="text-gray-400 text-sm">
+          <p className="text-muted-foreground text-sm">
             {isJapanese ? '複数選択可能です' : 'Multiple selections allowed'}
           </p>
         </div>
@@ -173,7 +173,7 @@ const MarketSelectionWizard = ({
                 relative overflow-hidden rounded-lg p-4 transition-all duration-200 group
                 ${isSelected 
                   ? `bg-gradient-to-br ${market.color} shadow-lg scale-105 border-2 border-white/20` 
-                  : 'bg-dark-300 hover:bg-dark-200 border-2 border-transparent hover:border-gray-600'
+                  : 'bg-muted hover:bg-card border-2 border-transparent hover:border-gray-600'
                 }
                 ${isAnimating ? 'scale-110' : ''}
                 focus:outline-none focus:ring-2 focus:ring-primary-400
@@ -196,7 +196,7 @@ const MarketSelectionWizard = ({
                 </h4>
                 <div className="space-y-1">
                   {(isJapanese ? market.examples : market.examplesEn).map((example, index) => (
-                    <div key={index} className="text-xs text-gray-300">
+                    <div key={index} className="text-xs text-muted-foreground">
                       {example}
                     </div>
                   ))}
@@ -224,7 +224,7 @@ const MarketSelectionWizard = ({
               <button
                 key={combination.id}
                 onClick={() => handlePopularCombinationSelect(combination)}
-                className="w-full text-left p-3 bg-dark-300 hover:bg-dark-200 rounded-lg transition-colors duration-200 border border-dark-400 hover:border-gray-600"
+                className="w-full text-left p-3 bg-muted hover:bg-card rounded-lg transition-colors duration-200 border border-border hover:border-gray-600"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
@@ -235,7 +235,7 @@ const MarketSelectionWizard = ({
                       {isJapanese ? combination.name : combination.nameEn}
                     </span>
                   </div>
-                  <span className="text-gray-400 text-sm">
+                  <span className="text-muted-foreground text-sm">
                     ({combination.percentage}%)
                   </span>
                 </div>
@@ -247,7 +247,7 @@ const MarketSelectionWizard = ({
 
       {/* Selection Summary */}
       {localSelectedMarkets.length > 0 && (
-        <div className="mt-6 p-4 bg-dark-300 rounded-lg border border-dark-400">
+        <div className="mt-6 p-4 bg-muted rounded-lg border border-border">
           <h4 className="text-white font-medium mb-2">
             {isJapanese ? '選択された市場:' : 'Selected Markets:'}
           </h4>

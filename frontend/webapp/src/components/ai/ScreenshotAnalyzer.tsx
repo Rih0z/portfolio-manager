@@ -88,7 +88,7 @@ const ScreenshotAnalyzer = ({
   };
 
   return (
-    <div className={`bg-dark-200 rounded-lg p-6 ${className}`}>
+    <div className={`bg-card rounded-lg p-6 ${className}`}>
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-xl font-semibold text-white">
@@ -96,7 +96,7 @@ const ScreenshotAnalyzer = ({
         </h3>
         <button
           onClick={clearAll}
-          className="px-3 py-1 text-sm text-gray-400 hover:text-white border border-gray-600 hover:border-gray-400 rounded transition-colors duration-200"
+          className="px-3 py-1 text-sm text-muted-foreground hover:text-white border border-gray-600 hover:border-gray-400 rounded transition-colors duration-200"
         >
           {isJapanese ? 'クリア' : 'Clear'}
         </button>
@@ -111,7 +111,7 @@ const ScreenshotAnalyzer = ({
               <h5 className="text-blue-400 font-medium mb-2">
                 {isJapanese ? 'プライバシー保護について' : 'Privacy Protection'}
               </h5>
-              <div className="text-sm text-gray-300 space-y-2">
+              <div className="text-sm text-muted-foreground space-y-2">
                 <p>
                   {isJapanese 
                     ? 'このアプリではプライバシー保護のため、スクリーンショットのアップロードは一切行いません。'
@@ -148,7 +148,7 @@ const ScreenshotAnalyzer = ({
             ? 'AIからの分析結果をここに貼り付けてください...\n\nJSON形式または通常のテキスト形式のどちらでも対応できます。'
             : 'Paste AI analysis result here...\n\nBoth JSON and plain text formats are supported.'
           }
-          className="w-full p-3 bg-dark-300 border border-dark-400 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-primary-400 focus:border-transparent resize-none"
+          className="w-full p-3 bg-muted border border-border rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-primary-400 focus:border-transparent resize-none"
           rows={10}
         />
         
@@ -159,7 +159,7 @@ const ScreenshotAnalyzer = ({
               disabled={isProcessing}
               className={`w-full py-2 px-4 rounded-lg font-medium transition-colors duration-200 ${
                 isProcessing
-                  ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                  ? 'bg-gray-600 text-muted-foreground cursor-not-allowed'
                   : 'bg-green-500 hover:bg-green-600 text-white'
               }`}
             >
@@ -188,8 +188,8 @@ const ScreenshotAnalyzer = ({
               </button>
             </div>
             
-            <div className="bg-dark-100 rounded p-4 max-h-48 overflow-y-auto">
-              <pre className="text-sm text-gray-300 whitespace-pre-wrap">
+            <div className="bg-background rounded p-4 max-h-48 overflow-y-auto">
+              <pre className="text-sm text-muted-foreground whitespace-pre-wrap">
                 {JSON.stringify(extractedData, null, 2)}
               </pre>
             </div>
@@ -202,7 +202,7 @@ const ScreenshotAnalyzer = ({
         <h5 className="text-primary-400 font-medium mb-2">
           💡 {isJapanese ? '使い方のヒント' : 'Usage Tips'}
         </h5>
-        <div className="space-y-1 text-sm text-gray-300">
+        <div className="space-y-1 text-sm text-muted-foreground">
           <div>
             • {isJapanese 
               ? 'プロンプト生成は「AIアドバイザー」タブを使用してください'

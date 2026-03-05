@@ -82,18 +82,18 @@ const UpgradePrompt: React.FC<UpgradePromptProps> = ({
 
   // inline variant
   return (
-    <div className="flex items-center gap-3 bg-dark-300 border border-dark-400 rounded-lg px-3 py-2">
+    <div className="flex items-center gap-3 bg-muted border border-border rounded-lg px-3 py-2">
       <svg className="w-4 h-4 text-yellow-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01" />
       </svg>
-      <span className="text-xs text-gray-300 flex-1">
+      <span className="text-xs text-muted-foreground flex-1">
         {feature}の無料プラン上限
         {current !== undefined && limit !== undefined && `（${current}/${limit}）`}
         に達しました
       </span>
       <button
         onClick={handleUpgrade}
-        className="text-xs text-primary-400 hover:text-primary-300 font-medium whitespace-nowrap"
+        className="text-xs text-primary-500 hover:text-primary-600 font-medium whitespace-nowrap"
       >
         アップグレード
       </button>

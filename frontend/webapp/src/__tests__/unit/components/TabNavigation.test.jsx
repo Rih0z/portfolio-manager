@@ -96,7 +96,7 @@ describe('TabNavigation', () => {
 
     // ダッシュボードのリンクがアクティブ
     const dashboardLink = screen.getByText('ダッシュボード').closest('a');
-    expect(dashboardLink).toHaveClass('text-primary-400');
+    expect(dashboardLink).toHaveClass('text-primary-500');
   });
 
   it('navigates using NavLink components', () => {

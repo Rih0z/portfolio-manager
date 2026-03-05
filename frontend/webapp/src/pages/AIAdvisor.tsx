@@ -20,9 +20,9 @@ import MarketSelectionWizard, { INVESTMENT_MARKETS } from '../components/setting
 import PromptOrchestrator from '../components/ai/PromptOrchestrator';
 import promptOrchestrationService from '../services/PromptOrchestrationService';
 import ModernButton from '../components/common/ModernButton';
-import Card from '../components/atlassian/Card';
-import Button from '../components/atlassian/Button';
-import Input, { Select } from '../components/atlassian/Input';
+import { Card } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Input, Select } from '../components/ui/input';
 
 const AIAdvisor = () => {
   const { t, i18n } = useTranslation();
@@ -327,14 +327,14 @@ Based on the above information, please advise me on:
   };
 
   return (
-    <div className="min-h-screen bg-dark-100 text-white">
+    <div className="min-h-screen bg-background text-white">
       <div className={`container mx-auto px-4 py-8 pb-20 ${isFirstTimeUser ? 'max-w-6xl' : ''}`}>
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className={`font-bold mb-4 ${isFirstTimeUser ? 'text-4xl lg:text-5xl' : 'text-3xl'}`}>
             🤖 {isJapanese ? 'AIアドバイザー' : 'AI Advisor'}
           </h1>
-          <p className={`text-gray-400 mx-auto ${isFirstTimeUser ? 'max-w-4xl text-lg' : 'max-w-2xl'}`}>
+          <p className={`text-muted-foreground mx-auto ${isFirstTimeUser ? 'max-w-4xl text-lg' : 'max-w-2xl'}`}>
             {isFirstTimeUser ? (
               isJapanese
                 ? 'Portfolio Wiseへようこそ！まずはあなたの情報を教えてください。最適な投資戦略を考えるためのパーソナライズされたプロンプトを生成し、外部AIで分析できるようにサポートします。'
@@ -350,7 +350,7 @@ Based on the above information, please advise me on:
               <div className="text-primary-400 text-sm font-medium mb-2">
                 ✨ {isJapanese ? '初回セットアップ' : 'Initial Setup'}
               </div>
-              <p className="text-sm text-gray-300">
+              <p className="text-sm text-muted-foreground">
                 {isJapanese
                   ? 'ステップに従って情報を入力すると、あなた専用のAI投資アドバイザープロンプトを作成できます。'
                   : 'Follow the steps to create your personalized AI investment advisor prompts.'
@@ -538,7 +538,7 @@ Based on the above information, please advise me on:
                       value={userData.monthlyInvestment}
                       onChange={(e: any) => setUserData(prev => ({ ...prev, monthlyInvestment: e.target.value }))}
                       placeholder={isJapanese ? '例: 50000' : 'e.g. 50000'}
-                      size="large"
+                      className="h-12"
                       helperText={isJapanese ? '円単位で入力してください' : 'Enter amount in Japanese Yen'}
                     />
                   </div>
@@ -599,7 +599,7 @@ Based on the above information, please advise me on:
                 <h3 className="text-xl font-semibold mb-2">
                   📸 {isJapanese ? 'スクリーンショット分析プロンプト' : 'Screenshot Analysis Prompts'}
                 </h3>
-                <p className="text-gray-400">
+                <p className="text-muted-foreground">
                   {isJapanese
                     ? 'スクリーンショットをAIで分析するためのプロンプトを生成します。'
                     : 'Generate prompts for AI screenshot analysis.'
@@ -615,7 +615,7 @@ Based on the above information, please advise me on:
                     <h5 className="text-blue-400 font-medium mb-2">
                       {isJapanese ? 'プライバシー保護について' : 'Privacy Protection'}
                     </h5>
-                    <p className="text-sm text-gray-300">
+                    <p className="text-sm text-muted-foreground">
                       {isJapanese
                         ? 'このアプリではスクリーンショットのアップロードは行いません。生成されたプロンプトをコピーして、外部AI（Claude、Gemini、ChatGPT等）で直接分析してください。'
                         : 'This app does not upload screenshots. Copy the generated prompt and analyze directly with external AI (Claude, Gemini, ChatGPT, etc.).'
@@ -638,7 +638,7 @@ Based on the above information, please advise me on:
                       className={`p-4 rounded-lg border transition-all duration-200 text-left ${
                         screenshotPromptType === type.id
                           ? 'bg-primary-500/20 border-primary-400 text-white'
-                          : 'bg-dark-300 border-dark-400 text-gray-300 hover:bg-dark-200'
+                          : 'bg-muted border-border text-muted-foreground hover:bg-card'
                       }`}
                     >
                       <div className="text-2xl mb-2">{type.icon}</div>
@@ -661,7 +661,7 @@ Based on the above information, please advise me on:
                     ? '特別な要求や注意点があれば入力してください...'
                     : 'Enter any special requirements or notes...'
                   }
-                  className="w-full p-3 bg-dark-300 border border-dark-400 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-primary-400 focus:border-transparent resize-none"
+                  className="w-full p-3 bg-muted border border-border rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-primary-400 focus:border-transparent resize-none"
                   rows={3}
                 />
               </div>
@@ -678,7 +678,7 @@ Based on the above information, please advise me on:
 
               {/* Generated Prompt Display */}
               {generatedScreenshotPrompt && (
-                <div className="bg-dark-300 rounded-lg p-4 border border-dark-400">
+                <div className="bg-muted rounded-lg p-4 border border-border">
                   <div className="flex justify-between items-center mb-3">
                     <h4 className="font-medium text-white">
                       {isJapanese ? '生成された分析プロンプト' : 'Generated Analysis Prompt'}
@@ -691,8 +691,8 @@ Based on the above information, please advise me on:
                     </button>
                   </div>
 
-                  <div className="bg-dark-100 rounded p-4 max-h-64 overflow-y-auto">
-                    <pre className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">
+                  <div className="bg-background rounded p-4 max-h-64 overflow-y-auto">
+                    <pre className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
                       {generatedScreenshotPrompt.content}
                     </pre>
                   </div>
@@ -744,7 +744,7 @@ Based on the above information, please advise me on:
                     <div className="text-blue-400 text-sm mb-2">
                       💡 {isJapanese ? '使い方' : 'How to Use'}
                     </div>
-                    <ol className="text-xs text-gray-300 space-y-1">
+                    <ol className="text-xs text-muted-foreground space-y-1">
                       <li>1. {isJapanese ? '上記プロンプトをコピー' : 'Copy the prompt above'}</li>
                       <li>2. {isJapanese ? 'AIサービスを開く' : 'Open AI service'}</li>
                       <li>3. {isJapanese ? '画像とプロンプトを貼り付け' : 'Paste image and prompt'}</li>
@@ -763,7 +763,7 @@ Based on the above information, please advise me on:
                 <h3 className="text-xl font-semibold mb-2">
                   {isJapanese ? 'パーソナライズドAIプロンプト' : 'Personalized AI Prompt'}
                 </h3>
-                <p className="text-gray-400">
+                <p className="text-muted-foreground">
                   {isJapanese
                     ? 'あなたの状況と感情に最適化されたプロンプトを生成します。'
                     : 'Generate prompts optimized for your situation and emotional state.'
@@ -811,7 +811,7 @@ Based on the above information, please advise me on:
                     <h4 className="text-green-400 font-medium mb-3">
                       🎉 {isJapanese ? '初期設定完了準備' : 'Initial Setup Ready'}
                     </h4>
-                    <p className="text-gray-300 mb-4">
+                    <p className="text-muted-foreground mb-4">
                       {isJapanese
                         ? 'AIプロンプトの準備ができました。設定を完了してポートフォリオ管理を始めましょう。'
                         : 'AI prompts are ready. Complete setup to start managing your portfolio.'

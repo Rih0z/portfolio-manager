@@ -116,27 +116,27 @@ generated_at: ${new Date().toISOString()}
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-muted-foreground mb-2">
                 年齢
               </label>
               <input
                 type="number"
                 value={surveyData.profile.age}
                 onChange={(e) => handleInputChange('profile', 'age', e.target.value)}
-                className="w-full p-3 bg-dark-200 border border-dark-400 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                className="w-full p-3 bg-card border border-border rounded-lg text-white focus:outline-none focus:border-primary-500"
                 placeholder="例: 35"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-muted-foreground mb-2">
                 投資予算（万円）
               </label>
               <input
                 type="number"
                 value={surveyData.preferences.budget}
                 onChange={(e) => handleInputChange('preferences', 'budget', e.target.value)}
-                className="w-full p-3 bg-dark-200 border border-dark-400 rounded-lg text-white focus:outline-none focus:border-primary-500"
+                className="w-full p-3 bg-card border border-border rounded-lg text-white focus:outline-none focus:border-primary-500"
                 placeholder="例: 100"
               />
             </div>
@@ -145,7 +145,7 @@ generated_at: ${new Date().toISOString()}
 
         {/* 投資経験 */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-3">
+          <label className="block text-sm font-medium text-muted-foreground mb-3">
             投資経験
           </label>
           <div className="space-y-2">
@@ -157,9 +157,9 @@ generated_at: ${new Date().toISOString()}
                   value={option.value}
                   checked={surveyData.profile.experience === option.value}
                   onChange={(e) => handleInputChange('profile', 'experience', e.target.value)}
-                  className="text-primary-500 focus:ring-primary-500 bg-dark-200 border-dark-400"
+                  className="text-primary-500 focus:ring-primary-500 bg-card border-border"
                 />
-                <span className="text-gray-300">{option.label}</span>
+                <span className="text-muted-foreground">{option.label}</span>
               </label>
             ))}
           </div>
@@ -167,7 +167,7 @@ generated_at: ${new Date().toISOString()}
 
         {/* リスク許容度 */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-3">
+          <label className="block text-sm font-medium text-muted-foreground mb-3">
             リスク許容度
           </label>
           <div className="space-y-2">
@@ -179,9 +179,9 @@ generated_at: ${new Date().toISOString()}
                   value={option.value}
                   checked={surveyData.profile.riskTolerance === option.value}
                   onChange={(e) => handleInputChange('profile', 'riskTolerance', e.target.value)}
-                  className="text-primary-500 focus:ring-primary-500 bg-dark-200 border-dark-400"
+                  className="text-primary-500 focus:ring-primary-500 bg-card border-border"
                 />
-                <span className="text-gray-300">{option.label}</span>
+                <span className="text-muted-foreground">{option.label}</span>
               </label>
             ))}
           </div>
@@ -189,13 +189,13 @@ generated_at: ${new Date().toISOString()}
 
         {/* 投資目的 */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-3">
+          <label className="block text-sm font-medium text-muted-foreground mb-3">
             投資目的
           </label>
           <select
             value={surveyData.profile.investmentGoal}
             onChange={(e) => handleInputChange('profile', 'investmentGoal', e.target.value)}
-            className="w-full p-3 bg-dark-200 border border-dark-400 rounded-lg text-white focus:outline-none focus:border-primary-500"
+            className="w-full p-3 bg-card border border-border rounded-lg text-white focus:outline-none focus:border-primary-500"
           >
             {goalOptions.map(option => (
               <option key={option.value} value={option.value}>
@@ -207,13 +207,13 @@ generated_at: ${new Date().toISOString()}
 
         {/* 投資期間 */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-3">
+          <label className="block text-sm font-medium text-muted-foreground mb-3">
             投資期間
           </label>
           <select
             value={surveyData.preferences.timeHorizon}
             onChange={(e) => handleInputChange('preferences', 'timeHorizon', e.target.value)}
-            className="w-full p-3 bg-dark-200 border border-dark-400 rounded-lg text-white focus:outline-none focus:border-primary-500"
+            className="w-full p-3 bg-card border border-border rounded-lg text-white focus:outline-none focus:border-primary-500"
           >
             {timeHorizonOptions.map(option => (
               <option key={option.value} value={option.value}>

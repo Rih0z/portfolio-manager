@@ -5,12 +5,9 @@
  * 作成者: Koki Riho （https://github.com/Rih0z）
  * 作成日: 2025-08-22 15:00:00
  *
- * 更新履歴:
- * - 2025-08-22 15:00:00 Koki Riho 初回作成 - ダークテーマ版ポートフォリオページ
- *
  * 説明:
- * ポートフォリオの詳細表示と管理機能を提供するダークテーマページコンポーネント。
- * Netflix/Uber風のモダンなUIデザインで資産配分と詳細情報を表示。
+ * ポートフォリオの詳細表示と管理機能を提供するページコンポーネント。
+ * テーマ対応UIで資産配分と詳細情報を表示。
  */
 
 import React from 'react';
@@ -24,7 +21,7 @@ const Portfolio = () => {
   const { currentAssets, targetPortfolio, baseCurrency } = usePortfolioContext();
 
   return (
-    <div className="min-h-screen bg-dark-100 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
       <div className="max-w-6xl mx-auto space-y-8">
 
         {/* Page Header */}
@@ -35,15 +32,15 @@ const Portfolio = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
             </div>
-            <h1 className="text-3xl font-bold text-white">ポートフォリオ詳細</h1>
+            <h1 className="text-3xl font-bold text-foreground">ポートフォリオ詳細</h1>
           </div>
-          <p className="text-gray-300 text-lg max-w-3xl mx-auto">
+          <p className="text-muted-foreground text-lg max-w-3xl mx-auto">
             現在の資産状況、配分、リバランス推奨を詳細に確認
           </p>
         </div>
 
         {/* Portfolio Summary */}
-        <div className="bg-dark-200 border border-dark-400 rounded-xl p-6 sm:p-8">
+        <div className="bg-card border border-border rounded-xl p-6 sm:p-8">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 bg-primary-500/10 rounded-lg">
               <svg className="w-6 h-6 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -51,15 +48,15 @@ const Portfolio = () => {
               </svg>
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-white">ポートフォリオサマリー</h2>
-              <p className="text-gray-400 text-sm">全体的な資産状況の概要</p>
+              <h2 className="text-xl font-semibold text-foreground">ポートフォリオサマリー</h2>
+              <p className="text-muted-foreground text-sm">全体的な資産状況の概要</p>
             </div>
           </div>
           <PortfolioSummary />
         </div>
 
         {/* Allocation Chart */}
-        <div className="bg-dark-200 border border-dark-400 rounded-xl p-6 sm:p-8">
+        <div className="bg-card border border-border rounded-xl p-6 sm:p-8">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 bg-warning-500/10 rounded-lg">
               <svg className="w-6 h-6 text-warning-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -68,15 +65,15 @@ const Portfolio = () => {
               </svg>
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-white">資産配分チャート</h2>
-              <p className="text-gray-400 text-sm">現在の配分と目標配分の比較</p>
+              <h2 className="text-xl font-semibold text-foreground">資産配分チャート</h2>
+              <p className="text-muted-foreground text-sm">現在の配分と目標配分の比較</p>
             </div>
           </div>
           <AllocationChart />
         </div>
 
         {/* Rebalance Recommendations */}
-        <div className="bg-dark-200 border border-dark-400 rounded-xl p-6 sm:p-8">
+        <div className="bg-card border border-border rounded-xl p-6 sm:p-8">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 bg-info-500/10 rounded-lg">
               <svg className="w-6 h-6 text-info-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -84,15 +81,15 @@ const Portfolio = () => {
               </svg>
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-white">リバランス推奨</h2>
-              <p className="text-gray-400 text-sm">目標配分に近づけるための推奨アクション</p>
+              <h2 className="text-xl font-semibold text-foreground">リバランス推奨</h2>
+              <p className="text-muted-foreground text-sm">目標配分に近づけるための推奨アクション</p>
             </div>
           </div>
           <RebalanceRecommendations />
         </div>
 
         {/* Assets Table */}
-        <div className="bg-dark-200 border border-dark-400 rounded-xl p-6 sm:p-8">
+        <div className="bg-card border border-border rounded-xl p-6 sm:p-8">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 bg-success-500/10 rounded-lg">
               <svg className="w-6 h-6 text-success-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -100,8 +97,8 @@ const Portfolio = () => {
               </svg>
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-white">保有資産詳細</h2>
-              <p className="text-gray-400 text-sm">すべての資産の詳細情報と状況</p>
+              <h2 className="text-xl font-semibold text-foreground">保有資産詳細</h2>
+              <p className="text-muted-foreground text-sm">すべての資産の詳細情報と状況</p>
             </div>
           </div>
           <AssetsTable />
@@ -109,16 +106,16 @@ const Portfolio = () => {
 
         {/* Data Status */}
         {currentAssets.length === 0 && (
-          <div className="bg-dark-300/30 border border-dark-500 rounded-xl p-8 text-center">
+          <div className="bg-muted/30 border border-border rounded-xl p-8 text-center">
             <div className="flex flex-col items-center gap-4">
-              <div className="p-4 bg-gray-600/10 rounded-full">
-                <svg className="w-12 h-12 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="p-4 bg-muted rounded-full">
+                <svg className="w-12 h-12 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
               <div>
-                <h3 className="text-lg font-medium text-gray-300 mb-2">データが登録されていません</h3>
-                <p className="text-gray-500 text-sm mb-4">
+                <h3 className="text-lg font-medium text-muted-foreground mb-2">データが登録されていません</h3>
+                <p className="text-muted-foreground/70 text-sm mb-4">
                   設定ページで資産情報を登録するか、データインポート機能をご利用ください
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -130,7 +127,7 @@ const Portfolio = () => {
                   </a>
                   <a
                     href="/data"
-                    className="px-4 py-2 bg-dark-400 text-gray-300 border border-dark-500 rounded-lg hover:bg-dark-300 transition-colors"
+                    className="px-4 py-2 bg-accent text-muted-foreground border border-border rounded-lg hover:bg-muted transition-colors"
                   >
                     データインポート
                   </a>

@@ -158,12 +158,12 @@ const AIDataImportModal = ({ isOpen, onClose, onImportSuccess }: any) => {
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-dark-300 rounded-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto border border-dark-400">
-        <div className="p-6 border-b border-dark-400 flex items-center justify-between">
+      <div className="bg-muted rounded-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto border border-border">
+        <div className="p-6 border-b border-border flex items-center justify-between">
           <h2 className="text-xl font-semibold text-white">YAML データ取り込み</h2>
           <button 
             onClick={handleClose}
-            className="p-2 hover:bg-dark-400 rounded-lg text-gray-400 hover:text-white transition-colors"
+            className="p-2 hover:bg-accent rounded-lg text-muted-foreground hover:text-white transition-colors"
           >
             <FaTimes className="w-5 h-5" />
           </button>
@@ -171,14 +171,14 @@ const AIDataImportModal = ({ isOpen, onClose, onImportSuccess }: any) => {
 
         <div className="p-6 space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium text-muted-foreground mb-2">
               AI投資戦略のYAMLレスポンスを貼り付けてください
             </label>
             <textarea
               value={yamlInput}
               onChange={(e) => setYamlInput(e.target.value)}
               placeholder="assets:&#10;  - VTI: 40%&#10;  - VXUS: 30%&#10;  - BND: 20%&#10;  - VNQ: 10%"
-              className="w-full h-64 p-4 bg-dark-200 border border-dark-400 rounded-lg text-white placeholder-gray-500 font-mono text-sm focus:outline-none focus:border-primary-500"
+              className="w-full h-64 p-4 bg-card border border-border rounded-lg text-white placeholder-gray-500 font-mono text-sm focus:outline-none focus:border-primary-500"
             />
           </div>
 
@@ -201,7 +201,7 @@ const AIDataImportModal = ({ isOpen, onClose, onImportSuccess }: any) => {
                 </span>
               </div>
               {processingResults.details && (
-                <p className="text-sm text-gray-300">{processingResults.details}</p>
+                <p className="text-sm text-muted-foreground">{processingResults.details}</p>
               )}
             </div>
           )}

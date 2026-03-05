@@ -147,7 +147,7 @@ describe('Simulation', () => {
       
       const batchPurchaseButton = screen.getByText('一括購入実行');
       expect(batchPurchaseButton).toBeInTheDocument();
-      expect(batchPurchaseButton).toHaveClass('bg-green-600', 'hover:bg-green-700');
+      expect(batchPurchaseButton).toHaveClass('bg-success-500', 'hover:bg-success-600');
     });
 
     it('一括購入ボタンクリック時に確認ダイアログを表示する', () => {
@@ -238,14 +238,14 @@ describe('Simulation', () => {
     it('白背景のカードレイアウトが適用されている', () => {
       render(<Simulation />);
       
-      const whiteCards = document.querySelectorAll('.bg-white.rounded-lg.shadow');
+      const whiteCards = document.querySelectorAll('.bg-card.rounded-lg.shadow');
       expect(whiteCards.length).toBe(2); // 2つのメインセクション
     });
 
     it('情報表示セクションが正しくスタイリングされている', () => {
       render(<Simulation />);
       
-      const infoSection = document.querySelector('.bg-blue-50.p-4.rounded-md');
+      const infoSection = document.querySelector('.bg-primary-500\\/10.p-4.rounded-md');
       expect(infoSection).toBeInTheDocument();
     });
   });

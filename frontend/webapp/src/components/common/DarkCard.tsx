@@ -1,54 +1,54 @@
-/** 
- * プロジェクト: https://portfolio-wise.com/ 
- * ファイルパス: src/components/common/DarkCard.jsx 
- * 
- * 作成者: Koki Riho （https://github.com/Rih0z） 
- * 作成日: 2025-06-02 
- * 
- * 説明: 
- * Netflix/Uber風のダークテーマカードコンポーネント
+/**
+ * プロジェクト: https://portfolio-wise.com/
+ * ファイルパス: src/components/common/DarkCard.tsx
+ *
+ * 作成者: Koki Riho （https://github.com/Rih0z）
+ * 作成日: 2025-06-02
+ *
+ * 説明:
+ * テーマ対応カードコンポーネント（CSS変数ベース）
  * モダンなデザインシステムに基づいた再利用可能なカードコンポーネント
  */
 
 import React from 'react';
 
-const DarkCard = ({ 
-  children, 
-  className = '', 
+const DarkCard = ({
+  children,
+  className = '',
   variant = 'default',
   glow = false,
   hover = true,
-  ...props 
-}) => {
+  ...props
+}: any) => {
   const getVariantClasses = () => {
     switch (variant) {
       case 'elevated':
-        return 'bg-dark-200 border border-dark-400 shadow-large';
+        return 'bg-card border border-border shadow-large';
       case 'minimal':
-        return 'bg-dark-300/50 border border-dark-500';
+        return 'bg-muted/50 border border-border';
       case 'accent':
-        return 'bg-gradient-to-br from-dark-200 to-dark-300 border border-primary-500/30';
+        return 'bg-gradient-to-br from-card to-muted border border-primary-500/30';
       case 'success':
-        return 'bg-dark-200 border border-success-500/30 shadow-lg shadow-success-500/10';
+        return 'bg-card border border-success-500/30 shadow-lg shadow-success-500/10';
       case 'warning':
-        return 'bg-dark-200 border border-warning-500/30 shadow-lg shadow-warning-500/10';
+        return 'bg-card border border-warning-500/30 shadow-lg shadow-warning-500/10';
       case 'danger':
-        return 'bg-dark-200 border border-danger-500/30 shadow-lg shadow-danger-500/10';
+        return 'bg-card border border-danger-500/30 shadow-lg shadow-danger-500/10';
       default:
-        return 'bg-dark-200 border border-dark-400 shadow-medium';
+        return 'bg-card border border-border shadow-medium';
     }
   };
 
   const glowClass = glow ? 'shadow-glow' : '';
-  const hoverClass = hover ? 'hover:shadow-large hover:border-dark-300 transition-all duration-300' : '';
+  const hoverClass = hover ? 'hover:shadow-large hover:border-border transition-all duration-300' : '';
 
   return (
-    <div 
+    <div
       className={`
-        rounded-2xl p-4 sm:p-6 
-        ${getVariantClasses()} 
-        ${glowClass} 
-        ${hoverClass} 
+        rounded-2xl p-4 sm:p-6
+        ${getVariantClasses()}
+        ${glowClass}
+        ${hoverClass}
         ${className}
       `}
       {...props}
@@ -59,8 +59,8 @@ const DarkCard = ({
 };
 
 // Title component
-DarkCard.Title = ({ children, className = '', size = 'lg' }) => {
-  const sizeClasses = {
+DarkCard.Title = ({ children, className = '', size = 'lg' }: any) => {
+  const sizeClasses: Record<string, string> = {
     sm: 'text-sm font-semibold',
     md: 'text-base font-semibold',
     lg: 'text-lg font-bold',
@@ -69,34 +69,34 @@ DarkCard.Title = ({ children, className = '', size = 'lg' }) => {
   };
 
   return (
-    <h3 className={`text-gray-100 ${sizeClasses[size]} ${className}`}>
+    <h3 className={`text-foreground ${sizeClasses[size]} ${className}`}>
       {children}
     </h3>
   );
 };
 
 // Content component
-DarkCard.Content = ({ children, className = '' }) => {
+DarkCard.Content = ({ children, className = '' }: any) => {
   return (
-    <div className={`text-gray-300 ${className}`}>
+    <div className={`text-muted-foreground ${className}`}>
       {children}
     </div>
   );
 };
 
 // Footer component
-DarkCard.Footer = ({ children, className = '' }) => {
+DarkCard.Footer = ({ children, className = '' }: any) => {
   return (
-    <div className={`pt-4 border-t border-dark-400 ${className}`}>
+    <div className={`pt-4 border-t border-border ${className}`}>
       {children}
     </div>
   );
 };
 
 // Header component
-DarkCard.Header = ({ children, className = '' }) => {
+DarkCard.Header = ({ children, className = '' }: any) => {
   return (
-    <div className={`pb-4 border-b border-dark-400 mb-4 ${className}`}>
+    <div className={`pb-4 border-b border-border mb-4 ${className}`}>
       {children}
     </div>
   );

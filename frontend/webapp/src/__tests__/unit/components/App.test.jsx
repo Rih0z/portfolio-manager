@@ -83,7 +83,11 @@ vi.mock('../../../stores/uiStore', () => ({
   useUIStore: vi.fn((selector) => {
     const state = {
       notifications: [],
-      removeNotification: vi.fn()
+      removeNotification: vi.fn(),
+      initializeTheme: vi.fn(),
+      theme: 'light',
+      resolvedTheme: 'light',
+      setTheme: vi.fn()
     };
     return typeof selector === 'function' ? selector(state) : state;
   })
@@ -278,10 +282,10 @@ describe('App', () => {
         render() {
           if (this.state.hasError) {
             return (
-              <div className="min-h-screen flex items-center justify-center bg-dark-100 px-4">
-                <div className="bg-dark-200 border border-dark-400 p-6 sm:p-8 rounded-2xl max-w-md w-full text-center">
-                  <h2 className="text-gray-100 text-xl sm:text-2xl font-bold mb-4">エラーが発生しました</h2>
-                  <p className="text-gray-300 mb-2 text-sm sm:text-base">申し訳ありませんが、アプリケーションにエラーが発生しました。</p>
+              <div className="min-h-screen flex items-center justify-center bg-background px-4">
+                <div className="bg-card border border-border p-6 sm:p-8 rounded-2xl max-w-md w-full text-center">
+                  <h2 className="text-foreground text-xl sm:text-2xl font-bold mb-4">エラーが発生しました</h2>
+                  <p className="text-muted-foreground mb-2 text-sm sm:text-base">申し訳ありませんが、アプリケーションにエラーが発生しました。</p>
                   <button onClick={() => window.location.reload()}>リロードする</button>
                 </div>
               </div>
@@ -334,7 +338,7 @@ describe('App', () => {
     it('モバイル向けのクラスが適用されている', async () => {
       await renderAndWaitForInit();
 
-      const appContainer = document.querySelector('.min-h-screen.bg-dark-100.text-gray-100');
+      const appContainer = document.querySelector('.min-h-screen.bg-background.text-foreground');
       expect(appContainer).toBeInTheDocument();
     });
 

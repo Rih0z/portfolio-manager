@@ -118,13 +118,13 @@ const PromptOrchestrator = ({
   };
 
   return (
-    <div className={`bg-dark-200 rounded-lg p-6 ${className}`}>
+    <div className={`bg-card rounded-lg p-6 ${className}`}>
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-xl font-semibold text-white">
           🎯 {isJapanese ? 'プロンプトオーケストレーター' : 'Prompt Orchestrator'}
         </h3>
-        <div className="text-sm text-gray-400">
+        <div className="text-sm text-muted-foreground">
           {getPromptTypeDisplayName(promptType)}
         </div>
       </div>
@@ -136,7 +136,7 @@ const PromptOrchestrator = ({
           disabled={isGenerating}
           className={`w-full py-3 px-4 rounded-lg font-medium transition-all duration-200 ${
             isGenerating
-              ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+              ? 'bg-gray-600 text-muted-foreground cursor-not-allowed'
               : 'bg-primary-500 hover:bg-primary-600 text-white'
           }`}
         >
@@ -150,7 +150,7 @@ const PromptOrchestrator = ({
       {/* Generated Prompt Display */}
       {generatedPrompt && (
         <div className="mb-6">
-          <div className="bg-dark-300 rounded-lg p-4 border border-dark-400">
+          <div className="bg-muted rounded-lg p-4 border border-border">
             <div className="flex justify-between items-center mb-3">
               <h4 className="font-medium text-white">
                 {isJapanese ? '生成されたプロンプト' : 'Generated Prompt'}
@@ -163,8 +163,8 @@ const PromptOrchestrator = ({
               </button>
             </div>
             
-            <div className="bg-dark-100 rounded p-4 max-h-64 overflow-y-auto">
-              <pre className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">
+            <div className="bg-background rounded p-4 max-h-64 overflow-y-auto">
+              <pre className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
                 {generatedPrompt.content}
               </pre>
             </div>
@@ -230,13 +230,13 @@ const PromptOrchestrator = ({
               <button
                 key={rating}
                 onClick={() => submitFeedback(rating)}
-                className="w-10 h-10 rounded-full bg-dark-300 hover:bg-yellow-500 border border-dark-400 hover:border-yellow-400 transition-all duration-200 flex items-center justify-center"
+                className="w-10 h-10 rounded-full bg-muted hover:bg-yellow-500 border border-border hover:border-yellow-400 transition-all duration-200 flex items-center justify-center"
               >
                 <span className="text-lg">⭐</span>
               </button>
             ))}
           </div>
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-muted-foreground">
             {isJapanese 
               ? 'プロンプトの品質を評価してください（学習に活用されます）'
               : 'Rate the prompt quality (used for learning)'
@@ -264,11 +264,11 @@ const PromptOrchestrator = ({
             {promptHistory.map((item, index) => (
               <div
                 key={item.id}
-                className="p-3 bg-dark-300 rounded border border-dark-400 cursor-pointer hover:bg-dark-200 transition-colors duration-200"
+                className="p-3 bg-muted rounded border border-border cursor-pointer hover:bg-card transition-colors duration-200"
                 onClick={() => setGeneratedPrompt(item.prompt)}
               >
                 <div className="flex justify-between items-center">
-                  <div className="text-sm text-gray-300 truncate flex-1">
+                  <div className="text-sm text-muted-foreground truncate flex-1">
                     {item.prompt.title}
                   </div>
                   <div className="text-xs text-gray-500 ml-2">
@@ -287,7 +287,7 @@ const PromptOrchestrator = ({
           <h4 className="font-medium text-primary-400 mb-2">
             💡 {isJapanese ? '使い方' : 'How to Use'}
           </h4>
-          <ol className="text-sm text-gray-300 space-y-1">
+          <ol className="text-sm text-muted-foreground space-y-1">
             <li>1. {isJapanese ? '上記プロンプトをコピー' : 'Copy the prompt above'}</li>
             <li>2. {isJapanese ? 'お好みのAIサービスにアクセス' : 'Access your preferred AI service'}</li>
             <li>3. {isJapanese ? 'プロンプトを貼り付けて送信' : 'Paste the prompt and send'}</li>

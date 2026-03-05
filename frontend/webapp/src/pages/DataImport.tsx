@@ -215,7 +215,7 @@ const DataImport = () => {
 
       case 'json':
         return (
-          <div className="bg-dark-200 rounded-lg p-6">
+          <div className="bg-card rounded-lg p-6">
             <h3 className="text-xl font-semibold text-white mb-4">
               📁 {isJapanese ? 'JSONインポート' : 'JSON Import'}
             </h3>
@@ -229,7 +229,7 @@ const DataImport = () => {
                 type="file"
                 accept=".json"
                 onChange={handleFileImport}
-                className="w-full p-3 bg-dark-300 border border-dark-400 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-primary-500 file:text-white hover:file:bg-primary-600"
+                className="w-full p-3 bg-muted border border-border rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:bg-primary-500 file:text-white hover:file:bg-primary-600"
               />
             </div>
 
@@ -245,7 +245,7 @@ const DataImport = () => {
                   ? 'JSONデータをここに貼り付けてください...'
                   : 'Paste JSON data here...'
                 }
-                className="w-full p-3 bg-dark-300 border border-dark-400 rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-primary-400 focus:border-transparent resize-none"
+                className="w-full p-3 bg-muted border border-border rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-primary-400 focus:border-transparent resize-none"
                 rows={10}
               />
 
@@ -256,7 +256,7 @@ const DataImport = () => {
                     disabled={isImporting}
                     className={`w-full py-2 px-4 rounded-lg font-medium transition-colors duration-200 ${
                       isImporting
-                        ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                        ? 'bg-gray-600 text-muted-foreground cursor-not-allowed'
                         : 'bg-primary-500 hover:bg-primary-600 text-white'
                     }`}
                   >
@@ -274,7 +274,7 @@ const DataImport = () => {
               <h5 className="text-primary-400 font-medium mb-2">
                 💡 {isJapanese ? 'JSONフォーマットについて' : 'JSON Format Info'}
               </h5>
-              <div className="space-y-1 text-sm text-gray-300">
+              <div className="space-y-1 text-sm text-muted-foreground">
                 <div>
                   • {isJapanese
                     ? 'エクスポートされたJSONファイルと同じ形式を使用してください'
@@ -300,7 +300,7 @@ const DataImport = () => {
 
       case 'export':
         return (
-          <div className="bg-dark-200 rounded-lg p-6">
+          <div className="bg-card rounded-lg p-6">
             <h3 className="text-xl font-semibold text-white mb-4">
               💾 {isJapanese ? 'データエクスポート' : 'Data Export'}
             </h3>
@@ -310,18 +310,18 @@ const DataImport = () => {
               <h4 className="font-medium text-white mb-3">
                 {isJapanese ? '現在のポートフォリオ' : 'Current Portfolio'}
               </h4>
-              <div className="bg-dark-300 rounded-lg p-4 border border-dark-400">
+              <div className="bg-muted rounded-lg p-4 border border-border">
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-gray-400">{isJapanese ? '資産数：' : 'Assets:'}</span>
+                    <span className="text-muted-foreground">{isJapanese ? '資産数：' : 'Assets:'}</span>
                     <span className="text-white ml-2">{(portfolio as any)?.assets?.length || 0}</span>
                   </div>
                   <div>
-                    <span className="text-gray-400">{isJapanese ? '総資産額：' : 'Total Value:'}</span>
+                    <span className="text-muted-foreground">{isJapanese ? '総資産額：' : 'Total Value:'}</span>
                     <span className="text-white ml-2">¥{(portfolio as any)?.totalValue?.toLocaleString() || '0'}</span>
                   </div>
                   <div>
-                    <span className="text-gray-400">{isJapanese ? '最終更新：' : 'Last Updated:'}</span>
+                    <span className="text-muted-foreground">{isJapanese ? '最終更新：' : 'Last Updated:'}</span>
                     <span className="text-white ml-2">
                       {(portfolio as any)?.lastUpdated
                         ? new Date((portfolio as any).lastUpdated).toLocaleDateString()
@@ -330,7 +330,7 @@ const DataImport = () => {
                     </span>
                   </div>
                   <div>
-                    <span className="text-gray-400">{isJapanese ? '通貨：' : 'Currency:'}</span>
+                    <span className="text-muted-foreground">{isJapanese ? '通貨：' : 'Currency:'}</span>
                     <span className="text-white ml-2">{(portfolio as any)?.baseCurrency || 'JPY'}</span>
                   </div>
                 </div>
@@ -352,7 +352,7 @@ const DataImport = () => {
               <h5 className="text-green-400 font-medium mb-2">
                 📄 {isJapanese ? 'エクスポート内容' : 'Export Contents'}
               </h5>
-              <div className="space-y-1 text-sm text-gray-300">
+              <div className="space-y-1 text-sm text-muted-foreground">
                 <div>
                   • {isJapanese
                     ? 'すべての保有資産データ'
@@ -388,14 +388,14 @@ const DataImport = () => {
   };
 
   return (
-    <div className="min-h-screen bg-dark-100 text-white">
+    <div className="min-h-screen bg-background text-white">
       <div className="container mx-auto px-4 py-8 pb-20">
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold mb-4">
             📊 {isJapanese ? 'データ取り込み' : 'Data Import'}
           </h1>
-          <p className="text-gray-400 max-w-2xl mx-auto">
+          <p className="text-muted-foreground max-w-2xl mx-auto">
             {isJapanese
               ? '外部AIで分析されたデータの受け取りや、JSONファイルでのデータ交換が行えます。プライバシーを保護しながら安全にデータを管理します。'
               : 'Receive AI-analyzed data and exchange data via JSON files. Manage your data safely while protecting privacy.'
@@ -405,13 +405,13 @@ const DataImport = () => {
 
         {/* Stats Dashboard */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <div className="bg-dark-200 rounded-lg p-4 border border-dark-400">
+          <div className="bg-card rounded-lg p-4 border border-border">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-2xl font-bold text-primary-400">
                   {importStats.totalImports}
                 </div>
-                <div className="text-sm text-gray-400">
+                <div className="text-sm text-muted-foreground">
                   {isJapanese ? 'インポート回数' : 'Total Imports'}
                 </div>
               </div>
@@ -419,13 +419,13 @@ const DataImport = () => {
             </div>
           </div>
 
-          <div className="bg-dark-200 rounded-lg p-4 border border-dark-400">
+          <div className="bg-card rounded-lg p-4 border border-border">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-2xl font-bold text-green-400">
                   {importStats.successfulImports}
                 </div>
-                <div className="text-sm text-gray-400">
+                <div className="text-sm text-muted-foreground">
                   {isJapanese ? '成功インポート' : 'Successful Imports'}
                 </div>
               </div>
@@ -433,13 +433,13 @@ const DataImport = () => {
             </div>
           </div>
 
-          <div className="bg-dark-200 rounded-lg p-4 border border-dark-400">
+          <div className="bg-card rounded-lg p-4 border border-border">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-2xl font-bold text-blue-400">
                   {importStats.assetsAdded}
                 </div>
-                <div className="text-sm text-gray-400">
+                <div className="text-sm text-muted-foreground">
                   {isJapanese ? '追加された資産' : 'Assets Added'}
                 </div>
               </div>
@@ -450,7 +450,7 @@ const DataImport = () => {
 
         {/* Tab Navigation */}
         <div className="mb-6">
-          <div className="flex space-x-1 bg-dark-200 p-1 rounded-lg">
+          <div className="flex space-x-1 bg-card p-1 rounded-lg">
             {tabs.map(tab => (
               <button
                 key={tab.id}
@@ -458,7 +458,7 @@ const DataImport = () => {
                 className={`flex-1 py-3 px-4 rounded-md text-center transition-all duration-200 ${
                   activeTab === tab.id
                     ? 'bg-primary-500 text-white'
-                    : 'text-gray-400 hover:text-white hover:bg-dark-300'
+                    : 'text-muted-foreground hover:text-white hover:bg-muted'
                 }`}
               >
                 <div className="text-xl mb-1">{tab.icon}</div>
@@ -468,7 +468,7 @@ const DataImport = () => {
           </div>
 
           {/* Tab Description */}
-          <div className="mt-3 text-center text-sm text-gray-400">
+          <div className="mt-3 text-center text-sm text-muted-foreground">
             {tabs.find(tab => tab.id === activeTab)?.description}
           </div>
         </div>
@@ -480,7 +480,7 @@ const DataImport = () => {
 
         {/* Import History */}
         {importHistory.length > 0 && (
-          <div className="bg-dark-200 rounded-lg p-6">
+          <div className="bg-card rounded-lg p-6">
             <h3 className="text-xl font-semibold text-white mb-4">
               📋 {isJapanese ? 'インポート履歴' : 'Import History'}
             </h3>
@@ -488,7 +488,7 @@ const DataImport = () => {
               {importHistory.map((record: any) => (
                 <div
                   key={record.id}
-                  className="bg-dark-300 rounded-lg p-4 border border-dark-400"
+                  className="bg-muted rounded-lg p-4 border border-border"
                 >
                   <div className="flex justify-between items-start">
                     <div className="flex-1">
@@ -516,11 +516,11 @@ const DataImport = () => {
                           }
                         </span>
                       </div>
-                      <div className="text-sm text-gray-400">
+                      <div className="text-sm text-muted-foreground">
                         {new Date(record.timestamp).toLocaleString()}
                       </div>
                       {record.data.portfolioData?.assets && (
-                        <div className="text-sm text-gray-300 mt-1">
+                        <div className="text-sm text-muted-foreground mt-1">
                           {record.data.portfolioData.assets.length} {isJapanese ? '件の資産' : 'assets'}
                         </div>
                       )}
@@ -537,7 +537,7 @@ const DataImport = () => {
           <h3 className="text-lg font-semibold text-primary-400 mb-3">
             💡 {isJapanese ? '使い方のヒント' : 'Usage Tips'}
           </h3>
-          <div className="space-y-2 text-sm text-gray-300">
+          <div className="space-y-2 text-sm text-muted-foreground">
             <div>
               • {isJapanese
                 ? 'プロンプト生成は「AIアドバイザー」タブをご利用ください'

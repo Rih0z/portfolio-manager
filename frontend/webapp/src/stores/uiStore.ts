@@ -1,10 +1,12 @@
 /**
- * UIStore - UI状態 + 通知管理
+ * UIStore - UI状態 + 通知管理 + テーマ管理
  *
  * Zustand store for UI state management including toast notifications,
  * loading states, and theme preferences.
  */
 import { create } from 'zustand';
+
+type Theme = 'light' | 'dark' | 'system';
 
 interface Notification {
   id: string;
@@ -15,15 +17,42 @@ interface Notification {
 interface UIState {
   notifications: Notification[];
   isLoading: boolean;
+  theme: Theme;
+  resolvedTheme: 'light' | 'dark';
 
   addNotification: (message: string, type?: string) => string;
   removeNotification: (id: string) => void;
   setLoading: (loading: boolean) => void;
+  setTheme: (theme: Theme) => void;
+  initializeTheme: () => void;
 }
+
+/**
+ * OS のダークモード設定を取得
+ */
+const getSystemTheme = (): 'light' | 'dark' => {
+  if (typeof window === 'undefined') return 'light';
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+};
+
+/**
+ * テーマを DOM に適用
+ */
+const applyTheme = (resolved: 'light' | 'dark') => {
+  if (typeof document === 'undefined') return;
+  const root = document.documentElement;
+  if (resolved === 'dark') {
+    root.classList.add('dark');
+  } else {
+    root.classList.remove('dark');
+  }
+};
 
 export const useUIStore = create<UIState>((set, get) => ({
   notifications: [],
   isLoading: false,
+  theme: 'light',
+  resolvedTheme: 'light',
 
   addNotification: (message: string, type: string = 'info'): string => {
     const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -49,5 +78,32 @@ export const useUIStore = create<UIState>((set, get) => ({
 
   setLoading: (loading: boolean): void => {
     set({ isLoading: loading });
+  },
+
+  setTheme: (theme: Theme): void => {
+    const resolved = theme === 'system' ? getSystemTheme() : theme;
+    applyTheme(resolved);
+    localStorage.setItem('pfwise-theme', theme);
+    set({ theme, resolvedTheme: resolved });
+  },
+
+  initializeTheme: (): void => {
+    const saved = localStorage.getItem('pfwise-theme') as Theme | null;
+    const theme = saved || 'light';
+    const resolved = theme === 'system' ? getSystemTheme() : theme;
+    applyTheme(resolved);
+    set({ theme, resolvedTheme: resolved });
+
+    // OS テーマ変更を監視
+    if (typeof window !== 'undefined') {
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+        const current = get().theme;
+        if (current === 'system') {
+          const newResolved = getSystemTheme();
+          applyTheme(newResolved);
+          set({ resolvedTheme: newResolved });
+        }
+      });
+    }
   },
 }));

@@ -59,13 +59,13 @@ const LocalStorageDiagnostics = () => {
   };
 
   return (
-    <div className="bg-dark-200 border border-dark-400 rounded-2xl shadow-xl p-6">
+    <div className="bg-card border border-border rounded-2xl shadow-xl p-6">
       <div className="flex items-center gap-2 mb-4">
         <FaTools className="text-orange-400" />
-        <h3 className="text-lg font-medium text-gray-100">ローカルストレージ診断</h3>
+        <h3 className="text-lg font-medium text-foreground">ローカルストレージ診断</h3>
       </div>
-      
-      <p className="text-gray-300 text-sm mb-4">
+
+      <p className="text-muted-foreground text-sm mb-4">
         ブラウザに保存されたポートフォリオデータの状態を確認し、問題があれば修復できます。
       </p>
 
@@ -100,8 +100,8 @@ const LocalStorageDiagnostics = () => {
       </div>
 
       {diagnosticsResult && (
-        <div className="bg-dark-100 border border-dark-300 rounded-lg p-4">
-          <h4 className="font-medium text-gray-100 mb-3">診断結果</h4>
+        <div className="bg-background border border-border rounded-lg p-4">
+          <h4 className="font-medium text-foreground mb-3">診断結果</h4>
           
           {diagnosticsResult.error ? (
             <div className="flex items-center gap-2 text-red-400">
@@ -116,7 +116,7 @@ const LocalStorageDiagnostics = () => {
                 ) : (
                   <FaExclamationTriangle className="text-yellow-400" />
                 )}
-                <span className="text-gray-200">
+                <span className="text-foreground">
                   データ存在: {diagnosticsResult.hasData ? 'あり' : 'なし'}
                 </span>
               </div>
@@ -127,15 +127,15 @@ const LocalStorageDiagnostics = () => {
                 ) : (
                   <FaExclamationTriangle className="text-red-400" />
                 )}
-                <span className="text-gray-200">
+                <span className="text-foreground">
                   復号化: {diagnosticsResult.canDecrypt ? '成功' : '失敗'}
                 </span>
               </div>
 
               {diagnosticsResult.currentState && (
-                <div className="bg-dark-200 p-3 rounded">
-                  <h5 className="text-sm font-medium text-gray-100 mb-2">現在の状態</h5>
-                  <div className="text-xs text-gray-300 space-y-1">
+                <div className="bg-card p-3 rounded">
+                  <h5 className="text-sm font-medium text-foreground mb-2">現在の状態</h5>
+                  <div className="text-xs text-muted-foreground space-y-1">
                     <div>初期化: {diagnosticsResult.currentState.initialized ? '完了' : '未完了'}</div>
                     <div>基準通貨: {diagnosticsResult.currentState.baseCurrency || '未設定'}</div>
                     <div>保有資産数: {diagnosticsResult.currentState.currentAssetsLength || 0}件</div>
@@ -149,7 +149,7 @@ const LocalStorageDiagnostics = () => {
 
       <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
         <h5 className="text-sm font-medium text-blue-400 mb-2">解決方法</h5>
-        <ul className="text-xs text-gray-300 space-y-1">
+        <ul className="text-xs text-muted-foreground space-y-1">
           <li>• <strong>データなし</strong>: まず設定ページで銘柄を追加してください</li>
           <li>• <strong>復号化失敗</strong>: 「リセット」で完全初期化を実行してください</li>
           <li>• <strong>読み込み失敗</strong>: 「強制再読み込み」でデータ取得を再試行してください</li>

@@ -1,19 +1,19 @@
-/** 
- * プロジェクト: https://portfolio-wise.com/ 
- * ファイルパス: src/components/common/DarkButton.jsx 
- * 
- * 作成者: Koki Riho （https://github.com/Rih0z） 
- * 作成日: 2025-06-02 
- * 
- * 説明: 
- * Netflix/Uber風のダークテーマボタンコンポーネント
+/**
+ * プロジェクト: https://portfolio-wise.com/
+ * ファイルパス: src/components/common/DarkButton.tsx
+ *
+ * 作成者: Koki Riho （https://github.com/Rih0z）
+ * 作成日: 2025-06-02
+ *
+ * 説明:
+ * テーマ対応ボタンコンポーネント（CSS変数ベース）
  * モダンなデザインシステムに基づいた再利用可能なボタンコンポーネント
  */
 
 import React from 'react';
 
-const DarkButton = ({ 
-  children, 
+const DarkButton = ({
+  children,
   variant = 'primary',
   size = 'md',
   disabled = false,
@@ -22,11 +22,11 @@ const DarkButton = ({
   iconPosition = 'left',
   className = '',
   onClick,
-  ...props 
-}) => {
+  ...props
+}: any) => {
   const getVariantClasses = () => {
     if (disabled) {
-      return 'bg-dark-400 text-gray-500 cursor-not-allowed border border-dark-500';
+      return 'bg-accent text-muted-foreground cursor-not-allowed border border-border';
     }
 
     switch (variant) {
@@ -34,53 +34,53 @@ const DarkButton = ({
         return `
           bg-primary-500 text-white border border-primary-500
           hover:bg-primary-600 hover:border-primary-600
-          focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-dark-200
+          focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background
           shadow-lg hover:shadow-glow
         `;
       case 'secondary':
         return `
-          bg-dark-300 text-gray-300 border border-dark-400
-          hover:bg-dark-400 hover:text-gray-200 hover:border-dark-300
-          focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-dark-200
+          bg-muted text-muted-foreground border border-border
+          hover:bg-accent hover:text-foreground hover:border-border
+          focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background
         `;
       case 'success':
         return `
           bg-success-500 text-white border border-success-500
           hover:bg-success-600 hover:border-success-600
-          focus:ring-2 focus:ring-success-400 focus:ring-offset-2 focus:ring-offset-dark-200
+          focus:ring-2 focus:ring-success-400 focus:ring-offset-2 focus:ring-offset-background
           shadow-lg
         `;
       case 'danger':
         return `
           bg-danger-500 text-white border border-danger-500
           hover:bg-danger-600 hover:border-danger-600
-          focus:ring-2 focus:ring-danger-400 focus:ring-offset-2 focus:ring-offset-dark-200
+          focus:ring-2 focus:ring-danger-400 focus:ring-offset-2 focus:ring-offset-background
           shadow-lg
         `;
       case 'warning':
         return `
-          bg-warning-500 text-dark-100 border border-warning-500
+          bg-warning-500 text-foreground border border-warning-500
           hover:bg-warning-600 hover:border-warning-600
-          focus:ring-2 focus:ring-warning-400 focus:ring-offset-2 focus:ring-offset-dark-200
+          focus:ring-2 focus:ring-warning-400 focus:ring-offset-2 focus:ring-offset-background
           shadow-lg
         `;
       case 'ghost':
         return `
-          bg-transparent text-gray-300 border border-transparent
-          hover:bg-dark-300 hover:text-gray-200
-          focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-dark-200
+          bg-transparent text-muted-foreground border border-transparent
+          hover:bg-accent hover:text-foreground
+          focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background
         `;
       case 'outline':
         return `
-          bg-transparent text-primary-400 border border-primary-500
+          bg-transparent text-primary-500 border border-primary-500
           hover:bg-primary-500 hover:text-white
-          focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-dark-200
+          focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background
         `;
       default:
         return `
           bg-primary-500 text-white border border-primary-500
           hover:bg-primary-600 hover:border-primary-600
-          focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 focus:ring-offset-dark-200
+          focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background
           shadow-lg hover:shadow-glow
         `;
     }
@@ -104,23 +104,23 @@ const DarkButton = ({
   };
 
   const LoadingSpinner = () => (
-    <svg 
-      className="animate-spin h-4 w-4" 
-      xmlns="http://www.w3.org/2000/svg" 
-      fill="none" 
+    <svg
+      className="animate-spin h-4 w-4"
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
       viewBox="0 0 24 24"
     >
-      <circle 
-        className="opacity-25" 
-        cx="12" 
-        cy="12" 
-        r="10" 
-        stroke="currentColor" 
+      <circle
+        className="opacity-25"
+        cx="12"
+        cy="12"
+        r="10"
+        stroke="currentColor"
         strokeWidth="4"
       />
-      <path 
-        className="opacity-75" 
-        fill="currentColor" 
+      <path
+        className="opacity-75"
+        fill="currentColor"
         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
       />
     </svg>

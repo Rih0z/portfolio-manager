@@ -21,12 +21,13 @@ import PortfolioSummary from '../components/dashboard/PortfolioSummary';
 import PortfolioCharts from '../components/dashboard/PortfolioCharts';
 import DifferenceChart from '../components/dashboard/DifferenceChart';
 import AssetsTable from '../components/dashboard/AssetsTable';
+import PortfolioScoreCard from '../components/dashboard/PortfolioScoreCard';
 import DataStatusBar from '../components/layout/DataStatusBar';
 import ModernCard from '../components/common/ModernCard';
 import ModernButton from '../components/common/ModernButton';
 import { usePortfolioContext } from '../hooks/usePortfolioContext';
-import Card from '../components/atlassian/Card';
-import Button from '../components/atlassian/Button';
+import { Card } from '../components/ui/card';
+import { Button } from '../components/ui/button';
 
 const Dashboard = () => {
   const { t } = useTranslation();
@@ -83,10 +84,13 @@ const Dashboard = () => {
         <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-primary-400 to-primary-500 bg-clip-text text-transparent mb-2 leading-tight">
           {t('dashboard.title')}
         </h1>
-        <p className="text-gray-300 text-sm sm:text-base">
+        <p className="text-muted-foreground text-sm sm:text-base">
           Portfolio performance and analytics overview
         </p>
       </div>
+
+      {/* Portfolio Score */}
+      <PortfolioScoreCard />
 
       {/* Dashboard Components with responsive spacing */}
       <div className="space-y-4 sm:space-y-6">
