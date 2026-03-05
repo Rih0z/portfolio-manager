@@ -1,7 +1,7 @@
 # PortfolioWise 収益化・再設計計画書
 
 **作成日**: 2026-03-03
-**最終更新**: 2026-03-04（Phase 0-B完了 + Google Drive/認証バグ修正5件）
+**最終更新**: 2026-03-05（Phase 1 完了 — Stripe収益化/プラン制限/法務/インフラ）
 **コスト方針**: ゼロコスト運営から開始。収益が見込めてから有料API導入。
 
 ---
@@ -790,20 +790,30 @@ Phase 2-B:
 - [x] セキュリティレビュー全修正（オープンリダイレクト防止、ログマスク化、debug=true無効化等）
 - [x] テスト: jwtUtils(24) + refreshToken(11) + logout(9) = 44件PASS
 
-**Week 2-3: Stripe + テーブル**
-- [ ] Stripe（Checkout + Customer Portal + Webhook Lambda）
-- [ ] pfwise-users, pfwise-subscriptions, pfwise-usage テーブル作成
-- [ ] プラン制限ミドルウェア（Lambda Authorizer拡張）
+**Week 2-3: Stripe + テーブル ✅ 完了**
+- [x] Stripe（Checkout + Customer Portal + Webhook Lambda）
+- [x] pfwise-users, pfwise-subscriptions, pfwise-usage テーブル作成
+- [x] プラン制限ミドルウェア（planLimitation.js）
+- [x] Webhook冪等性（イベントID重複排除、CacheTable 24h TTL）
+- [x] Webhookエラーハンドリング（回復不能→200、一時障害→500）
+- [x] イベント処理ステータス追跡（succeeded/failed/skipped）
 
-**Week 3-4: UI + 法務**
-- [ ] プライシングページ UI
-- [ ] 利用規約・プライバシーポリシー・特定商取引法・免責事項
-- [ ] CLAUDE.md第8条更新
+**Week 3-4: UI + 法務 ✅ 完了**
+- [x] プライシングページ UI（Pricing.tsx、Free/Standard比較カード）
+- [x] 利用規約（Terms.tsx）
+- [x] プライバシーポリシー（Privacy.tsx、APPI準拠）
+- [x] 特定商取引法に基づく表記（KKKR.tsx）
+- [x] 免責事項（Disclaimer.tsx、投資助言非該当明記）
+- [x] Footer.tsx（法務リンク）
+- [x] UpgradePrompt.tsx（プラン上限誘導）
+- [x] subscriptionStore.ts + subscriptionService.ts
+- [ ] CLAUDE.md第8条更新（Phase 2-Aで shadcn/ui 導入時に実施）
 
-**Week 4-5: インフラ改善**
-- [ ] ヘルスチェックエンドポイント追加（GET /health）
-- [ ] APIバージョンプレフィックス（/v1/）追加
-- [ ] ユーザーIDベースレート制限（JWT移行後）
+**Week 4-5: インフラ改善 ✅ 完了**
+- [x] ヘルスチェックエンドポイント追加（GET /health、情報漏洩対策済み）
+- [x] APIバージョンプレフィックス（/v1/subscription/*）
+- [x] ユーザーIDベースレート制限（Free: 30/h, Standard: 300/h）
+- [x] Stripe CLIローカルWebhookテスト手順（backend/CLAUDE.md）
 - [ ] **ペルソナ検証: ベータユーザー5〜10人招待・インタビュー実施**
 
 ### Phase 2-A: UX・デザイン刷新（5週間）
