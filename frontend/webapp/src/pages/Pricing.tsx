@@ -64,7 +64,7 @@ const Pricing: React.FC = () => {
   };
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-5xl mx-auto">
+    <div data-testid="pricing-page" className="px-4 sm:px-6 lg:px-8 py-6 max-w-5xl mx-auto">
       <div className="text-center mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">料金プラン</h1>
         <p className="text-muted-foreground text-sm sm:text-base">

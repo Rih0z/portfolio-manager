@@ -26,7 +26,7 @@ const DataIntegration = () => {
   const { isAuthenticated } = useAuth();
 
   return (
-    <div className="space-y-6">
+    <div data-testid="data-integration-page" className="space-y-6">
       <div className="bg-white rounded-lg shadow p-6">
         <h2 className="text-xl font-semibold mb-4">データのエクスポート</h2>
         <p className="text-gray-600 mb-4">

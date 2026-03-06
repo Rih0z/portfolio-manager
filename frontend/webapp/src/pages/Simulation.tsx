@@ -51,7 +51,7 @@ const Simulation = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div data-testid="simulation-page" className="space-y-6">
       <div className="bg-card rounded-lg shadow border border-border p-6">
         <h2 className="text-xl font-semibold mb-4 text-foreground">追加投資のシミュレーション</h2>
 

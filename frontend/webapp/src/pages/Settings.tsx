@@ -54,7 +54,7 @@ const Settings = () => {
   ];
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <div data-testid="settings-page" className="max-w-7xl mx-auto">
       {/* セクションタブ */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-6 p-2">
         <div className="flex flex-wrap gap-2">

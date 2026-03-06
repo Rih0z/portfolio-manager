@@ -7,7 +7,7 @@ import { Link } from 'react-router-dom';
 
 const Privacy: React.FC = () => {
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-6 max-w-3xl mx-auto">
+    <div data-testid="privacy-page" className="px-4 sm:px-6 lg:px-8 py-6 max-w-3xl mx-auto">
       <nav className="text-xs text-gray-500 mb-4">
         <Link to="/" className="hover:text-gray-300">ホーム</Link>
         <span className="mx-2">/</span>

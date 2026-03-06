@@ -345,7 +345,7 @@ Based on the above information, please advise me on:
   };
 
   return (
-    <div className="min-h-screen bg-background text-white">
+    <div data-testid="ai-advisor-page" className="min-h-screen bg-background text-white">
       <div className={`container mx-auto px-4 py-8 pb-20 ${isFirstTimeUser ? 'max-w-6xl' : ''}`}>
         {/* Header */}
         <div className="text-center mb-8">
