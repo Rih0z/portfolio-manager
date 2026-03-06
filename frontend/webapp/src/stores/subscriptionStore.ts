@@ -13,6 +13,7 @@ import {
   getSubscriptionStatus,
   type SubscriptionStatus,
 } from '../services/subscriptionService';
+import { trackEvent, AnalyticsEvents } from '../utils/analytics';
 
 interface SubscriptionState {
   planType: 'free' | 'standard';
@@ -80,6 +81,7 @@ export const useSubscriptionStore = create<SubscriptionState>()((set, get) => ({
   startCheckout: async (plan = 'monthly') => {
     set({ loading: true, error: null });
     try {
+      trackEvent(AnalyticsEvents.CHECKOUT_START, { plan });
       const { checkoutUrl } = await createCheckoutSession(plan);
       // Stripe Checkout ページにリダイレクト
       window.location.href = checkoutUrl;

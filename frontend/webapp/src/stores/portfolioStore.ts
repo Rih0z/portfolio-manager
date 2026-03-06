@@ -15,6 +15,9 @@ import {
 } from '../services/api';
 import { saveToDrive, loadFromDrive } from '../services/googleDriveService';
 import { fetchMultipleStocks } from '../services/marketDataService';
+import { fetchServerPortfolio, saveServerPortfolio } from '../services/portfolioSyncService';
+import { getAuthToken } from '../utils/apiUtils';
+import { trackEvent, AnalyticsEvents } from '../utils/analytics';
 import {
   FUND_TYPES,
   guessFundType,
@@ -70,6 +73,9 @@ interface PortfolioState {
   dataSource: string;
   lastSyncTime: string | null;
   currentUser: any;
+  serverVersion: number | null;
+  syncStatus: 'idle' | 'syncing' | 'error' | 'conflict';
+  lastServerSync: string | null;
 
   // --- Actions ---
   addTicker: (ticker: string) => Promise<any>;
@@ -105,6 +111,11 @@ interface PortfolioState {
   loadFromLocalStorage: () => any | null;
   clearLocalStorage: () => boolean;
   initializeData: () => void;
+
+  // Server Sync
+  syncToServer: () => Promise<void>;
+  syncFromServer: () => Promise<void>;
+  resolveConflict: (strategy: 'server' | 'local') => Promise<void>;
 }
 
 // Helper: UI notification
@@ -123,6 +134,9 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
   dataSource: 'local',
   lastSyncTime: null,
   currentUser: null,
+  serverVersion: null,
+  syncStatus: 'idle',
+  lastServerSync: null,
 
   // --- Validate Asset Types ---
   validateAssetTypes: (assets: any[]) => {
@@ -413,7 +427,12 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
         let fallbackCount = 0;
 
         const tickers = currentAssets.map((a: any) => a.ticker);
-        const batchData = await fetchMultipleStocks(tickers);
+        const batchData: any = await fetchMultipleStocks(tickers);
+
+        // degraded フラグの検出（予算超過時のキャッシュデータ）
+        if (batchData?.degraded) {
+          notify('キャッシュデータを表示中。最新データではない可能性があります。', 'warning');
+        }
 
         const updatedAssets = await Promise.all(
           currentAssets.map(async (asset: any) => {
@@ -450,6 +469,10 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
         notify('市場データを更新しました', 'success');
 
         saveToLocalStorage();
+        // 認証済みの場合、debounced サーバー同期
+        if (getAuthToken()) {
+          setTimeout(() => get().syncToServer(), 5000);
+        }
         return { success: true, message: '市場データを更新しました' };
       } catch (error: any) {
         notify(`市場データの更新に失敗しました: ${error.message}`, 'error');
@@ -577,6 +600,7 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
 
       set(updates as any);
       setTimeout(() => get().saveToLocalStorage(), 100);
+      trackEvent(AnalyticsEvents.CSV_IMPORT, { assetCount: (updates as any).currentAssets?.length || 0 });
       return { success: true, message: 'データをインポートしました' };
     } catch (error: any) {
       notify(`データのインポートに失敗しました: ${error.message}`, 'error');
@@ -781,6 +805,100 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
     } catch (error: any) {
       notify(`データの初期化中にエラーが発生しました: ${error.message}`, 'error');
       set({ initialized: true });
+    }
+  },
+
+  // --- Server Sync ---
+  syncToServer: async () => {
+    if (!getAuthToken()) return;
+    const state = get();
+    if (state.syncStatus === 'syncing') return;
+
+    set({ syncStatus: 'syncing' });
+    try {
+      const result = await saveServerPortfolio(
+        {
+          currentAssets: state.currentAssets,
+          targetPortfolio: state.targetPortfolio,
+          baseCurrency: state.baseCurrency,
+          exchangeRate: state.exchangeRate,
+          additionalBudget: state.additionalBudget,
+          aiPromptTemplate: state.aiPromptTemplate
+        },
+        state.serverVersion
+      );
+      set({
+        serverVersion: result.version,
+        lastServerSync: result.updatedAt,
+        syncStatus: 'idle'
+      });
+      trackEvent(AnalyticsEvents.PORTFOLIO_SYNC, { direction: 'to_server' });
+    } catch (error: any) {
+      if (error.code === 'VERSION_CONFLICT') {
+        set({ syncStatus: 'conflict' });
+        notify('ポートフォリオが別のセッションで更新されています。最新データを読み込んでください。', 'warning');
+      } else {
+        set({ syncStatus: 'error' });
+      }
+    }
+  },
+
+  syncFromServer: async () => {
+    if (!getAuthToken()) return;
+    set({ syncStatus: 'syncing' });
+    try {
+      const serverData = await fetchServerPortfolio();
+      if (!serverData) {
+        set({ syncStatus: 'idle' });
+        return;
+      }
+
+      const state = get();
+      // サーバーデータが新しければサーバー優先
+      const serverTime = new Date(serverData.updatedAt).getTime();
+      const localTime = state.lastUpdated ? new Date(state.lastUpdated).getTime() : 0;
+
+      if (serverTime > localTime) {
+        const updates: any = {
+          serverVersion: serverData.version,
+          lastServerSync: serverData.updatedAt,
+          syncStatus: 'idle'
+        };
+
+        if (Array.isArray(serverData.currentAssets)) {
+          const { updatedAssets } = get().validateAssetTypes(serverData.currentAssets);
+          updates.currentAssets = updatedAssets;
+        }
+        if (Array.isArray(serverData.targetPortfolio)) updates.targetPortfolio = serverData.targetPortfolio;
+        if (serverData.baseCurrency) updates.baseCurrency = serverData.baseCurrency;
+        if (serverData.exchangeRate) updates.exchangeRate = serverData.exchangeRate;
+        if (serverData.additionalBudget) updates.additionalBudget = serverData.additionalBudget;
+        if (serverData.aiPromptTemplate) updates.aiPromptTemplate = serverData.aiPromptTemplate;
+        if (serverData.updatedAt) updates.lastUpdated = serverData.updatedAt;
+
+        set(updates);
+        get().saveToLocalStorage();
+        notify('サーバーからデータを同期しました', 'success');
+      } else {
+        set({
+          serverVersion: serverData.version,
+          lastServerSync: serverData.updatedAt,
+          syncStatus: 'idle'
+        });
+      }
+      trackEvent(AnalyticsEvents.PORTFOLIO_SYNC, { direction: 'from_server' });
+    } catch (error: any) {
+      set({ syncStatus: 'error' });
+    }
+  },
+
+  resolveConflict: async (strategy: 'server' | 'local') => {
+    if (strategy === 'server') {
+      await get().syncFromServer();
+    } else {
+      // ローカル優先: サーバーに強制保存（version=nullで新規扱い）
+      set({ serverVersion: null, syncStatus: 'idle' });
+      await get().syncToServer();
     }
   },
 }));

@@ -17,7 +17,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { QueryProvider } from './providers/QueryProvider';
 import Header from './components/layout/Header';
@@ -40,6 +40,7 @@ import { useUIStore } from './stores/uiStore';
 import { useSubscriptionStore } from './stores/subscriptionStore';
 import Footer from './components/layout/Footer';
 import { initializeApiConfig, getGoogleClientId } from './utils/envUtils';
+import { initGA, trackPageView } from './utils/analytics';
 
 // i18n初期化
 import './i18n';
@@ -55,6 +56,7 @@ const AppInitializer = ({ children }: any) => {
         await initializeApiConfig();
         const clientId = await getGoogleClientId();
         setGoogleClientId(clientId);
+        initGA();
         setInitialized(true);
       } catch (error) {
         console.error('API設定の初期化に失敗しました:', error);
@@ -190,6 +192,29 @@ const NotificationDisplay = () => {
   );
 };
 
+// ページビュー自動追跡
+const PageViewTracker = () => {
+  const location = useLocation();
+  useEffect(() => {
+    trackPageView(location.pathname);
+  }, [location.pathname]);
+  return null;
+};
+
+// ログイン時にサーバー同期をトリガー
+const ServerSyncInitializer = () => {
+  const isAuthenticated = useAuthStore(s => s.isAuthenticated);
+  const syncFromServer = usePortfolioStore(s => s.syncFromServer);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      syncFromServer();
+    }
+  }, [isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return null;
+};
+
 // エラー境界コンポーネント
 class ErrorBoundary extends React.Component<any, any> {
   constructor(props: any) {
@@ -244,6 +269,8 @@ const App = () => {
           <StoreInitializer />
 
           <Router>
+            <PageViewTracker />
+            <ServerSyncInitializer />
             <SettingsChecker>
               <div className="min-h-screen bg-background text-foreground">
                 <Header />

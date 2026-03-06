@@ -23,6 +23,7 @@ export interface ParsedAsset {
   lastUpdated: string;
   source: string;
   fundType: string;
+  purchasePrice?: number;
 }
 
 export interface CSVParseResult {
@@ -206,6 +207,9 @@ export function parseSBICSV(content: string): CSVParseResult {
     const holdings = parseJapaneseNumber(
       findColumn(row, ['保有数量', '数量', '口数', '保有口数'])
     );
+    const purchasePrice = parseJapaneseNumber(
+      findColumn(row, ['取得単価', '取得価額', '買付単価', '平均取得単価'])
+    );
 
     // 投資信託の口数は通常10000口単位なので口数→数量に変換
     const normalizedTicker = ticker.replace(/"/g, '').trim();
@@ -215,7 +219,7 @@ export function parseSBICSV(content: string): CSVParseResult {
     }
 
     if (normalizedTicker || name) {
-      assets.push({
+      const asset: ParsedAsset = {
         id: normalizedTicker || name.slice(0, 10),
         ticker: normalizedTicker || name.slice(0, 10),
         name: name || normalizedTicker,
@@ -226,7 +230,9 @@ export function parseSBICSV(content: string): CSVParseResult {
         lastUpdated: now,
         source: 'SBI証券CSV',
         fundType: guessFundType(normalizedTicker, name),
-      });
+      };
+      if (purchasePrice > 0) asset.purchasePrice = purchasePrice;
+      assets.push(asset);
     }
   }
 
@@ -273,6 +279,9 @@ export function parseRakutenCSV(content: string): CSVParseResult {
     const holdings = parseJapaneseNumber(
       findColumn(row, ['数量', '口数', '保有数量', '保有口数'])
     );
+    const purchasePrice = parseJapaneseNumber(
+      findColumn(row, ['取得単価', '取得価額', '買付単価', '平均取得単価'])
+    );
 
     const normalizedTicker = ticker.replace(/"/g, '').trim();
     let normalizedHoldings = holdings;
@@ -281,7 +290,7 @@ export function parseRakutenCSV(content: string): CSVParseResult {
     }
 
     if (normalizedTicker || name) {
-      assets.push({
+      const asset: ParsedAsset = {
         id: normalizedTicker || name.slice(0, 10),
         ticker: normalizedTicker || name.slice(0, 10),
         name: name || normalizedTicker,
@@ -292,7 +301,9 @@ export function parseRakutenCSV(content: string): CSVParseResult {
         lastUpdated: now,
         source: '楽天証券CSV',
         fundType: guessFundType(normalizedTicker, name),
-      });
+      };
+      if (purchasePrice > 0) asset.purchasePrice = purchasePrice;
+      assets.push(asset);
     }
   }
 
@@ -350,13 +361,16 @@ export function parseGenericCSV(content: string): CSVParseResult {
     const fee = parseJapaneseNumber(
       findColumn(row, ['fee', 'annualFee', '手数料', '信託報酬', 'annual_fee'])
     );
+    const purchasePrice = parseJapaneseNumber(
+      findColumn(row, ['purchasePrice', 'cost', 'purchase_price', '取得単価', '取得価額', '買付単価', '平均取得単価'])
+    );
 
     if (!ticker && !name) continue;
     if (price === 0 && holdings === 0) continue; // skip header-like or empty rows
 
     const cleanTicker = (ticker || name.slice(0, 10)).replace(/"/g, '').trim();
 
-    assets.push({
+    const asset: ParsedAsset = {
       id: cleanTicker,
       ticker: cleanTicker,
       name: name || cleanTicker,
@@ -367,7 +381,9 @@ export function parseGenericCSV(content: string): CSVParseResult {
       lastUpdated: now,
       source: 'CSVインポート',
       fundType: guessFundType(cleanTicker, name),
-    });
+    };
+    if (purchasePrice > 0) asset.purchasePrice = purchasePrice;
+    assets.push(asset);
   }
 
   if (assets.length === 0) {

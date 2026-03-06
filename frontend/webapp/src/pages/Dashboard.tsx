@@ -22,14 +22,21 @@ import PortfolioCharts from '../components/dashboard/PortfolioCharts';
 import DifferenceChart from '../components/dashboard/DifferenceChart';
 import AssetsTable from '../components/dashboard/AssetsTable';
 import PortfolioScoreCard from '../components/dashboard/PortfolioScoreCard';
+import PnLSummary from '../components/dashboard/PnLSummary';
+import PnLTrendChart from '../components/dashboard/PnLTrendChart';
 import DataStatusBar from '../components/layout/DataStatusBar';
 import { usePortfolioContext } from '../hooks/usePortfolioContext';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
+import { trackEvent, AnalyticsEvents } from '../utils/analytics';
 
 const Dashboard = () => {
   const { t } = useTranslation();
   const { currentAssets } = usePortfolioContext();
+
+  React.useEffect(() => {
+    trackEvent(AnalyticsEvents.DASHBOARD_VIEW);
+  }, []);
 
   if (currentAssets.length === 0) {
     return (
@@ -85,6 +92,9 @@ const Dashboard = () => {
         </p>
       </div>
 
+      {/* P&L Summary */}
+      <PnLSummary />
+
       {/* Portfolio Score */}
       <PortfolioScoreCard />
 
@@ -92,6 +102,7 @@ const Dashboard = () => {
       <div className="space-y-4 sm:space-y-6">
         <PortfolioSummary />
         <PortfolioCharts />
+        <PnLTrendChart />
         <DifferenceChart />
         <AssetsTable />
       </div>

@@ -24,6 +24,8 @@ export interface Asset extends BaseAsset {
   dividendYield?: number;
   dividendFrequency?: string;
   dividendIsEstimated?: boolean;
+  purchasePrice?: number;
+  purchaseDate?: string;
 }
 
 export interface TargetAllocation {

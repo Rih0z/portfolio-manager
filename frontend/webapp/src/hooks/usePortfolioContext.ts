@@ -70,6 +70,14 @@ export const usePortfolioContext = (): any => {
     initializeData: portfolio.initializeData,
     validateAssetTypes: portfolio.validateAssetTypes,
 
+    // Server sync
+    serverVersion: portfolio.serverVersion,
+    syncStatus: portfolio.syncStatus,
+    lastServerSync: portfolio.lastServerSync,
+    syncToServer: portfolio.syncToServer,
+    syncFromServer: portfolio.syncFromServer,
+    resolveConflict: portfolio.resolveConflict,
+
     // Aliases
     totalAnnualFees: annualFees,
     totalAnnualDividends: annualDividends,

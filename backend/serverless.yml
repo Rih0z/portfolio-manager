@@ -72,6 +72,8 @@ provider:
     USERS_TABLE: ${env:USERS_TABLE, '${self:service}-${self:provider.stage}-users'}
     SUBSCRIPTIONS_TABLE: ${env:SUBSCRIPTIONS_TABLE, '${self:service}-${self:provider.stage}-subscriptions'}
     USAGE_TABLE: ${env:USAGE_TABLE, '${self:service}-${self:provider.stage}-usage'}
+    PRICE_HISTORY_TABLE: ${env:PRICE_HISTORY_TABLE, '${self:service}-${self:provider.stage}-price-history'}
+    PORTFOLIOS_TABLE: ${env:PORTFOLIOS_TABLE, '${self:service}-${self:provider.stage}-portfolios'}
 
     # Stripe設定
     STRIPE_WEBHOOK_SECRET_NAME: ${env:STRIPE_WEBHOOK_SECRET_NAME, 'pfwise-api/stripe'}
@@ -131,6 +133,8 @@ provider:
         - !GetAtt SubscriptionsTable.Arn
         - !Join ['/', [!GetAtt SubscriptionsTable.Arn, 'index/*']]
         - !GetAtt UsageTable.Arn
+        - !GetAtt PriceHistoryTable.Arn
+        - !GetAtt PortfoliosTable.Arn
     # Secrets Manager アクセス権限
     - Effect: Allow
       Action:
@@ -183,7 +187,110 @@ functions:
     handler: src/function/preWarmCache.handler
     events:
       - schedule: rate(6 hours) # コスト削減のため1時間から6時間に変更
-  
+
+  # 日次価格スナップショット（平日 UTC 09:00 = JST 18:00）
+  dailySnapshot:
+    handler: src/function/dailySnapshot.handler
+    timeout: 300
+    memorySize: 512
+    events:
+      - schedule: cron(0 9 ? * MON-FRI *)
+
+  # 価格履歴APIエンドポイント
+  priceHistory:
+    handler: src/function/priceHistory.handler
+    events:
+      - http:
+          path: api/price-history
+          method: get
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+
+  # ポートフォリオ取得（JWT認証必須）
+  getPortfolio:
+    handler: src/function/portfolio/getPortfolio.handler
+    events:
+      - http:
+          path: api/portfolio
+          method: get
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+
+  # ポートフォリオ保存（JWT認証必須）
+  savePortfolio:
+    handler: src/function/portfolio/savePortfolio.handler
+    events:
+      - http:
+          path: api/portfolio
+          method: put
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+      - http:
+          path: api/portfolio
+          method: options
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+
   # 管理者機能
   getStatus:
     handler: src/function/admin/getStatus.handler
@@ -863,6 +970,39 @@ resources:
         TimeToLiveSpecification:
           AttributeName: ttl
           Enabled: true
+
+    # 価格履歴テーブル
+    PriceHistoryTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-${self:provider.stage}-price-history
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: ticker
+            AttributeType: S
+          - AttributeName: date
+            AttributeType: S
+        KeySchema:
+          - AttributeName: ticker
+            KeyType: HASH
+          - AttributeName: date
+            KeyType: RANGE
+        TimeToLiveSpecification:
+          AttributeName: ttl
+          Enabled: true
+
+    # ポートフォリオ保存テーブル
+    PortfoliosTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-${self:provider.stage}-portfolios
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
 
     # AlertTopic を一時的に無効化
     # AlertTopic:

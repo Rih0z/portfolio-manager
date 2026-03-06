@@ -24,7 +24,15 @@ vi.mock('react-router-dom', () => ({
     return <a href={to} className={cls}>{typeof children === 'function' ? children({ isActive: false }) : children}</a>;
   },
   Link: ({ children, to, ...props }) => <a href={to} {...props}>{children}</a>,
-  useNavigate: () => vi.fn()
+  useNavigate: () => vi.fn(),
+  useLocation: () => ({ pathname: '/', search: '', hash: '', state: null, key: 'default' })
+}));
+
+vi.mock('../../../utils/analytics', () => ({
+  initGA: vi.fn(),
+  trackPageView: vi.fn(),
+  trackEvent: vi.fn(),
+  AnalyticsEvents: {}
 }));
 
 vi.mock('@react-oauth/google', () => ({
@@ -54,7 +62,8 @@ vi.mock('../../../stores/portfolioStore', () => ({
       initializeData: vi.fn(),
       updateExchangeRate: vi.fn(),
       baseCurrency: 'JPY',
-      initialized: false
+      initialized: false,
+      syncFromServer: vi.fn()
     };
     return typeof selector === 'function' ? selector(state) : state;
   })

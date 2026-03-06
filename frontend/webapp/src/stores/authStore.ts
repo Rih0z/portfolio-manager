@@ -8,6 +8,7 @@
 import { create } from 'zustand';
 import { getApiEndpoint, getGoogleClientId } from '../utils/envUtils';
 import { authFetch, setAuthToken, getAuthToken, clearAuthToken, refreshAccessToken } from '../utils/apiUtils';
+import { trackEvent, AnalyticsEvents } from '../utils/analytics';
 import { usePortfolioStore } from './portfolioStore';
 import { useSubscriptionStore } from './subscriptionStore';
 
@@ -174,6 +175,7 @@ export const useAuthStore = create<AuthState>()((set, get) => {
         setAuthState(userData, true, driveAccess, token);
         notifyPortfolioStore(true, userData);
         sessionCheckFailureCount = 0;
+        trackEvent(AnalyticsEvents.LOGIN, { method: 'google' });
 
         if (driveAccess) {
           setTimeout(() => {

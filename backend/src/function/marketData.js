@@ -156,12 +156,35 @@ exports.handler = async (event, context) => {
     // 予算使用状況をチェック
     const budgetCritical = await isBudgetCritical();
 
-    // 予算が臨界値に達していて、リフレッシュのリクエストの場合は拒否
+    // 予算が臨界値に達していて、リフレッシュのリクエストの場合
+    // グレースフルデグレーション: キャッシュデータがあればdegradedフラグ付きで返す
     if (budgetCritical && refresh) {
+      try {
+        const cacheKey = cacheService.generateCacheKey(type, params);
+        const cachedData = await cacheService.get(cacheKey);
+        if (cachedData && cachedData.data) {
+          log.info('Budget critical: serving cached data with degraded flag', { cacheKey });
+          return await formatResponse({
+            statusCode: 200,
+            data: {
+              ...cachedData.data,
+              degraded: true,
+              degradedReason: 'budget_critical'
+            },
+            source: 'cache',
+            event,
+            headers: { 'X-Data-Degraded': 'true', 'X-Budget-Warning': 'CRITICAL' }
+          });
+        }
+      } catch (cacheError) {
+        log.warn('Failed to fetch cached data during budget critical:', cacheError.message);
+      }
+
+      // キャッシュなしの場合のみ403（既存ロジック維持）
       const warningMessage = await getBudgetWarningMessage();
       return await formatErrorResponse({
         statusCode: 403,
-        code: ERROR_CODES.BUDGET_LIMIT_EXCEEDED, // テストに合わせてコード名を修正
+        code: ERROR_CODES.BUDGET_LIMIT_EXCEEDED,
         message: warningMessage || 'Free Tier budget usage is at critical level. Cache refresh is temporarily disabled to prevent additional charges.',
         headers: { 'X-Budget-Warning': 'CRITICAL' },
         details: { budgetCritical: true },

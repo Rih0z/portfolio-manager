@@ -6,8 +6,9 @@
  *
  * @file src/pages/Pricing.tsx
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../stores/authStore';
+import { trackEvent, AnalyticsEvents } from '../utils/analytics';
 import { useSubscriptionStore } from '../stores/subscriptionStore';
 
 const CheckIcon = () => (
@@ -42,6 +43,7 @@ const features: FeatureRow[] = [
 ];
 
 const Pricing: React.FC = () => {
+  useEffect(() => { trackEvent(AnalyticsEvents.PRICING_VIEW); }, []);
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('monthly');
   const isAuthenticated = useAuthStore(s => s.isAuthenticated);
   const { planType, startCheckout, openPortal, loading } = useSubscriptionStore();
