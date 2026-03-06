@@ -1,31 +1,31 @@
 # PortfolioWise 収益化・再設計計画書
 
 **作成日**: 2026-03-03
-**最終更新**: 2026-03-05（Phase 1 完了 — Stripe収益化/プラン制限/法務/インフラ）
+**最終更新**: 2026-03-05（Phase 2-A 完了 — shadcn/ui + CSV強化 + PFスコア + ライトモード）
 **コスト方針**: ゼロコスト運営から開始。収益が見込めてから有料API導入。
 
 ---
 
 ## 1. 現状分析サマリー
 
-### 現在のプロダクト
+### 現在のプロダクト（Phase 2-A 完了時点）
 - 日米株式・投資信託のポートフォリオ管理ツール
-- リバランスシミュレーション + AI分析プロンプト生成
-- Google OAuth認証、Google Driveバックアップ
-- 完全無料、収益化コードゼロ
-- React SPA (Vite 7.x) + TypeScript 5.x + Vitest + AWS Lambda + DynamoDB
-- JWT + Session デュアルモード認証（Phase 1 Week 1-2で実装済み）
-- Google Drive save/load API復元済み（Phase 0-Bバグ修正）
+- リバランスシミュレーション + AI分析プロンプト生成 + PFスコア(8指標/100点)
+- Google OAuth認証 + JWT デュアルモード + Google Driveバックアップ
+- Stripe決済基盤実装済み（Free/Standard ¥700/月）
+- React SPA (Vite 7.x) + TypeScript 5.x + Vitest + Zustand + TanStack Query
+- shadcn/ui デザインシステム + ライト/ダークモード切替
+- CSVインポート対応（SBI証券/楽天証券/汎用、Shift-JIS自動検出）
+- AWS Lambda + DynamoDB (sessions, cache, rate-limits, users, subscriptions, usage)
 
-### 現状の課題
-| 領域 | 課題 | 深刻度 |
-|------|------|--------|
-| **市場データ** | yahoo-finance2（非公式）依存。いつブロックされてもおかしくない | 🔴 |
-| **収益** | 収益化機構なし。月¥3,000〜5,000のAWSコスト垂れ流し | 🔴 |
-| **UX** | 入力が面倒。儲けが見えない。面白みがない | 🔴 |
-| **設計** | ダークテーマ＋Atlassianデザインの二重構造。信頼感なし | 🟡 |
-| **アーキテクチャ** | PortfolioContext.tsx 76KB。Vite移行済。TypeScript移行済（strict:false） | 🟡 |
-| **セキュリティ** | localStorage暗号化がBase64エンコードのみ（偽装暗号化） | 🟡 |
+### 現状の課題（残存）
+| 領域 | 課題 | 深刻度 | 備考 |
+|------|------|--------|------|
+| **市場データ** | yahoo-finance2（非公式）依存 | 🔴 | Phase 2-Bで対策 |
+| **損益表示** | 前日比・年初来比較・推移グラフ未実装 | 🟡 | Phase 2-Bで対応 |
+| **Modern*コンポーネント** | 旧ModernButton/Card/Inputが21箇所残存 | 🟡 | shadcn/uiへの段階的置換が必要 |
+| **Atlassianコンポーネント** | 旧ファイル7件が未削除（参照0件のデッドコード） | 🟢 | 削除するだけ |
+| **バンドルサイズ** | 1,057KB（コード分割未実施） | 🟢 | Phase 2-Bで最適化 |
 
 ---
 
@@ -807,7 +807,7 @@ Phase 2-B:
 - [x] Footer.tsx（法務リンク）
 - [x] UpgradePrompt.tsx（プラン上限誘導）
 - [x] subscriptionStore.ts + subscriptionService.ts
-- [ ] CLAUDE.md第8条更新（Phase 2-Aで shadcn/ui 導入時に実施）
+- [x] CLAUDE.md第8条更新（Phase 2-A完了時にshadcn/uiに更新済み）
 
 **Week 4-5: インフラ改善 ✅ 完了**
 - [x] ヘルスチェックエンドポイント追加（GET /health、情報漏洩対策済み）
@@ -816,20 +816,38 @@ Phase 2-B:
 - [x] Stripe CLIローカルWebhookテスト手順（backend/CLAUDE.md）
 - [ ] **ペルソナ検証: ベータユーザー5〜10人招待・インタビュー実施**
 
-### Phase 2-A: UX・デザイン刷新（5週間）
+### Phase 2-A: UX・デザイン刷新（5週間） ✅ 完了
 
-**Week 1-2: デザイン基盤**
-- [ ] shadcn/ui導入 + 既存Atlassianコンポーネント置換（Button, Card, Input, Modal）
-- [ ] ライトモードデフォルト + ダーク切替
-- [ ] JetBrains Mono金額表示
+**完了日:** 2026-03-05（コミット eb117fae）
 
-**Week 3-4: コア機能**
-- [ ] CSVインポート（SBI証券、楽天証券、汎用フォーマット）
-- [ ] ポートフォリオスコア（アルゴリズム設計 + UI）
+**Week 1-2: デザイン基盤 ✅ 完了**
+- [x] CSS変数ベースのセマンティックカラー定義（ライト/ダーク自動切替）
+- [x] shadcn/ui 8コンポーネント新設（Button, Card, Input, Badge, Dialog, Progress, Switch, Tabs）
+- [x] CVA (class-variance-authority) + clsx + tailwind-merge 導入
+- [x] ライトモードデフォルト + ダーク切替 + システム連動（3-state）
+- [x] JetBrains Mono 金額表示 + tabular-nums
+- [x] Header/TabNavigation/Footer 新デザイン
+- [x] テーマ管理: uiStore.ts に initializeTheme/setTheme 追加
+
+**Week 3-4: コア機能 ✅ 完了**
+- [x] CSVインポート強化（csvParsers.ts 470行）
+  - SBI証券/楽天証券/汎用フォーマット自動判定
+  - Shift-JIS → UTF-8 自動検出・変換
+  - 数字パース（¥/＄/% 記号対応）
+- [x] ポートフォリオスコア（portfolioScore.ts 400行）
+  - 8指標: 分散度/目標適合度/コスト効率/リバランス健全度/通貨分散/配当効率/アセット分散/データ鮮度
+  - Free: 3指標 / Standard: 8指標（プラン制限連動）
+  - CircularProgress + MetricBar による視覚的表示
+  - Dashboard統合（PortfolioScoreCard コンポーネント）
 
 **Week 5: 獲得導線**
-- [ ] 新オンボーディングフロー（30秒デモ体験）
-- [ ] 専用ランディングページ
+- [ ] 新オンボーディングフロー（30秒デモ体験）→ Phase 3以降
+- [ ] 専用ランディングページ → Phase 3以降
+
+**Phase 2-A統計:**
+- 46ファイル変更, +3,190行 / -729行
+- バンドルサイズ: 988KB → 1,057KB (+69KB, +7%)
+- テスト: 1,387 passed / 33 skipped / 0 failed
 
 ### Phase 2-B: データ基盤強化（3週間）
 
@@ -873,10 +891,10 @@ Phase 2-B:
 ```
 Phase 0-A: ビルド基盤        2週間   ← 完了 ✅
 Phase 0-B: 型安全性          3週間   ← 完了 ✅ + バグ修正5件
-Phase 0-C: 状態管理          3週間   ← 次のステップ
-Phase 1:   収益化+認証刷新   4〜5週間 ← JWT移行完了(W1-2)✅ / Stripe・法務・インフラ(W2-5)残
-Phase 2-A: UX+デザイン       5週間 ─┐
-Phase 2-B: データ基盤        3週間 ─┘ 並行可
+Phase 0-C: 状態管理          3週間   ← 完了 ✅ (Zustand + TanStack Query)
+Phase 1:   収益化+認証刷新   4〜5週間 ← 完了 ✅ (JWT + Stripe + 法務 + インフラ)
+Phase 2-A: UX+デザイン       5週間   ← 完了 ✅ (shadcn/ui + CSV + PFスコア)
+Phase 2-B: データ基盤        3週間   ← 次のステップ
 Phase 3:   AI強化+E2E基盤    4週間   ← Playwright導入+主要フローE2E（旧3週間）
 Phase 4:   差別化機能        4週間
 ──────────────────────────────────────

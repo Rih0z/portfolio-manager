@@ -8,177 +8,134 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Phase 2 Atlassian Design System implementation for AIAdvisor
-- MarketSelectionWizard integration in setup wizard
-- Portfolio settings reset functionality
-- Japanese mutual fund name display support
-- Netflix/Uber-style dark theme with mobile optimization
-- Multi-language support (Japanese/English)
-- AWS Secrets Manager integration for API security
-- Cloudflare Pages migration from Netlify
+- Stripe サブスクリプション連携（Checkout / Customer Portal / Webhook）
+- subscriptionStore + subscriptionService（Zustand ベース）
+- 料金プランページ（/pricing）
+- 法務ページ（利用規約、プライバシーポリシー、特定商取引法、免責事項）
+- Footer コンポーネント（法務リンク + コピーライト）
 
-### Fixed
-- i18n translation resources loading in production
-- Tree shaking sideEffects configuration for Atlassian components
-- SettingsChecker Router context errors
-- JSON import data normalization
-- Authentication emergency recovery
-- React DOM configuration and GitHub Actions workflow
-- CSS loading issues on Cloudflare Pages
+---
+
+## [2026-03-05] - Phase 2-A: UX/デザイン刷新
+
+### Added
+- **shadcn/ui 8コンポーネント**: Button, Card, Input, Badge, Dialog, Progress, Switch, Tabs
+- **CVA (class-variance-authority)** によるバリアント管理
+- **CSS Variables テーマシステム**: Light/Dark/System 3モード対応
+- **CSV取込パーサー**: SBI証券 / 楽天証券 / 汎用フォーマット（Shift-JIS自動検出）
+- **ポートフォリオスコア**: 8指標（分散度/目標適合度/コスト効率/リバランス健全度/通貨分散/配当効率/アセット分散/データ鮮度）
+- JetBrains Mono フォント（tabular-nums 数値表示）
 
 ### Changed
-- Tab navigation Settings button replaced with AI Investment Strategy
-- Backend messages organized in document/message folder
-- API endpoints made private with config-based retrieval
-- Homepage setting changed to absolute path
+- デザインシステムを Atlassian Design → shadcn/ui + Radix UI に移行
+- カラーシステムをハードコード → CSS Variables（セマンティックトークン）に変更
+- テーマ切替を OS 連動 + 手動トグル対応に拡張
 
-### Deprecated
-- Netlify deployment support (migrated to Cloudflare Pages)
+### Technical
+- 46ファイル変更、+3,190 / -729行
+- バンドルサイズ: 988KB → 1,057KB (+7%)
+- テスト: 1,387 passed / 33 skipped / 0 failed
 
-## [2025-08-22] - Phase 2 Release
+---
 
-### Added
-- Complete Atlassian Design System implementation
-- Dashboard & AI strategy tab UI overhaul
-- Comprehensive design system documentation
-- System integrity validation for Atlassian components
-
-### Fixed
-- Component tree shaking configuration
-- Import function errors
-
-## [2025-06-04] - Initial Setup Wizard
-
-### Added
-- Market selection wizard
-- Portfolio reset functionality
-- Japanese mutual fund support
-- Initial setup wizard integration
-
-### Fixed
-- Router context error handling
-- Deprecated function updates
-
-## [2025-06-02] - Dark Theme & Mobile
-
-### Added
-- Netflix/Uber-inspired dark theme
-- Complete mobile responsiveness
-- Multi-language support (JP/EN)
-- Modern UI/UX improvements
-
-### Fixed
-- JSON import normalization
-- Import function errors
-
-## [2025-05-29] - Infrastructure Migration
-
-### Added
-- Cloudflare Pages deployment
-- AWS Secrets Manager integration
-- API privacy layer
-- CORS configuration for new infrastructure
-
-### Fixed
-- Authentication system recovery
-- Frontend config retrieval
-- CSS loading on Cloudflare Pages
-- GitHub Actions environment variables
+## [2026-03-05] - Phase 0-C: 状態管理刷新
 
 ### Changed
-- Migrated from Netlify to Cloudflare Pages
-- API configuration to server-side management
+- **React Context API → Zustand 5.x** に全面移行
+- **TanStack Query 5.x** でサーバーステート管理を導入
+- 4ストア体制: authStore, portfolioStore, uiStore, subscriptionStore
+- cross-store 通信に `getState()` パターン採用
 
 ### Removed
-- Netlify-specific configurations
-- Direct API key exposure in client
+- AuthContext / PortfolioContext / ContextConnector（全廃止）
+- Context Provider ラッピング構造
 
-## [2025-05-28] - Security Enhancements
+### Technical
+- 31+ コンポーネントの store 参照を移行
+- テスト: vi.mock() パターンで全テスト更新
 
-### Added
-- Public API protection middleware
-- Security best practices documentation
-- Environment-based configuration system
+---
+
+## [2026-03-04] - Phase 0-B: TypeScript + Vitest 移行
+
+### Changed
+- **JavaScript → TypeScript** インクリメンタル移行（strict: false, allowJs: true）
+- **Jest → Vitest** テストフレームワーク移行
+- **CRA (react-scripts) → Vite** ビルドツール移行
+- MSW v1 モック構成を Vitest 互換に更新
+
+### Technical
+- vitest.config.ts + vitest.setup.ts 新規作成
+- @vitest/coverage-v8 によるカバレッジ計測
+
+---
+
+## [2026-03-03] - Phase 0-A: セキュリティ脆弱性修正
 
 ### Fixed
-- Authentication flow issues
-- Config API responses
-
-## [2025-05-27] - Initial Public Release
+- CRITICAL/HIGH/MEDIUM 6件のセキュリティ脆弱性を修正
+- JWT デュアルモード認証の実装（メモリ保存 + httpOnly Cookie）
+- Token Reuse Detection（DynamoDB 管理）
 
 ### Added
-- Core portfolio management functionality
-- Market data integration
-- Google OAuth authentication
-- Google Drive backup/restore
-- Real-time portfolio tracking
-- AI prompt generation for investment analysis
+- JWT Access Token: HS256, 24時間有効
+- Refresh Token: httpOnly Cookie, 7日間有効
+- POST /auth/refresh: Origin 必須化、CSRF 保護
+
+---
+
+## [2025-08-22] - Phase 2: Atlassian Design System (Deprecated)
+
+### Note
+> このバージョンのデザインシステムは Phase 2-A (2026-03-05) で shadcn/ui に置き換えられました。
+
+### Added
+- Atlassian Design System 実装（Button, Card, Input, Modal）
+- Dashboard & AI strategy タブ UI 刷新
+
+---
+
+## [2025-06-04] - 初期セットアップウィザード
+
+### Added
+- マーケット選択ウィザード
+- ポートフォリオリセット機能
+- 日本投資信託サポート
+
+---
+
+## [2025-06-02] - ダークテーマ & モバイル
+
+### Added
+- Netflix/Uber インスパイアダークテーマ
+- モバイルレスポンシブ対応
+- 多言語サポート (日本語/英語)
+
+---
+
+## [2025-05-29] - インフラ移行
+
+### Changed
+- Netlify → Cloudflare Pages 移行
+- API設定をサーバーサイド管理に変更
+
+### Added
+- AWS Secrets Manager 統合
+- CORS 設定更新
+
+---
+
+## [2025-05-27] - 初回公開リリース
+
+### Added
+- ポートフォリオ管理コア機能
+- 市場データ連携
+- Google OAuth 認証
+- Google Drive バックアップ/リストア
+- AI プロンプト生成
 
 ### Technical Stack
 - Frontend: React 18, TailwindCSS, Recharts
 - Backend: AWS Lambda, DynamoDB, Serverless Framework
 - Authentication: Google OAuth 2.0
 - Hosting: Cloudflare Pages (frontend), AWS (backend)
-
----
-
-## Version History
-
-### Versioning Strategy
-This project follows semantic versioning (MAJOR.MINOR.PATCH):
-- MAJOR: Breaking changes
-- MINOR: New features (backwards compatible)
-- PATCH: Bug fixes (backwards compatible)
-
-### Release Cycle
-- Feature releases: Monthly
-- Security patches: As needed
-- Major versions: Quarterly (as needed)
-
-### Support Policy
-- Latest version: Full support
-- Previous minor version: Security patches only
-- Older versions: Community support
-
-## Migration Guides
-
-### Migrating from Netlify to Cloudflare Pages (v2025-05-29)
-1. Update environment variables in Cloudflare dashboard
-2. Change deployment scripts to use Wrangler CLI
-3. Update CORS settings for new domain
-
-### Upgrading to Atlassian Design System (v2025-08-22)
-1. Install new dependencies: `npm install @atlaskit/tokens @atlaskit/button`
-2. Update component imports from custom to Atlassian
-3. Apply new theme tokens to existing styles
-
-## Breaking Changes
-
-### v2025-08-22
-- Custom button components replaced with Atlassian Design System
-- Theme token system changed
-- Some CSS classes deprecated
-
-### v2025-05-29
-- API configuration moved to server-side
-- Direct API key usage removed from client
-- Netlify functions replaced with AWS Lambda
-
-## Deprecation Notices
-
-### Scheduled for Removal
-- Legacy import formats (CSV without headers) - Remove in v2026-01-01
-- Direct API key configuration - Already removed
-- Custom UI components - Migrating to Atlassian Design System
-
-## Contributors
-
-- Development Team
-- UI/UX Team
-- Security Team
-- Infrastructure Team
-
----
-
-For detailed technical documentation, see [Technical Specifications](./documents/TECHNICAL.md)
-For API changes, see [API Documentation](./documents/api-specification.md)

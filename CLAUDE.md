@@ -28,7 +28,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 不要な文書やスクリプトは増やさない。スクリプト作成時は常に既存のスクリプトで使用可能なものがないか以下のセクションを確認する、スクリプトを作成したらscriptsフォルダに、ドキュメントはドキュメントフォルダに格納する。一時スクリプトや文書はそれぞれのフォルダのtmpフォルダに保存し、使用後に必ず削除する。
 
 ### 第8条
-デザインはhttps://atlassian.design/components を読み込み、これに準拠する。
+デザインは shadcn/ui + Radix UI を基盤とし、TailwindCSS でスタイリングする。フィンテック信頼感デザインを指針とする。コンポーネントは `src/components/ui/` の shadcn/ui コンポーネントを使用する。
 
 ### 第9条
 作業完了後にもう一度すべての宣言を実施し、宣言どおりに作業を実施できているか確認する。
@@ -120,27 +120,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Development
 ```bash
-# Start development server
-npm start
+# Start development server (Vite)
+cd frontend/webapp
+npm start               # vite dev
 
 # Build for production
-npm run build
+npm run build            # vite build
 
-# Run all tests with coverage
-npm test
+# Run all tests (Vitest)
+npm test                 # vitest run
+npm run test:watch       # vitest (watch mode)
+npm run test:coverage    # vitest run --coverage
 
-# Run specific test suites
-npm run test:unit          # Unit tests only
-npm run test:integration   # Integration tests
-npm run test:e2e          # End-to-end tests
-
-# Advanced test options (using script/run-tests.sh)
-npm run test:all          # All tests
-npm run test:coverage-chart  # Generate visual coverage report
-npm run test:visual       # Open coverage in browser
+# TypeScript type checking
+npm run typecheck        # tsc --noEmit
 
 # Run a single test file
-npm test -- path/to/test.js
+npx vitest run path/to/test.ts
+
+# Deploy to production
+wrangler pages deploy build --project-name=pfwise-portfolio-manager
 ```
 
 ## Architecture Overview
@@ -149,52 +148,60 @@ This is a React-based portfolio management application with AI-powered investmen
 
 ### Frontend Architecture
 - **React 18** with functional components and hooks
-- **Context API** for state management (AuthContext for auth, PortfolioContext for portfolio data)
-- **TailwindCSS** for styling with custom theme colors
+- **TypeScript 5.x** (strict: false, allowJs: true — インクリメンタル移行中)
+- **Vite 7.x** for build and dev server
+- **Zustand 5.x** for client state management (authStore, portfolioStore, uiStore, subscriptionStore)
+- **TanStack Query 5.x** for server state caching
+- **TailwindCSS** + **shadcn/ui** for styling (CSS変数ベース、ライト/ダーク切替)
 - **Recharts** for data visualization
 - **Google OAuth** for authentication
 - **Axios** for API calls with retry logic
+- **JetBrains Mono** for numeric display (tabular-nums)
 
 ### Testing Architecture
-- **Jest + React Testing Library** for unit/integration tests
-- **MSW (Mock Service Worker)** for API mocking
-- Custom test runner script (`script/run-tests.sh`) with advanced options
-- Coverage thresholds enforced (70-80% target)
-- Visual coverage reporting with chart generation
+- **Vitest + React Testing Library** for unit/integration tests
+- **MSW (Mock Service Worker) v1** for API mocking
+- Coverage via `@vitest/coverage-v8`
+- Setup: `vitest.config.ts` + `vitest.setup.ts`
 
 ### Key Patterns
 
 1. **Service Layer Pattern**: All API calls go through `/src/services/` modules
-   - `api.js`: Core API client with auth handling
-   - `marketDataService.js`: Market data fetching with fallbacks
-   - `adminService.js`: Admin functionality
+   - `api.ts`: Core API client with auth handling
+   - `marketDataService.ts`: Market data fetching with fallbacks
+   - `subscriptionService.ts`: Stripe subscription management
 
-2. **Context Bridge Pattern**: `ContextConnector` component bridges AuthContext and PortfolioContext
+2. **Zustand Store Pattern**: 4 stores with cross-store communication via `getState()`
+   - `authStore.ts`: 認証・JWT管理
+   - `portfolioStore.ts`: ポートフォリオデータ・Google Drive連携
+   - `uiStore.ts`: 通知・テーマ管理
+   - `subscriptionStore.ts`: サブスクリプション・プラン制限
 
 3. **Environment Configuration**: All API settings are dynamically fetched from AWS
    - No API URLs or keys stored in client
    - Configuration fetched from AWS at runtime
-   - Enhanced security and easier maintenance
 
 4. **Component Organization**:
    ```
    components/
-   ├── auth/       # LoginButton, UserProfile
-   ├── common/     # ErrorBoundary, ToastNotification, etc.
-   ├── dashboard/  # Portfolio visualization components
+   ├── auth/       # LoginButton, OAuthLoginButton
+   ├── common/     # ErrorBoundary, InitialSetupWizard, UpgradePrompt
+   ├── dashboard/  # Portfolio visualization, PortfolioScoreCard
    ├── data/       # Import/Export, Google Drive integration
-   ├── layout/     # Header, TabNavigation, DataStatusBar
+   ├── layout/     # Header, TabNavigation, DataStatusBar, Footer
    ├── settings/   # Holdings/Allocation editors, AI prompt settings
-   └── simulation/ # Investment simulation components
+   ├── simulation/ # Investment simulation components
+   └── ui/         # shadcn/ui (Button, Card, Input, Badge, Dialog, Progress, Switch, Tabs)
    ```
 
 ## Important Implementation Details
 
 ### Deployment
-- **Frontend Hosting**: Cloudflare Pages (migrated from Netlify)
-- **Backend API**: AWS Lambda + API Gateway
-- **Database**: Amazon DynamoDB
-- **Authentication**: Google OAuth + AWS Cognito
+- **Frontend Hosting**: Cloudflare Pages
+- **Backend API**: AWS Lambda + API Gateway (別リポジトリ: pfwise-api)
+- **Database**: Amazon DynamoDB (sessions, cache, rate-limits, users, subscriptions, usage)
+- **Authentication**: Google OAuth + JWT デュアルモード認証
+- **決済**: Stripe Checkout + Customer Portal + Webhook
 
 ## Deployment Commands
 
@@ -268,8 +275,9 @@ The backend serverless.yml is configured to allow:
 
 ### Testing Requirements
 - All new components need corresponding tests in `__tests__/unit/components/`
-- Integration tests for API interactions in `__tests__/integration/`
-- Mock handlers in `__tests__/mocks/handlers.js`
+- Store tests in `__tests__/unit/stores/`
+- Service tests in `__tests__/unit/services/`
+- Use `vi.mock()` for Zustand store mocking (not Context Provider wrapping)
 - Use existing test patterns and utilities
 
 ## Development Tips

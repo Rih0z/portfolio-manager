@@ -1,79 +1,132 @@
 # PortfolioWise Migration Guide
 
-## Current Version: 2.0.0
+## Current Version: 3.0.0 (Phase 2-A)
 
 This guide provides step-by-step instructions for migrating between major versions of PortfolioWise.
 
 ## Table of Contents
-1. [Version 2.0.0 - Atlassian Design System](#version-200---atlassian-design-system)
-2. [Version 1.5.0 - Cloudflare Migration](#version-150---cloudflare-migration)
-3. [Version 1.0.0 - Initial Release](#version-100---initial-release)
+1. [Version 3.0.0 - shadcn/ui + Zustand + Vite](#version-300---shadcnui--zustand--vite)
+2. [Version 2.0.0 - Atlassian Design System (Deprecated)](#version-200---atlassian-design-system-deprecated)
+3. [Version 1.5.0 - Cloudflare Migration](#version-150---cloudflare-migration)
+4. [Version 1.0.0 - Initial Release](#version-100---initial-release)
 
 ---
 
-## Version 2.0.0 - Atlassian Design System
-*Released: 2025-08-22*
+## Version 3.0.0 - shadcn/ui + Zustand + Vite
+*Released: 2026-03-05 (Phase 0-A〜2-A)*
 
 ### Overview
-Major UI overhaul replacing custom components with Atlassian Design System.
+フルスタック刷新: ビルドツール (CRA→Vite)、テスト (Jest→Vitest)、状態管理 (Context→Zustand)、デザインシステム (Atlassian→shadcn/ui) を全面移行。
 
 ### Breaking Changes
-- Custom Button components removed
-- Theme token system changed
-- CSS class names updated
-- Component prop interfaces modified
+- React Context API (AuthContext/PortfolioContext) 廃止 → Zustand stores
+- CRA (react-scripts) 廃止 → Vite
+- Jest 廃止 → Vitest
+- Atlassian Design System 廃止 → shadcn/ui + Radix UI
+- CSS ハードコードカラー → CSS Variables (セマンティックトークン)
 
 ### Migration Steps
 
-#### 1. Update Dependencies
+#### 1. ビルドツール: CRA → Vite
 ```bash
-npm install @atlaskit/tokens@latest
-npm install @atlaskit/button@latest
-npm install @atlaskit/modal-dialog@latest
-npm install @atlaskit/form@latest
-npm install @atlaskit/textfield@latest
+# 旧: react-scripts 依存を削除
+npm uninstall react-scripts
+
+# 新: Vite + プラグインをインストール
+npm install vite @vitejs/plugin-react --save-dev
 ```
 
-#### 2. Update Component Imports
-```javascript
-// Before
-import { CustomButton } from './components/common/Button';
+設定ファイル:
+- `vite.config.ts` — ビルド設定
+- `index.html` — ルートに移動 (public/ から)
+- 環境変数: `REACT_APP_*` → `VITE_*` (互換ラッパー使用中)
 
-// After
-import Button from '@atlaskit/button';
+#### 2. テスト: Jest → Vitest
+```bash
+npm uninstall jest @testing-library/jest-dom
+npm install vitest @vitest/coverage-v8 --save-dev
 ```
 
-#### 3. Update Theme Tokens
-```javascript
-// Before
-const primaryColor = '#007bff';
+設定ファイル:
+- `vitest.config.ts` — テスト設定
+- `vitest.setup.ts` — セットアップ
 
-// After
-import { token } from '@atlaskit/tokens';
-const primaryColor = token('color.background.brand.bold');
+主な変更点:
+```typescript
+// Before (Jest)
+jest.mock('./stores/authStore');
+
+// After (Vitest)
+vi.mock('../stores/authStore', () => ({
+  useAuthStore: vi.fn((selector) => selector({
+    isAuthenticated: true,
+    user: { name: 'Test' },
+  })),
+}));
 ```
 
-#### 4. Update CSS Classes
+#### 3. 状態管理: Context API → Zustand
+```bash
+npm install zustand @tanstack/react-query
+```
+
+主な変更点:
+```typescript
+// Before (Context)
+const { user } = useAuth();
+const { portfolio } = usePortfolio();
+
+// After (Zustand)
+const user = useAuthStore(s => s.user);
+const portfolio = usePortfolioStore(s => s.currentAssets);
+```
+
+4ストア体制:
+- `authStore` — 認証、JWT、Google OAuth
+- `portfolioStore` — ポートフォリオ CRUD、Google Drive 同期
+- `uiStore` — テーマ、通知
+- `subscriptionStore` — サブスクリプション、プラン管理
+
+#### 4. デザイン: Atlassian → shadcn/ui
+```bash
+# shadcn/ui コンポーネント
+npx shadcn-ui@latest add button card input badge dialog progress switch tabs
+```
+
+コンポーネントの場所: `src/components/ui/`
+
+```typescript
+// Before (Atlassian)
+import Button from './components/atlassian/Button';
+
+// After (shadcn/ui)
+import { Button } from './components/ui/button';
+```
+
+テーマ: CSS Variables で Light/Dark/System を管理
 ```css
-/* Before */
-.custom-button { ... }
-
-/* After - use Atlassian components directly */
-/* No custom CSS needed */
+:root {
+  --primary: 217 91% 60%;
+  --background: 0 0% 100%;
+}
+.dark {
+  --primary: 217 91% 60%;
+  --background: 222 47% 11%;
+}
 ```
 
-#### 5. Test UI Components
+#### 5. テスト実行
 ```bash
-npm run test:unit
-npm run test:e2e
+npm run typecheck   # TypeScript チェック
+npm test            # Vitest 実行
 ```
 
-### Rollback Instructions
-```bash
-git checkout v1.5.0
-npm install
-npm run build
-```
+---
+
+## Version 2.0.0 - Atlassian Design System (Deprecated)
+*Released: 2025-08-22*
+
+> **Note**: このバージョンのデザインシステムは v3.0.0 で shadcn/ui に置き換えられました。
 
 ---
 
@@ -81,248 +134,75 @@ npm run build
 *Released: 2025-05-29*
 
 ### Overview
-Infrastructure migration from Netlify to Cloudflare Pages.
-
-### Breaking Changes
-- Deployment process changed
-- Environment variable configuration
-- Build commands updated
-- Preview URL structure changed
+Netlify → Cloudflare Pages へのインフラ移行。
 
 ### Migration Steps
 
-#### 1. Install Wrangler CLI
+#### 1. Wrangler CLI インストール
 ```bash
 npm install -g wrangler
 ```
 
-#### 2. Update Environment Variables
-Create `.env.production`:
-```env
-REACT_APP_API_BASE_URL=https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod
-REACT_APP_DEFAULT_EXCHANGE_RATE=150.0
-```
-
-#### 3. Update Build Script
-```json
-{
-  "scripts": {
-    "build": "NODE_OPTIONS='--openssl-legacy-provider' react-scripts build"
-  }
-}
-```
-
-#### 4. Deploy to Cloudflare
+#### 2. デプロイ
 ```bash
+cd frontend/webapp
+REACT_APP_API_BASE_URL='https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod' \
+REACT_APP_DEFAULT_EXCHANGE_RATE='150.0' \
 npm run build
-wrangler pages deploy build --project-name=portfolio-manager
+wrangler pages deploy build --project-name=pfwise-portfolio-manager
 ```
 
-#### 5. Configure Custom Domain
-1. Go to Cloudflare Dashboard
-2. Select Pages project
-3. Custom domains → Add domain
-4. Enter: portfolio-wise.com
-
-#### 6. Update CORS Settings
-In `backend/serverless.yml`:
-```yaml
-cors:
-  origins:
-    - https://portfolio-wise.com
-    - https://*.portfolio-manager-7bx.pages.dev
-```
-
-### Data Migration
-No data migration required - all data remains in AWS.
-
-### Rollback Instructions
-Not applicable - Netlify infrastructure no longer available.
+#### 3. カスタムドメイン
+Cloudflare Dashboard → Pages → Custom domains → portfolio-wise.com
 
 ---
 
 ## Version 1.0.0 - Initial Release
 *Released: 2025-05-27*
 
-### Overview
-Initial public release of PortfolioWise.
-
-### Setup Instructions
-
-#### 1. Frontend Setup
-```bash
-git clone https://github.com/portfoliowise/portfolio-manager.git
-cd portfolio-manager/frontend/webapp
-npm install
-npm start
-```
-
-#### 2. Backend Setup
-```bash
-cd backend
-npm install
-npm run deploy:dev
-```
-
-#### 3. Google OAuth Configuration
-1. Create project in Google Cloud Console
-2. Enable Google+ API and Drive API
-3. Create OAuth 2.0 credentials
-4. Add redirect URIs
-
-#### 4. AWS Configuration
-```bash
-aws configure
-# Enter your AWS credentials
-```
-
-#### 5. Environment Configuration
-```bash
-cp .env.example .env
-# Edit .env with your configuration
-```
-
----
-
-## General Migration Best Practices
-
-### Before Migration
-1. **Backup Data**
-   ```bash
-   # Export portfolio data
-   npm run export:portfolio
-   
-   # Backup database
-   aws dynamodb create-backup --table-name pfwise-api-prod-cache
-   ```
-
-2. **Test in Staging**
-   ```bash
-   npm run deploy:staging
-   npm run test:staging
-   ```
-
-3. **Review Dependencies**
-   ```bash
-   npm audit
-   npm outdated
-   ```
-
-### During Migration
-1. **Monitor Logs**
-   ```bash
-   serverless logs -f marketData -t
-   ```
-
-2. **Check Health Endpoints**
-   ```bash
-   curl https://api.portfolio-wise.com/health
-   ```
-
-3. **Verify Authentication**
-   - Test Google OAuth flow
-   - Verify session persistence
-
-### After Migration
-1. **Verify Functionality**
-   - [ ] Authentication works
-   - [ ] Market data loads
-   - [ ] Portfolio calculations correct
-   - [ ] Google Drive sync works
-   - [ ] UI renders correctly
-
-2. **Performance Check**
-   ```bash
-   npm run lighthouse
-   ```
-
-3. **Security Audit**
-   ```bash
-   npm audit fix
-   ```
-
----
-
-## Troubleshooting
-
-### Common Issues
-
-#### 1. Authentication Failures
-**Problem**: Users can't log in after migration
-**Solution**:
-```bash
-# Check Google OAuth configuration
-aws secretsmanager get-secret-value --secret-id pfwise-api/google-oauth
-
-# Verify redirect URIs in Google Console
-```
-
-#### 2. Missing Market Data
-**Problem**: Market data not loading
-**Solution**:
-```bash
-# Clear cache
-aws dynamodb delete-item --table-name pfwise-api-prod-cache --key '{"key":{"S":"CACHE_KEY"}}'
-
-# Check API keys
-aws secretsmanager get-secret-value --secret-id pfwise-api/credentials
-```
-
-#### 3. UI Components Broken
-**Problem**: Components not rendering after Atlassian migration
-**Solution**:
-```bash
-# Reinstall dependencies
-rm -rf node_modules package-lock.json
-npm install
-
-# Clear build cache
-rm -rf build
-npm run build
-```
-
-#### 4. Deployment Failures
-**Problem**: Cloudflare deployment fails
-**Solution**:
-```bash
-# Check Wrangler version
-wrangler --version
-
-# Update Wrangler
-npm install -g wrangler@latest
-
-# Retry deployment
-wrangler pages deploy build --project-name=portfolio-manager
-```
+初回公開リリース。セットアップ手順は [CLAUDE.md](./CLAUDE.md) を参照。
 
 ---
 
 ## Version Compatibility Matrix
 
-| Component | v1.0.0 | v1.5.0 | v2.0.0 |
-|-----------|--------|--------|--------|
-| Node.js | 16.x | 18.x | 18.x |
-| React | 18.2.0 | 18.2.0 | 18.2.0 |
-| AWS SDK | v2 | v3 | v3 |
-| DynamoDB | Compatible | Compatible | Compatible |
-| Google OAuth | 2.0 | 2.0 | 2.0 |
+| Component | v1.0.0 | v1.5.0 | v2.0.0 | v3.0.0 |
+|-----------|--------|--------|--------|--------|
+| Node.js | 16.x | 18.x | 18.x | 22.x |
+| React | 18.2.0 | 18.2.0 | 18.2.0 | 18.2.0 |
+| Build Tool | CRA | CRA | CRA | Vite 6.x |
+| Test Runner | Jest | Jest | Jest | Vitest |
+| State Mgmt | Context | Context | Context | Zustand 5.x |
+| Design | Custom | Custom | Atlassian | shadcn/ui |
+| TypeScript | No | No | Partial | Yes (strict:false) |
+| AWS SDK | v2 | v3 | v3 | v3 |
 
 ---
 
-## Support
+## Troubleshooting
 
-### Getting Help
-- GitHub Issues: https://github.com/portfoliowise/portfolio-manager/issues
-- Documentation: https://docs.portfolio-wise.com
-- Email: support@portfolio-wise.com
+### Authentication Failures
+```bash
+# Google OAuth 設定を確認
+aws secretsmanager get-secret-value --secret-id pfwise-api/google-oauth
+```
 
-### Reporting Issues
-When reporting migration issues, please include:
-1. Current version
-2. Target version
-3. Error messages
-4. Browser/OS information
-5. Steps to reproduce
+### Deployment Failures
+```bash
+wrangler --version
+npm install -g wrangler@latest
+wrangler pages deploy build --project-name=pfwise-portfolio-manager
+```
+
+### Vite Build Issues
+```bash
+# TypeScript エラーの場合
+npm run typecheck
+
+# 依存関係の問題
+rm -rf node_modules package-lock.json
+npm install --legacy-peer-deps
+```
 
 ---
 
