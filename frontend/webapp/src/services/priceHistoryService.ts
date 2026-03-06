@@ -1,4 +1,4 @@
-import { fetchWithRetry } from '../utils/apiUtils';
+import { authFetch } from '../utils/apiUtils';
 
 export interface PricePoint {
   date: string;
@@ -32,33 +32,41 @@ export const fetchPriceHistory = async (
   period: PricePeriod = '1m'
 ): Promise<PriceHistoryResponse | null> => {
   try {
-    const result = await fetchWithRetry('api/price-history', { ticker, period });
+    const result = await authFetch('api/price-history', 'get', { ticker, period });
     if (result?.success && result.data) {
       return result.data;
     }
     return null;
-  } catch (error) {
-    console.warn(`Price history fetch failed for ${ticker}:`, error);
+  } catch (error: any) {
+    if (error.response?.status !== 401) {
+      console.warn(`Price history fetch failed for ${ticker}:`, error.message);
+    }
     return null;
   }
 };
 
 /**
- * 複数ティッカーの価格履歴を並列取得する
+ * 複数ティッカーの価格履歴を並列取得する（最大5並列）
  */
+const MAX_CONCURRENCY = 5;
+
 export const fetchMultiplePriceHistories = async (
   tickers: string[],
   period: PricePeriod = '1m'
 ): Promise<Record<string, PriceHistoryResponse>> => {
   const results: Record<string, PriceHistoryResponse> = {};
 
-  const promises = tickers.map(async (ticker) => {
-    const data = await fetchPriceHistory(ticker, period);
-    if (data) {
-      results[ticker] = data;
-    }
-  });
+  // MAX_CONCURRENCY 個ずつバッチ処理
+  for (let i = 0; i < tickers.length; i += MAX_CONCURRENCY) {
+    const batch = tickers.slice(i, i + MAX_CONCURRENCY);
+    const promises = batch.map(async (ticker) => {
+      const data = await fetchPriceHistory(ticker, period);
+      if (data) {
+        results[ticker] = data;
+      }
+    });
+    await Promise.all(promises);
+  }
 
-  await Promise.all(promises);
   return results;
 };

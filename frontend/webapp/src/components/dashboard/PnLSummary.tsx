@@ -30,13 +30,21 @@ const PnLSummary: React.FC = () => {
       return;
     }
 
-    const tickers = currentAssets.map((a: any) => a.ticker);
+    let cancelled = false;
+    const tickers = currentAssets.map((a: { ticker: string }) => a.ticker);
+
     fetchMultiplePriceHistories(tickers, '1m')
-      .then(setPriceHistories)
-      .catch(() => {})
-      .finally(() => setLoading(false));
+      .then(data => { if (!cancelled) setPriceHistories(data); })
+      .catch(error => {
+        if (!cancelled) {
+          console.warn('[PnLSummary] Failed to fetch price histories:', error.message);
+        }
+      })
+      .finally(() => { if (!cancelled) setLoading(false); });
 
     trackEvent(AnalyticsEvents.PNL_VIEW);
+
+    return () => { cancelled = true; };
   }, [currentAssets]);
 
   const pnl: PortfolioPnL = useMemo(() => {

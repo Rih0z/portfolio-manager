@@ -1,5 +1,14 @@
 import { PriceHistoryResponse } from '../services/priceHistoryService';
 
+export interface PortfolioAsset {
+  ticker: string;
+  name?: string;
+  currency?: string;
+  purchasePrice?: number;
+  price?: number;
+  holdings?: number;
+}
+
 export interface AssetPnL {
   ticker: string;
   name: string;
@@ -55,13 +64,14 @@ const convertToBase = (
  * - 全数値は参考値（yahoo-finance2ベース）
  */
 export const calculatePortfolioPnL = (
-  assets: any[],
+  assets: PortfolioAsset[],
   priceHistories: Record<string, PriceHistoryResponse>,
   baseCurrency: string,
   exchangeRate: number
 ): PortfolioPnL => {
   let totalInvestment = 0;
   let totalCurrentValue = 0;
+  let pnlCurrentValue = 0; // purchasePrice がある資産のみの時価合計（PnL計算用）
   let totalDayChange = 0;
   let totalYtdChange = 0;
   let assetsWithPurchasePrice = 0;
@@ -85,6 +95,7 @@ export const calculatePortfolioPnL = (
       pnl = currentValueBase - investmentBase;
       pnlPercent = investmentBase > 0 ? (pnl / investmentBase) * 100 : 0;
       totalInvestment += investmentBase;
+      pnlCurrentValue += currentValueBase;
       assetsWithPurchasePrice++;
     }
 
@@ -131,7 +142,7 @@ export const calculatePortfolioPnL = (
     };
   });
 
-  const totalPnL = assetsWithPurchasePrice > 0 ? totalCurrentValue - totalInvestment : 0;
+  const totalPnL = assetsWithPurchasePrice > 0 ? pnlCurrentValue - totalInvestment : 0;
   const totalPnLPercent = totalInvestment > 0 ? (totalPnL / totalInvestment) * 100 : 0;
   const totalDayChangePercent = totalCurrentValue > 0 ? (totalDayChange / totalCurrentValue) * 100 : 0;
   const totalYtdChangePercent = totalCurrentValue > 0 ? (totalYtdChange / totalCurrentValue) * 100 : 0;

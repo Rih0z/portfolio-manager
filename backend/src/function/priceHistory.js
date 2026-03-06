@@ -3,6 +3,7 @@
 const priceHistoryService = require('../services/priceHistoryService');
 const { formatResponse, formatErrorResponse, formatOptionsResponse } = require('../utils/responseUtils');
 const { ERROR_CODES } = require('../config/constants');
+const { authenticateJwt } = require('../middleware/jwtAuth');
 const logger = require('../utils/logger');
 
 // 期間からstartDate/endDateを計算する
@@ -72,6 +73,10 @@ const handler = async (event) => {
     return formatOptionsResponse();
   }
 
+  // JWT認証
+  const authError = await authenticateJwt(event);
+  if (authError) return authError;
+
   try {
     const params = event.queryStringParameters || {};
     const { ticker, period = '1m' } = params;
@@ -82,6 +87,16 @@ const handler = async (event) => {
         statusCode: 400,
         code: ERROR_CODES.MISSING_PARAMS,
         message: 'ticker parameter is required',
+        event
+      });
+    }
+
+    // ticker format validation（英数字、ドット、ハイフンのみ許可、最大20文字）
+    if (!/^[A-Za-z0-9.\-]{1,20}$/.test(ticker)) {
+      return await formatErrorResponse({
+        statusCode: 400,
+        code: ERROR_CODES.INVALID_PARAMS,
+        message: 'ticker must be 1-20 alphanumeric characters (dots and hyphens allowed)',
         event
       });
     }

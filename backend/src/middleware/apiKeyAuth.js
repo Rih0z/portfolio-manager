@@ -10,17 +10,15 @@
 
 const { getApiKeys } = require('../utils/secretsManager');
 const { formatErrorResponse } = require('../utils/responseUtils');
+const { checkRateLimit, recordUsage } = require('../services/rateLimitService');
 const logger = require('../utils/logger');
 
 // createErrorResponse関数を定義
 const createErrorResponse = (statusCode, errorCode, message) => {
   return formatErrorResponse({
     statusCode,
-    message,
-    error: {
-      code: errorCode,
-      message: message
-    }
+    code: errorCode,
+    message
   });
 };
 
@@ -185,19 +183,17 @@ const validateApiKey = async (apiKey, requiredRole) => {
 };
 
 /**
- * APIキーの使用量チェック
+ * APIキーの使用量チェック（DynamoDBベース）
  */
 const checkApiKeyUsage = async (apiKey, keyInfo) => {
   try {
-    const now = new Date();
-    const hourKey = `${apiKey}:${now.getFullYear()}-${now.getMonth()}-${now.getDate()}-${now.getHours()}`;
-    
-    // レート制限の確認（1時間あたり）
-    const hourlyUsage = await getUsageCount(hourKey);
-    if (hourlyUsage >= keyInfo.rateLimit) {
+    const type = keyInfo.type || 'user';
+    const result = await checkRateLimit(apiKey.substring(0, 16), type, 'hour');
+
+    if (!result.allowed) {
       return {
         allowed: false,
-        message: `1時間あたりの制限（${keyInfo.rateLimit}回）に達しました`
+        message: `1時間あたりの制限（${result.limit}回）に達しました`
       };
     }
 
@@ -205,29 +201,29 @@ const checkApiKeyUsage = async (apiKey, keyInfo) => {
 
   } catch (error) {
     logger.error('API key usage check error:', error);
-    // エラー時は制限を適用
-    return { 
-      allowed: false, 
-      message: '使用量確認中にエラーが発生しました' 
-    };
+    // エラー時はリクエストを許可（DynamoDB障害でサービス停止を防ぐ）
+    return { allowed: true };
   }
 };
 
 /**
- * APIキー使用量の記録
+ * APIキー使用量の記録（DynamoDBベース）
  */
 const recordApiKeyUsage = async (apiKey, metadata) => {
   try {
-    const now = new Date();
-    const hourKey = `${apiKey}:${now.getFullYear()}-${now.getMonth()}-${now.getDate()}-${now.getHours()}`;
-    
-    // 使用量をインクリメント
-    await incrementUsageCount(hourKey);
-    
-    // ログ記録
+    const identifier = apiKey.substring(0, 16);
+    const type = metadata.keyType || 'user';
+
+    // 時間別と日別の両方を記録
+    await Promise.all([
+      recordUsage(identifier, type, 'hour', metadata),
+      recordUsage(identifier, type, 'day', metadata)
+    ]);
+
     logger.info('API key usage recorded:', {
       apiKey: apiKey.substring(0, 8) + '...',
-      ...metadata
+      path: metadata.path,
+      method: metadata.method
     });
   } catch (error) {
     logger.error('Failed to record API key usage:', error);
@@ -236,60 +232,31 @@ const recordApiKeyUsage = async (apiKey, metadata) => {
 };
 
 /**
- * パブリックAPIのレート制限チェック
+ * パブリックAPIのレート制限チェック（DynamoDBベース）
  */
 const checkPublicRateLimit = async (clientIP, path) => {
   try {
-    const now = new Date();
-    const hourKey = `public:${clientIP}:${now.getFullYear()}-${now.getMonth()}-${now.getDate()}-${now.getHours()}`;
-    
-    // パブリックAPIは1時間あたり20回まで
-    const hourlyUsage = await getUsageCount(hourKey);
-    const publicLimit = 20;
-    
-    if (hourlyUsage >= publicLimit) {
+    const result = await checkRateLimit(clientIP, 'public', 'hour');
+
+    if (!result.allowed) {
       return {
         allowed: false,
-        message: `パブリックAPIの制限（1時間あたり${publicLimit}回）に達しました。APIキーの取得をご検討ください。`
+        message: `パブリックAPIの制限（1時間あたり${result.limit}回）に達しました。APIキーの取得をご検討ください。`
       };
     }
 
     // 使用量を記録
-    await incrementUsageCount(hourKey);
+    await recordUsage(clientIP, 'public', 'hour', { path });
 
     return { allowed: true };
 
   } catch (error) {
     logger.error('Public rate limit check error:', error);
-    // エラー時は制限を適用
-    return { 
-      allowed: false, 
-      message: 'レート制限確認中にエラーが発生しました' 
-    };
+    // エラー時はリクエストを許可（DynamoDB障害でサービス停止を防ぐ）
+    return { allowed: true };
   }
 };
 
-/**
- * 使用量カウントの取得（簡易実装）
- */
-const getUsageCount = async (key) => {
-  // 実際の実装ではDynamoDBやRedisを使用
-  // ここでは簡易的にメモリ内カウンターを使用
-  if (!global.usageCounters) {
-    global.usageCounters = {};
-  }
-  return global.usageCounters[key] || 0;
-};
-
-/**
- * 使用量カウントのインクリメント
- */
-const incrementUsageCount = async (key) => {
-  if (!global.usageCounters) {
-    global.usageCounters = {};
-  }
-  global.usageCounters[key] = (global.usageCounters[key] || 0) + 1;
-};
 
 /**
  * 認証が必要かどうかを判定

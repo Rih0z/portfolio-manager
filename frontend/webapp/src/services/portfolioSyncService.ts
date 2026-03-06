@@ -1,12 +1,19 @@
 import { authFetch } from '../utils/apiUtils';
+import { PortfolioAsset } from '../utils/plCalculation';
+
+export interface TargetAllocation {
+  category: string;
+  targetPercentage: number;
+  currentPercentage?: number;
+}
 
 export interface ServerPortfolio {
-  currentAssets: any[];
-  targetPortfolio: any[];
+  currentAssets: PortfolioAsset[];
+  targetPortfolio: TargetAllocation[];
   baseCurrency: string;
-  exchangeRate: any;
-  additionalBudget: any;
-  aiPromptTemplate: any;
+  exchangeRate: { rate: number; source?: string; timestamp?: string } | null;
+  additionalBudget: { amount: number; currency: string } | null;
+  aiPromptTemplate: string | null;
   version: number;
   updatedAt: string;
 }
@@ -40,12 +47,12 @@ export const fetchServerPortfolio = async (): Promise<ServerPortfolio | null> =>
  */
 export const saveServerPortfolio = async (
   data: {
-    currentAssets: any[];
-    targetPortfolio: any[];
+    currentAssets: PortfolioAsset[];
+    targetPortfolio: TargetAllocation[];
     baseCurrency: string;
-    exchangeRate?: any;
-    additionalBudget?: any;
-    aiPromptTemplate?: any;
+    exchangeRate?: ServerPortfolio['exchangeRate'];
+    additionalBudget?: ServerPortfolio['additionalBudget'];
+    aiPromptTemplate?: ServerPortfolio['aiPromptTemplate'];
   },
   version: number | null
 ): Promise<SaveResult> => {

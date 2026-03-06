@@ -195,8 +195,6 @@ export const refreshAccessToken = async (): Promise<string | null> => {
 
 // Axiosインスタンスの作成
 export const createApiClient = (withAuth: boolean = false): AxiosInstance => {
-  console.log(`Creating API client with auth: ${withAuth}, withCredentials: true`);
-
   const client = axios.create({
     timeout: TIMEOUT.DEFAULT,
     withCredentials: true, // Cookieを送信するために必要
@@ -207,16 +205,8 @@ export const createApiClient = (withAuth: boolean = false): AxiosInstance => {
     }
   });
 
-  // クライアント設定を確認
-  if (client) {
-    console.log('API client created with configuration:', {
-      withCredentials: true,
-      timeout: TIMEOUT.DEFAULT,
-      hasInterceptors: !!client.interceptors
-    });
-  } else {
-    console.error('Failed to create API client');
-    return null as any;
+  if (!client) {
+    throw new Error('Failed to create API client');
   }
 
   // インターセプターの設定
@@ -396,7 +386,9 @@ export const fetchWithRetry = async (
       // endpointが既に /api-proxy/ で始まっている場合はそのまま使用
       const url = endpoint.startsWith('http') || endpoint.startsWith('/') ? endpoint : await getApiEndpoint(endpoint);
 
-      console.log(`[Attempt ${retries + 1}] 市場データ取得: ${url}`, params);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[Attempt ${retries + 1}] 市場データ取得: ${url}`, params);
+      }
 
       // APIキーは AWS から動的に取得されるため、ここでは設定しない
       const headers: Record<string, string> = {};
@@ -453,16 +445,15 @@ export const authFetch = async (
     // APIエンドポイントのURL生成
     const url = endpoint.startsWith('http') || endpoint.startsWith('/') ? endpoint : await getApiEndpoint(endpoint);
 
-    console.log(`認証付きリクエスト: ${method.toUpperCase()} ${url}`);
-    console.log('authFetch cookie debug:', {
-      endpoint: endpoint,
-      fullUrl: url,
-      cookies: document.cookie,
-      cookieList: document.cookie.split(';').map(c => c.trim()).filter(c => c),
-      hasToken: !!authToken,
-      isDriveEndpoint: endpoint.includes('drive'),
-      config: config
-    });
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`認証付きリクエスト: ${method.toUpperCase()} ${url}`);
+      console.log('authFetch debug:', {
+        endpoint: endpoint,
+        fullUrl: url,
+        hasToken: !!authToken,
+        isDriveEndpoint: endpoint.includes('drive')
+      });
+    }
 
     // APIキーは AWS から動的に取得されるため、ここでは設定しない
     const headers: Record<string, string> = { ...config.headers };

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useId } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 import { fetchMultiplePriceHistories, PriceHistoryResponse, PricePeriod } from '../../services/priceHistoryService';
@@ -25,12 +25,20 @@ const PnLTrendChart: React.FC = () => {
       return;
     }
 
+    let cancelled = false;
     setLoading(true);
-    const tickers = currentAssets.map((a: any) => a.ticker);
+    const tickers = currentAssets.map((a: { ticker: string }) => a.ticker);
+
     fetchMultiplePriceHistories(tickers, period)
-      .then(setPriceHistories)
-      .catch(() => {})
-      .finally(() => setLoading(false));
+      .then(data => { if (!cancelled) setPriceHistories(data); })
+      .catch(error => {
+        if (!cancelled) {
+          console.warn('[PnLTrendChart] Failed to fetch price histories:', error.message);
+        }
+      })
+      .finally(() => { if (!cancelled) setLoading(false); });
+
+    return () => { cancelled = true; };
   }, [currentAssets, period]);
 
   // ポートフォリオ全体の時系列データを構築
@@ -87,6 +95,7 @@ const PnLTrendChart: React.FC = () => {
     });
   }, [priceHistories, currentAssets, baseCurrency, exchangeRate]);
 
+  const gradientId = `pnlGradient-${useId().replace(/:/g, '')}`;
   const hasEnoughData = chartData.length >= 7;
 
   if (loading) {
@@ -166,7 +175,7 @@ const PnLTrendChart: React.FC = () => {
         <ResponsiveContainer width="100%" height={200}>
           <AreaChart data={chartData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
             <defs>
-              <linearGradient id="pnlGradient" x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor={chartColor} stopOpacity={0.2} />
                 <stop offset="95%" stopColor={chartColor} stopOpacity={0} />
               </linearGradient>
@@ -201,7 +210,7 @@ const PnLTrendChart: React.FC = () => {
               dataKey="value"
               stroke={chartColor}
               strokeWidth={2}
-              fill="url(#pnlGradient)"
+              fill={`url(#${gradientId})`}
             />
           </AreaChart>
         </ResponsiveContainer>

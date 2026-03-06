@@ -214,21 +214,14 @@ exports.handler = async (event, context) => {
       });
     }
 
-    // テスト環境かどうか判定 - 修正: すべての検出方法を含める
+    // テスト環境かどうか判定（サーバー側の環境変数のみ使用 — クライアント制御不可）
     const isTestContext = Boolean(context && context._isTestContext);
     const isTestEvent = Boolean(event._formatResponse || event._formatErrorResponse || event._testLogger);
     const isTestEnv = process.env.NODE_ENV === 'test';
     const isTestMode = process.env.TEST_MODE === 'true';
-    const hasMockHeader = Boolean(event.headers && (
-      event.headers['x-test-mode'] === 'true' || 
-      event.headers['X-Test-Mode'] === 'true'
-    ));
-    const hasMockQueryParam = Boolean(event.queryStringParameters && event.queryStringParameters._test === 'true');
     const isMockAPITest = Boolean(global._isMockAPITest || global.USE_API_MOCKS);
-    
-    // より広範囲なテスト環境検出
-    const isTestEnvironment = isTestContext || isTestEvent || isTestEnv || isTestMode ||
-                             hasMockHeader || hasMockQueryParam || isMockAPITest;
+
+    const isTestEnvironment = isTestContext || isTestEvent || isTestEnv || isTestMode || isMockAPITest;
 
     // データ取得処理
     let data = {};
