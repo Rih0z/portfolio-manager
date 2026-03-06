@@ -13,8 +13,8 @@
 
 import React, { useState } from 'react';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
-import ModernButton from '../common/ModernButton';
-import ModernCard from '../common/ModernCard';
+import { Button } from '../ui/button';
+import { Card } from '../ui/card';
 
 const ResetSettings = () => {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -52,7 +52,7 @@ const ResetSettings = () => {
   };
 
   return (
-    <ModernCard className="bg-white rounded-lg shadow p-6">
+    <Card padding="medium">
       <div className="flex flex-col space-y-4">
         <div>
           <h2 className="text-xl font-semibold mb-2">設定のリセット</h2>
@@ -81,13 +81,13 @@ const ResetSettings = () => {
         )}
 
         <div className="flex justify-end">
-          <ModernButton
+          <Button
             variant="danger"
             onClick={() => setShowConfirmDialog(true)}
             disabled={isResetting}
           >
             設定をリセット
-          </ModernButton>
+          </Button>
         </div>
       </div>
 
@@ -102,29 +102,28 @@ const ResetSettings = () => {
             </p>
             
             <div className="flex space-x-3 justify-end">
-              <ModernButton
+              <Button
                 variant="secondary"
                 onClick={() => setShowConfirmDialog(false)}
                 disabled={isResetting}
               >
                 キャンセル
-              </ModernButton>
-              <ModernButton
+              </Button>
+              <Button
                 variant="danger"
                 onClick={() => {
                   setShowConfirmDialog(false);
                   handleReset();
                 }}
                 loading={isResetting}
-                loadingText="リセット中..."
               >
-                リセットする
-              </ModernButton>
+                {isResetting ? 'リセット中...' : 'リセットする'}
+              </Button>
             </div>
           </div>
         </div>
       )}
-    </ModernCard>
+    </Card>
   );
 };
 

@@ -242,21 +242,23 @@ describe('ResetSettings', () => {
     expect(screen.getByText('1件の目標配分設定')).toBeInTheDocument();
   });
 
-  it('ModernCardコンポーネントが正しく使用される', () => {
+  it('Cardコンポーネントが正しく使用される', () => {
     const mockContext = createMockContext();
     renderWithMock(mockContext);
 
-    // ModernCardのデフォルトクラスが適用される
-    const card = screen.getByText('設定のリセット').closest('.bg-white');
-    expect(card).toHaveClass('bg-white', 'rounded-lg', 'shadow', 'p-6');
+    // shadcn/ui Cardが適用される
+    const heading = screen.getByText('設定のリセット');
+    expect(heading).toBeInTheDocument();
+    const card = heading.closest('[class*="rounded"]');
+    expect(card).toBeTruthy();
   });
 
-  it('ModernButtonのvariant="danger"が適用される', () => {
+  it('Buttonのvariant="danger"が適用される', () => {
     const mockContext = createMockContext();
     renderWithMock(mockContext);
 
     const resetButton = screen.getByRole('button', { name: '設定をリセット' });
-    // ModernButtonのdangerバリアントのクラスを確認（CSS変数ベース）
+    // shadcn/ui Button dangerバリアントのクラスを確認
     expect(resetButton).toHaveClass('bg-danger-500');
   });
 

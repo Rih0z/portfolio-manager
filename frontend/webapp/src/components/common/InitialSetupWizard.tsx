@@ -13,9 +13,9 @@
 
 import React, { useState } from 'react';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
-import ModernButton from './ModernButton';
-import ModernCard from './ModernCard';
-import ModernInput from './ModernInput';
+import { Button } from '../ui/button';
+import { Card } from '../ui/card';
+import { Input } from '../ui/input';
 import MarketSelectionWizard from '../settings/MarketSelectionWizard';
 
 const InitialSetupWizard = ({ onComplete }) => {
@@ -58,7 +58,7 @@ const InitialSetupWizard = ({ onComplete }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <ModernCard className="max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+      <Card padding="none" className="max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           {/* プログレスバー */}
           <div className="mb-8">
@@ -140,7 +140,7 @@ const InitialSetupWizard = ({ onComplete }) => {
                     <span className="text-lg font-semibold">
                       {baseCurrency === 'JPY' ? '¥' : '$'}
                     </span>
-                    <ModernInput
+                    <Input
                       type="number"
                       value={budgetAmount}
                       onChange={(e) => setBudgetAmount(e.target.value)}
@@ -178,25 +178,25 @@ const InitialSetupWizard = ({ onComplete }) => {
           {/* ボタン */}
           <div className="mt-8 flex justify-between">
             {step > 1 ? (
-              <ModernButton
+              <Button
                 variant="secondary"
                 onClick={handleBack}
               >
                 戻る
-              </ModernButton>
+              </Button>
             ) : (
               <div />
             )}
             
-            <ModernButton
+            <Button
               variant="primary"
               onClick={handleNext}
             >
               {step === 3 ? '設定を完了' : '次へ'}
-            </ModernButton>
+            </Button>
           </div>
         </div>
-      </ModernCard>
+      </Card>
     </div>
   );
 };

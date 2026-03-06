@@ -12,7 +12,7 @@
 
 import React, { useState } from 'react';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
-import ModernButton from '../common/ModernButton';
+import { Button } from '../ui/button';
 import { FaExclamationTriangle, FaCheckCircle, FaTools, FaTrash, FaSync } from 'react-icons/fa';
 
 const LocalStorageDiagnostics = () => {
@@ -70,7 +70,7 @@ const LocalStorageDiagnostics = () => {
       </p>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
-        <ModernButton
+        <Button
           variant="secondary"
           onClick={runDiagnostics}
           disabled={isRunning}
@@ -78,25 +78,25 @@ const LocalStorageDiagnostics = () => {
         >
           <FaTools className="w-4 h-4" />
           {isRunning ? '診断中...' : '診断実行'}
-        </ModernButton>
+        </Button>
 
-        <ModernButton
+        <Button
           variant="primary"
           onClick={forceReloadFromStorage}
           className="flex items-center justify-center gap-2"
         >
           <FaSync className="w-4 h-4" />
           強制再読み込み
-        </ModernButton>
+        </Button>
 
-        <ModernButton
+        <Button
           variant="danger"
           onClick={clearAndRestart}
           className="flex items-center justify-center gap-2"
         >
           <FaTrash className="w-4 h-4" />
           リセット
-        </ModernButton>
+        </Button>
       </div>
 
       {diagnosticsResult && (

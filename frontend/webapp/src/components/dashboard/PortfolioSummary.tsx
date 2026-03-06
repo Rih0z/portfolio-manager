@@ -18,7 +18,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 import { formatCurrency, formatPercent } from '../../utils/formatters';
-import ModernCard from '../common/ModernCard';
+import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 
 const PortfolioSummary = () => {
   const { t } = useTranslation();
@@ -180,24 +180,23 @@ const PortfolioSummary = () => {
 
   return (
     <div className="space-y-6">
-      <ModernCard>
-        <ModernCard.Header>
-          <ModernCard.Title size="xl">
+      <Card padding="medium">
+        <CardHeader>
+          <CardTitle className="text-xl">
             Portfolio Summary
-          </ModernCard.Title>
-        </ModernCard.Header>
-        
-        <ModernCard.Content>
+          </CardTitle>
+        </CardHeader>
+
+        <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {statsData.map((stat, index) => (
-              <ModernCard 
+              <Card
                 key={index}
-                className="p-4"
-                gradient={true}
-                hover={false}
+                padding="small"
+                elevation="none"
               >
                 <div className="flex items-center justify-between mb-3">
-                  <ModernCard.Icon icon={stat.icon} color={stat.color} />
+                  <div className={`text-${stat.color}-600`}>{stat.icon}</div>
                 </div>
                 
                 <div>
@@ -216,34 +215,30 @@ const PortfolioSummary = () => {
                     </p>
                   )}
                 </div>
-              </ModernCard>
+              </Card>
             ))}
           </div>
-        </ModernCard.Content>
-      </ModernCard>
+        </CardContent>
+      </Card>
       
       {/* 手数料と配当の詳細セクション */}
       {assetsWithFees.length > 0 && (
-        <ModernCard>
-          <ModernCard.Header>
-            <ModernCard.Title>手数料と配当詳細</ModernCard.Title>
-          </ModernCard.Header>
-          
-          <ModernCard.Content>
+        <Card padding="medium">
+          <CardHeader>
+            <CardTitle>手数料と配当詳細</CardTitle>
+          </CardHeader>
+
+          <CardContent>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             {highestFeeAsset && (
-              <ModernCard className="p-4 border-l-4 border-l-danger-500">
+              <Card padding="small" elevation="none" className="border-l-4 border-l-danger-500">
                 <div className="flex items-start justify-between mb-2">
-                  <ModernCard.Icon 
-                    icon={
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
-                      </svg>
-                    } 
-                    color="danger" 
-                    className="mt-1"
-                  />
+                  <div className="text-danger-600 mt-1">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
+                    </svg>
+                  </div>
                 </div>
                 <h4 className="text-sm font-semibold text-secondary-900 mb-2">
                   最も高い手数料率の銘柄
@@ -262,21 +257,17 @@ const PortfolioSummary = () => {
                     {highestFeeAsset.fundType}
                   </span>
                 )}
-              </ModernCard>
+              </Card>
             )}
-            
+
             {lowestFeeAsset && lowestFeeAsset.annualFee > 0 && (
-              <ModernCard className="p-4 border-l-4 border-l-success-500">
+              <Card padding="small" elevation="none" className="border-l-4 border-l-success-500">
                 <div className="flex items-start justify-between mb-2">
-                  <ModernCard.Icon 
-                    icon={
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    } 
-                    color="success" 
-                    className="mt-1"
-                  />
+                  <div className="text-success-600 mt-1">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
                 </div>
                 <h4 className="text-sm font-semibold text-secondary-900 mb-2">
                   最も低い手数料率の銘柄
@@ -295,21 +286,17 @@ const PortfolioSummary = () => {
                     {lowestFeeAsset.fundType}
                   </span>
                 )}
-              </ModernCard>
+              </Card>
             )}
-            
+
             {highestDividendAsset && (
-              <ModernCard className="p-4 border-l-4 border-l-warning-500">
+              <Card padding="small" elevation="none" className="border-l-4 border-l-warning-500">
                 <div className="flex items-start justify-between mb-2">
-                  <ModernCard.Icon 
-                    icon={
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                      </svg>
-                    } 
-                    color="warning" 
-                    className="mt-1"
-                  />
+                  <div className="text-warning-600 mt-1">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                    </svg>
+                  </div>
                 </div>
                 <h4 className="text-sm font-semibold text-secondary-900 mb-2">
                   最も高い配当利回りの銘柄
@@ -338,7 +325,7 @@ const PortfolioSummary = () => {
                     )}
                   </div>
                 )}
-              </ModernCard>
+              </Card>
             )}
           </div>
           
@@ -350,7 +337,7 @@ const PortfolioSummary = () => {
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {topFeeTypes.map(type => (
-                  <ModernCard key={type.type} className="p-4" hover={false}>
+                  <Card key={type.type} padding="small" elevation="none">
                     <div className="flex items-center justify-between mb-2">
                       <h5 className="font-semibold text-secondary-900">{type.type}</h5>
                       <span className="text-xs text-secondary-500 bg-secondary-100 px-2 py-1 rounded-full">
@@ -365,7 +352,7 @@ const PortfolioSummary = () => {
                         平均手数料率: {formatPercent(type.avgFeeRate, 2)}
                       </p>
                     </div>
-                  </ModernCard>
+                  </Card>
                 ))}
               </div>
             </div>
@@ -379,7 +366,7 @@ const PortfolioSummary = () => {
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {topDividendTypes.map(type => (
-                  <ModernCard key={type.type} className="p-4" hover={false}>
+                  <Card key={type.type} padding="small" elevation="none">
                     <div className="flex items-center justify-between mb-2">
                       <h5 className="font-semibold text-secondary-900">{type.type}</h5>
                       <span className="text-xs text-secondary-500 bg-secondary-100 px-2 py-1 rounded-full">
@@ -394,7 +381,7 @@ const PortfolioSummary = () => {
                         平均利回り: {formatPercent(type.avgDividendRate, 2)}
                       </p>
                     </div>
-                  </ModernCard>
+                  </Card>
                 ))}
               </div>
             </div>
@@ -419,8 +406,8 @@ const PortfolioSummary = () => {
               </div>
             </div>
           </div>
-          </ModernCard.Content>
-        </ModernCard>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

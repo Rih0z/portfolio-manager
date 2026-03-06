@@ -19,9 +19,7 @@ import { useTranslation } from 'react-i18next';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 import { formatCurrency, formatPercent } from '../../utils/formatters';
 import { FUND_TYPES } from '../../utils/fundUtils';
-import ModernCard from '../common/ModernCard';
-import ModernButton from '../common/ModernButton';
-import ModernForm from '../common/ModernForm';
+import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import ModernHoldingCard from './ModernHoldingCard';
 
 const HoldingsEditor = () => {
@@ -58,7 +56,7 @@ const HoldingsEditor = () => {
   // 保有資産がない場合
   if (currentAssets.length === 0) {
     return (
-      <ModernCard className="text-center" gradient={true}>
+      <Card className="text-center" padding="large">
         <div className="py-12">
           <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-secondary-100 to-secondary-200 rounded-full flex items-center justify-center">
             <svg className="w-8 h-8 text-secondary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -69,7 +67,7 @@ const HoldingsEditor = () => {
             保有資産が設定されていません。上部の「銘柄の追加」セクションから銘柄を追加してください。
           </p>
         </div>
-      </ModernCard>
+      </Card>
     );
   }
 
@@ -93,12 +91,12 @@ const HoldingsEditor = () => {
       </div>
       
       {/* Info Section */}
-      <ModernCard>
-        <ModernCard.Header>
-          <ModernCard.Title>手数料・配当情報について</ModernCard.Title>
-        </ModernCard.Header>
-        
-        <ModernCard.Content>
+      <Card padding="medium">
+        <CardHeader>
+          <CardTitle>手数料・配当情報について</CardTitle>
+        </CardHeader>
+
+        <CardContent>
           <p className="text-sm text-secondary-600 mb-4 leading-relaxed">
             手数料や配当情報は銘柄タイプから自動的に判定されています。ファンドの手数料率はファンドの種類から推定されますが、個別株は運用会社が存在しないため手数料は0%となります。配当利回りは銘柄の種類や名称から推定されています。市場データ更新時に最新情報が自動的に取得されます。
           </p>
@@ -120,12 +118,12 @@ const HoldingsEditor = () => {
               四半期配当
             </span>
           </div>
-        </ModernCard.Content>
-      </ModernCard>
+        </CardContent>
+      </Card>
       
       {/* Message Display */}
       {message && (
-        <ModernCard className={`border-l-4 ${
+        <Card padding="medium" className={`border-l-4 ${
           messageType === 'success' 
             ? 'border-l-success-500 bg-success-50' 
             : messageType === 'warning'
@@ -164,7 +162,7 @@ const HoldingsEditor = () => {
               {message}
             </p>
           </div>
-        </ModernCard>
+        </Card>
       )}
     </div>
   );

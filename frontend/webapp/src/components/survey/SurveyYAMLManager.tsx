@@ -12,8 +12,8 @@
 
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import ModernButton from '../common/ModernButton';
-import ModernCard from '../common/ModernCard';
+import { Button } from '../ui/button';
+import { Card } from '../ui/card';
 import { FaClipboardList, FaUserCheck, FaSave } from 'react-icons/fa';
 
 const SurveyYAMLManager = ({ onSurveyComplete, initialData }: any) => {
@@ -98,7 +98,7 @@ generated_at: ${new Date().toISOString()}
   };
 
   return (
-    <ModernCard className="p-6">
+    <Card padding="medium">
       <div className="flex items-center gap-3 mb-6">
         <div className="p-2 bg-primary-500/10 rounded-lg">
           <FaClipboardList className="w-5 h-5 text-primary-400" />
@@ -224,16 +224,16 @@ generated_at: ${new Date().toISOString()}
         </div>
 
         <div className="pt-4">
-          <ModernButton
+          <Button
+            variant="primary"
             onClick={handleSave}
-            className="flex items-center gap-2 bg-primary-500 hover:bg-primary-600"
+            icon={<FaSave className="w-4 h-4" />}
           >
-            <FaSave className="w-4 h-4" />
             プロフィールを保存
-          </ModernButton>
+          </Button>
         </div>
       </div>
-    </ModernCard>
+    </Card>
   );
 };
 

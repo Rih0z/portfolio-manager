@@ -3,9 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { formatCurrency, formatPercent } from '../../utils/formatters';
 import { FUND_TYPES } from '../../utils/fundUtils';
 import { getJapaneseStockName } from '../../utils/japaneseStockNames';
-import ModernCard from '../common/ModernCard';
-import ModernButton from '../common/ModernButton';
-import ModernInput from '../common/ModernInput';
+import { Card } from '../ui/card';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
 
 const ModernHoldingCard = ({ 
   asset, 
@@ -95,7 +95,7 @@ const ModernHoldingCard = ({
   }, [asset.symbol, asset.name]);
 
   return (
-    <ModernCard hover={true} className="transition-all duration-200">
+    <Card hoverable padding="medium" className="transition-all duration-200">
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
           <div className="flex items-center space-x-3 mb-2">
@@ -121,7 +121,7 @@ const ModernHoldingCard = ({
           </p>
         </div>
         
-        <ModernButton
+        <Button
           variant="ghost"
           size="sm"
           onClick={() => onRemove(asset.id, asset.name)}
@@ -142,21 +142,20 @@ const ModernHoldingCard = ({
         
         {isEditing ? (
           <div className="flex items-center space-x-2">
-            <ModernInput
+            <Input
               type="number"
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}
               step="0.0001"
               min="0"
               className="flex-1"
-              size="sm"
             />
-            <ModernButton size="sm" onClick={handleSave} variant="success">
+            <Button size="sm" onClick={handleSave} variant="success">
               保存
-            </ModernButton>
-            <ModernButton size="sm" onClick={handleCancel} variant="secondary">
+            </Button>
+            <Button size="sm" onClick={handleCancel} variant="secondary">
               キャンセル
-            </ModernButton>
+            </Button>
           </div>
         ) : (
           <div className="flex items-center justify-between">
@@ -164,7 +163,7 @@ const ModernHoldingCard = ({
               <span className="text-xl font-bold text-secondary-900">
                 {asset.holdings.toLocaleString()}
               </span>
-              <ModernButton
+              <Button
                 size="sm"
                 variant="ghost"
                 onClick={() => setIsEditing(true)}
@@ -177,28 +176,28 @@ const ModernHoldingCard = ({
             </div>
             
             <div className="flex items-center space-x-1">
-              <ModernButton
+              <Button
                 size="sm"
                 variant="outline"
                 onClick={() => handleIncrement(-1)}
                 disabled={asset.holdings <= 0}
               >
                 -1
-              </ModernButton>
-              <ModernButton
+              </Button>
+              <Button
                 size="sm"
                 variant="outline"
                 onClick={() => handleIncrement(1)}
               >
                 +1
-              </ModernButton>
-              <ModernButton
+              </Button>
+              <Button
                 size="sm"
                 variant="outline"
                 onClick={() => handleIncrement(10)}
               >
                 +10
-              </ModernButton>
+              </Button>
             </div>
           </div>
         )}
@@ -249,7 +248,7 @@ const ModernHoldingCard = ({
           </div>
         )}
       </div>
-    </ModernCard>
+    </Card>
   );
 };
 

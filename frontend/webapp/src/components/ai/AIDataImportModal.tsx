@@ -13,7 +13,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
-import ModernButton from '../common/ModernButton';
+import { Button } from '../ui/button';
 import { FaUpload, FaCheckCircle, FaExclamationTriangle, FaTimes } from 'react-icons/fa';
 
 const AIDataImportModal = ({ isOpen, onClose, onImportSuccess }: any) => {
@@ -207,25 +207,22 @@ const AIDataImportModal = ({ isOpen, onClose, onImportSuccess }: any) => {
           )}
 
           <div className="flex gap-3">
-            <ModernButton
+            <Button
+              variant="primary"
               onClick={processYAMLData}
               disabled={!yamlInput.trim() || isProcessing}
-              className="flex items-center gap-2 bg-primary-500 hover:bg-primary-600"
+              loading={isProcessing}
+              icon={!isProcessing ? <FaUpload className="w-4 h-4" /> : undefined}
             >
-              {isProcessing ? (
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              ) : (
-                <FaUpload className="w-4 h-4" />
-              )}
               {isProcessing ? '処理中...' : 'データを取り込む'}
-            </ModernButton>
-            
-            <ModernButton
+            </Button>
+
+            <Button
+              variant="secondary"
               onClick={handleClose}
-              className="bg-gray-600 hover:bg-gray-700"
             >
               キャンセル
-            </ModernButton>
+            </Button>
           </div>
         </div>
       </div>
