@@ -29,10 +29,10 @@ jobs:
             project: webkit
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Setup Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
@@ -59,7 +59,7 @@ jobs:
 
     - name: Upload test results
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: playwright-report-${{ matrix.browser }}
         path: |
@@ -69,27 +69,100 @@ jobs:
 
     - name: Upload screenshots
       if: failure()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: screenshots-${{ matrix.browser }}
         path: test-results/**/*.png
 
     - name: Upload videos
       if: failure()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: videos-${{ matrix.browser }}
         path: test-results/**/*.webm
 
+  critical-flows:
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: |
+        npm ci
+        cd frontend/webapp && npm ci
+        cd ../..
+        npx playwright install chromium
+
+    - name: Build application
+      run: |
+        cd frontend/webapp
+        npm run build
+        cd ../..
+
+    - name: Run critical flow tests
+      run: |
+        npx playwright test --project=critical-flows
+      env:
+        CI: true
+
+    - name: Upload critical flow results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: critical-flow-results
+        path: e2e-report/
+
+  smoke:
+    runs-on: ubuntu-latest
+    needs: test
+    # スモークテストはmainブランチのみ（本番URLに対して実行）
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: |
+        npm ci
+        npx playwright install chromium
+
+    - name: Run production smoke tests
+      run: |
+        npx playwright test --project=production-smoke --reporter=list
+      env:
+        CI: true
+        PROD_URL: https://portfolio-wise.com
+
+    - name: Upload smoke test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: smoke-test-results
+        path: e2e-report/
+
   performance:
     runs-on: ubuntu-latest
     needs: test
-    
+
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Setup Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
@@ -106,7 +179,7 @@ jobs:
         npx playwright test performance.spec.js --project=chromium
 
     - name: Upload performance results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: performance-results
         path: e2e-report/
@@ -116,12 +189,12 @@ jobs:
     needs: test
     # AWSテストは本番環境に対してのみ実行
     if: github.ref == 'refs/heads/main'
-    
+
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Setup Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
         node-version: ${{ env.NODE_VERSION }}
         cache: 'npm'
@@ -134,7 +207,7 @@ jobs:
         npx playwright install chromium
 
     - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v2
+      uses: aws-actions/configure-aws-credentials@v4
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -147,27 +220,27 @@ jobs:
         REACT_APP_API_BASE_URL: ${{ secrets.PROD_API_BASE_URL }}
 
     - name: Upload AWS test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: aws-integration-results
         path: e2e-report/
 
   report:
     runs-on: ubuntu-latest
-    needs: [test, performance, aws-integration]
+    needs: [test, critical-flows, smoke, performance, aws-integration]
     if: always()
-    
+
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Download all artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
 
     - name: Merge test results
       run: |
         mkdir -p combined-report
         find . -name "*.xml" -exec cp {} combined-report/ \;
-        
+
     - name: Generate summary report
       run: |
         echo "# E2E Test Results" >> $GITHUB_STEP_SUMMARY
@@ -176,20 +249,29 @@ jobs:
         echo "- Chromium: ${{ needs.test.outputs.chromium-status || 'Completed' }}" >> $GITHUB_STEP_SUMMARY
         echo "- Firefox: ${{ needs.test.outputs.firefox-status || 'Completed' }}" >> $GITHUB_STEP_SUMMARY
         echo "- WebKit: ${{ needs.test.outputs.webkit-status || 'Completed' }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Critical Flows: ${{ needs.critical-flows.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Smoke Tests: ${{ needs.smoke.result }}" >> $GITHUB_STEP_SUMMARY
         echo "- Performance: ${{ needs.performance.result }}" >> $GITHUB_STEP_SUMMARY
         echo "- AWS Integration: ${{ needs.aws-integration.result }}" >> $GITHUB_STEP_SUMMARY
 
     - name: Comment PR
       if: github.event_name == 'pull_request'
-      uses: actions/github-script@v6
+      uses: actions/github-script@v7
       with:
         script: |
-          const fs = require('fs');
-          const summary = fs.readFileSync('${{ github.step_summary }}', 'utf8');
-          
+          const body = [
+            '## E2E Test Results',
+            '',
+            `- **Test**: ${context.payload.workflow_run?.conclusion || 'completed'}`,
+            `- **Critical Flows**: ${{ needs.critical-flows.result }}`,
+            `- **Smoke**: ${{ needs.smoke.result }}`,
+            `- **Performance**: ${{ needs.performance.result }}`,
+            `- **AWS Integration**: ${{ needs.aws-integration.result }}`,
+          ].join('\n');
+
           github.rest.issues.createComment({
             issue_number: context.issue.number,
             owner: context.repo.owner,
             repo: context.repo.repo,
-            body: summary
+            body
           });

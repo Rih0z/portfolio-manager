@@ -87,7 +87,7 @@ const Header = () => {
   // 設定がない場合はシンプルなヘッダーを表示
   if (hasNoSettings && !initialSetupCompleted) {
     return (
-      <header className="bg-card/90 backdrop-blur-xl border-b border-border sticky top-0 z-50">
+      <header className="bg-card/90 backdrop-blur-xl border-b border-border sticky top-0 z-50" data-testid="app-header">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-14 sm:h-16">
             {/* Logo */}
@@ -122,7 +122,7 @@ const Header = () => {
   }
 
   return (
-    <header className="bg-card/90 backdrop-blur-xl border-b border-border sticky top-0 z-50">
+    <header className="bg-card/90 backdrop-blur-xl border-b border-border sticky top-0 z-50" data-testid="app-header">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         {/* Main header row */}
         <div className="flex justify-between items-center h-14 sm:h-16">

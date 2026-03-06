@@ -267,8 +267,8 @@ describe('AIAdvisor', () => {
     fireEvent.click(screen.getByText('次へ'));
     fireEvent.click(screen.getByText('プロンプト生成'));
 
-    // 最終ステップではパーソナライズドAIプロンプトが表示される
-    expect(screen.getByText('パーソナライズドAIプロンプト')).toBeInTheDocument();
+    // 最終ステップではAI分析プロンプトが表示される
+    expect(screen.getByText('AI分析プロンプト')).toBeInTheDocument();
   });
 
   test('shows screenshot analysis step on step 5', () => {
@@ -380,6 +380,6 @@ describe('AIAdvisor', () => {
     fireEvent.click(screen.getByText('プロンプト生成')); // step 5: プロンプト
 
     // 最終ステップに到達
-    expect(screen.getByText('パーソナライズドAIプロンプト')).toBeInTheDocument();
+    expect(screen.getByText('AI分析プロンプト')).toBeInTheDocument();
   });
 });

@@ -96,7 +96,7 @@ function PortfolioScoreCard() {
   const premiumMetrics = scoreResult.metrics.filter((m) => m.isPremium);
 
   return (
-    <Card elevation="low" padding="medium" className="overflow-hidden">
+    <Card elevation="low" padding="medium" className="overflow-hidden" data-testid="portfolio-score-card">
       <div className="flex flex-col sm:flex-row gap-5 sm:gap-6">
         {/* Left: Circular Score */}
         <div className="flex flex-col items-center justify-center sm:min-w-[140px]">

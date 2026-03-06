@@ -12,14 +12,17 @@
  * そのものは外部AIに委託する。
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { usePortfolioContext } from '../hooks/usePortfolioContext';
+import { useSubscriptionStore } from '../stores/subscriptionStore';
 import MarketSelectionWizard, { INVESTMENT_MARKETS } from '../components/settings/MarketSelectionWizard';
 import PromptOrchestrator from '../components/ai/PromptOrchestrator';
+import StrengthsWeaknessCard from '../components/ai/StrengthsWeaknessCard';
+import AnalysisPerspectiveTabs from '../components/ai/AnalysisPerspectiveTabs';
 import promptOrchestrationService from '../services/PromptOrchestrationService';
-import ModernButton from '../components/common/ModernButton';
+import { enrichPortfolioData } from '../utils/portfolioDataEnricher';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input, Select } from '../components/ui/input';
@@ -31,8 +34,11 @@ const AIAdvisor = () => {
     portfolio,
     currentAssets,
     targetPortfolio,
-    additionalBudget
+    additionalBudget,
+    baseCurrency,
+    exchangeRate,
   } = usePortfolioContext();
+  const isPremium = useSubscriptionStore((s) => s.isPremium());
 
   // 設定がない場合の判定
   const hasNoSettings =
@@ -62,6 +68,18 @@ const AIAdvisor = () => {
   const [generatedScreenshotPrompt, setGeneratedScreenshotPrompt] = useState<any>(null);
 
   const isJapanese = i18n.language === 'ja';
+
+  // Enriched portfolio data for AI analysis
+  const enrichedData = useMemo(() => {
+    if (currentAssets.length === 0) return null;
+    return enrichPortfolioData(
+      currentAssets,
+      targetPortfolio,
+      isPremium,
+      baseCurrency,
+      exchangeRate?.rate || 150
+    );
+  }, [currentAssets, targetPortfolio, isPremium, baseCurrency, exchangeRate]);
 
   const steps = [
     { key: 'basic', titleJa: '基本情報', titleEn: 'Basic Information' },
@@ -761,35 +779,26 @@ Based on the above information, please advise me on:
             <div className="space-y-6">
               <div className="text-center mb-6">
                 <h3 className="text-xl font-semibold mb-2">
-                  {isJapanese ? 'パーソナライズドAIプロンプト' : 'Personalized AI Prompt'}
+                  {isJapanese ? 'AI分析プロンプト' : 'AI Analysis Prompts'}
                 </h3>
                 <p className="text-muted-foreground">
                   {isJapanese
-                    ? 'あなたの状況と感情に最適化されたプロンプトを生成します。'
-                    : 'Generate prompts optimized for your situation and emotional state.'
+                    ? 'ポートフォリオデータに基づいた分析プロンプトを生成します。'
+                    : 'Generate analysis prompts based on your portfolio data.'
                   }
                 </p>
               </div>
 
-              <PromptOrchestrator
-                promptType="portfolio_analysis"
-                userContext={{
-                  age: userData.age,
-                  occupation: userData.occupation,
-                  familyStatus: userData.familyStatus,
-                  primaryGoal: userData.dream,
-                  targetMarkets: userData.targetMarkets,
-                  investmentExperience: userData.investmentExperience,
-                  riskTolerance: userData.riskTolerance,
-                  monthlyBudget: parseInt(userData.monthlyInvestment) || 0,
-                  values: userData.values,
-                  concerns: userData.concerns,
-                  portfolio: portfolio
-                }}
-                onPromptGenerated={(prompt: any) => {
-                  setGeneratedPrompt(prompt.content);
-                  // プロンプトオーケストレーションサービスに学習データを送信
-                  promptOrchestrationService.updateUserContext({
+              {/* StrengthsWeaknessCard — ポートフォリオインサイト */}
+              {enrichedData && (
+                <StrengthsWeaknessCard enrichedData={enrichedData} />
+              )}
+
+              {/* AnalysisPerspectiveTabs — 3分割分析プロンプト */}
+              {enrichedData && (
+                <AnalysisPerspectiveTabs
+                  enrichedData={enrichedData}
+                  userContext={{
                     age: userData.age,
                     occupation: userData.occupation,
                     familyStatus: userData.familyStatus,
@@ -798,18 +807,59 @@ Based on the above information, please advise me on:
                     investmentExperience: userData.investmentExperience,
                     riskTolerance: userData.riskTolerance,
                     monthlyBudget: parseInt(userData.monthlyInvestment) || 0,
-                    values: userData.values,
-                    concerns: userData.concerns
-                  });
-                }}
-              />
+                  }}
+                />
+              )}
+
+              {/* 既存PromptOrchestrator — カスタムプロンプト（折りたたみ） */}
+              <details className="group">
+                <summary className="cursor-pointer text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2 py-2">
+                  <svg className="w-4 h-4 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                  {isJapanese ? 'カスタムプロンプト（従来版）' : 'Custom Prompt (Legacy)'}
+                </summary>
+                <div className="mt-4">
+                  <PromptOrchestrator
+                    promptType="portfolio_analysis"
+                    userContext={{
+                      age: userData.age,
+                      occupation: userData.occupation,
+                      familyStatus: userData.familyStatus,
+                      primaryGoal: userData.dream,
+                      targetMarkets: userData.targetMarkets,
+                      investmentExperience: userData.investmentExperience,
+                      riskTolerance: userData.riskTolerance,
+                      monthlyBudget: parseInt(userData.monthlyInvestment) || 0,
+                      values: userData.values,
+                      concerns: userData.concerns,
+                      portfolio: portfolio
+                    }}
+                    onPromptGenerated={(prompt: any) => {
+                      setGeneratedPrompt(prompt.content);
+                      promptOrchestrationService.updateUserContext({
+                        age: userData.age,
+                        occupation: userData.occupation,
+                        familyStatus: userData.familyStatus,
+                        primaryGoal: userData.dream,
+                        targetMarkets: userData.targetMarkets,
+                        investmentExperience: userData.investmentExperience,
+                        riskTolerance: userData.riskTolerance,
+                        monthlyBudget: parseInt(userData.monthlyInvestment) || 0,
+                        values: userData.values,
+                        concerns: userData.concerns
+                      });
+                    }}
+                  />
+                </div>
+              </details>
 
               {/* 初期設定完了ボタン（設定がない場合のみ表示） */}
               {isFirstTimeUser && currentStep === 5 && (
                 <div className="mt-8 text-center">
                   <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-6">
                     <h4 className="text-green-400 font-medium mb-3">
-                      🎉 {isJapanese ? '初期設定完了準備' : 'Initial Setup Ready'}
+                      {isJapanese ? '初期設定完了準備' : 'Initial Setup Ready'}
                     </h4>
                     <p className="text-muted-foreground mb-4">
                       {isJapanese
@@ -817,17 +867,17 @@ Based on the above information, please advise me on:
                         : 'AI prompts are ready. Complete setup to start managing your portfolio.'
                       }
                     </p>
-                    <ModernButton
+                    <Button
                       variant="primary"
+                      size="lg"
                       onClick={() => {
-                        // 最小限の設定を保存（初期設定完了フラグ）
                         localStorage.setItem('initialSetupCompleted', 'true');
                         navigate('/settings');
                       }}
                       className="w-full sm:w-auto"
                     >
                       {isJapanese ? '設定を完了してポートフォリオ管理を開始' : 'Complete Setup & Start Portfolio Management'}
-                    </ModernButton>
+                    </Button>
                   </div>
                 </div>
               )}

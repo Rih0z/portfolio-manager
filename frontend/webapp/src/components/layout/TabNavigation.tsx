@@ -90,7 +90,7 @@ const TabNavigation = () => {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-xl border-t border-border z-50">
+    <nav className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-xl border-t border-border z-50" data-testid="tab-navigation">
       <div className="grid grid-cols-5 h-16 sm:h-18 max-w-sm sm:max-w-lg mx-auto">
         {tabs.map(tab => (
           <NavLink

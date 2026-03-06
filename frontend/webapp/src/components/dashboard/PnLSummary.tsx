@@ -73,7 +73,7 @@ const PnLSummary: React.FC = () => {
   }
 
   return (
-    <Card elevation="low" padding="medium">
+    <Card elevation="low" padding="medium" data-testid="pnl-summary">
       <CardContent>
         {hasPurchaseData ? (
           <div className="space-y-3">

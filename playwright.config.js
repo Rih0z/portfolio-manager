@@ -49,11 +49,26 @@ export default defineConfig({
     },
     {
       name: 'authenticated',
-      use: { 
+      use: {
         ...devices['Desktop Chrome'],
         storageState: 'e2e/.auth/user.json'
       },
-    }
+    },
+    {
+      name: 'production-smoke',
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: process.env.PROD_URL || 'https://portfolio-wise.com',
+      },
+      testDir: './e2e/tests/smoke',
+    },
+    {
+      name: 'critical-flows',
+      use: {
+        ...devices['Desktop Chrome'],
+      },
+      testDir: './e2e/tests/critical-flows',
+    },
   ],
 
   /* ローカル開発サーバー */

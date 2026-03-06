@@ -7,6 +7,7 @@ import { vi } from "vitest";
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { MemoryRouter } from 'react-router-dom';
 import Dashboard from '../../../pages/Dashboard';
 
 // モック設定
@@ -55,6 +56,45 @@ vi.mock('../../../components/dashboard/PortfolioScoreCard', () => ({
   },
 }));
 
+vi.mock('../../../components/dashboard/PnLSummary', () => ({
+  default: function PnLSummary() {
+    return <div data-testid="pnl-summary">PnL Summary</div>;
+  },
+}));
+
+vi.mock('../../../components/dashboard/PnLTrendChart', () => ({
+  default: function PnLTrendChart() {
+    return <div data-testid="pnl-trend-chart">PnL Trend Chart</div>;
+  },
+}));
+
+vi.mock('../../../components/ai/StrengthsWeaknessCard', () => ({
+  default: function StrengthsWeaknessCard() {
+    return <div data-testid="strengths-weakness-card">Strengths Weakness Card</div>;
+  },
+}));
+
+vi.mock('../../../stores/subscriptionStore', () => ({
+  useSubscriptionStore: vi.fn((selector) => {
+    if (typeof selector === 'function') {
+      return selector({ isPremium: () => false });
+    }
+    return false;
+  }),
+}));
+
+vi.mock('../../../utils/portfolioDataEnricher', () => ({
+  enrichPortfolioData: vi.fn(() => ({
+    strengths: [],
+    weaknesses: [],
+    totalValue: 0,
+  })),
+}));
+
+vi.mock('../../../utils/analytics', () => ({
+  trackEvent: vi.fn(),
+  AnalyticsEvents: { DASHBOARD_VIEW: 'dashboard_view' },
+}));
 
 import { useTranslation } from 'react-i18next';
 import { usePortfolioContext } from '../../../hooks/usePortfolioContext';
@@ -88,7 +128,7 @@ describe('Dashboard', () => {
 
   describe('データが存在する場合', () => {
     it('ダッシュボードの完全なレイアウトを表示する', () => {
-      render(<Dashboard />);
+      render(<MemoryRouter><Dashboard /></MemoryRouter>);
       
       // タイトルとサブタイトルの確認
       expect(screen.getByText('ダッシュボード')).toBeInTheDocument();
@@ -105,7 +145,7 @@ describe('Dashboard', () => {
     });
 
     it('正しいCSS クラスが適用されている', () => {
-      render(<Dashboard />);
+      render(<MemoryRouter><Dashboard /></MemoryRouter>);
       
       // メインコンテナのクラス
       const mainContainer = document.querySelector('.space-y-4.sm\\:space-y-6.animate-fade-in');
@@ -117,7 +157,7 @@ describe('Dashboard', () => {
     });
 
     it('翻訳キーを正しく使用している', () => {
-      render(<Dashboard />);
+      render(<MemoryRouter><Dashboard /></MemoryRouter>);
       
       expect(mockT).toHaveBeenCalledWith('dashboard.title');
     });
@@ -131,7 +171,7 @@ describe('Dashboard', () => {
     });
 
     it('空の状態のUIを表示する', () => {
-      render(<Dashboard />);
+      render(<MemoryRouter><Dashboard /></MemoryRouter>);
       
       expect(screen.getByText('ポートフォリオがまだ設定されていません')).toBeInTheDocument();
       expect(screen.getByText('設定ページで保有銘柄を追加してください。')).toBeInTheDocument();
@@ -143,7 +183,7 @@ describe('Dashboard', () => {
       delete window.location;
       window.location = { href: '' };
       
-      render(<Dashboard />);
+      render(<MemoryRouter><Dashboard /></MemoryRouter>);
       
       const settingsButton = screen.getByRole('button');
       fireEvent.click(settingsButton);
@@ -152,7 +192,7 @@ describe('Dashboard', () => {
     });
 
     it('空の状態のSVGアイコンが表示される', () => {
-      render(<Dashboard />);
+      render(<MemoryRouter><Dashboard /></MemoryRouter>);
       
       const svgIcon = document.querySelector('svg');
       expect(svgIcon).toBeInTheDocument();
@@ -160,7 +200,7 @@ describe('Dashboard', () => {
     });
 
     it('翻訳キーを正しく使用している', () => {
-      render(<Dashboard />);
+      render(<MemoryRouter><Dashboard /></MemoryRouter>);
       
       expect(mockT).toHaveBeenCalledWith('dashboard.noPortfolio');
       expect(mockT).toHaveBeenCalledWith('dashboard.setupInstructions');
@@ -168,7 +208,7 @@ describe('Dashboard', () => {
     });
 
     it('ダッシュボードコンポーネントが表示されない', () => {
-      render(<Dashboard />);
+      render(<MemoryRouter><Dashboard /></MemoryRouter>);
       
       expect(screen.queryByTestId('portfolio-summary')).not.toBeInTheDocument();
       expect(screen.queryByTestId('portfolio-charts')).not.toBeInTheDocument();
@@ -183,20 +223,20 @@ describe('Dashboard', () => {
       usePortfolioContext.mockReturnValue({});
       
       // 実際のコンポーネントはcurrentAssets.lengthでエラーが発生する
-      expect(() => render(<Dashboard />)).toThrow();
+      expect(() => render(<MemoryRouter><Dashboard /></MemoryRouter>)).toThrow();
     });
 
     it('currentAssetsが未定義の場合はエラーが発生する', () => {
       usePortfolioContext.mockReturnValue({ currentAssets: undefined });
       
       // 実際のコンポーネントはcurrentAssets.lengthでエラーが発生する
-      expect(() => render(<Dashboard />)).toThrow();
+      expect(() => render(<MemoryRouter><Dashboard /></MemoryRouter>)).toThrow();
     });
 
     it('翻訳関数が利用できない場合でも動作する', () => {
       useTranslation.mockReturnValue({ t: undefined });
       
-      expect(() => render(<Dashboard />)).toThrow();
+      expect(() => render(<MemoryRouter><Dashboard /></MemoryRouter>)).toThrow();
     });
   });
 
@@ -211,7 +251,7 @@ describe('Dashboard', () => {
         currentAssets: mockAssets
       });
       
-      render(<Dashboard />);
+      render(<MemoryRouter><Dashboard /></MemoryRouter>);
       
       // 1. タイトルエリアの表示
       expect(screen.getByText('ダッシュボード')).toBeInTheDocument();
@@ -236,7 +276,7 @@ describe('Dashboard', () => {
       delete window.location;
       window.location = { href: '' };
       
-      render(<Dashboard />);
+      render(<MemoryRouter><Dashboard /></MemoryRouter>);
       
       // 1. 空の状態メッセージの表示
       expect(screen.getByText('ポートフォリオがまだ設定されていません')).toBeInTheDocument();

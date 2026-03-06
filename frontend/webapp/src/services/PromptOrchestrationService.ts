@@ -12,6 +12,9 @@
  */
 
 import { INVESTMENT_MARKETS } from '../components/settings/MarketSelectionWizard';
+import type { EnrichedPortfolioData } from '../utils/portfolioDataEnricher';
+
+export type AnalysisPerspective = 'risk_analysis' | 'cost_optimization' | 'growth_strategy';
 
 interface UserContext {
   // 基本情報
@@ -470,6 +473,331 @@ class PromptOrchestrationService {
       : `I'm new to investing, so please explain things from the basics. Please include suggestions for small wins.\n\n`;
 
     return confidencePrefix + prompt;
+  }
+
+  /**
+   * 分析観点別プロンプト生成
+   *
+   * EnrichedPortfolioData のスコア・P&L・保有データを活用し、
+   * 3 つの観点（リスク分析 / コスト最適化 / 成長戦略）ごとに
+   * 最適化されたプロンプトを生成する。
+   */
+  generatePerspectivePrompt(
+    perspective: AnalysisPerspective,
+    enrichedData: EnrichedPortfolioData,
+    userContext: Partial<UserContext>
+  ): GeneratedPrompt {
+    const isJapanese = this.aiPreferences.languagePreference === 'ja';
+    const content = isJapanese
+      ? this.buildPerspectiveJa(perspective, enrichedData, userContext)
+      : this.buildPerspectiveEn(perspective, enrichedData, userContext);
+
+    const titles: Record<AnalysisPerspective, { ja: string; en: string }> = {
+      risk_analysis: { ja: 'リスク分析', en: 'Risk Analysis' },
+      cost_optimization: { ja: 'コスト最適化', en: 'Cost Optimization' },
+      growth_strategy: { ja: '成長戦略', en: 'Growth Strategy' },
+    };
+
+    return {
+      title: isJapanese ? titles[perspective].ja : titles[perspective].en,
+      content,
+      metadata: {
+        promptType: [perspective],
+        userContext,
+        generatedAt: new Date().toISOString(),
+        aiPreference: this.aiPreferences.preferredAI,
+      },
+    };
+  }
+
+  // ── Perspective builders (Japanese) ──────────────────
+
+  private buildPerspectiveJa(
+    perspective: AnalysisPerspective,
+    data: EnrichedPortfolioData,
+    ctx: Partial<UserContext>
+  ): string {
+    const base = this.buildPortfolioContextJa(data, ctx);
+
+    switch (perspective) {
+      case 'risk_analysis':
+        return this.buildRiskAnalysisJa(data, ctx, base);
+      case 'cost_optimization':
+        return this.buildCostOptimizationJa(data, ctx, base);
+      case 'growth_strategy':
+        return this.buildGrowthStrategyJa(data, ctx, base);
+    }
+  }
+
+  private buildPortfolioContextJa(
+    data: EnrichedPortfolioData,
+    ctx: Partial<UserContext>
+  ): string {
+    const lines: string[] = [];
+
+    if (ctx.age) lines.push(`年齢: ${ctx.age}歳`);
+    if (ctx.occupation) lines.push(`職業: ${ctx.occupation}`);
+    if (ctx.familyStatus) lines.push(`家族構成: ${ctx.familyStatus}`);
+
+    lines.push('');
+    lines.push('【ポートフォリオ概要】');
+    lines.push(`保有銘柄数: ${data.holdings.count}`);
+
+    const cur = data.holdings.baseCurrency;
+    const fmt = (v: number) =>
+      cur === 'JPY'
+        ? `¥${Math.round(v).toLocaleString()}`
+        : `$${v.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+    lines.push(`総資産評価額: ${fmt(data.holdings.totalValue)}`);
+
+    if (data.holdings.topHoldings.length > 0) {
+      lines.push('上位保有:');
+      data.holdings.topHoldings.slice(0, 3).forEach((h) => {
+        lines.push(`  - ${h.name} (${h.ticker}): ${h.percentage.toFixed(1)}%`);
+      });
+    }
+
+    lines.push('');
+    lines.push('【ポートフォリオスコア】');
+    lines.push(`総合スコア: ${data.score.totalScore}/100 (${data.score.grade}ランク)`);
+    lines.push(`強み: ${data.strengthLine}`);
+    lines.push(`弱み: ${data.weaknessLine}`);
+
+    if (data.pnl.available) {
+      lines.push('');
+      lines.push('【参考損益（yahoo-finance2基準）】');
+      lines.push(`総投資額: ${fmt(data.pnl.totalInvestment)}`);
+      lines.push(`参考評価額: ${fmt(data.pnl.totalCurrentValue)}`);
+      lines.push(`参考損益: ${data.pnl.totalPnLPercent >= 0 ? '+' : ''}${data.pnl.totalPnLPercent.toFixed(1)}%`);
+      if (data.pnl.topGainers.length > 0) {
+        lines.push(`上位利益銘柄: ${data.pnl.topGainers.map((g) => `${g.ticker}(+${g.pnlPercent.toFixed(1)}%)`).join(', ')}`);
+      }
+      if (data.pnl.topLosers.length > 0) {
+        lines.push(`下位損失銘柄: ${data.pnl.topLosers.map((l) => `${l.ticker}(${l.pnlPercent.toFixed(1)}%)`).join(', ')}`);
+      }
+    }
+
+    return lines.join('\n');
+  }
+
+  private buildRiskAnalysisJa(
+    data: EnrichedPortfolioData,
+    _ctx: Partial<UserContext>,
+    base: string
+  ): string {
+    const lines: string[] = [base, ''];
+    lines.push('【リスク分析の依頼】');
+
+    // 集中度
+    const divMetric = data.score.metrics.find((m) => m.id === 'diversification');
+    if (divMetric) lines.push(`分散度スコア: ${divMetric.score}/100 (${divMetric.grade})`);
+
+    const curMetric = data.score.metrics.find((m) => m.id === 'currency_diversification');
+    if (curMetric) lines.push(`通貨分散スコア: ${curMetric.score}/100 (${curMetric.grade})`);
+
+    // 通貨集中
+    const currencies = Object.entries(data.holdings.currencyBreakdown)
+      .sort((a, b) => b[1] - a[1])
+      .map(([k, v]) => `${k}: ${Math.round(v)}%`);
+    if (currencies.length > 0) lines.push(`通貨配分: ${currencies.join(', ')}`);
+
+    lines.push('');
+    lines.push('以下について分析してください：');
+    lines.push('1. ドローダウンリスク: 市場急落時の想定損失額');
+    lines.push('2. 集中リスク: 特定銘柄・通貨への過度な依存');
+    lines.push('3. 相関リスク: 保有銘柄間の相関度とリスク分散の改善案');
+    lines.push('4. ストレステスト: リーマンショック級の下落時のシミュレーション');
+    lines.push('5. リスク低減のための具体的なアクション');
+    lines.push('');
+    lines.push('※日本在住・日本で購入可能な商品で提案してください。');
+
+    return lines.join('\n');
+  }
+
+  private buildCostOptimizationJa(
+    data: EnrichedPortfolioData,
+    _ctx: Partial<UserContext>,
+    base: string
+  ): string {
+    const lines: string[] = [base, ''];
+    lines.push('【コスト最適化の依頼】');
+
+    const costMetric = data.score.metrics.find((m) => m.id === 'cost_efficiency');
+    if (costMetric) lines.push(`コスト効率スコア: ${costMetric.score}/100 (${costMetric.grade})`);
+
+    const divMetric = data.score.metrics.find((m) => m.id === 'dividend_health');
+    if (divMetric) lines.push(`配当効率スコア: ${divMetric.score}/100 (${divMetric.grade})`);
+
+    lines.push('');
+    lines.push('以下について分析してください：');
+    lines.push('1. コスト分析: 保有銘柄の信託報酬比較と低コスト代替ファンドの提案');
+    lines.push('2. 配当最適化: 配当利回りの質と税効率を考慮した最適化');
+    lines.push('3. 税効率: NISA/iDeCo枠の最適活用、損益通算の戦略');
+    lines.push('4. 取引コスト: 売買頻度と手数料の最適化');
+    lines.push('5. 年間コスト削減額の試算と具体的な乗り換え提案');
+    lines.push('');
+    lines.push('※日本在住・日本で購入可能な商品で提案してください。');
+
+    return lines.join('\n');
+  }
+
+  private buildGrowthStrategyJa(
+    data: EnrichedPortfolioData,
+    _ctx: Partial<UserContext>,
+    base: string
+  ): string {
+    const lines: string[] = [base, ''];
+    lines.push('【成長戦略の依頼】');
+
+    const alignMetric = data.score.metrics.find((m) => m.id === 'target_alignment');
+    if (alignMetric) lines.push(`目標適合度スコア: ${alignMetric.score}/100 (${alignMetric.grade})`);
+
+    const rebMetric = data.score.metrics.find((m) => m.id === 'rebalance_health');
+    if (rebMetric) lines.push(`リバランス健全度: ${rebMetric.score}/100 (${rebMetric.grade})`);
+
+    if (data.targets.hasTargets) {
+      lines.push(`目標配分平均乖離: ${data.targets.avgDeviation.toFixed(1)}%`);
+      if (data.targets.deviations.length > 0) {
+        lines.push('乖離状況:');
+        data.targets.deviations
+          .sort((a, b) => b.deviation - a.deviation)
+          .slice(0, 5)
+          .forEach((d) => {
+            lines.push(`  - ${d.ticker}: 現在${d.currentPct.toFixed(1)}% → 目標${d.targetPct.toFixed(1)}% (乖離${d.deviation.toFixed(1)}%)`);
+          });
+      }
+    }
+
+    lines.push('');
+    lines.push('以下について分析してください：');
+    lines.push('1. リバランス計画: 具体的な売買銘柄と数量の提案');
+    lines.push('2. 新規配分推奨: 追加投資先の提案とその理由');
+    lines.push('3. 成長ポテンシャル: 現在のポートフォリオの成長見通し');
+    lines.push('4. ゴール進捗: 資産目標に対する達成度と加速策');
+    lines.push('5. 時間軸を考慮した段階的なアクションプラン');
+    lines.push('');
+    lines.push('※日本在住・日本で購入可能な商品で提案してください。');
+
+    return lines.join('\n');
+  }
+
+  // ── Perspective builders (English) ───────────────────
+
+  private buildPerspectiveEn(
+    perspective: AnalysisPerspective,
+    data: EnrichedPortfolioData,
+    ctx: Partial<UserContext>
+  ): string {
+    const base = this.buildPortfolioContextEn(data, ctx);
+
+    switch (perspective) {
+      case 'risk_analysis':
+        return this.buildRiskAnalysisEn(data, base);
+      case 'cost_optimization':
+        return this.buildCostOptimizationEn(data, base);
+      case 'growth_strategy':
+        return this.buildGrowthStrategyEn(data, base);
+    }
+  }
+
+  private buildPortfolioContextEn(
+    data: EnrichedPortfolioData,
+    ctx: Partial<UserContext>
+  ): string {
+    const lines: string[] = [];
+    if (ctx.age) lines.push(`Age: ${ctx.age}`);
+    if (ctx.occupation) lines.push(`Occupation: ${ctx.occupation}`);
+    if (ctx.familyStatus) lines.push(`Family: ${ctx.familyStatus}`);
+
+    lines.push('');
+    lines.push('[Portfolio Overview]');
+    lines.push(`Holdings: ${data.holdings.count} assets`);
+    const cur = data.holdings.baseCurrency;
+    const fmt = (v: number) =>
+      cur === 'JPY'
+        ? `¥${Math.round(v).toLocaleString()}`
+        : `$${v.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+    lines.push(`Total Value: ${fmt(data.holdings.totalValue)}`);
+
+    if (data.holdings.topHoldings.length > 0) {
+      lines.push('Top Holdings:');
+      data.holdings.topHoldings.slice(0, 3).forEach((h) => {
+        lines.push(`  - ${h.name} (${h.ticker}): ${h.percentage.toFixed(1)}%`);
+      });
+    }
+
+    lines.push('');
+    lines.push('[Portfolio Score]');
+    lines.push(`Overall: ${data.score.totalScore}/100 (Grade ${data.score.grade})`);
+    lines.push(`Strength: ${data.strengthLine}`);
+    lines.push(`Weakness: ${data.weaknessLine}`);
+
+    if (data.pnl.available) {
+      lines.push('');
+      lines.push('[Reference P&L]');
+      lines.push(`Total Investment: ${fmt(data.pnl.totalInvestment)}`);
+      lines.push(`Current Value: ${fmt(data.pnl.totalCurrentValue)}`);
+      lines.push(`P&L: ${data.pnl.totalPnLPercent >= 0 ? '+' : ''}${data.pnl.totalPnLPercent.toFixed(1)}%`);
+    }
+
+    return lines.join('\n');
+  }
+
+  private buildRiskAnalysisEn(data: EnrichedPortfolioData, base: string): string {
+    const lines: string[] = [base, '', '[Risk Analysis Request]'];
+    const divM = data.score.metrics.find((m) => m.id === 'diversification');
+    if (divM) lines.push(`Diversification Score: ${divM.score}/100`);
+    const curM = data.score.metrics.find((m) => m.id === 'currency_diversification');
+    if (curM) lines.push(`Currency Diversification: ${curM.score}/100`);
+
+    lines.push('');
+    lines.push('Please analyze:');
+    lines.push('1. Drawdown Risk: Expected loss in a market downturn');
+    lines.push('2. Concentration Risk: Over-reliance on specific assets/currencies');
+    lines.push('3. Correlation Risk: Correlation between holdings and diversification improvements');
+    lines.push('4. Stress Test: Simulation of a 2008-level downturn');
+    lines.push('5. Specific actions to reduce risk');
+    lines.push('');
+    lines.push('*I live in Japan—please suggest products available for purchase in Japan.');
+    return lines.join('\n');
+  }
+
+  private buildCostOptimizationEn(data: EnrichedPortfolioData, base: string): string {
+    const lines: string[] = [base, '', '[Cost Optimization Request]'];
+    const costM = data.score.metrics.find((m) => m.id === 'cost_efficiency');
+    if (costM) lines.push(`Cost Efficiency Score: ${costM.score}/100`);
+
+    lines.push('');
+    lines.push('Please analyze:');
+    lines.push('1. Cost Analysis: Compare expense ratios and suggest low-cost alternatives');
+    lines.push('2. Dividend Optimization: Tax-efficient dividend strategy');
+    lines.push('3. Tax Efficiency: Optimal use of NISA/iDeCo tax-advantaged accounts');
+    lines.push('4. Trading Costs: Frequency and fee optimization');
+    lines.push('5. Estimated annual cost savings and specific switch proposals');
+    lines.push('');
+    lines.push('*I live in Japan—please suggest products available for purchase in Japan.');
+    return lines.join('\n');
+  }
+
+  private buildGrowthStrategyEn(data: EnrichedPortfolioData, base: string): string {
+    const lines: string[] = [base, '', '[Growth Strategy Request]'];
+    const alignM = data.score.metrics.find((m) => m.id === 'target_alignment');
+    if (alignM) lines.push(`Target Alignment Score: ${alignM.score}/100`);
+
+    if (data.targets.hasTargets) {
+      lines.push(`Avg Target Deviation: ${data.targets.avgDeviation.toFixed(1)}%`);
+    }
+
+    lines.push('');
+    lines.push('Please analyze:');
+    lines.push('1. Rebalancing Plan: Specific buy/sell recommendations');
+    lines.push('2. New Allocation: Additional investment suggestions');
+    lines.push('3. Growth Potential: Portfolio growth outlook');
+    lines.push('4. Goal Progress: Progress toward financial goals and acceleration strategies');
+    lines.push('5. Phased action plan with timeline');
+    lines.push('');
+    lines.push('*I live in Japan—please suggest products available for purchase in Japan.');
+    return lines.join('\n');
   }
 
   /**

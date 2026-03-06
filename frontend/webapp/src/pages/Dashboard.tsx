@@ -15,7 +15,7 @@
  * ポートフォリオのサマリー、チャート、資産配分と差異、保有銘柄テーブルを表示する。
  */
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import PortfolioSummary from '../components/dashboard/PortfolioSummary';
 import PortfolioCharts from '../components/dashboard/PortfolioCharts';
@@ -24,19 +24,34 @@ import AssetsTable from '../components/dashboard/AssetsTable';
 import PortfolioScoreCard from '../components/dashboard/PortfolioScoreCard';
 import PnLSummary from '../components/dashboard/PnLSummary';
 import PnLTrendChart from '../components/dashboard/PnLTrendChart';
+import StrengthsWeaknessCard from '../components/ai/StrengthsWeaknessCard';
 import DataStatusBar from '../components/layout/DataStatusBar';
 import { usePortfolioContext } from '../hooks/usePortfolioContext';
+import { useSubscriptionStore } from '../stores/subscriptionStore';
+import { enrichPortfolioData } from '../utils/portfolioDataEnricher';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { trackEvent, AnalyticsEvents } from '../utils/analytics';
 
 const Dashboard = () => {
   const { t } = useTranslation();
-  const { currentAssets } = usePortfolioContext();
+  const { currentAssets, targetPortfolio, baseCurrency, exchangeRate } = usePortfolioContext();
+  const isPremium = useSubscriptionStore((s) => s.isPremium());
 
   React.useEffect(() => {
     trackEvent(AnalyticsEvents.DASHBOARD_VIEW);
   }, []);
+
+  const enrichedData = useMemo(() => {
+    if (currentAssets.length === 0) return null;
+    return enrichPortfolioData(
+      currentAssets,
+      targetPortfolio,
+      isPremium,
+      baseCurrency,
+      exchangeRate?.rate || 150
+    );
+  }, [currentAssets, targetPortfolio, isPremium, baseCurrency, exchangeRate]);
 
   if (currentAssets.length === 0) {
     return (
@@ -94,6 +109,11 @@ const Dashboard = () => {
 
       {/* P&L Summary */}
       <PnLSummary />
+
+      {/* Strengths & Weakness Insights */}
+      {enrichedData && (
+        <StrengthsWeaknessCard enrichedData={enrichedData} />
+      )}
 
       {/* Portfolio Score */}
       <PortfolioScoreCard />
