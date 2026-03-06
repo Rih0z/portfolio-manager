@@ -157,7 +157,7 @@ const AIDataImportModal = ({ isOpen, onClose, onImportSuccess }: any) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" data-testid="ai-data-import-modal">
       <div className="bg-muted rounded-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto border border-border">
         <div className="p-6 border-b border-border flex items-center justify-between">
           <h2 className="text-xl font-semibold text-white">YAML データ取り込み</h2>
@@ -178,24 +178,24 @@ const AIDataImportModal = ({ isOpen, onClose, onImportSuccess }: any) => {
               value={yamlInput}
               onChange={(e) => setYamlInput(e.target.value)}
               placeholder="assets:&#10;  - VTI: 40%&#10;  - VXUS: 30%&#10;  - BND: 20%&#10;  - VNQ: 10%"
-              className="w-full h-64 p-4 bg-card border border-border rounded-lg text-white placeholder-gray-500 font-mono text-sm focus:outline-none focus:border-primary-500"
+              className="w-full h-64 p-4 bg-card border border-border rounded-lg text-white placeholder-secondary-500 font-mono text-sm focus:outline-none focus:border-primary-500"
             />
           </div>
 
           {processingResults && (
             <div className={`p-4 rounded-lg border ${
-              processingResults.success 
-                ? 'bg-green-900/20 border-green-500/30' 
-                : 'bg-red-900/20 border-red-500/30'
+              processingResults.success
+                ? 'bg-success-900/20 border-success-500/30'
+                : 'bg-danger-900/20 border-danger-500/30'
             }`}>
               <div className="flex items-center gap-2 mb-2">
                 {processingResults.success ? (
-                  <FaCheckCircle className="w-5 h-5 text-green-400" />
+                  <FaCheckCircle className="w-5 h-5 text-success-400" />
                 ) : (
-                  <FaExclamationTriangle className="w-5 h-5 text-red-400" />
+                  <FaExclamationTriangle className="w-5 h-5 text-danger-400" />
                 )}
                 <span className={`font-medium ${
-                  processingResults.success ? 'text-green-400' : 'text-red-400'
+                  processingResults.success ? 'text-success-400' : 'text-danger-400'
                 }`}>
                   {processingResults.message}
                 </span>

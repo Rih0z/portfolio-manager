@@ -59,7 +59,7 @@ const LocalStorageDiagnostics = () => {
   };
 
   return (
-    <div className="bg-card border border-border rounded-2xl shadow-xl p-6">
+    <div className="bg-card border border-border rounded-2xl shadow-xl p-6" data-testid="local-storage-diagnostics">
       <div className="flex items-center gap-2 mb-4">
         <FaTools className="text-orange-400" />
         <h3 className="text-lg font-medium text-foreground">ローカルストレージ診断</h3>

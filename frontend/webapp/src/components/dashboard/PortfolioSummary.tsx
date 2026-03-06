@@ -179,7 +179,7 @@ const PortfolioSummary = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="portfolio-summary">
       <Card padding="medium">
         <CardHeader>
           <CardTitle className="text-xl">

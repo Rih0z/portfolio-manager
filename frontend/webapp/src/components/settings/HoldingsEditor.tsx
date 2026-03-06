@@ -20,7 +20,7 @@ import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 import { formatCurrency, formatPercent } from '../../utils/formatters';
 import { FUND_TYPES } from '../../utils/fundUtils';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
-import ModernHoldingCard from './ModernHoldingCard';
+import HoldingCard from './HoldingCard';
 
 const HoldingsEditor = () => {
   const { t } = useTranslation();
@@ -72,11 +72,11 @@ const HoldingsEditor = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="holdings-editor">
       {/* Holdings Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {currentAssets.map((asset) => (
-          <ModernHoldingCard
+          <HoldingCard
             key={asset.id}
             asset={asset}
             baseCurrency={baseCurrency}

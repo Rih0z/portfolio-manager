@@ -7,7 +7,7 @@ import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 
-const ModernHoldingCard = ({ 
+const HoldingCard = ({ 
   asset, 
   baseCurrency, 
   exchangeRate,
@@ -95,7 +95,7 @@ const ModernHoldingCard = ({
   }, [asset.symbol, asset.name]);
 
   return (
-    <Card hoverable padding="medium" className="transition-all duration-200">
+    <Card hoverable padding="medium" className="transition-all duration-200" data-testid="holding-card">
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
           <div className="flex items-center space-x-3 mb-2">
@@ -252,4 +252,4 @@ const ModernHoldingCard = ({
   );
 };
 
-export default ModernHoldingCard;
+export default HoldingCard;

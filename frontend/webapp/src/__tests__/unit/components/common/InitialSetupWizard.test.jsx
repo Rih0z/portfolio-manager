@@ -67,8 +67,8 @@ describe('InitialSetupWizard', () => {
       const jpyButton = screen.getByText('¥ 日本円').closest('button');
       const usdButton = screen.getByText('$ 米ドル').closest('button');
 
-      expect(jpyButton).toHaveClass('border-blue-500', 'bg-blue-50');
-      expect(usdButton).not.toHaveClass('border-blue-500', 'bg-blue-50');
+      expect(jpyButton).toHaveClass('border-primary-500', 'bg-primary-50');
+      expect(usdButton).not.toHaveClass('border-primary-500', 'bg-primary-50');
     });
 
     it('通貨を切り替えることができる', () => {
@@ -84,13 +84,13 @@ describe('InitialSetupWizard', () => {
       
       // USDに切り替え
       fireEvent.click(usdButton);
-      expect(usdButton).toHaveClass('border-blue-500', 'bg-blue-50');
-      expect(jpyButton).not.toHaveClass('border-blue-500', 'bg-blue-50');
+      expect(usdButton).toHaveClass('border-primary-500', 'bg-primary-50');
+      expect(jpyButton).not.toHaveClass('border-primary-500', 'bg-primary-50');
       
       // JPYに戻す
       fireEvent.click(jpyButton);
-      expect(jpyButton).toHaveClass('border-blue-500', 'bg-blue-50');
-      expect(usdButton).not.toHaveClass('border-blue-500', 'bg-blue-50');
+      expect(jpyButton).toHaveClass('border-primary-500', 'bg-primary-50');
+      expect(usdButton).not.toHaveClass('border-primary-500', 'bg-primary-50');
     });
 
     it('次へボタンでステップ2に進む', () => {
@@ -332,9 +332,9 @@ describe('InitialSetupWizard', () => {
       );
 
       // ステップ1
-      expect(screen.getByText('基本設定')).toHaveClass('text-blue-600', 'font-semibold');
-      expect(screen.getByText('投資予算')).toHaveClass('text-gray-400');
-      expect(screen.getByText('投資対象')).toHaveClass('text-gray-400');
+      expect(screen.getByText('基本設定')).toHaveClass('text-primary-600', 'font-semibold');
+      expect(screen.getByText('投資予算')).toHaveClass('text-secondary-400');
+      expect(screen.getByText('投資対象')).toHaveClass('text-secondary-400');
     });
   });
 
@@ -351,7 +351,7 @@ describe('InitialSetupWizard', () => {
       expect(overlay).toHaveClass('fixed', 'inset-0', 'bg-black', 'bg-opacity-50', 'flex', 'items-center', 'justify-center', 'z-50');
     });
 
-    it('ModernCardが正しく使用される', () => {
+    it('Cardコンポーネントが正しく使用される', () => {
       const mockContext = createMockContext();
 
       usePortfolioContext.mockReturnValue(mockContext);

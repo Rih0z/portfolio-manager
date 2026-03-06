@@ -52,22 +52,22 @@ const ResetSettings = () => {
   };
 
   return (
-    <Card padding="medium">
+    <Card padding="medium" data-testid="reset-settings">
       <div className="flex flex-col space-y-4">
         <div>
           <h2 className="text-xl font-semibold mb-2">設定のリセット</h2>
-          <p className="text-gray-600 text-sm">
+          <p className="text-secondary-600 text-sm">
             すべての保有資産、目標配分、AI設定をリセットします。
             この操作は取り消せません。
           </p>
         </div>
 
         {hasData && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
-            <p className="text-yellow-800 text-sm">
+          <div className="bg-warning-50 border border-warning-200 rounded p-3">
+            <p className="text-warning-800 text-sm">
               <strong>警告:</strong> 現在設定されている以下のデータがすべて削除されます：
             </p>
-            <ul className="list-disc list-inside text-yellow-700 text-sm mt-2">
+            <ul className="list-disc list-inside text-warning-700 text-sm mt-2">
               {currentAssets.length > 0 && (
                 <li>{currentAssets.length}件の保有資産データ</li>
               )}
@@ -94,9 +94,9 @@ const ResetSettings = () => {
       {/* 確認ダイアログ */}
       {showConfirmDialog && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+          <div className="bg-card rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold mb-4">本当にリセットしますか？</h3>
-            <p className="text-gray-600 mb-6">
+            <p className="text-secondary-600 mb-6">
               この操作により、すべての設定データが削除されます。
               削除されたデータは復元できません。
             </p>

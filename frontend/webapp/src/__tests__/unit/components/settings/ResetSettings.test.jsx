@@ -206,8 +206,8 @@ describe('ResetSettings', () => {
     expect(overlay).toHaveClass('fixed', 'inset-0', 'bg-black', 'bg-opacity-50', 'flex', 'items-center', 'justify-center', 'z-50');
 
     // ダイアログボックスのスタイル確認
-    const dialogBox = screen.getByText('本当にリセットしますか？').closest('.bg-white');
-    expect(dialogBox).toHaveClass('bg-white', 'rounded-lg', 'p-6', 'max-w-md', 'w-full', 'mx-4');
+    const dialogBox = screen.getByText('本当にリセットしますか？').closest('.bg-card');
+    expect(dialogBox).toHaveClass('bg-card', 'rounded-lg', 'p-6', 'max-w-md', 'w-full', 'mx-4');
   });
 
   it('警告ボックスのスタイルが正しく適用される', () => {
@@ -217,7 +217,7 @@ describe('ResetSettings', () => {
     renderWithMock(mockContext);
 
     const warningBox = screen.getByText(/警告:/).closest('div');
-    expect(warningBox).toHaveClass('bg-yellow-50', 'border', 'border-yellow-200', 'rounded', 'p-3');
+    expect(warningBox).toHaveClass('bg-warning-50', 'border', 'border-warning-200', 'rounded', 'p-3');
   });
 
   it('保有資産のみがある場合の表示', () => {
@@ -275,8 +275,7 @@ describe('ResetSettings', () => {
     // リセット中はメインのリセットボタンが無効になる
     expect(screen.getByRole('button', { name: '設定をリセット' })).toBeDisabled();
 
-    // loadingTextが表示されているか、または通常のテキストが表示されている
-    // (ModernButtonのloading実装により、テキストが切り替わる可能性がある)
+    // loadingプロパティにより、ボタンのテキストが切り替わる可能性がある
     const buttons = screen.getAllByRole('button');
     const hasResetButton = buttons.some(btn =>
       btn.textContent?.includes('リセット')

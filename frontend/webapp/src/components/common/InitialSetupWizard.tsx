@@ -57,25 +57,25 @@ const InitialSetupWizard = ({ onComplete }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" data-testid="initial-setup-wizard">
       <Card padding="none" className="max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           {/* プログレスバー */}
           <div className="mb-8">
             <div className="flex justify-between mb-2">
-              <span className={`text-sm ${step >= 1 ? 'text-blue-600 font-semibold' : 'text-gray-400'}`}>
+              <span className={`text-sm ${step >= 1 ? 'text-primary-600 font-semibold' : 'text-secondary-400'}`}>
                 基本設定
               </span>
-              <span className={`text-sm ${step >= 2 ? 'text-blue-600 font-semibold' : 'text-gray-400'}`}>
+              <span className={`text-sm ${step >= 2 ? 'text-primary-600 font-semibold' : 'text-secondary-400'}`}>
                 投資予算
               </span>
-              <span className={`text-sm ${step >= 3 ? 'text-blue-600 font-semibold' : 'text-gray-400'}`}>
+              <span className={`text-sm ${step >= 3 ? 'text-primary-600 font-semibold' : 'text-secondary-400'}`}>
                 投資対象
               </span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+            <div className="w-full bg-secondary-200 rounded-full h-2">
+              <div
+                className="bg-primary-600 h-2 rounded-full transition-all duration-300"
                 style={{ width: `${(step / 3) * 100}%` }}
               />
             </div>
@@ -85,13 +85,13 @@ const InitialSetupWizard = ({ onComplete }) => {
           {step === 1 && (
             <div>
               <h2 className="text-2xl font-bold mb-2">Portfolio Wiseへようこそ！</h2>
-              <p className="text-gray-600 mb-6">
+              <p className="text-secondary-600 mb-6">
                 まず、基本的な設定から始めましょう。
               </p>
               
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-secondary-700 mb-2">
                     表示通貨を選択してください
                   </label>
                   <div className="grid grid-cols-2 gap-4">
@@ -99,23 +99,23 @@ const InitialSetupWizard = ({ onComplete }) => {
                       onClick={() => setBaseCurrency('JPY')}
                       className={`p-4 rounded-lg border-2 transition-all ${
                         baseCurrency === 'JPY' 
-                          ? 'border-blue-500 bg-blue-50' 
-                          : 'border-gray-300 hover:border-gray-400'
+                          ? 'border-primary-500 bg-primary-50' 
+                          : 'border-secondary-300 hover:border-secondary-400'
                       }`}
                     >
                       <div className="text-lg font-semibold">¥ 日本円</div>
-                      <div className="text-sm text-gray-600">JPY</div>
+                      <div className="text-sm text-secondary-600">JPY</div>
                     </button>
                     <button
                       onClick={() => setBaseCurrency('USD')}
                       className={`p-4 rounded-lg border-2 transition-all ${
                         baseCurrency === 'USD' 
-                          ? 'border-blue-500 bg-blue-50' 
-                          : 'border-gray-300 hover:border-gray-400'
+                          ? 'border-primary-500 bg-primary-50' 
+                          : 'border-secondary-300 hover:border-secondary-400'
                       }`}
                     >
                       <div className="text-lg font-semibold">$ 米ドル</div>
-                      <div className="text-sm text-gray-600">USD</div>
+                      <div className="text-sm text-secondary-600">USD</div>
                     </button>
                   </div>
                 </div>
@@ -127,13 +127,13 @@ const InitialSetupWizard = ({ onComplete }) => {
           {step === 2 && (
             <div>
               <h2 className="text-2xl font-bold mb-2">投資予算の設定</h2>
-              <p className="text-gray-600 mb-6">
+              <p className="text-secondary-600 mb-6">
                 今回の投資に使用する予算を入力してください。
               </p>
               
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-secondary-700 mb-2">
                     投資予算
                   </label>
                   <div className="flex items-center space-x-2">
@@ -148,7 +148,7 @@ const InitialSetupWizard = ({ onComplete }) => {
                       className="flex-1"
                     />
                   </div>
-                  <p className="text-sm text-gray-500 mt-1">
+                  <p className="text-sm text-secondary-500 mt-1">
                     この金額をもとに最適な投資配分を計算します
                   </p>
                 </div>
@@ -160,11 +160,11 @@ const InitialSetupWizard = ({ onComplete }) => {
           {step === 3 && (
             <div>
               <h2 className="text-2xl font-bold mb-2">投資対象の選択</h2>
-              <p className="text-gray-600 mb-6">
+              <p className="text-secondary-600 mb-6">
                 どの市場に投資したいですか？複数選択可能です。
               </p>
               
-              <div className="bg-gray-900 p-4 rounded-lg">
+              <div className="bg-card p-4 rounded-lg">
                 <MarketSelectionWizard
                   selectedMarkets={selectedMarkets}
                   onMarketsChange={setSelectedMarkets}
