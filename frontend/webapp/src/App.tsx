@@ -16,7 +16,7 @@
  * AuthProvider/PortfolioProvider/ContextConnector は廃止。
  */
 
-import React, { useEffect, useState, Suspense, lazy } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { QueryProvider } from './providers/QueryProvider';
@@ -31,19 +31,20 @@ import { useSubscriptionStore } from './stores/subscriptionStore';
 import Footer from './components/layout/Footer';
 import { initializeApiConfig, getGoogleClientId } from './utils/envUtils';
 import { initGA, trackPageView } from './utils/analytics';
+import { lazyWithRetry } from './utils/lazyWithRetry';
 
-// Route-based code splitting: ページコンポーネントを遅延ロード
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const Settings = lazy(() => import('./pages/Settings'));
-const Simulation = lazy(() => import('./pages/Simulation'));
-const DataIntegration = lazy(() => import('./pages/DataIntegration'));
-const DataImport = lazy(() => import('./pages/DataImport'));
-const AIAdvisor = lazy(() => import('./pages/AIAdvisor'));
-const Pricing = lazy(() => import('./pages/Pricing'));
-const Terms = lazy(() => import('./pages/legal/Terms'));
-const Privacy = lazy(() => import('./pages/legal/Privacy'));
-const KKKR = lazy(() => import('./pages/legal/KKKR'));
-const Disclaimer = lazy(() => import('./pages/legal/Disclaimer'));
+// Route-based code splitting: ページコンポーネントを遅延ロード（リトライ付き）
+const Dashboard = lazyWithRetry(() => import('./pages/Dashboard'));
+const Settings = lazyWithRetry(() => import('./pages/Settings'));
+const Simulation = lazyWithRetry(() => import('./pages/Simulation'));
+const DataIntegration = lazyWithRetry(() => import('./pages/DataIntegration'));
+const DataImport = lazyWithRetry(() => import('./pages/DataImport'));
+const AIAdvisor = lazyWithRetry(() => import('./pages/AIAdvisor'));
+const Pricing = lazyWithRetry(() => import('./pages/Pricing'));
+const Terms = lazyWithRetry(() => import('./pages/legal/Terms'));
+const Privacy = lazyWithRetry(() => import('./pages/legal/Privacy'));
+const KKKR = lazyWithRetry(() => import('./pages/legal/KKKR'));
+const Disclaimer = lazyWithRetry(() => import('./pages/legal/Disclaimer'));
 
 // i18n初期化
 import './i18n';

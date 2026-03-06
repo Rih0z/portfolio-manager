@@ -95,7 +95,7 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6 animate-fade-in px-3 sm:px-4 lg:px-6 pb-20 sm:pb-6">
+    <div data-testid="dashboard-page" className="space-y-4 sm:space-y-6 animate-fade-in px-3 sm:px-4 lg:px-6 pb-20 sm:pb-6">
       <DataStatusBar />
 
       {/* Welcome Section */}

@@ -198,6 +198,11 @@ vi.mock('../../../components/common/LoadingFallback', () => ({
   },
 }));
 
+// lazyWithRetry モック（React.lazyと同等動作）
+vi.mock('../../../utils/lazyWithRetry', () => ({
+  lazyWithRetry: (importFn) => React.lazy(importFn),
+}));
+
 // i18nモック
 vi.mock('../../../i18n', () => ({}));
 
