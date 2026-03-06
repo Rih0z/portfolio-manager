@@ -74,6 +74,12 @@ vi.mock('../../../components/ai/StrengthsWeaknessCard', () => ({
   },
 }));
 
+vi.mock('../../../components/goals/GoalProgressSection', () => ({
+  default: function GoalProgressSection() {
+    return <div data-testid="goal-progress-section">Goal Progress Section</div>;
+  },
+}));
+
 vi.mock('../../../stores/subscriptionStore', () => ({
   useSubscriptionStore: vi.fn((selector) => {
     if (typeof selector === 'function') {

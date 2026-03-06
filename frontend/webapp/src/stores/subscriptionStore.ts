@@ -57,6 +57,7 @@ export const useSubscriptionStore = create<SubscriptionState>()((set, get) => ({
       pdfExport: false,
       autoBackup: false,
       adFree: false,
+      goalTracking: true,  // Free: 1ゴールまで（制限はgoalStoreで管理）
     };
 
     return featureLimits[feature] ?? true;

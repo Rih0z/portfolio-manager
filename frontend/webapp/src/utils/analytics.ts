@@ -15,7 +15,10 @@ export const AnalyticsEvents = {
   CHECKOUT_START: 'checkout_start',
   SIMULATION_RUN: 'simulation_run',
   PNL_VIEW: 'pnl_view',
-  PORTFOLIO_SYNC: 'portfolio_sync'
+  PORTFOLIO_SYNC: 'portfolio_sync',
+  GOAL_CREATE: 'goal_create',
+  GOAL_UPDATE: 'goal_update',
+  GOAL_DELETE: 'goal_delete',
 } as const;
 
 /**

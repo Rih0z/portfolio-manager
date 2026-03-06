@@ -25,6 +25,7 @@ import PortfolioScoreCard from '../components/dashboard/PortfolioScoreCard';
 import PnLSummary from '../components/dashboard/PnLSummary';
 import PnLTrendChart from '../components/dashboard/PnLTrendChart';
 import StrengthsWeaknessCard from '../components/ai/StrengthsWeaknessCard';
+import GoalProgressSection from '../components/goals/GoalProgressSection';
 import DataStatusBar from '../components/layout/DataStatusBar';
 import { usePortfolioContext } from '../hooks/usePortfolioContext';
 import { useSubscriptionStore } from '../stores/subscriptionStore';
@@ -114,6 +115,12 @@ const Dashboard = () => {
       {enrichedData && (
         <StrengthsWeaknessCard enrichedData={enrichedData} />
       )}
+
+      {/* Goal Progress */}
+      <GoalProgressSection
+        totalValue={enrichedData?.holdings?.totalValue || 0}
+        baseCurrency={baseCurrency}
+      />
 
       {/* Portfolio Score */}
       <PortfolioScoreCard />
