@@ -71,8 +71,9 @@ export const useSubscriptionStore = create<SubscriptionState>()((set, get) => ({
         limits: status.limits,
         loading: false,
       });
-    } catch (err: any) {
-      set({ error: err.message, loading: false });
+    } catch {
+      // バックエンド未デプロイ時はサイレントフェイル（Free プランをデフォルト維持）
+      set({ loading: false });
     }
   },
 

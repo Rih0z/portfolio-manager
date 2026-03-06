@@ -23,8 +23,6 @@ import DifferenceChart from '../components/dashboard/DifferenceChart';
 import AssetsTable from '../components/dashboard/AssetsTable';
 import PortfolioScoreCard from '../components/dashboard/PortfolioScoreCard';
 import DataStatusBar from '../components/layout/DataStatusBar';
-import ModernCard from '../components/common/ModernCard';
-import ModernButton from '../components/common/ModernButton';
 import { usePortfolioContext } from '../hooks/usePortfolioContext';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -33,12 +31,10 @@ const Dashboard = () => {
   const { t } = useTranslation();
   const { currentAssets } = usePortfolioContext();
 
-  // データがない場合の表示 - Atlassian Design System準拠
   if (currentAssets.length === 0) {
     return (
       <div className="min-h-[calc(100vh-8rem)] sm:min-h-[calc(100vh-6rem)] flex items-center justify-center p-4 px-3 sm:px-4">
         <Card elevation="medium" padding="large" className="max-w-lg text-center">
-          {/* Empty state illustration - Atlassian準拠アイコン */}
           <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-4 sm:mb-6 relative">
             <div className="absolute inset-0 bg-primary-500/20 rounded-full blur-lg"></div>
             <div className="relative w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-primary-100 to-primary-200 border border-primary-300 rounded-full flex items-center justify-center shadow-sm">

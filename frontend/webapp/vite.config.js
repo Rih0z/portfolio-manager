@@ -34,6 +34,16 @@ export default defineConfig({
   build: {
     outDir: 'build',
     sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-charts': ['recharts'],
+          'vendor-csv': ['papaparse'],
+          'vendor-query': ['@tanstack/react-query', 'zustand', 'axios'],
+        },
+      },
+    },
   },
   define: {
     // CRA互換: process.env.NODE_ENV をサポート

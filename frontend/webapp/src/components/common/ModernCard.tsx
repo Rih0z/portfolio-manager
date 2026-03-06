@@ -1,3 +1,11 @@
+/**
+ * ModernCard — テーマ対応カードコンポーネント
+ *
+ * shadcn/ui Card と同じ CSS 変数ベースのスタイリング。
+ * 既存 API (Header/Title/Content/Footer/Value/Icon) を維持。
+ *
+ * @file src/components/common/ModernCard.tsx
+ */
 import React from 'react';
 
 const ModernCard = ({
@@ -12,12 +20,12 @@ const ModernCard = ({
   ...props
 }: any) => {
   const baseClasses = `
-    bg-white backdrop-blur-sm border border-secondary-200/50
+    bg-card backdrop-blur-sm border border-border text-card-foreground
     ${rounded}
     ${padding}
-    ${shadow ? 'shadow-lg shadow-secondary-900/5' : ''}
-    ${hover ? 'hover:shadow-xl hover:shadow-secondary-900/10 hover:-translate-y-1' : ''}
-    ${gradient ? 'bg-gradient-to-br from-white to-secondary-50/50' : ''}
+    ${shadow ? 'shadow-soft' : ''}
+    ${hover ? 'hover:shadow-medium hover:-translate-y-0.5' : ''}
+    ${gradient ? 'bg-gradient-to-br from-card to-muted/30' : ''}
     ${onClick ? 'cursor-pointer' : ''}
     transition-all duration-300 ease-out
     ${className}
@@ -37,96 +45,85 @@ const CardHeader = ({ children, className = '' }: any) => (
 );
 
 const CardTitle = ({ children, className = '', size = 'lg' }: any) => {
-  const sizeClasses = {
+  const sizeClasses: Record<string, string> = {
     sm: 'text-base font-semibold',
     md: 'text-lg font-semibold',
     lg: 'text-xl font-bold',
-    xl: 'text-2xl font-bold'
+    xl: 'text-2xl font-bold',
   };
 
   return (
-    <h3 className={`text-secondary-900 ${sizeClasses[size]} ${className}`}>
+    <h3 className={`text-foreground ${sizeClasses[size] || sizeClasses.lg} ${className}`}>
       {children}
     </h3>
   );
 };
 
 const CardContent = ({ children, className = '' }: any) => (
-  <div className={`${className}`}>
-    {children}
-  </div>
+  <div className={className}>{children}</div>
 );
 
 const CardFooter = ({ children, className = '' }: any) => (
-  <div className={`mt-4 pt-4 border-t border-secondary-200/50 ${className}`}>
+  <div className={`mt-4 pt-4 border-t border-border ${className}`}>
     {children}
   </div>
 );
 
-// Value display component for metrics
 const CardValue = ({
   value,
   label,
   change,
   changeType = 'neutral',
   format = 'number',
-  className = ''
+  className = '',
 }: any) => {
-  const changeColors = {
+  const changeColors: Record<string, string> = {
     positive: 'text-success-600',
     negative: 'text-danger-600',
-    neutral: 'text-secondary-500'
+    neutral: 'text-muted-foreground',
   };
 
-  const formatValue = (val) => {
+  const formatValue = (val: any) => {
     if (format === 'currency') {
-      return new Intl.NumberFormat('ja-JP', { 
-        style: 'currency', 
+      return new Intl.NumberFormat('ja-JP', {
+        style: 'currency',
         currency: 'JPY',
-        minimumFractionDigits: 0 
+        minimumFractionDigits: 0,
       }).format(val);
     }
-    if (format === 'percentage') {
-      return `${val}%`;
-    }
+    if (format === 'percentage') return `${val}%`;
     return val?.toLocaleString();
   };
 
   return (
-    <div className={`${className}`}>
-      <div className="text-2xl font-bold text-secondary-900 mb-1">
+    <div className={className}>
+      <div className="text-2xl font-bold text-foreground font-mono mb-1">
         {formatValue(value)}
       </div>
-      {label && (
-        <div className="text-sm text-secondary-600 mb-1">
-          {label}
-        </div>
-      )}
+      {label && <div className="text-sm text-muted-foreground mb-1">{label}</div>}
       {change !== undefined && (
         <div className={`text-sm font-medium ${changeColors[changeType]}`}>
-          {change > 0 ? '+' : ''}{formatValue(change)}
-          {format === 'percentage' ? '' : ` (${change > 0 ? '+' : ''}${((change / value) * 100).toFixed(2)}%)`}
+          {change > 0 ? '+' : ''}
+          {formatValue(change)}
+          {format === 'percentage'
+            ? ''
+            : ` (${change > 0 ? '+' : ''}${((change / value) * 100).toFixed(2)}%)`}
         </div>
       )}
     </div>
   );
 };
 
-// Icon wrapper for consistent styling
 const CardIcon = ({ icon, className = '', color = 'primary' }: any) => {
-  const colorClasses = {
+  const colorClasses: Record<string, string> = {
     primary: 'text-primary-600',
-    secondary: 'text-secondary-600',
+    secondary: 'text-muted-foreground',
     success: 'text-success-600',
     warning: 'text-warning-600',
-    danger: 'text-danger-600'
+    danger: 'text-danger-600',
   };
 
-  return (
-    <div className={`${colorClasses[color]} ${className}`}>
-      {icon}
-    </div>
-  );
+  return <div className={`${colorClasses[color] || colorClasses.primary} ${className}`}>{icon}</div>;
 };
 
 ModernCard.Header = CardHeader;

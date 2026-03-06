@@ -55,17 +55,6 @@ vi.mock('../../../components/dashboard/PortfolioScoreCard', () => ({
   },
 }));
 
-vi.mock('../../../components/common/ModernCard', () => ({
-  default: function ModernCard({ children }) {
-    return <div data-testid="modern-card">{children}</div>;
-  },
-}));
-
-vi.mock('../../../components/common/ModernButton', () => ({
-  default: function ModernButton({ children, onClick }) {
-    return <button data-testid="modern-button" onClick={onClick}>{children}</button>;
-  },
-}));
 
 import { useTranslation } from 'react-i18next';
 import { usePortfolioContext } from '../../../hooks/usePortfolioContext';

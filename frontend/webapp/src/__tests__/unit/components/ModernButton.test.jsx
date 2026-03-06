@@ -22,15 +22,15 @@ describe('ModernButton', () => {
   it('renders different variants', () => {
     const { rerender } = render(<ModernButton variant="primary">Primary</ModernButton>);
     let button = screen.getByRole('button');
-    expect(button).toHaveClass('from-primary-500');
+    expect(button).toHaveClass('bg-primary-500');
 
     rerender(<ModernButton variant="secondary">Secondary</ModernButton>);
     button = screen.getByRole('button');
-    expect(button).toHaveClass('bg-white');
+    expect(button).toHaveClass('bg-card');
 
     rerender(<ModernButton variant="danger">Danger</ModernButton>);
     button = screen.getByRole('button');
-    expect(button).toHaveClass('from-danger-500');
+    expect(button).toHaveClass('bg-danger-500');
   });
 
   it('renders different sizes', () => {

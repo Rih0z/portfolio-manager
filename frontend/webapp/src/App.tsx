@@ -169,17 +169,17 @@ const NotificationDisplay = () => {
         <div
           key={notification.id}
           className={`p-3 rounded-md shadow-md text-sm ${
-            notification.type === 'error' ? 'bg-red-100 text-red-700' :
-            notification.type === 'warning' ? 'bg-yellow-100 text-yellow-700' :
-            notification.type === 'success' ? 'bg-green-100 text-green-700' :
-            'bg-blue-100 text-blue-700'
+            notification.type === 'error' ? 'bg-danger-100 text-danger-700 dark:bg-danger-900/30 dark:text-danger-300' :
+            notification.type === 'warning' ? 'bg-warning-100 text-warning-700 dark:bg-warning-500/20 dark:text-warning-400' :
+            notification.type === 'success' ? 'bg-success-100 text-success-700 dark:bg-success-900/30 dark:text-success-300' :
+            'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300'
           }`}
         >
           <div className="flex justify-between items-start">
             <span>{notification.message}</span>
             <button
               onClick={() => removeNotification(notification.id)}
-              className="ml-2 text-gray-500 hover:text-gray-700"
+              className="ml-2 text-muted-foreground hover:text-foreground"
             >
               &times;
             </button>
