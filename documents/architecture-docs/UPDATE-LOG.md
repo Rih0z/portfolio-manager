@@ -1,5 +1,16 @@
 # アーキテクチャドキュメント更新ログ
 
+## 2026-03-06 - Phase 4-D ドキュメント全面刷新
+
+### 更新内容
+- `analysis/codebase-analysis.md`: 技術スタック更新（Atlassian→shadcn/ui、Context API→Zustand、認証→JWT デュアルモード）
+- `architecture/implementation-guide.md`: コード例をZustand + shadcn/uiに更新
+- `architecture/technology-decisions.md`: ADR-002廃止済み表記、ADR-013/014/015追加済み確認
+- `architecture/c4-model-detailed.md`: Atlassian Components → shadcn/ui + Radix UI
+- `README.md`: ADR-002/009 廃止表記追加、言語TypeScript更新、最終更新日
+
+---
+
 ## 2025-09-04 - 包括的アーキテクチャドキュメント生成
 
 ### 新規作成ファイル
@@ -13,7 +24,7 @@
 
 #### コードベース分析
 - プロジェクト全体の技術スタック分析
-- フロントエンド（React 18 + Atlassian Design System）詳細
+- フロントエンド（React 18 + ~~Atlassian Design System~~ → shadcn/ui）詳細
 - バックエンド（AWS Lambda + DynamoDB）アーキテクチャ
 - セキュリティ、パフォーマンス、テスト戦略の文書化
 
@@ -32,7 +43,7 @@
 #### 実装ガイド
 - 開発環境セットアップ手順
 - コーディング規約とベストプラクティス
-- 状態管理パターン（Context API）
+- 状態管理パターン（~~Context API~~ → Zustand）
 - Lambda関数実装テンプレート
 - テスト実装例
 - デプロイメント手順

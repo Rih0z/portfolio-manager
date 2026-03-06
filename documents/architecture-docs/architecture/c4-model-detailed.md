@@ -137,7 +137,7 @@ C4Component
         }
         
         Component_Boundary(ui_components, "UI Components") {
-            Component(atlassian_ui, "Atlassian Components", "UI Library", "デザインシステム<br/>エンタープライズUI")
+            Component(shadcn_ui, "shadcn/ui + Radix UI", "UI Library", "デザインシステム<br/>アクセシブルUI")
             Component(charts, "Recharts", "Chart Library", "データ可視化<br/>インタラクティブチャート")
             Component(forms, "Form Components", "React Components", "フォーム管理<br/>バリデーション")
             Component(tables, "Data Tables", "React Components", "データ表示<br/>ソート・フィルター")
@@ -160,7 +160,7 @@ C4Component
     Rel(dashboard_page, charts, "レンダリング")
     
     Rel(ai_advisor_page, ai_service, "AI分析")
-    Rel(ai_advisor_page, atlassian_ui, "UI構築")
+    Rel(ai_advisor_page, shadcn_ui, "UI構築")
     
     Rel(market_service, api_client, "API呼び出し")
     Rel(portfolio_service, api_client, "API呼び出し")

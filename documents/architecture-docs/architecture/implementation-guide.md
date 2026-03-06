@@ -66,8 +66,9 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import PropTypes from 'prop-types';
 
-// Atlassianコンポーネントインポート
-import { Button, Card } from '../atlassian';
+// shadcn/ui コンポーネントインポート
+import { Button } from '../ui/button';
+import { Card } from '../ui/card';
 
 // カスタムフック
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
@@ -151,49 +152,38 @@ export const fetchMarketData = async (symbols, options = {}) => {
 
 ## 3. 状態管理パターン
 
-### 3.1 Context API使用方法
-```jsx
-// context/PortfolioContext.jsx
-export const PortfolioProvider = ({ children }) => {
-  const [portfolio, setPortfolio] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  
-  // ポートフォリオ更新関数
-  const updatePortfolio = useCallback(async (data) => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const result = await api.updatePortfolio(data);
-      setPortfolio(result);
-      
-      // LocalStorageにも保存
-      localStorage.setItem('portfolio', JSON.stringify(result));
-      
-      return result;
-    } catch (err) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-  
-  const value = useMemo(() => ({
-    portfolio,
-    loading,
-    error,
-    updatePortfolio,
-    // その他の関数...
-  }), [portfolio, loading, error]);
-  
-  return (
-    <PortfolioContext.Provider value={value}>
-      {children}
-    </PortfolioContext.Provider>
-  );
-};
+### 3.1 Zustand ストア使用方法
+```tsx
+// stores/portfolioStore.ts
+import { create } from 'zustand';
+
+interface PortfolioState {
+  currentAssets: Asset[];
+  baseCurrency: string;
+  addTicker: (ticker: string) => void;
+  removeTicker: (ticker: string) => void;
+}
+
+export const usePortfolioStore = create<PortfolioState>((set, get) => ({
+  currentAssets: [],
+  baseCurrency: 'JPY',
+
+  addTicker: (ticker) => {
+    set((state) => ({
+      currentAssets: [...state.currentAssets, { ticker, shares: 0 }]
+    }));
+  },
+
+  removeTicker: (ticker) => {
+    set((state) => ({
+      currentAssets: state.currentAssets.filter(a => a.ticker !== ticker)
+    }));
+  },
+}));
+
+// コンポーネントでの使用（セレクタパターン）
+const currentAssets = usePortfolioStore(state => state.currentAssets);
+const addTicker = usePortfolioStore(state => state.addTicker);
 ```
 
 ### 3.2 カスタムフック

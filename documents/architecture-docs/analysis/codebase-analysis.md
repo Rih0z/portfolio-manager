@@ -7,7 +7,7 @@
 - **タイプ**: 投資ポートフォリオ管理Webアプリケーション
 - **対象ユーザー**: 日本の個人投資家（主要）、グローバル投資家
 - **開発開始**: 2025年3月
-- **最新更新**: 2025年9月
+- **最新更新**: 2026年3月
 
 ### 1.2 主要機能
 - 投資ポートフォリオのリアルタイム追跡
@@ -23,25 +23,29 @@
 ### 2.1 フロントエンド
 ```
 技術スタック:
-├── React 18.2.0
-├── TypeScript (設定中)
-├── Tailwind CSS 3.3.1
-├── Atlassian Design System (実装中)
+├── React 18
+├── TypeScript 5.x (strict: false, allowJs: true — インクリメンタル移行中)
+├── Vite 7.x (ビルド・開発サーバー)
+├── Zustand 5.x (クライアント状態管理)
+├── TanStack Query 5.x (サーバー状態キャッシュ)
+├── shadcn/ui + Radix UI (UIコンポーネント)
+├── TailwindCSS (CSS変数ベース、ライト/ダーク切替)
 ├── i18next (国際化対応)
 ├── React Router v6
-├── Recharts 2.5.0 (データ可視化)
-├── Axios 1.3.5 (API通信)
-├── Google OAuth 2.0
-└── Context API (状態管理)
+├── Recharts (データ可視化)
+├── Axios (API通信 + リトライ)
+├── Google OAuth 2.0 + JWT デュアルモード認証
+└── Vitest + React Testing Library (テスト)
 ```
 
 **主要依存関係**:
-- **UI Framework**: React + Atlassian Design System (移行中)
-- **Styling**: Tailwind CSS + カスタムダークテーマ
-- **State Management**: Context API (AuthContext, PortfolioContext)
+- **UI Framework**: React + shadcn/ui + Radix UI
+- **Styling**: TailwindCSS (CSS変数ベース、ライト/ダーク/システム 3モード)
+- **State Management**: Zustand 5.x (authStore, portfolioStore, uiStore, subscriptionStore)
+- **Server State**: TanStack Query 5.x
 - **Charts**: Recharts
 - **API Client**: Axios with retry logic
-- **Authentication**: Google OAuth 2.0
+- **Authentication**: Google OAuth 2.0 + JWT デュアルモード
 - **i18n**: i18next (日本語/英語対応)
 
 ### 2.2 バックエンド
@@ -89,11 +93,13 @@
 - **Fallback Pattern**: 複数データソースによる冗長性
 
 ### 3.2 セキュリティアーキテクチャ
-- **認証**: Google OAuth 2.0
-- **セッション管理**: DynamoDB Sessions Table
+- **認証**: Google OAuth 2.0 + JWT デュアルモード（Bearer Token + httpOnly Cookie）
+- **JWT**: HS256, 24h有効, メモリのみ保存（localStorage禁止）
+- **Refresh Token**: httpOnly Cookie, 7日有効, Token Reuse Detection
+- **セッション管理**: DynamoDB Sessions Table（レガシー互換）
 - **APIキー管理**: AWS Secrets Manager
 - **CORS**: 厳格なOrigin制限
-- **Rate Limiting**: IP/認証ベースの制限
+- **Rate Limiting**: ユーザーIDベース（Free: 30/h, Standard: 300/h）
 - **監査ログ**: CloudWatchによる全API呼び出し記録
 
 ## 4. プロジェクト構造
@@ -106,16 +112,19 @@ portfolio-manager/
 │       ├── public/                # 静的資産
 │       ├── src/
 │       │   ├── components/        # UIコンポーネント
-│       │   │   ├── atlassian/    # Atlassianデザインシステム
+│       │   │   ├── ai/          # AI分析コンポーネント
 │       │   │   ├── auth/         # 認証関連
 │       │   │   ├── common/       # 共通コンポーネント
 │       │   │   ├── dashboard/    # ダッシュボード
 │       │   │   ├── data/         # データ管理
+│       │   │   ├── goals/        # ゴール管理
 │       │   │   ├── layout/       # レイアウト
+│       │   │   ├── reports/      # レポート
 │       │   │   ├── settings/     # 設定画面
-│       │   │   └── simulation/   # シミュレーション
-│       │   ├── context/           # React Context
+│       │   │   ├── simulation/   # シミュレーション
+│       │   │   └── ui/           # shadcn/ui コンポーネント
 │       │   ├── hooks/             # カスタムフック
+│       │   ├── stores/            # Zustand ストア
 │       │   ├── i18n/              # 国際化
 │       │   ├── pages/             # ページコンポーネント
 │       │   ├── services/          # APIサービス層
@@ -146,15 +155,16 @@ portfolio-manager/
 
 ### 5.1 フロントエンド主要コンポーネント
 
-#### AuthContext (認証管理)
-- Google OAuth統合
-- セッション管理
+#### authStore (認証管理 — Zustand)
+- Google OAuth統合 + JWT デュアルモード認証
+- トークン管理（メモリ保存、localStorage フォールバック）
 - ユーザー情報キャッシング
 
-#### PortfolioContext (ポートフォリオ管理)
+#### portfolioStore (ポートフォリオ管理 — Zustand)
 - 保有資産管理
 - 目標配分設定
-- リアルタイム価格更新
+- Google Drive 同期
+- サーバー側保存（DynamoDB）
 
 #### AIAdvisor (AI投資アドバイス)
 - 40以上の分析関数
