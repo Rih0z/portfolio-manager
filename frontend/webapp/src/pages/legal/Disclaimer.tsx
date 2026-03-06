@@ -4,9 +4,12 @@
  */
 import React from 'react';
 import { Link } from 'react-router-dom';
+import SEOHead from '../../components/seo/SEOHead';
 
 const Disclaimer: React.FC = () => {
   return (
+    <>
+    <SEOHead />
     <div data-testid="disclaimer-page" className="px-4 sm:px-6 lg:px-8 py-6 max-w-3xl mx-auto">
       <nav className="text-xs text-gray-500 mb-4">
         <Link to="/" className="hover:text-gray-300">ホーム</Link>
@@ -118,6 +121,7 @@ const Disclaimer: React.FC = () => {
         </section>
       </div>
     </div>
+  </>
   );
 };
 

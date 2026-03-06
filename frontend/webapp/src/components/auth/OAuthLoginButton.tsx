@@ -97,7 +97,7 @@ const OAuthLoginButton = () => {
               addNotification('ログインが完了しました。Google Driveも利用可能です。', 'success');
             }
             // URLパラメータをクリア
-            window.history.replaceState({}, document.title, '/');
+            window.history.replaceState({}, document.title, '/dashboard');
           } else {
             handleLoginError(result);
           }

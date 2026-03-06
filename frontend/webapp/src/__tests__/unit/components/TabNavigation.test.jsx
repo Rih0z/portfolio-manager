@@ -92,7 +92,7 @@ describe('TabNavigation', () => {
   });
 
   it('highlights active tab based on route', () => {
-    renderWithRouter('/');
+    renderWithRouter('/dashboard');
 
     // ダッシュボードのリンクがアクティブ
     const dashboardLink = screen.getByText('ダッシュボード').closest('a');
@@ -105,7 +105,7 @@ describe('TabNavigation', () => {
     const links = document.querySelectorAll('a');
     const hrefs = Array.from(links).map(l => l.getAttribute('href'));
 
-    expect(hrefs).toContain('/');
+    expect(hrefs).toContain('/dashboard');
     expect(hrefs).toContain('/ai-advisor');
     expect(hrefs).toContain('/simulation');
     expect(hrefs).toContain('/settings');

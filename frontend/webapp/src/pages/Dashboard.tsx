@@ -33,6 +33,7 @@ import { enrichPortfolioData } from '../utils/portfolioDataEnricher';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { trackEvent, AnalyticsEvents } from '../utils/analytics';
+import SEOHead from '../components/seo/SEOHead';
 
 const Dashboard = () => {
   const { t } = useTranslation();
@@ -56,6 +57,8 @@ const Dashboard = () => {
 
   if (currentAssets.length === 0) {
     return (
+      <>
+      <SEOHead />
       <div className="min-h-[calc(100vh-8rem)] sm:min-h-[calc(100vh-6rem)] flex items-center justify-center p-4 px-3 sm:px-4">
         <Card elevation="medium" padding="large" className="max-w-lg text-center">
           <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-4 sm:mb-6 relative">
@@ -91,10 +94,13 @@ const Dashboard = () => {
           </Button>
         </Card>
       </div>
+      </>
     );
   }
 
   return (
+    <>
+    <SEOHead />
     <div data-testid="dashboard-page" className="space-y-4 sm:space-y-6 animate-fade-in px-3 sm:px-4 lg:px-6 pb-20 sm:pb-6">
       <DataStatusBar />
 
@@ -134,6 +140,7 @@ const Dashboard = () => {
         <AssetsTable />
       </div>
     </div>
+    </>
   );
 };
 

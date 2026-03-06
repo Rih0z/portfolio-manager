@@ -4,36 +4,36 @@
  *
  * 作成者: Koki Riho （https://github.com/Rih0z）
  * 作成日: 2025-03-01 10:00:00
- * 更新日: 2026-03-05
+ * 更新日: 2026-03-06
  *
  * 更新履歴:
  * - 2025-03-01 Koki Riho 初回作成
  * - 2026-03-05 Claude Code Zustand + TanStack Query 移行（Context廃止）
+ * - 2026-03-06 Claude Code Phase 5-A: PublicLayout / AppLayout 分離 + HelmetProvider + Landing ページ追加
  *
  * 説明:
  * アプリケーションのルートコンポーネント。
  * Zustand stores + TanStack Query でグローバル状態管理。
- * AuthProvider/PortfolioProvider/ContextConnector は廃止。
+ * PublicLayout（LP / Pricing / Legal）と AppLayout（Dashboard 等）でルート分離。
  */
 
-import React, { useEffect, useState, Suspense } from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
+import { HelmetProvider } from 'react-helmet-async';
 import { QueryProvider } from './providers/QueryProvider';
-import Header from './components/layout/Header';
-import TabNavigation from './components/layout/TabNavigation';
-import LoadingFallback from './components/common/LoadingFallback';
-import SettingsChecker from './components/common/SettingsChecker';
+import PublicLayout from './components/layout/PublicLayout';
+import AppLayout from './components/layout/AppLayout';
 import { useAuthStore } from './stores/authStore';
 import { usePortfolioStore } from './stores/portfolioStore';
 import { useUIStore } from './stores/uiStore';
 import { useSubscriptionStore } from './stores/subscriptionStore';
-import Footer from './components/layout/Footer';
 import { initializeApiConfig, getGoogleClientId } from './utils/envUtils';
 import { initGA, trackPageView } from './utils/analytics';
 import { lazyWithRetry } from './utils/lazyWithRetry';
 
 // Route-based code splitting: ページコンポーネントを遅延ロード（リトライ付き）
+const Landing = lazyWithRetry(() => import('./pages/Landing'));
 const Dashboard = lazyWithRetry(() => import('./pages/Dashboard'));
 const Settings = lazyWithRetry(() => import('./pages/Settings'));
 const Simulation = lazyWithRetry(() => import('./pages/Simulation'));
@@ -267,46 +267,46 @@ class ErrorBoundary extends React.Component<any, any> {
 const App = () => {
   return (
     <ErrorBoundary>
-      <QueryProvider>
-        <AppInitializer>
-          {/* Store初期化（認証・ポートフォリオのサイドエフェクト管理） */}
-          <StoreInitializer />
+      <HelmetProvider>
+        <QueryProvider>
+          <AppInitializer>
+            {/* Store初期化（認証・ポートフォリオのサイドエフェクト管理） */}
+            <StoreInitializer />
 
-          <Router>
-            <PageViewTracker />
-            <ServerSyncInitializer />
-            <SettingsChecker>
-              <div className="min-h-screen bg-background text-foreground">
-                <Header />
-                <main className="max-w-7xl mx-auto pt-2 sm:pt-4 lg:pt-6 pb-20 sm:pb-6">
-                  <Suspense fallback={<LoadingFallback />}>
-                    <Routes>
-                      <Route path="/" element={<Dashboard />} />
-                      <Route path="/ai-advisor" element={<AIAdvisor />} />
-                      <Route path="/settings" element={<Settings />} />
-                      <Route path="/simulation" element={<Simulation />} />
-                      <Route path="/investment-calculator" element={<Simulation />} />
-                      <Route path="/data" element={<DataIntegration />} />
-                      <Route path="/data-import" element={<DataImport />} />
-                      <Route path="/pricing" element={<Pricing />} />
-                      <Route path="/legal/terms" element={<Terms />} />
-                      <Route path="/legal/privacy" element={<Privacy />} />
-                      <Route path="/legal/kkkr" element={<KKKR />} />
-                      <Route path="/legal/disclaimer" element={<Disclaimer />} />
-                      <Route path="/auth/google/callback" element={<Dashboard />} />
-                    </Routes>
-                  </Suspense>
-                </main>
-                <Footer />
-                <TabNavigation />
-              </div>
-            </SettingsChecker>
-          </Router>
+            <Router>
+              <PageViewTracker />
+              <ServerSyncInitializer />
 
-          {/* 通知表示（uiStore経由で管理） */}
-          <NotificationDisplay />
-        </AppInitializer>
-      </QueryProvider>
+              <Routes>
+                {/* 公開ルート — PublicLayout（SettingsChecker なし） */}
+                <Route element={<PublicLayout />}>
+                  <Route path="/" element={<Landing />} />
+                  <Route path="/pricing" element={<Pricing />} />
+                  <Route path="/legal/terms" element={<Terms />} />
+                  <Route path="/legal/privacy" element={<Privacy />} />
+                  <Route path="/legal/kkkr" element={<KKKR />} />
+                  <Route path="/legal/disclaimer" element={<Disclaimer />} />
+                </Route>
+
+                {/* アプリルート — AppLayout（SettingsChecker + TabNavigation あり） */}
+                <Route element={<AppLayout />}>
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/ai-advisor" element={<AIAdvisor />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/simulation" element={<Simulation />} />
+                  <Route path="/investment-calculator" element={<Simulation />} />
+                  <Route path="/data" element={<DataIntegration />} />
+                  <Route path="/data-import" element={<DataImport />} />
+                  <Route path="/auth/google/callback" element={<Dashboard />} />
+                </Route>
+              </Routes>
+            </Router>
+
+            {/* 通知表示（uiStore経由で管理） */}
+            <NotificationDisplay />
+          </AppInitializer>
+        </QueryProvider>
+      </HelmetProvider>
     </ErrorBoundary>
   );
 }

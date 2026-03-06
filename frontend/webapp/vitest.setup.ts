@@ -31,6 +31,15 @@ try {
   // user-event not available
 }
 
+// react-helmet-async グローバルモック（SEOHead を使用するコンポーネント全般向け）
+vi.mock('react-helmet-async', () => {
+  const React = require('react');
+  return {
+    Helmet: () => null,
+    HelmetProvider: ({ children }: any) => React.createElement(React.Fragment, null, children),
+  };
+});
+
 // グローバルモックの設定
 (global as any).fetch = vi.fn(() =>
   Promise.resolve({

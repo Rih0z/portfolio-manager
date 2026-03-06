@@ -1,6 +1,7 @@
 import { vi } from "vitest";
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import Header from '../../../components/layout/Header';
 
 // i18n モック
@@ -96,14 +97,14 @@ describe('Header', () => {
   });
 
   it('renders header with logo and title', () => {
-    render(<Header />);
+    render(<MemoryRouter><Header /></MemoryRouter>);
 
     // アプリ名が表示されることを確認
     expect(screen.getByText('PortfolioWise')).toBeInTheDocument();
   });
 
   it('renders language switcher', () => {
-    render(<Header />);
+    render(<MemoryRouter><Header /></MemoryRouter>);
 
     // 複数のLanguageSwitcherが表示される（デスクトップ + モバイル）
     const switchers = screen.getAllByTestId('language-switcher');
@@ -111,7 +112,7 @@ describe('Header', () => {
   });
 
   it('renders login button when user is not authenticated', () => {
-    render(<Header />);
+    render(<MemoryRouter><Header /></MemoryRouter>);
 
     const loginButtons = screen.getAllByTestId('login-button');
     expect(loginButtons.length).toBeGreaterThanOrEqual(1);
@@ -121,7 +122,7 @@ describe('Header', () => {
   it('renders user profile when user is authenticated', () => {
     useAuth.mockReturnValue(authenticatedAuthContext);
 
-    render(<Header />);
+    render(<MemoryRouter><Header /></MemoryRouter>);
 
     const userProfiles = screen.getAllByTestId('user-profile');
     expect(userProfiles.length).toBeGreaterThanOrEqual(1);
@@ -134,7 +135,7 @@ describe('Header', () => {
       loading: true
     });
 
-    render(<Header />);
+    render(<MemoryRouter><Header /></MemoryRouter>);
 
     // ローディング中でもクラッシュしないことを確認
     const switchers = screen.getAllByTestId('language-switcher');
@@ -142,7 +143,7 @@ describe('Header', () => {
   });
 
   it('has proper navigation structure', () => {
-    render(<Header />);
+    render(<MemoryRouter><Header /></MemoryRouter>);
 
     // header要素があることを確認
     const header = document.querySelector('header');
@@ -150,7 +151,7 @@ describe('Header', () => {
   });
 
   it('renders responsive design elements', () => {
-    render(<Header />);
+    render(<MemoryRouter><Header /></MemoryRouter>);
 
     // レスポンシブクラスが存在することを確認
     const responsiveElements = document.querySelectorAll('.hidden.sm\\:flex, .flex.sm\\:hidden');
@@ -158,7 +159,7 @@ describe('Header', () => {
   });
 
   it('has accessibility features', () => {
-    render(<Header />);
+    render(<MemoryRouter><Header /></MemoryRouter>);
 
     // アクセシビリティ属性があることを確認
     const accessibleElements = document.querySelectorAll('[aria-label], [role], [tabindex], [title]');
@@ -166,7 +167,7 @@ describe('Header', () => {
   });
 
   it('renders proper header styling', () => {
-    render(<Header />);
+    render(<MemoryRouter><Header /></MemoryRouter>);
 
     // ヘッダーのスタイリングクラスが存在することを確認
     const header = document.querySelector('header');
@@ -174,14 +175,14 @@ describe('Header', () => {
   });
 
   it('handles auth state changes correctly', () => {
-    const { rerender } = render(<Header />);
+    const { rerender } = render(<MemoryRouter><Header /></MemoryRouter>);
 
     const loginButtons = screen.getAllByTestId('login-button');
     expect(loginButtons.length).toBeGreaterThanOrEqual(1);
 
     // 認証状態を変更
     useAuth.mockReturnValue(authenticatedAuthContext);
-    rerender(<Header />);
+    rerender(<MemoryRouter><Header /></MemoryRouter>);
 
     const userProfiles = screen.getAllByTestId('user-profile');
     expect(userProfiles.length).toBeGreaterThanOrEqual(1);
@@ -198,7 +199,7 @@ describe('Header', () => {
       loading: undefined
     });
 
-    render(<Header />);
+    render(<MemoryRouter><Header /></MemoryRouter>);
 
     // エッジケースでもクラッシュしないことを確認
     const switchers = screen.getAllByTestId('language-switcher');
@@ -215,7 +216,7 @@ describe('Header', () => {
     // initialSetupCompleted is not set
     Storage.prototype.getItem = vi.fn(() => null);
 
-    render(<Header />);
+    render(<MemoryRouter><Header /></MemoryRouter>);
 
     // シンプルなヘッダーが表示される（通貨切替ボタンなし）
     expect(screen.getByText('PortfolioWise')).toBeInTheDocument();

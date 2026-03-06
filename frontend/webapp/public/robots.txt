@@ -1,3 +1,15 @@
-# https://www.robotstxt.org/robotstxt.html
 User-agent: *
-Disallow:
+Disallow: /dashboard
+Disallow: /settings
+Disallow: /data
+Disallow: /data-import
+Disallow: /ai-advisor
+Disallow: /simulation
+Disallow: /investment-calculator
+Disallow: /auth/
+
+Allow: /
+Allow: /pricing
+Allow: /legal/
+
+Sitemap: https://portfolio-wise.com/sitemap.xml

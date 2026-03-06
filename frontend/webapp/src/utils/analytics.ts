@@ -10,6 +10,7 @@ let initialized = false;
 export const AnalyticsEvents = {
   LOGIN: 'login',
   CSV_IMPORT: 'csv_import',
+  LANDING_VIEW: 'landing_view',
   DASHBOARD_VIEW: 'dashboard_view',
   PRICING_VIEW: 'pricing_view',
   CHECKOUT_START: 'checkout_start',

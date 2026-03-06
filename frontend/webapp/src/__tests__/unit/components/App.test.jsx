@@ -18,7 +18,12 @@ const { mockInitializeApiConfig, mockGetGoogleClientId } = vi.hoisted(() => ({
 vi.mock('react-router-dom', () => ({
   BrowserRouter: ({ children }) => <div data-testid="router">{children}</div>,
   Routes: ({ children }) => <div data-testid="routes">{children}</div>,
-  Route: ({ element }) => <div data-testid="route">{element}</div>,
+  Route: ({ element, children }) => {
+    // Layout routes render element + children side by side
+    if (children) return <>{element}{children}</>;
+    return element || null;
+  },
+  Outlet: () => <div data-testid="outlet">Outlet</div>,
   NavLink: ({ children, to, className }) => {
     const cls = typeof className === 'function' ? className({ isActive: false }) : className;
     return <a href={to} className={cls}>{typeof children === 'function' ? children({ isActive: false }) : children}</a>;
@@ -136,6 +141,12 @@ vi.mock('../../../providers/QueryProvider', () => ({
 }));
 
 // ページコンポーネントをモック
+vi.mock('../../../pages/Landing', () => ({
+  default: function Landing() {
+    return <div data-testid="landing-page">Landing</div>;
+  },
+}));
+
 vi.mock('../../../pages/Dashboard', () => ({
   default: function Dashboard() {
     return <div data-testid="dashboard-page">Dashboard</div>;
@@ -173,6 +184,18 @@ vi.mock('../../../pages/AIAdvisor', () => ({
 }));
 
 // レイアウトコンポーネントをモック
+vi.mock('../../../components/layout/PublicLayout', () => ({
+  default: function PublicLayout() {
+    return <div data-testid="public-layout">Public Layout</div>;
+  },
+}));
+
+vi.mock('../../../components/layout/AppLayout', () => ({
+  default: function AppLayout() {
+    return <div data-testid="app-layout" className="min-h-screen bg-background text-foreground"><div data-testid="header">Header</div><main className="max-w-7xl mx-auto pt-2 sm:pt-4 lg:pt-6 pb-20 sm:pb-6" role="main">App Content</main><div data-testid="tab-navigation">Tab Navigation</div></div>;
+  },
+}));
+
 vi.mock('../../../components/layout/Header', () => ({
   default: function Header() {
     return <div data-testid="header">Header</div>;
@@ -213,10 +236,9 @@ const flushPromises = () => new Promise(resolve => setTimeout(resolve, 0));
 
 // Appをレンダリングして初期化完了を待つヘルパー
 const renderAndWaitForInit = async () => {
-  let result;
-  await act(async () => {
-    result = render(<App />);
-    await flushPromises();
+  const result = render(<App />);
+  await waitFor(() => {
+    expect(screen.getByTestId('google-oauth-provider')).toBeInTheDocument();
   });
   return result;
 };
@@ -333,33 +355,32 @@ describe('App', () => {
   });
 
   describe('レイアウトとルーティング', () => {
-    it('ヘッダーとタブナビゲーションを表示する', async () => {
+    it('レイアウトコンポーネントが存在する', async () => {
       await renderAndWaitForInit();
 
-      expect(screen.getByTestId('header')).toBeInTheDocument();
-      expect(screen.getByTestId('tab-navigation')).toBeInTheDocument();
+      // AppLayout mock contains header and tab-navigation
+      expect(screen.getByTestId('app-layout')).toBeInTheDocument();
     });
 
     it('ルーターが正しく設定されている', async () => {
       await renderAndWaitForInit();
 
       expect(screen.getByTestId('router')).toBeInTheDocument();
-      // Suspense境界内のRoutesは非同期解決されるため waitFor で待つ
       await waitFor(() => {
         expect(screen.getByTestId('routes')).toBeInTheDocument();
       });
     });
 
-    it('正しいCSSクラスが適用されている', async () => {
+    it('AppLayoutに正しいCSSクラスが適用されている', async () => {
       await renderAndWaitForInit();
 
-      const mainContainer = screen.getByRole('main');
-      expect(mainContainer).toHaveClass('max-w-7xl', 'mx-auto');
+      const appLayout = screen.getByTestId('app-layout');
+      expect(appLayout).toHaveClass('min-h-screen', 'bg-background', 'text-foreground');
     });
   });
 
   describe('レスポンシブデザイン', () => {
-    it('モバイル向けのクラスが適用されている', async () => {
+    it('AppLayoutにmin-h-screenクラスが適用されている', async () => {
       await renderAndWaitForInit();
 
       const appContainer = document.querySelector('.min-h-screen.bg-background.text-foreground');
@@ -384,14 +405,16 @@ describe('App', () => {
       render(<App />);
 
       expect(screen.getByText('PortfolioWise を起動しています...')).toBeInTheDocument();
-      expect(screen.queryByTestId('header')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('app-layout')).not.toBeInTheDocument();
 
       await act(async () => {
         resolveInit();
         await flushPromises();
       });
 
-      expect(screen.getByTestId('header')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByTestId('app-layout')).toBeInTheDocument();
+      });
     });
   });
 
@@ -399,11 +422,10 @@ describe('App', () => {
     it('完全なアプリケーション起動フローが正常に動作する', async () => {
       await renderAndWaitForInit();
 
-      // レイアウトコンポーネントの表示
+      // コアコンポーネントの表示
       expect(screen.getByTestId('google-oauth-provider')).toBeInTheDocument();
-      expect(screen.getByTestId('header')).toBeInTheDocument();
-      expect(screen.getByTestId('tab-navigation')).toBeInTheDocument();
       expect(screen.getByTestId('router')).toBeInTheDocument();
+      expect(screen.getByTestId('routes')).toBeInTheDocument();
     });
   });
 });

@@ -10,6 +10,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { trackEvent, AnalyticsEvents } from '../utils/analytics';
 import { useSubscriptionStore } from '../stores/subscriptionStore';
+import SEOHead from '../components/seo/SEOHead';
 
 const CheckIcon = () => (
   <svg className="w-5 h-5 text-success-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -57,13 +58,15 @@ const Pricing: React.FC = () => {
 
   const handleUpgrade = () => {
     if (!isAuthenticated) {
-      window.location.href = '/';
+      window.location.href = '/dashboard';
       return;
     }
     startCheckout(billingPeriod);
   };
 
   return (
+    <>
+    <SEOHead />
     <div data-testid="pricing-page" className="px-4 sm:px-6 lg:px-8 py-6 max-w-5xl mx-auto">
       <div className="text-center mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">料金プラン</h1>
@@ -189,6 +192,7 @@ const Pricing: React.FC = () => {
         <p>いつでもキャンセル可能です。解約後も請求期間終了まで Standard 機能をご利用いただけます。</p>
       </div>
     </div>
+    </>
   );
 };
 
