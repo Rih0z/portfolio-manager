@@ -6,7 +6,6 @@
   "main": "src/index.tsx",
   "homepage": "/",
   "sideEffects": [
-    "src/components/atlassian/**/*.tsx",
     "src/tokens/**/*.ts",
     "src/i18n/**/*.ts",
     "src/i18n/**/*.json"

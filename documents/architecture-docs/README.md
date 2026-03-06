@@ -57,14 +57,14 @@ architecture-docs/
 
 **記録されている決定**:
 - ADR-001: React採用
-- ADR-002: Atlassian Design System導入
+- ADR-002: ~~Atlassian Design System導入~~ → shadcn/ui に置換済み
 - ADR-003: AWS Lambdaサーバーレス
 - ADR-004: DynamoDB NoSQL
 - ADR-005: マルチソース市場データ戦略
 - ADR-006: Google OAuth認証
 - ADR-007: i18n国際化
 - ADR-008: Cloudflare Pagesホスティング
-- ADR-009: Context API状態管理
+- ADR-009: ~~Context API状態管理~~ → Zustand に移行済み
 - ADR-010: TypeScript段階的導入
 - ADR-011: YAMLデータ形式
 - ADR-012: AWSコスト最適化
@@ -111,7 +111,7 @@ git push
 ## 📈 プロジェクト統計
 
 - **開始日**: 2025年3月
-- **主要言語**: JavaScript (React, Node.js)
+- **主要言語**: TypeScript / React, Node.js
 - **インフラ**: AWS Lambda + Cloudflare Pages
 - **月間コスト**: < $25 USD
 - **可用性**: 99.9% SLA
@@ -133,5 +133,5 @@ git push
 `#architecture` `#documentation` `#react` `#aws` `#serverless` `#portfolio-management`
 
 ---
-*最終更新: 2025-09-04*  
+*最終更新: 2026-03-06*  
 *自動生成ドキュメント*

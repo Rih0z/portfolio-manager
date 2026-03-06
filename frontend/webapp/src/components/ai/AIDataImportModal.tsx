@@ -160,7 +160,7 @@ const AIDataImportModal = ({ isOpen, onClose, onImportSuccess }: any) => {
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" data-testid="ai-data-import-modal">
       <div className="bg-muted rounded-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto border border-border">
         <div className="p-6 border-b border-border flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-white">YAML データ取り込み</h2>
+          <h2 className="text-xl font-semibold text-foreground">YAML データ取り込み</h2>
           <button 
             onClick={handleClose}
             className="p-2 hover:bg-accent rounded-lg text-muted-foreground hover:text-white transition-colors"
@@ -178,7 +178,7 @@ const AIDataImportModal = ({ isOpen, onClose, onImportSuccess }: any) => {
               value={yamlInput}
               onChange={(e) => setYamlInput(e.target.value)}
               placeholder="assets:&#10;  - VTI: 40%&#10;  - VXUS: 30%&#10;  - BND: 20%&#10;  - VNQ: 10%"
-              className="w-full h-64 p-4 bg-card border border-border rounded-lg text-white placeholder-secondary-500 font-mono text-sm focus:outline-none focus:border-primary-500"
+              className="w-full h-64 p-4 bg-card border border-border rounded-lg text-foreground placeholder:text-muted-foreground font-mono text-sm focus:outline-none focus:border-primary-500"
             />
           </div>
 

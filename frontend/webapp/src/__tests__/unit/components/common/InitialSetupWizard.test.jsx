@@ -348,7 +348,7 @@ describe('InitialSetupWizard', () => {
       );
 
       const overlay = screen.getByText('Portfolio Wiseへようこそ！').closest('.fixed');
-      expect(overlay).toHaveClass('fixed', 'inset-0', 'bg-black', 'bg-opacity-50', 'flex', 'items-center', 'justify-center', 'z-50');
+      expect(overlay).toHaveClass('fixed', 'inset-0', 'bg-black/50', 'backdrop-blur-sm', 'flex', 'items-center', 'justify-center', 'z-50');
     });
 
     it('Cardコンポーネントが正しく使用される', () => {

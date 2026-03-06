@@ -20,12 +20,12 @@
   <h1>AWS Integration Test Report</h1>
   <div class="summary">
     <h2>Summary</h2>
-    <p>Generated: 2025-05-29T06:19:48.613Z</p>
-    <p>Duration: 5041ms</p>
+    <p>Generated: 2026-03-05T12:06:56.570Z</p>
+    <p>Duration: 13991ms</p>
     <p>
-      Total: 39 | 
-      <span class="passed">Passed: 12</span> | 
-      <span class="failed">Failed: 27</span> | 
+      Total: 6 | 
+      <span class="passed">Passed: 6</span> | 
+      <span class="failed">Failed: 0</span> | 
       <span class="skipped">Skipped: 0</span>
     </p>
   </div>
@@ -43,329 +43,45 @@
     <tbody>
       
         <tr>
-          <td> > chromium > aws-integration.spec.js > AWS Integration Tests > Market data API - US stock</td>
+          <td> > chromium > auth-e2e.spec.mjs > 認証E2Eテスト > 2. ログインボタンが表示される</td>
           <td class="passed">passed</td>
-          <td>331ms</td>
+          <td>10169ms</td>
           <td></td>
         </tr>
       
         <tr>
-          <td> > chromium > aws-integration.spec.js > AWS Integration Tests > Exchange rate API</td>
+          <td> > chromium > auth-e2e.spec.mjs > 認証E2Eテスト > 1. アプリが正常にロードされる（エラーなし）</td>
           <td class="passed">passed</td>
-          <td>330ms</td>
+          <td>10299ms</td>
           <td></td>
         </tr>
       
         <tr>
-          <td> > chromium > aws-integration.spec.js > AWS Integration Tests > API health check</td>
+          <td> > chromium > auth-e2e.spec.mjs > 認証E2Eテスト > 4. タブナビゲーションが表示される</td>
           <td class="passed">passed</td>
-          <td>330ms</td>
+          <td>10366ms</td>
           <td></td>
         </tr>
       
         <tr>
-          <td> > chromium > aws-integration.spec.js > AWS Integration Tests > Market data API - Multiple symbols</td>
+          <td> > chromium > auth-e2e.spec.mjs > 認証E2Eテスト > 6. API設定が正常に取得される</td>
           <td class="passed">passed</td>
-          <td>335ms</td>
+          <td>915ms</td>
           <td></td>
         </tr>
       
         <tr>
-          <td> > chromium > aws-integration.spec.js > AWS Integration Tests > Error handling - Invalid symbol</td>
-          <td class="failed">failed</td>
-          <td>357ms</td>
-          <td><div class="error">Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoHaveProperty[2m([22m[32mpath[39m[2m)[22m
-
-Expected path: [32m"error"[39m
-Received path: [31m[][39m
-
-Received value: [31m{"currency": "USD", "price": 211.241981760962, "source": "mock", "symbol": "INVALID_SYMBOL_12345", "timestamp": "2025-05-29T06:19:49.424Z"}[39m</div></td>
-        </tr>
-      
-        <tr>
-          <td> > chromium > aws-integration.spec.js > AWS Integration Tests > CORS configuration</td>
+          <td> > chromium > auth-e2e.spec.mjs > 認証E2Eテスト > 3. ヘッダーが表示される</td>
           <td class="passed">passed</td>
-          <td>104ms</td>
+          <td>11182ms</td>
           <td></td>
         </tr>
       
         <tr>
-          <td> > chromium > aws-integration.spec.js > AWS Integration Tests > Rate limiting</td>
+          <td> > chromium > auth-e2e.spec.mjs > 認証E2Eテスト > 5. コンソールにcriticalエラーがない</td>
           <td class="passed">passed</td>
-          <td>119ms</td>
+          <td>12249ms</td>
           <td></td>
-        </tr>
-      
-        <tr>
-          <td> > chromium > aws-integration.spec.js > Authentication Flow > Session persistence</td>
-          <td class="failed">failed</td>
-          <td>130ms</td>
-          <td><div class="error">Error: browserContext.addCookies: Cookie should have a url or a domain/path pair</div></td>
-        </tr>
-      
-        <tr>
-          <td> > chromium > aws-integration.spec.js > Authentication Flow > Login flow with mock Google auth</td>
-          <td class="failed">failed</td>
-          <td>176ms</td>
-          <td><div class="error">Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3000/
-Call log:
-[2m  - navigating to "http://localhost:3000/", waiting until "load"[22m
-</div></td>
-        </tr>
-      
-        <tr>
-          <td> > chromium > aws-integration.spec.js > Frontend-Backend Integration > Real-time data update</td>
-          <td class="failed">failed</td>
-          <td>154ms</td>
-          <td><div class="error">Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3000/
-Call log:
-[2m  - navigating to "http://localhost:3000/", waiting until "load"[22m
-</div></td>
-        </tr>
-      
-        <tr>
-          <td> > chromium > aws-integration.spec.js > Error Scenarios > Network error handling</td>
-          <td class="failed">failed</td>
-          <td>150ms</td>
-          <td><div class="error">Error: page.goto: net::ERR_INTERNET_DISCONNECTED at http://localhost:3000/
-Call log:
-[2m  - navigating to "http://localhost:3000/", waiting until "domcontentloaded"[22m
-</div></td>
-        </tr>
-      
-        <tr>
-          <td> > chromium > aws-integration.spec.js > Frontend-Backend Integration > Portfolio data flow</td>
-          <td class="failed">failed</td>
-          <td>176ms</td>
-          <td><div class="error">Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3000/
-Call log:
-[2m  - navigating to "http://localhost:3000/", waiting until "load"[22m
-</div></td>
-        </tr>
-      
-        <tr>
-          <td> > chromium > aws-integration.spec.js > Error Scenarios > API error handling</td>
-          <td class="failed">failed</td>
-          <td>184ms</td>
-          <td><div class="error">Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3000/
-Call log:
-[2m  - navigating to "http://localhost:3000/", waiting until "load"[22m
-</div></td>
-        </tr>
-      
-        <tr>
-          <td> > mobile > aws-integration.spec.js > AWS Integration Tests > Market data API - US stock</td>
-          <td class="passed">passed</td>
-          <td>384ms</td>
-          <td></td>
-        </tr>
-      
-        <tr>
-          <td> > mobile > aws-integration.spec.js > AWS Integration Tests > API health check</td>
-          <td class="passed">passed</td>
-          <td>408ms</td>
-          <td></td>
-        </tr>
-      
-        <tr>
-          <td> > mobile > aws-integration.spec.js > AWS Integration Tests > Market data API - Multiple symbols</td>
-          <td class="passed">passed</td>
-          <td>336ms</td>
-          <td></td>
-        </tr>
-      
-        <tr>
-          <td> > mobile > aws-integration.spec.js > AWS Integration Tests > CORS configuration</td>
-          <td class="passed">passed</td>
-          <td>157ms</td>
-          <td></td>
-        </tr>
-      
-        <tr>
-          <td> > mobile > aws-integration.spec.js > AWS Integration Tests > Rate limiting</td>
-          <td class="passed">passed</td>
-          <td>179ms</td>
-          <td></td>
-        </tr>
-      
-        <tr>
-          <td> > mobile > aws-integration.spec.js > Authentication Flow > Login flow with mock Google auth</td>
-          <td class="failed">failed</td>
-          <td>200ms</td>
-          <td><div class="error">Error: page.goto: Could not connect to the server.
-Call log:
-[2m  - navigating to "http://localhost:3000/", waiting until "load"[22m
-</div></td>
-        </tr>
-      
-        <tr>
-          <td> > mobile > aws-integration.spec.js > Authentication Flow > Session persistence</td>
-          <td class="failed">failed</td>
-          <td>156ms</td>
-          <td><div class="error">Error: browserContext.addCookies: Cookie should have a url or a domain/path pair</div></td>
-        </tr>
-      
-        <tr>
-          <td> > mobile > aws-integration.spec.js > Frontend-Backend Integration > Portfolio data flow</td>
-          <td class="failed">failed</td>
-          <td>157ms</td>
-          <td><div class="error">Error: page.goto: Could not connect to the server.
-Call log:
-[2m  - navigating to "http://localhost:3000/", waiting until "load"[22m
-</div></td>
-        </tr>
-      
-        <tr>
-          <td> > mobile > aws-integration.spec.js > AWS Integration Tests > Exchange rate API</td>
-          <td class="passed">passed</td>
-          <td>272ms</td>
-          <td></td>
-        </tr>
-      
-        <tr>
-          <td> > mobile > aws-integration.spec.js > AWS Integration Tests > Error handling - Invalid symbol</td>
-          <td class="failed">failed</td>
-          <td>253ms</td>
-          <td><div class="error">Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoHaveProperty[2m([22m[32mpath[39m[2m)[22m
-
-Expected path: [32m"error"[39m
-Received path: [31m[][39m
-
-Received value: [31m{"currency": "USD", "price": 103.21267932433233, "source": "mock", "symbol": "INVALID_SYMBOL_12345", "timestamp": "2025-05-29T06:19:51.452Z"}[39m</div></td>
-        </tr>
-      
-        <tr>
-          <td> > mobile > aws-integration.spec.js > Frontend-Backend Integration > Real-time data update</td>
-          <td class="failed">failed</td>
-          <td>331ms</td>
-          <td><div class="error">Error: page.goto: Could not connect to the server.
-Call log:
-[2m  - navigating to "http://localhost:3000/", waiting until "load"[22m
-</div></td>
-        </tr>
-      
-        <tr>
-          <td> > mobile > aws-integration.spec.js > Error Scenarios > Network error handling</td>
-          <td class="failed">failed</td>
-          <td>300ms</td>
-          <td><div class="error">Error: page.goto: WebKit encountered an internal error
-Call log:
-[2m  - navigating to "http://localhost:3000/", waiting until "domcontentloaded"[22m
-</div></td>
-        </tr>
-      
-        <tr>
-          <td> > mobile > aws-integration.spec.js > Error Scenarios > API error handling</td>
-          <td class="failed">failed</td>
-          <td>322ms</td>
-          <td><div class="error">Error: page.goto: Could not connect to the server.
-Call log:
-[2m  - navigating to "http://localhost:3000/", waiting until "load"[22m
-</div></td>
-        </tr>
-      
-        <tr>
-          <td> > authenticated > aws-integration.spec.js > AWS Integration Tests > API health check</td>
-          <td class="failed">failed</td>
-          <td>9ms</td>
-          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
-ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
-        </tr>
-      
-        <tr>
-          <td> > authenticated > aws-integration.spec.js > AWS Integration Tests > Market data API - US stock</td>
-          <td class="failed">failed</td>
-          <td>10ms</td>
-          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
-ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
-        </tr>
-      
-        <tr>
-          <td> > authenticated > aws-integration.spec.js > AWS Integration Tests > Market data API - Multiple symbols</td>
-          <td class="failed">failed</td>
-          <td>5ms</td>
-          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
-ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
-        </tr>
-      
-        <tr>
-          <td> > authenticated > aws-integration.spec.js > AWS Integration Tests > Exchange rate API</td>
-          <td class="failed">failed</td>
-          <td>5ms</td>
-          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
-ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
-        </tr>
-      
-        <tr>
-          <td> > authenticated > aws-integration.spec.js > AWS Integration Tests > CORS configuration</td>
-          <td class="failed">failed</td>
-          <td>4ms</td>
-          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
-ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
-        </tr>
-      
-        <tr>
-          <td> > authenticated > aws-integration.spec.js > AWS Integration Tests > Error handling - Invalid symbol</td>
-          <td class="failed">failed</td>
-          <td>5ms</td>
-          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
-ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
-        </tr>
-      
-        <tr>
-          <td> > authenticated > aws-integration.spec.js > AWS Integration Tests > Rate limiting</td>
-          <td class="failed">failed</td>
-          <td>4ms</td>
-          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
-ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
-        </tr>
-      
-        <tr>
-          <td> > authenticated > aws-integration.spec.js > Frontend-Backend Integration > Real-time data update</td>
-          <td class="failed">failed</td>
-          <td>5ms</td>
-          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
-ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
-        </tr>
-      
-        <tr>
-          <td> > authenticated > aws-integration.spec.js > Frontend-Backend Integration > Portfolio data flow</td>
-          <td class="failed">failed</td>
-          <td>4ms</td>
-          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
-ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
-        </tr>
-      
-        <tr>
-          <td> > authenticated > aws-integration.spec.js > Authentication Flow > Login flow with mock Google auth</td>
-          <td class="failed">failed</td>
-          <td>7ms</td>
-          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
-ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
-        </tr>
-      
-        <tr>
-          <td> > authenticated > aws-integration.spec.js > Authentication Flow > Session persistence</td>
-          <td class="failed">failed</td>
-          <td>6ms</td>
-          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
-ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
-        </tr>
-      
-        <tr>
-          <td> > authenticated > aws-integration.spec.js > Error Scenarios > Network error handling</td>
-          <td class="failed">failed</td>
-          <td>3ms</td>
-          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
-ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
-        </tr>
-      
-        <tr>
-          <td> > authenticated > aws-integration.spec.js > Error Scenarios > API error handling</td>
-          <td class="failed">failed</td>
-          <td>2ms</td>
-          <td><div class="error">Error: Error reading storage state from e2e/.auth/user.json:
-ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
         </tr>
       
     </tbody>
@@ -385,75 +101,6 @@ ENOENT: no such file or directory, open 'e2e/.auth/user.json'</div></td>
     </tbody>
   </table>
 
-  
-    <h2>Errors</h2>
-    
-      <div class="error">
-        <h3>API error handling</h3>
-        <p>Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3000/
-Call log:
-[2m  - navigating to "http://localhost:3000/", waiting until "load"[22m
-</p>
-        <pre>Error: page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:3000/
-Call log:
-[2m  - navigating to "http://localhost:3000/", waiting until "load"[22m
-
-    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/aws-integration.spec.js:226:16</pre>
-      </div>
-    
-      <div class="error">
-        <h3>API error handling</h3>
-        <p>Error: page.goto: Could not connect to the server.
-Call log:
-[2m  - navigating to "http://localhost:3000/", waiting until "load"[22m
-</p>
-        <pre>Error: page.goto: Could not connect to the server.
-Call log:
-[2m  - navigating to "http://localhost:3000/", waiting until "load"[22m
-
-    at /Users/kokiriho/Documents/Projects/pfwise/portfolio-manager/e2e/aws-integration.spec.js:226:16</pre>
-      </div>
-    
-      <div class="error">
-        <h3>API health check</h3>
-        <p>Error: Error reading storage state from e2e/.auth/user.json:
-ENOENT: no such file or directory, open 'e2e/.auth/user.json'</p>
-        <pre>Error: Error reading storage state from e2e/.auth/user.json:
-ENOENT: no such file or directory, open 'e2e/.auth/user.json'</pre>
-      </div>
-    
-      <div class="error">
-        <h3>Market data API - US stock</h3>
-        <p>Error: Error reading storage state from e2e/.auth/user.json:
-ENOENT: no such file or directory, open 'e2e/.auth/user.json'</p>
-        <pre>Error: Error reading storage state from e2e/.auth/user.json:
-ENOENT: no such file or directory, open 'e2e/.auth/user.json'</pre>
-      </div>
-    
-      <div class="error">
-        <h3>Market data API - Multiple symbols</h3>
-        <p>Error: Error reading storage state from e2e/.auth/user.json:
-ENOENT: no such file or directory, open 'e2e/.auth/user.json'</p>
-        <pre>Error: Error reading storage state from e2e/.auth/user.json:
-ENOENT: no such file or directory, open 'e2e/.auth/user.json'</pre>
-      </div>
-    
-      <div class="error">
-        <h3>Exchange rate API</h3>
-        <p>Error: Error reading storage state from e2e/.auth/user.json:
-ENOENT: no such file or directory, open 'e2e/.auth/user.json'</p>
-        <pre>Error: Error reading storage state from e2e/.auth/user.json:
-ENOENT: no such file or directory, open 'e2e/.auth/user.json'</pre>
-      </div>
-    
-      <div class="error">
-        <h3>API error handling</h3>
-        <p>Error: Error reading storage state from e2e/.auth/user.json:
-ENOENT: no such file or directory, open 'e2e/.auth/user.json'</p>
-        <pre>Error: Error reading storage state from e2e/.auth/user.json:
-ENOENT: no such file or directory, open 'e2e/.auth/user.json'</pre>
-      </div>
-    
   
 </body>
 </html>

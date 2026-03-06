@@ -44,10 +44,11 @@ npm run dev
 
 ## 🛠️ 技術スタック
 
-**Frontend**: React 18 • Atlassian Design System • TailwindCSS • Recharts  
-**Backend**: AWS Lambda • DynamoDB • Serverless Framework  
-**Auth**: Google OAuth 2.0  
-**Hosting**: Cloudflare Pages (Frontend) • AWS (Backend)  
+**Frontend**: React 18 • TypeScript 5.x • Vite 7.x • Zustand • TanStack Query • shadcn/ui + Radix UI • TailwindCSS • Recharts
+**Backend**: AWS Lambda • DynamoDB • Serverless Framework
+**Auth**: Google OAuth 2.0 + JWT Dual-Mode
+**Testing**: Vitest + React Testing Library + Playwright E2E
+**Hosting**: Cloudflare Pages (Frontend) • AWS (Backend)
 
 ## 📦 環境設定
 
@@ -94,4 +95,4 @@ MIT © 2025 PortfolioWise - [LICENSE](./LICENSE)
 
 ---
 
-**開発中の機能**: TypeScript移行、WebSocket対応、モバイルアプリ - [ロードマップ](./documents/TECHNICAL.md#future-enhancements)参照
+**開発中の機能**: ソーシャル・ポートフォリオ（匿名共有）、PWA対応 - [ロードマップ](./documents/TECHNICAL.md#future-enhancements)参照

@@ -29,7 +29,6 @@ const loadDevelopmentFeatures = async () => {
       // 遅延読み込みで循環依存を回避
       setTimeout(async () => {
         try {
-          await import('./services/testJapaneseTickers');
           await import('./utils/resetCircuitBreaker');
           await import('./utils/fixExchangeRate');
         } catch (error) {

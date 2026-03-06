@@ -203,7 +203,7 @@ describe('ResetSettings', () => {
 
     // オーバーレイのスタイル確認
     const overlay = screen.getByText('本当にリセットしますか？').closest('.fixed');
-    expect(overlay).toHaveClass('fixed', 'inset-0', 'bg-black', 'bg-opacity-50', 'flex', 'items-center', 'justify-center', 'z-50');
+    expect(overlay).toHaveClass('fixed', 'inset-0', 'bg-black/50', 'backdrop-blur-sm', 'flex', 'items-center', 'justify-center', 'z-50');
 
     // ダイアログボックスのスタイル確認
     const dialogBox = screen.getByText('本当にリセットしますか？').closest('.bg-card');

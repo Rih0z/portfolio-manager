@@ -378,7 +378,7 @@ Based on the above information, please advise me on:
           )}
         </div>
 
-        {/* Progress Indicator - Atlassian Design System準拠 */}
+        {/* Progress Indicator */}
         <Card elevation="low" padding="medium" className="mb-8">
           <div className="flex justify-between items-center mb-4">
             {steps.map((step, index) => (
@@ -429,7 +429,7 @@ Based on the above information, please advise me on:
 
         {/* Step Content */}
         <div className="max-w-4xl mx-auto">
-          {/* Step 0: Basic Information - Atlassian Design System準拠 */}
+          {/* Step 0: Basic Information */}
           {currentStep === 0 && (
             <Card elevation="medium" padding="large">
               <div className="space-y-6">
@@ -885,7 +885,7 @@ Based on the above information, please advise me on:
           )}
         </div>
 
-        {/* Navigation Buttons - Atlassian Design System準拠 */}
+        {/* Navigation Buttons */}
         <Card elevation="low" padding="medium" className="mt-8 max-w-4xl mx-auto">
           <div className="flex justify-between items-center">
             <Button

@@ -32,15 +32,16 @@ npx vitest run path/to/test.ts
 This is a React-based portfolio management application with AI-powered investment analysis capabilities. Key architectural decisions:
 
 ### Frontend Architecture
-- **TypeScript** (strict: false, allowJs: true — インクリメンタル移行中)
 - **React 18** with functional components and hooks
-- **Vite** for build and dev server
-- **Zustand** for client state management (authStore, portfolioStore, uiStore)
-- **TanStack Query** for server state caching
-- **TailwindCSS** for styling with custom theme colors
+- **TypeScript 5.x** (strict: false, allowJs: true — インクリメンタル移行中)
+- **Vite 7.x** for build and dev server
+- **Zustand 5.x** for client state management (authStore, portfolioStore, uiStore, subscriptionStore)
+- **TanStack Query 5.x** for server state caching
+- **TailwindCSS** + **shadcn/ui** for styling (CSS変数ベース、ライト/ダーク切替)
 - **Recharts** for data visualization
 - **Google OAuth** for authentication
 - **Axios** for API calls with retry logic
+- **JetBrains Mono** for numeric display (tabular-nums)
 
 ### Testing Architecture
 - **Vitest + React Testing Library** for unit/integration tests
@@ -51,11 +52,15 @@ This is a React-based portfolio management application with AI-powered investmen
 ### Key Patterns
 
 1. **Service Layer Pattern**: All API calls go through `/src/services/` modules
-   - `api.js`: Core API client with auth handling
-   - `marketDataService.js`: Market data fetching with fallbacks
-   - `adminService.js`: Admin functionality
+   - `api.ts`: Core API client with auth handling
+   - `marketDataService.ts`: Market data fetching with fallbacks
+   - `subscriptionService.ts`: Stripe subscription management
 
-2. **Zustand Store Pattern**: Three stores (authStore, portfolioStore, uiStore) with cross-store communication via `getState()`
+2. **Zustand Store Pattern**: 4 stores with cross-store communication via `getState()`
+   - `authStore.ts`: 認証・JWT管理
+   - `portfolioStore.ts`: ポートフォリオデータ・Google Drive連携
+   - `uiStore.ts`: 通知・テーマ管理
+   - `subscriptionStore.ts`: サブスクリプション・プラン制限
 
 3. **Environment Configuration**: All API settings are dynamically fetched from AWS
    - No API URLs or keys stored in client
@@ -65,13 +70,14 @@ This is a React-based portfolio management application with AI-powered investmen
 4. **Component Organization**:
    ```
    components/
-   ├── auth/       # LoginButton, UserProfile
-   ├── common/     # ErrorBoundary, ToastNotification, etc.
-   ├── dashboard/  # Portfolio visualization components
+   ├── auth/       # LoginButton, OAuthLoginButton
+   ├── common/     # ErrorBoundary, InitialSetupWizard, UpgradePrompt
+   ├── dashboard/  # Portfolio visualization, PortfolioScoreCard
    ├── data/       # Import/Export, Google Drive integration
-   ├── layout/     # Header, TabNavigation, DataStatusBar
+   ├── layout/     # Header, TabNavigation, DataStatusBar, Footer
    ├── settings/   # Holdings/Allocation editors, AI prompt settings
-   └── simulation/ # Investment simulation components
+   ├── simulation/ # Investment simulation components
+   └── ui/         # shadcn/ui (Button, Card, Input, Badge, Dialog, Progress, Switch, Tabs)
    ```
 
 ## Important Implementation Details
@@ -83,7 +89,7 @@ This is a React-based portfolio management application with AI-powered investmen
 - Supports multiple market data sources with automatic fallback
 - API keys and authentication handled server-side
 - **Rate Limiting**: Circuit breakers, exponential backoff, request deduplication
-- **Session-based auth**: Uses cookies with `withCredentials: true`
+- **Dual-mode auth**: JWT Bearer Token (in-memory) + Session Cookie fallback with `withCredentials: true`
 
 ### Multi-Currency Support
 - Handles JPY and USD
@@ -102,7 +108,9 @@ This is a React-based portfolio management application with AI-powered investmen
 
 ### Testing Requirements
 - All new components need corresponding tests in `__tests__/unit/components/`
-- Integration tests for API interactions in `__tests__/integration/`
+- Store tests in `__tests__/unit/stores/`
+- Service tests in `__tests__/unit/services/`
+- Use `vi.mock()` for Zustand store mocking (not Context Provider wrapping)
 - Mock handlers in `__tests__/mocks/handlers.js`
 - Use existing test patterns and utilities
 
@@ -115,70 +123,25 @@ This is a React-based portfolio management application with AI-powered investmen
 5. Ensure mobile responsiveness - the app is optimized for iOS devices
 6. Consider Japanese users (primary target audience) in UI/UX decisions
 
-## Build Issues and Notes
-
-### React DOM Compatibility
-- This project uses `react-dom` instead of `react-dom/client` for compatibility with react-scripts@3.4.4
-- Use `ReactDOM.render()` instead of `ReactDOM.createRoot().render()`
-- Node.js v22 requires `NODE_OPTIONS='--openssl-legacy-provider'` for building
+## Build and Deployment
 
 ### Dependency Management
 - Use `npm install --legacy-peer-deps` to handle peer dependency conflicts
-- MSW requires TypeScript 4.8+ but the project uses TypeScript 3.9.10
-- Build process is handled by GitHub Actions with proper environment setup
 
 ### Deployment
+```bash
+# ビルド
+REACT_APP_API_BASE_URL='https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod' \
+REACT_APP_DEFAULT_EXCHANGE_RATE='150.0' \
+npm run build
 
-#### Manual Deployment with Claude Code
-For immediate deployment using Claude Code environment:
+# デプロイ
+wrangler pages deploy build --project-name=pfwise-portfolio-manager
+```
 
-**Note**: Due to npm workspace conflicts in the monorepo structure, use the following method:
-
-1. **Create an isolated copy for building**:
-   ```bash
-   cd frontend
-   cp -r webapp webapp-build
-   ```
-
-2. **Install dependencies in the isolated copy**:
-   ```bash
-   cd webapp-build
-   npm install --legacy-peer-deps --no-audit --no-fund
-   ```
-
-3. **Build with environment variables**:
-   ```bash
-   REACT_APP_API_BASE_URL='https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod' \
-   REACT_APP_DEFAULT_EXCHANGE_RATE='150.0' \
-   NODE_OPTIONS='--openssl-legacy-provider' \
-   npm run build
-   ```
-
-4. **Deploy to Cloudflare Pages**:
-   ```bash
-   wrangler pages deploy build --project-name=portfolio-manager
-   ```
-
-5. **Clean up**:
-   ```bash
-   cd ../..
-   rm -rf frontend/webapp-build
-   ```
-
-**Important Notes**:
-- This method avoids npm workspace conflicts by creating an isolated build directory
-- Environment variables must be set at build time for React apps
-- The deployment creates a preview URL first, then updates the main site
-
-#### Automated Deployment
-- Cloudflare Pages deployment is also automated via GitHub Actions
-- Build artifacts are generated in `frontend/webapp/build/` directory
-- Environment variables are configured in Cloudflare Pages dashboard
-
-#### Deployment Notes
+- **本番URL**: https://portfolio-wise.com/
 - Wrangler CLI must be installed and authenticated with Cloudflare
-- The project name `portfolio-manager` corresponds to the Cloudflare Pages project
-- Deployment URL: https://portfolio-manager-7bx.pages.dev
+- Environment variables are set at build time for React apps
 
 ## Security Configuration
 
@@ -209,8 +172,7 @@ API configurations are fetched dynamically from AWS. The following environment v
 - API keys and sensitive data never exposed to client
 - CORS restrictions enforced on the backend
 - Rate limiting based on authentication status
-- **Authentication**: Session-based using cookies (no JWT tokens currently)
-- **Important**: Backend needs to implement JWT token response for full functionality
+- **Authentication**: JWT + Session デュアルモード認証（JWT Bearer in-memory + httpOnly Cookie fallback）
 
 ### Test Environment Setup
 
@@ -280,39 +242,3 @@ API configurations are fetched dynamically from AWS. The following environment v
     npm run build
     ```
 
-## Project History & Development Reports
-
-### Atlassian Design System Implementation (2025-08-22)
-A comprehensive UI quality improvement project implementing enterprise-level design standards:
-
-- **Complete Report**: [Atlassian Design System Implementation Report](../../documents/atlassian-design-system-implementation-report-20250822.md)
-- **Implementation**: Design Tokens + 5 foundation components (Button, Card, Input, Modal)
-- **Quality Standards**: WCAG 2.1 AA 100% compliance, enterprise-level implementation
-- **Strategic Evaluation**: 125/125 perfect score (recommended approval)
-
-**Key Achievements**:
-- ✅ Design Tokens: Complete Atlassian-compliant color, typography, spacing systems
-- ✅ Button Component: 4 variants × 3 sizes, full accessibility
-- ✅ Card Component: Elevation system, dark theme support
-- ✅ Input/Form Components: Validation states, accessibility compliance
-- ✅ Modal Component: Focus management, keyboard navigation
-
-**Technical Impact**:
-- Bundle size: ~8-12% increase (within 20% target)
-- Performance: Design Tokens optimized
-- Architecture: Existing excellent functionality (AIAdvisor.jsx 40+ functions) fully preserved
-
-This project established PortfolioWise as an enterprise-grade application with competitive advantages in the B2B market.
-
-### Implementation Files
-```
-src/
-├── tokens/
-│   └── atlassian-tokens.js        # Design Tokens
-└── components/
-    └── atlassian/
-        ├── Button.jsx              # Button component
-        ├── Card.jsx                # Card component  
-        ├── Input.jsx               # Form components
-        └── Modal.jsx               # Modal component
-```
