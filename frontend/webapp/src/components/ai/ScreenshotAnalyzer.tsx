@@ -96,7 +96,7 @@ const ScreenshotAnalyzer = ({
         </h3>
         <button
           onClick={clearAll}
-          className="px-3 py-1 text-sm text-muted-foreground hover:text-white border border-gray-600 hover:border-gray-400 rounded transition-colors duration-200"
+          className="px-3 py-1 text-sm text-muted-foreground hover:text-foreground border border-border hover:border-muted-foreground rounded transition-colors duration-200"
         >
           {isJapanese ? 'クリア' : 'Clear'}
         </button>
@@ -159,8 +159,8 @@ const ScreenshotAnalyzer = ({
               disabled={isProcessing}
               className={`w-full py-2 px-4 rounded-lg font-medium transition-colors duration-200 ${
                 isProcessing
-                  ? 'bg-gray-600 text-muted-foreground cursor-not-allowed'
-                  : 'bg-green-500 hover:bg-green-600 text-white'
+                  ? 'bg-muted text-muted-foreground cursor-not-allowed'
+                  : 'bg-green-600 hover:bg-green-700 text-white dark:bg-green-600 dark:hover:bg-green-500'
               }`}
             >
               {isProcessing 

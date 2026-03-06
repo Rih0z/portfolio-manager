@@ -47,7 +47,7 @@ const UserProfile = () => {
         <p className="font-medium">{user.name}</p>
         <button 
           onClick={onLogout}
-          className="text-xs text-blue-200 hover:text-white"
+          className="text-xs text-muted-foreground hover:text-foreground"
           disabled={isLoggingOut}
         >
           {isLoggingOut ? 'ログアウト中...' : 'ログアウト'}

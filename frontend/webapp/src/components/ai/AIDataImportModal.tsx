@@ -163,7 +163,7 @@ const AIDataImportModal = ({ isOpen, onClose, onImportSuccess }: any) => {
           <h2 className="text-xl font-semibold text-foreground">YAML データ取り込み</h2>
           <button 
             onClick={handleClose}
-            className="p-2 hover:bg-accent rounded-lg text-muted-foreground hover:text-white transition-colors"
+            className="p-2 hover:bg-accent rounded-lg text-muted-foreground hover:text-foreground transition-colors"
           >
             <FaTimes className="w-5 h-5" />
           </button>
