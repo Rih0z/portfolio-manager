@@ -91,7 +91,7 @@ const AnalysisPerspectiveTabs: React.FC<AnalysisPerspectiveTabsProps> = ({
   const currentPrompt = generatedPrompts[activeTab] || '';
 
   return (
-    <Card elevation="medium" padding="medium">
+    <Card elevation="medium" padding="medium" data-testid="analysis-perspective-tabs">
       <div className="space-y-4">
         <h3 className="text-base font-semibold text-foreground">
           {isJapanese ? 'AI分析プロンプト' : 'AI Analysis Prompts'}

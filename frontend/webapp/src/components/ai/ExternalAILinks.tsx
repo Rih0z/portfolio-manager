@@ -84,7 +84,7 @@ const ExternalAILinks: React.FC<ExternalAILinksProps> = ({
   );
 
   return (
-    <div className={cn('grid grid-cols-1 md:grid-cols-3 gap-3', className)}>
+    <div className={cn('grid grid-cols-1 md:grid-cols-3 gap-3', className)} data-testid="external-ai-links">
       {AI_SERVICES.map((service) => (
         <button
           key={service.id}

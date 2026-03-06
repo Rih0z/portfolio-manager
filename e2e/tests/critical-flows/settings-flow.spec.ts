@@ -14,6 +14,10 @@ test.describe('Settings Flow', () => {
     });
   });
 
+  test.afterEach(async ({ page }) => {
+    await page.evaluate(() => localStorage.clear());
+  });
+
   test('should navigate to settings page', async ({ page }) => {
     await page.goto('/settings', { timeout: TIMEOUTS.pageLoad });
     await page.waitForLoadState('domcontentloaded');

@@ -7,6 +7,10 @@ import { test, expect } from '@playwright/test';
 import { SELECTORS, TIMEOUTS } from '../../fixtures/test-constants';
 
 test.describe('Dashboard View', () => {
+  test.afterEach(async ({ page }) => {
+    await page.evaluate(() => localStorage.clear());
+  });
+
   test('should display dashboard or empty state', async ({ page }) => {
     await page.goto('/', { timeout: TIMEOUTS.pageLoad });
     await page.waitForLoadState('domcontentloaded');

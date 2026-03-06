@@ -4,8 +4,8 @@
  */
 
 export const URLS = {
-  production: 'https://portfolio-wise.com',
-  apiBase: 'https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod',
+  production: process.env.E2E_BASE_URL || 'https://portfolio-wise.com',
+  apiBase: process.env.E2E_API_BASE_URL || 'https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod',
   configEndpoint: '/config/client',
 };
 

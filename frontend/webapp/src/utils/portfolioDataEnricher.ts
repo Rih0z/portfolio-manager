@@ -56,6 +56,28 @@ export interface EnrichedPortfolioData {
   weaknessLine: string;
 }
 
+// ─── Internal Types ─────────────────────────────────────
+
+interface EnricherAsset {
+  id?: string;
+  ticker: string;
+  name?: string;
+  currency?: string;
+  price?: number;
+  holdings?: number;
+  purchasePrice?: number;
+  annualFee?: number;
+  hasDividend?: boolean;
+  dividendYield?: number;
+  fundType?: string;
+}
+
+interface TargetAllocation {
+  id?: string;
+  ticker: string;
+  targetPercentage: number;
+}
+
 // ─── Strength / Weakness Line Templates ─────────────────
 
 interface LineTemplate {
@@ -63,9 +85,9 @@ interface LineTemplate {
 }
 
 interface LineContext {
-  assets: any[];
+  assets: EnricherAsset[];
   totalValue: number;
-  targets: any[];
+  targets: TargetAllocation[];
   baseCurrency: string;
 }
 
@@ -155,33 +177,33 @@ const WEAKNESS_TEMPLATES: Record<string, LineTemplate> = {
 
 // ─── Helpers ────────────────────────────────────────────
 
-function calcWeightedFee(assets: any[], totalValue: number): number {
+function calcWeightedFee(assets: EnricherAsset[], totalValue: number): number {
   if (totalValue === 0) return 0;
-  return assets.reduce((sum: number, a: any) => {
+  return assets.reduce((sum, a) => {
     const value = (a.price || 0) * (a.holdings || 0);
     return sum + (a.annualFee || 0) * (value / totalValue);
   }, 0);
 }
 
-function calcWeightedDividendYield(assets: any[], totalValue: number): number {
+function calcWeightedDividendYield(assets: EnricherAsset[], totalValue: number): number {
   if (totalValue === 0) return 0;
-  return assets.reduce((sum: number, a: any) => {
+  return assets.reduce((sum, a) => {
     if (!a.hasDividend || !a.dividendYield) return sum;
     const value = (a.price || 0) * (a.holdings || 0);
     return sum + a.dividendYield * (value / totalValue);
   }, 0);
 }
 
-function uniqueCurrencies(assets: any[]): string[] {
-  return [...new Set(assets.map((a: any) => a.currency || 'USD'))];
+function uniqueCurrencies(assets: EnricherAsset[]): string[] {
+  return [...new Set(assets.map((a) => a.currency || 'USD'))];
 }
 
-function uniqueAssetTypes(assets: any[]): string[] {
-  return [...new Set(assets.map((a: any) => a.fundType || '不明'))];
+function uniqueAssetTypes(assets: EnricherAsset[]): string[] {
+  return [...new Set(assets.map((a) => a.fundType || '不明'))];
 }
 
 function currencyBreakdownPct(
-  assets: any[],
+  assets: EnricherAsset[],
   totalValue: number
 ): Record<string, number> {
   const map: Record<string, number> = {};
@@ -195,7 +217,7 @@ function currencyBreakdownPct(
 }
 
 function assetTypeBreakdownPct(
-  assets: any[],
+  assets: EnricherAsset[],
   totalValue: number
 ): Record<string, number> {
   const map: Record<string, number> = {};
@@ -211,8 +233,8 @@ function assetTypeBreakdownPct(
 // ─── Main Function ──────────────────────────────────────
 
 export function enrichPortfolioData(
-  assets: any[],
-  targets: any[],
+  assets: EnricherAsset[],
+  targets: TargetAllocation[],
   isPremium: boolean,
   baseCurrency: string,
   exchangeRate: number,
@@ -278,12 +300,12 @@ export function enrichPortfolioData(
 
   // ─ Holdings
   const totalValue = safeAssets.reduce(
-    (sum: number, a: any) => sum + (a.price || 0) * (a.holdings || 0),
+    (sum, a) => sum + (a.price || 0) * (a.holdings || 0),
     0
   );
 
   const holdingsSorted = [...safeAssets]
-    .map((a: any) => ({
+    .map((a) => ({
       ticker: a.ticker,
       name: a.name || a.ticker,
       percentage:
@@ -294,9 +316,9 @@ export function enrichPortfolioData(
     .sort((a, b) => b.percentage - a.percentage);
 
   // ─ Targets
-  const deviations = safeTargets.map((t: any) => {
+  const deviations = safeTargets.map((t) => {
     const asset = safeAssets.find(
-      (a: any) => a.id === t.id || a.ticker === t.ticker
+      (a) => a.id === t.id || a.ticker === t.ticker
     );
     const currentPct = asset
       ? totalValue > 0

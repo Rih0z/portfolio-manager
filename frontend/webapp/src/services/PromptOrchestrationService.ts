@@ -148,7 +148,10 @@ class PromptOrchestrationService {
    */
   loadUserContext(): UserContext {
     const stored = localStorage.getItem('userContext');
-    return stored ? JSON.parse(stored) : {
+    if (stored) {
+      try { return JSON.parse(stored); } catch { localStorage.removeItem('userContext'); }
+    }
+    return {
       // 基本情報
       age: null,
       occupation: '',
@@ -183,7 +186,10 @@ class PromptOrchestrationService {
    */
   loadPromptHistory(): PromptRecord[] {
     const stored = localStorage.getItem('promptHistory');
-    return stored ? JSON.parse(stored) : [];
+    if (stored) {
+      try { return JSON.parse(stored); } catch { localStorage.removeItem('promptHistory'); }
+    }
+    return [];
   }
 
   /**
@@ -191,7 +197,10 @@ class PromptOrchestrationService {
    */
   loadAIPreferences(): AIPreferences {
     const stored = localStorage.getItem('aiPreferences');
-    return stored ? JSON.parse(stored) : {
+    if (stored) {
+      try { return JSON.parse(stored); } catch { localStorage.removeItem('aiPreferences'); }
+    }
+    return {
       preferredAI: 'claude', // claude, gemini, chatgpt
       communicationStyle: 'collaborative', // collaborative, directive, supportive
       detailLevel: 'comprehensive', // brief, comprehensive, exhaustive

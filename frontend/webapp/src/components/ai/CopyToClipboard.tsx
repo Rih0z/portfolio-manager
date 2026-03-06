@@ -7,7 +7,7 @@
  * @file src/components/ai/CopyToClipboard.tsx
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../ui/button';
 import { cn } from '../../lib/utils';
@@ -45,15 +45,16 @@ const CopyToClipboard: React.FC<CopyToClipboardProps> = ({
   const { i18n } = useTranslation();
   const [copied, setCopied] = useState(false);
   const isJapanese = i18n.language === 'ja';
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  }, []);
 
   const handleCopy = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(text);
-      setCopied(true);
-      onCopied?.();
-      setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Fallback for older browsers
       const textarea = document.createElement('textarea');
       textarea.value = text;
       textarea.style.position = 'fixed';
@@ -62,16 +63,18 @@ const CopyToClipboard: React.FC<CopyToClipboardProps> = ({
       textarea.select();
       document.execCommand('copy');
       document.body.removeChild(textarea);
-      setCopied(true);
-      onCopied?.();
-      setTimeout(() => setCopied(false), 2000);
     }
+    setCopied(true);
+    onCopied?.();
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setCopied(false), 2000);
   }, [text, onCopied]);
 
   if (mode === 'icon') {
     return (
       <button
         onClick={handleCopy}
+        data-testid="copy-to-clipboard"
         className={cn(
           'p-1.5 rounded-md transition-colors',
           copied
@@ -93,6 +96,7 @@ const CopyToClipboard: React.FC<CopyToClipboardProps> = ({
       onClick={handleCopy}
       icon={copied ? <CheckIcon /> : <CopyIcon />}
       className={className}
+      data-testid="copy-to-clipboard"
     >
       {copied
         ? (isJapanese ? 'コピー済み' : 'Copied!')
