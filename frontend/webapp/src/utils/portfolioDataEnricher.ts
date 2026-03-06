@@ -244,9 +244,11 @@ export function enrichPortfolioData(
   const safeTargets = targets || [];
 
   // ─ Score
+  // EnricherAsset is a superset of the score engine's Asset type;
+  // optional `id` is safe because the engine falls back to ticker matching.
   const scoreResult: PortfolioScoreResult = calculatePortfolioScore(
-    safeAssets,
-    safeTargets,
+    safeAssets as any,
+    safeTargets as any,
     isPremium
   );
 
