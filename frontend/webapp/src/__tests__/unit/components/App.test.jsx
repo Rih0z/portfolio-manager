@@ -191,6 +191,13 @@ vi.mock('../../../components/common/SettingsChecker', () => ({
   },
 }));
 
+// LoadingFallback モック（Suspense fallback用）
+vi.mock('../../../components/common/LoadingFallback', () => ({
+  default: function LoadingFallback() {
+    return <div data-testid="loading-fallback">Loading...</div>;
+  },
+}));
+
 // i18nモック
 vi.mock('../../../i18n', () => ({}));
 
@@ -332,7 +339,10 @@ describe('App', () => {
       await renderAndWaitForInit();
 
       expect(screen.getByTestId('router')).toBeInTheDocument();
-      expect(screen.getByTestId('routes')).toBeInTheDocument();
+      // Suspense境界内のRoutesは非同期解決されるため waitFor で待つ
+      await waitFor(() => {
+        expect(screen.getByTestId('routes')).toBeInTheDocument();
+      });
     });
 
     it('正しいCSSクラスが適用されている', async () => {

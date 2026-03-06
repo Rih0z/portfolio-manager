@@ -63,6 +63,11 @@ const GoalProgressSection: React.FC<GoalProgressSectionProps> = ({
     removeGoal(id);
   }, [removeGoal]);
 
+  const handleClose = useCallback(() => {
+    setDialogOpen(false);
+    setEditingGoal(undefined);
+  }, []);
+
   return (
     <div data-testid="goal-progress-section">
       <Card padding="medium">
@@ -103,7 +108,7 @@ const GoalProgressSection: React.FC<GoalProgressSectionProps> = ({
 
       <GoalDialog
         isOpen={dialogOpen}
-        onClose={() => { setDialogOpen(false); setEditingGoal(undefined); }}
+        onClose={handleClose}
         onSave={handleSave}
         existingGoal={editingGoal}
       />

@@ -143,4 +143,4 @@ const GoalCard: React.FC<GoalCardProps> = ({
   );
 };
 
-export default GoalCard;
+export default React.memo(GoalCard);

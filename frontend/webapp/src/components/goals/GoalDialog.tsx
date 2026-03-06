@@ -177,4 +177,4 @@ const GoalDialog: React.FC<GoalDialogProps> = ({
   );
 };
 
-export default GoalDialog;
+export default React.memo(GoalDialog);

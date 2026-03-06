@@ -16,23 +16,13 @@
  * AuthProvider/PortfolioProvider/ContextConnector は廃止。
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { QueryProvider } from './providers/QueryProvider';
 import Header from './components/layout/Header';
 import TabNavigation from './components/layout/TabNavigation';
-import Dashboard from './pages/Dashboard';
-import Settings from './pages/Settings';
-import Simulation from './pages/Simulation';
-import DataIntegration from './pages/DataIntegration';
-import DataImport from './pages/DataImport';
-import AIAdvisor from './pages/AIAdvisor';
-import Pricing from './pages/Pricing';
-import Terms from './pages/legal/Terms';
-import Privacy from './pages/legal/Privacy';
-import KKKR from './pages/legal/KKKR';
-import Disclaimer from './pages/legal/Disclaimer';
+import LoadingFallback from './components/common/LoadingFallback';
 import SettingsChecker from './components/common/SettingsChecker';
 import { useAuthStore } from './stores/authStore';
 import { usePortfolioStore } from './stores/portfolioStore';
@@ -41,6 +31,19 @@ import { useSubscriptionStore } from './stores/subscriptionStore';
 import Footer from './components/layout/Footer';
 import { initializeApiConfig, getGoogleClientId } from './utils/envUtils';
 import { initGA, trackPageView } from './utils/analytics';
+
+// Route-based code splitting: ページコンポーネントを遅延ロード
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Settings = lazy(() => import('./pages/Settings'));
+const Simulation = lazy(() => import('./pages/Simulation'));
+const DataIntegration = lazy(() => import('./pages/DataIntegration'));
+const DataImport = lazy(() => import('./pages/DataImport'));
+const AIAdvisor = lazy(() => import('./pages/AIAdvisor'));
+const Pricing = lazy(() => import('./pages/Pricing'));
+const Terms = lazy(() => import('./pages/legal/Terms'));
+const Privacy = lazy(() => import('./pages/legal/Privacy'));
+const KKKR = lazy(() => import('./pages/legal/KKKR'));
+const Disclaimer = lazy(() => import('./pages/legal/Disclaimer'));
 
 // i18n初期化
 import './i18n';
@@ -275,21 +278,23 @@ const App = () => {
               <div className="min-h-screen bg-background text-foreground">
                 <Header />
                 <main className="max-w-7xl mx-auto pt-2 sm:pt-4 lg:pt-6 pb-20 sm:pb-6">
-                  <Routes>
-                    <Route path="/" element={<Dashboard />} />
-                    <Route path="/ai-advisor" element={<AIAdvisor />} />
-                    <Route path="/settings" element={<Settings />} />
-                    <Route path="/simulation" element={<Simulation />} />
-                    <Route path="/investment-calculator" element={<Simulation />} />
-                    <Route path="/data" element={<DataIntegration />} />
-                    <Route path="/data-import" element={<DataImport />} />
-                    <Route path="/pricing" element={<Pricing />} />
-                    <Route path="/legal/terms" element={<Terms />} />
-                    <Route path="/legal/privacy" element={<Privacy />} />
-                    <Route path="/legal/kkkr" element={<KKKR />} />
-                    <Route path="/legal/disclaimer" element={<Disclaimer />} />
-                    <Route path="/auth/google/callback" element={<Dashboard />} />
-                  </Routes>
+                  <Suspense fallback={<LoadingFallback />}>
+                    <Routes>
+                      <Route path="/" element={<Dashboard />} />
+                      <Route path="/ai-advisor" element={<AIAdvisor />} />
+                      <Route path="/settings" element={<Settings />} />
+                      <Route path="/simulation" element={<Simulation />} />
+                      <Route path="/investment-calculator" element={<Simulation />} />
+                      <Route path="/data" element={<DataIntegration />} />
+                      <Route path="/data-import" element={<DataImport />} />
+                      <Route path="/pricing" element={<Pricing />} />
+                      <Route path="/legal/terms" element={<Terms />} />
+                      <Route path="/legal/privacy" element={<Privacy />} />
+                      <Route path="/legal/kkkr" element={<KKKR />} />
+                      <Route path="/legal/disclaimer" element={<Disclaimer />} />
+                      <Route path="/auth/google/callback" element={<Dashboard />} />
+                    </Routes>
+                  </Suspense>
                 </main>
                 <Footer />
                 <TabNavigation />

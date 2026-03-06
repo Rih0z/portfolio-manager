@@ -110,4 +110,4 @@ const MonthlyReportCard: React.FC<MonthlyReportCardProps> = ({
   );
 };
 
-export default MonthlyReportCard;
+export default React.memo(MonthlyReportCard);
