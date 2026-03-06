@@ -6,7 +6,7 @@
  *
  * @file src/components/goals/GoalDialog.tsx
  */
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Dialog, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -33,6 +33,8 @@ const GoalDialog: React.FC<GoalDialogProps> = ({
   const [targetAmount, setTargetAmount] = useState('');
   const [targetDate, setTargetDate] = useState('');
   const [errors, setErrors] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+  const formIdRef = useRef(`goal-form-${Date.now()}`);
 
   // Reset form when dialog opens or existingGoal changes
   useEffect(() => {
@@ -47,10 +49,13 @@ const GoalDialog: React.FC<GoalDialogProps> = ({
         setTargetDate('');
       }
       setErrors([]);
+      setSaving(false);
     }
   }, [isOpen, existingGoal]);
 
   const handleSave = useCallback(() => {
+    if (saving) return;
+
     const input: GoalInput = {
       name: name.trim(),
       type: 'amount',
@@ -65,8 +70,13 @@ const GoalDialog: React.FC<GoalDialogProps> = ({
     }
 
     setErrors([]);
-    onSave(input);
-  }, [name, targetAmount, targetDate, onSave]);
+    setSaving(true);
+    try {
+      onSave(input);
+    } finally {
+      setSaving(false);
+    }
+  }, [name, targetAmount, targetDate, onSave, saving]);
 
   if (!isOpen) return null;
 
@@ -85,10 +95,11 @@ const GoalDialog: React.FC<GoalDialogProps> = ({
           <div className="space-y-4">
             {/* Name */}
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1">
+              <label htmlFor={`${formIdRef.current}-name`} className="block text-sm font-medium text-foreground mb-1">
                 目標名
               </label>
               <Input
+                id={`${formIdRef.current}-name`}
                 data-testid="goal-name-input"
                 value={name}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
@@ -104,10 +115,11 @@ const GoalDialog: React.FC<GoalDialogProps> = ({
 
             {/* Target Amount */}
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1">
+              <label htmlFor={`${formIdRef.current}-amount`} className="block text-sm font-medium text-foreground mb-1">
                 目標金額
               </label>
               <Input
+                id={`${formIdRef.current}-amount`}
                 data-testid="goal-amount-input"
                 type="number"
                 value={targetAmount}
@@ -124,10 +136,11 @@ const GoalDialog: React.FC<GoalDialogProps> = ({
 
             {/* Target Date */}
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1">
+              <label htmlFor={`${formIdRef.current}-date`} className="block text-sm font-medium text-foreground mb-1">
                 目標期限（任意）
               </label>
               <Input
+                id={`${formIdRef.current}-date`}
                 data-testid="goal-date-input"
                 type="date"
                 value={targetDate}
@@ -154,6 +167,7 @@ const GoalDialog: React.FC<GoalDialogProps> = ({
             data-testid="goal-save-button"
             variant="primary"
             onClick={handleSave}
+            disabled={saving}
           >
             {isEditing ? '更新' : '追加'}
           </Button>

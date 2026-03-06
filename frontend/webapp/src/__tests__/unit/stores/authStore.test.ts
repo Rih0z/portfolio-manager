@@ -470,12 +470,12 @@ describe('authStore', () => {
       expect(useAuthStore.getState().user?.id).toBe('session-user');
     });
 
-    it('should return false when all auth methods fail', async () => {
+    it('should use localStorage fallback when all auth tiers fail gracefully', async () => {
       vi.mocked(getAuthToken).mockReturnValue(null);
 
-      // Provide a stored session so checkSession doesn't return false immediately
+      const mockUser = createMockUser();
       const storedSession = JSON.stringify({
-        user: createMockUser(),
+        user: mockUser,
         hasDriveAccess: false,
         timestamp: Date.now(),
       });
@@ -489,7 +489,22 @@ describe('authStore', () => {
 
       const result = await useAuthStore.getState().checkSession();
 
+      // localStorage fallback should keep user logged in
+      expect(result).toBe(true);
+      expect(useAuthStore.getState().isAuthenticated).toBe(true);
+      expect(useAuthStore.getState().user?.id).toBe(mockUser.id);
+    });
+
+    it('should logout when all auth tiers AND localStorage fail', async () => {
+      vi.mocked(getAuthToken).mockReturnValue(null);
+
+      // No stored session
+      (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue(null);
+
+      const result = await useAuthStore.getState().checkSession();
+
       expect(result).toBe(false);
+      expect(useAuthStore.getState().isAuthenticated).toBe(false);
     });
 
     it('should handle complete exception during session check', async () => {

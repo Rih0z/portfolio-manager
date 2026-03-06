@@ -83,8 +83,8 @@ export function generateMonthlyReport(input: MonthlyReportInput): MonthlyReport 
     const convertedValue = asset.currency === baseCurrency
       ? value
       : baseCurrency === 'JPY'
-        ? value * exchangeRate
-        : value / exchangeRate;
+        ? Math.round(value * exchangeRate * 100) / 100
+        : Math.round((value / exchangeRate) * 100) / 100;
     return sum + convertedValue;
   }, 0);
 

@@ -60,7 +60,7 @@ const MonthlyReportCard: React.FC<MonthlyReportCardProps> = ({
         </div>
 
         {/* Holdings count */}
-        <div className="flex items-center justify-between text-sm">
+        <div data-testid="holdings-count" className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">保有銘柄</span>
           <span className="font-semibold">{report.holdingsCount}件</span>
         </div>
@@ -80,7 +80,7 @@ const MonthlyReportCard: React.FC<MonthlyReportCardProps> = ({
 
         {/* Top Gainers */}
         {report.topGainers.length > 0 && (
-          <div className="space-y-1">
+          <div data-testid="top-gainers" className="space-y-1">
             <p className="text-xs text-muted-foreground font-medium">上昇銘柄</p>
             <div className="flex flex-wrap gap-2">
               {report.topGainers.map((g) => (
@@ -94,7 +94,7 @@ const MonthlyReportCard: React.FC<MonthlyReportCardProps> = ({
 
         {/* Top Losers */}
         {report.topLosers.length > 0 && (
-          <div className="space-y-1">
+          <div data-testid="top-losers" className="space-y-1">
             <p className="text-xs text-muted-foreground font-medium">下落銘柄</p>
             <div className="flex flex-wrap gap-2">
               {report.topLosers.map((l) => (

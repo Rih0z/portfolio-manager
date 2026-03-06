@@ -81,7 +81,7 @@ const GoalProgressSection: React.FC<GoalProgressSectionProps> = ({
         </CardHeader>
         <CardContent>
           {goals.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">
+            <p data-testid="goal-empty-state" className="text-sm text-muted-foreground text-center py-4">
               投資目標を設定して、資産形成の進捗を追跡しましょう
             </p>
           ) : (

@@ -273,6 +273,17 @@ export const useAuthStore = create<AuthState>()((set, get) => {
         console.warn('Session check fallback failed:', sessionErr.message);
       }
 
+      // 全認証ティア失敗 → localStorageフォールバックを試行
+      const fallbackSession = loadSession();
+      if (fallbackSession) {
+        console.warn('全認証ティア失敗。localStorageフォールバック使用');
+        setAuthState(fallbackSession.user, true, fallbackSession.hasDriveAccess, null);
+        sessionCheckFailureCount++;
+        lastFailureTime = Date.now();
+        set({ loading: false });
+        return true;
+      }
+
       setAuthState(null, false, false, null);
       notifyPortfolioStore(false, null);
       set({ loading: false });
