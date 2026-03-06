@@ -1,7 +1,7 @@
 # PortfolioWise Technical Specification
 
-## Version: 2.0.0
-Last Updated: 2025-09-05
+## Version: 3.0.0
+Last Updated: 2026-03-05
 
 ## Table of Contents
 1. [System Overview](#system-overview)
@@ -31,7 +31,7 @@ PortfolioWise is a cloud-native investment portfolio management system designed 
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                    Client Layer                         │
-│  React SPA | Atlassian Design System | i18n | PWA      │
+│  React SPA | shadcn/ui + TailwindCSS | i18n | PWA      │
 └────────────────────────┬────────────────────────────────┘
                          │ HTTPS
 ┌────────────────────────┴────────────────────────────────┐
@@ -58,12 +58,15 @@ PortfolioWise is a cloud-native investment portfolio management system designed 
 ### Component Architecture
 
 #### Frontend Components
-- **Framework**: React 18 with Hooks
-- **State Management**: Context API (AuthContext, PortfolioContext)
-- **UI Library**: Atlassian Design System (migrating from TailwindCSS)
+- **Framework**: React 18 with TypeScript
+- **Build Tool**: Vite 6.x
+- **State Management**: Zustand 5.x (authStore, portfolioStore, uiStore, subscriptionStore)
+- **Server State**: TanStack Query 5.x
+- **UI Library**: shadcn/ui + Radix UI + TailwindCSS
 - **Routing**: React Router v6
 - **Data Visualization**: Recharts
 - **Internationalization**: i18next (JP/EN)
+- **Testing**: Vitest + React Testing Library
 
 #### Backend Services
 - **Market Data Service**: Multi-source aggregation with fallback
@@ -78,12 +81,16 @@ PortfolioWise is a cloud-native investment portfolio management system designed 
 | Component | Technology | Version | Purpose |
 |-----------|------------|---------|---------|
 | Framework | React | 18.2.0 | UI framework |
-| Build Tool | Create React App | 5.0.1 | Build system |
-| Styling | Atlassian Design System | Latest | Component library |
-| CSS Framework | TailwindCSS | 3.3.0 | Utility CSS (phasing out) |
-| Charts | Recharts | 2.7.0 | Data visualization |
-| HTTP Client | Axios | 1.4.0 | API communication |
-| i18n | i18next | 23.2.0 | Internationalization |
+| Language | TypeScript | 5.x | 型安全性 (strict: false, allowJs: true) |
+| Build Tool | Vite | 6.x | ビルド + 開発サーバー |
+| State (Client) | Zustand | 5.x | クライアント状態管理 |
+| State (Server) | TanStack Query | 5.x | サーバーステートキャッシュ |
+| UI Components | shadcn/ui + Radix UI | Latest | コンポーネントライブラリ |
+| CSS Framework | TailwindCSS | 3.x | ユーティリティCSS |
+| Charts | Recharts | 2.x | データ可視化 |
+| HTTP Client | Axios | 1.x | API通信 |
+| i18n | i18next | 23.x | 国際化 |
+| Testing | Vitest | Latest | テストフレームワーク |
 
 ### Backend Technologies
 | Component | Technology | Version | Purpose |
@@ -230,9 +237,9 @@ Capacity: On-demand
 #### Portfolio Data Flow
 ```
 1. User Action → React Component
-2. Context Update → API Call
+2. Zustand Store Action → API Call (via TanStack Query)
 3. Lambda Validation → DynamoDB Operation
-4. Response → Context Update → UI Update
+4. Response → Store Update → UI Update
 ```
 
 ## API Specifications
@@ -328,7 +335,7 @@ CI/CD: GitHub Actions (planned)
 ### Code Quality
 - **Linting**: ESLint with Airbnb config
 - **Formatting**: Prettier
-- **Type Checking**: PropTypes (TypeScript planned)
+- **Type Checking**: TypeScript (strict: false, allowJs: true)
 - **Code Review**: PR required for main branch
 
 ### Documentation Standards
@@ -340,24 +347,24 @@ CI/CD: GitHub Actions (planned)
 ## Future Enhancements
 
 ### Planned Features
-1. **TypeScript Migration** (Q1 2026)
-2. **Real-time WebSocket Updates** (Q2 2026)
-3. **Mobile Native Apps** (Q3 2026)
-4. **AI-Powered Insights** (Q4 2026)
+1. ~~**TypeScript Migration**~~ ✅ 完了 (Phase 0-B, 2026-03)
+2. **Stripe サブスクリプション連携** (Phase 1, 進行中)
+3. **Real-time WebSocket Updates** (Phase 3 予定)
+4. **Mobile Native Apps** (Phase 4 予定)
+5. **AI-Powered Insights** (Phase 5 予定)
 
 ### Technical Debt
-1. Complete Atlassian Design System migration
-2. Remove TailwindCSS dependencies
-3. Implement comprehensive error boundaries
-4. Add request retry mechanisms
-5. Enhance offline capabilities
+1. Modern* コンポーネント → shadcn/ui 統合 (21箇所残存)
+2. Implement comprehensive error boundaries
+3. Add request retry mechanisms
+4. Enhance offline capabilities
 
 ## Compliance & Standards
 
 ### Regulatory Compliance
 - **Data Privacy**: GDPR, CCPA ready
 - **Financial**: No direct trading capabilities
-- **Accessibility**: WCAG 2.1 AA (via Atlassian DS)
+- **Accessibility**: WCAG 2.1 AA (via Radix UI primitives)
 
 ### Industry Standards
 - **API Design**: RESTful principles

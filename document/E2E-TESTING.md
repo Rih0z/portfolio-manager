@@ -6,7 +6,7 @@
 
 ## テストカテゴリ
 
-### 1. AWS統合テスト (`e2e/aws-integration.spec.js`)
+### 1. AWS統合テスト (`e2e/aws-integration.spec.mjs`)
 - APIヘルスチェック
 - マーケットデータAPI（株価、為替レート）
 - レート制限
@@ -14,7 +14,7 @@
 - CORS設定
 - セッション管理
 
-### 2. パフォーマンステスト (`e2e/performance.spec.js`)
+### 2. パフォーマンステスト (`e2e/performance.spec.mjs`)
 - ページ読み込み速度
 - Core Web Vitals（CLS、LCP、FID）
 - API応答時間

@@ -305,10 +305,16 @@ paths:
 
 components:
   securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT Access Token (HS256, 24時間有効, メモリのみ保存)
     cookieAuth:
       type: apiKey
       in: cookie
       name: session
+      description: レガシー互換のフォールバック認証
     apiKey:
       type: apiKey
       in: header
@@ -322,9 +328,9 @@ components:
           type: boolean
         user:
           $ref: '#/components/schemas/User'
-        sessionId:
+        accessToken:
           type: string
-          format: uuid
+          description: JWT Access Token (HS256, 24時間有効)
 
     User:
       type: object

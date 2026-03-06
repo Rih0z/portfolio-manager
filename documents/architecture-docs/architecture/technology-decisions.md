@@ -28,32 +28,20 @@ React 18を採用する。
 
 ## ADR-002: Atlassian Design Systemの段階的導入
 
-**日付**: 2025-08-22  
-**ステータス**: 実装中  
+**日付**: 2025-08-22
+**ステータス**: ❌ 廃止済み（ADR-014 で shadcn/ui に置換）
 **決定者**: UXチーム・開発チーム
 
 ### コンテキスト
 エンタープライズレベルのUI品質とアクセシビリティ基準を達成する必要があった。
 
 ### 決定
-Tailwind CSSから Atlassian Design Systemへ段階的に移行する。
+~~Tailwind CSSから Atlassian Design Systemへ段階的に移行する。~~
 
-### 理由
-- **エンタープライズ品質**: B2B市場での競争優位性
-- **アクセシビリティ**: WCAG 2.1 AA 100%準拠
-- **一貫性**: デザイントークンによる統一された見た目
-- **保守性**: コンポーネントベースのアーキテクチャ
-
-### 実装戦略
-1. Phase 1: デザイントークン導入 ✅
-2. Phase 2: 基本コンポーネント移行（Button, Card, Input, Modal）✅
-3. Phase 3: 複雑なコンポーネント移行（進行中）
-4. Phase 4: Tailwind CSS完全削除（計画中）
-
-### 結果
-- ✅ アクセシビリティスコア向上
-- ✅ UI一貫性の改善
-- ⚠️ バンドルサイズ8-12%増加（許容範囲内）
+### 廃止理由 (2026-03-05)
+Phase 2-A で Atlassian Design System を全面的に shadcn/ui + Radix UI に置換。
+理由: TailwindCSS との親和性、バンドルサイズ、カスタマイズ性で shadcn/ui が優位。
+Atlassian コンポーネント (Button, Card, Input, Modal, tokens) は全て削除済み。
 
 ---
 
@@ -256,39 +244,27 @@ Cloudflare Pagesを採用（Netlifyから移行）。
 
 ## ADR-009: Context APIによる状態管理
 
-**日付**: 2025-04-05  
-**ステータス**: 承認済み  
+**日付**: 2025-04-05
+**ステータス**: ❌ 廃止済み（ADR-013 で Zustand に置換）
 **決定者**: フロントエンドチーム
 
 ### コンテキスト
 グローバル状態管理ソリューションが必要。
 
 ### 決定
-React Context APIを採用（Redux不採用）。
+~~React Context APIを採用（Redux不採用）。~~
 
-### 理由
-- **シンプリシティ**: 追加ライブラリ不要
-- **十分な機能**: アプリの規模に適切
-- **パフォーマンス**: useMemoとuseCallbackで最適化
-- **学習コスト**: Reactの標準機能
-
-### Context構成
-```
-AuthContext: 認証状態管理
-PortfolioContext: ポートフォリオデータ管理
-```
-
-### 結果
-- ✅ コードベースのシンプル化
-- ✅ バンドルサイズ削減
-- ⚠️ 大規模化時の再検討が必要
+### 廃止理由 (2026-03-05)
+Phase 0-C で Context API を全面的に Zustand 5.x + TanStack Query 5.x に移行。
+理由: Context API のリレンダリング問題、テスタビリティ、store 分離の容易さで Zustand が優位。
+AuthContext / PortfolioContext / ContextConnector は全て削除済み。
 
 ---
 
 ## ADR-010: TypeScript段階的導入
 
-**日付**: 2025-08-01  
-**ステータス**: 計画中  
+**日付**: 2025-08-01
+**ステータス**: ✅ 完了 (Phase 0-B, 2026-03)
 **決定者**: 技術リードチーム
 
 ### コンテキスト
@@ -297,23 +273,11 @@ PortfolioContext: ポートフォリオデータ管理
 ### 決定
 TypeScriptを段階的に導入する。
 
-### 移行戦略
-1. **Phase 1**: tsconfig.json設定、型定義ファイル追加
-2. **Phase 2**: 新規ファイルはTypeScriptで作成
-3. **Phase 3**: 重要なサービス層から移行
-4. **Phase 4**: コンポーネントの移行
-5. **Phase 5**: 完全移行
-
-### 期待される効果
-- 型安全性向上
-- IDE支援強化
-- リファクタリング容易性
-- バグ早期発見
-
-### 課題
-- 移行工数
-- 学習コスト
-- ビルド時間増加
+### 完了状況
+- tsconfig.json: `strict: false, allowJs: true`（インクリメンタル移行）
+- 新規ファイルは全て `.ts` / `.tsx` で作成
+- stores, services, pages は TypeScript 化済み
+- Vitest (vi.mock) + React Testing Library でテスト移行完了
 
 ---
 
@@ -379,10 +343,86 @@ AWS無料枠を最大限活用してコストを最小化する必要。
 
 ---
 
+## ADR-013: Zustand + TanStack Queryによる状態管理
+
+**日付**: 2026-03-05
+**ステータス**: ✅ 完了 (Phase 0-C)
+**決定者**: フロントエンドチーム
+**前提**: ADR-009 (Context API) を廃止
+
+### 決定
+Zustand 5.x でクライアント状態、TanStack Query 5.x でサーバーステートを管理する。
+
+### Store構成
+```
+authStore: 認証・JWT・Google OAuth
+portfolioStore: ポートフォリオCRUD・Google Drive同期
+uiStore: テーマ・通知
+subscriptionStore: サブスクリプション・プラン管理
+```
+
+### 理由
+- **リレンダリング制御**: セレクタパターンで不要な再描画を防止
+- **テスタビリティ**: vi.mock() で簡潔にモック可能
+- **Store分離**: 責務ごとに独立したストア
+- **cross-store通信**: `getState()` パターンで疎結合
+
+---
+
+## ADR-014: shadcn/ui + Radix UIによるUIコンポーネント
+
+**日付**: 2026-03-05
+**ステータス**: ✅ 完了 (Phase 2-A)
+**決定者**: UXチーム・開発チーム
+**前提**: ADR-002 (Atlassian Design System) を廃止
+
+### 決定
+shadcn/ui + Radix UI をUIコンポーネント基盤とし、TailwindCSS でスタイリングする。
+
+### コンポーネント
+Button, Card, Input, Badge, Dialog, Progress, Switch, Tabs（8コンポーネント）
+
+### 理由
+- **TailwindCSS親和性**: className ベースのカスタマイズ
+- **バンドルサイズ**: コピー&ペーストモデルで最小限
+- **アクセシビリティ**: Radix UI のプリミティブで WCAG 準拠
+- **テーマ対応**: CSS Variables で Light/Dark/System 3モード
+
+### 結果
+- ✅ バンドルサイズ +7% (988KB → 1,057KB)
+- ✅ Light/Dark テーマ完全対応
+- ✅ CVA によるバリアント管理
+
+---
+
+## ADR-015: Vite + Vitest によるビルド・テスト基盤
+
+**日付**: 2026-03-04
+**ステータス**: ✅ 完了 (Phase 0-B)
+**決定者**: フロントエンドチーム
+
+### 決定
+CRA (react-scripts) → Vite、Jest → Vitest に移行する。
+
+### 理由
+- **ビルド速度**: esbuild ベースの高速ビルド
+- **HMR**: 即座のホットリロード
+- **テスト速度**: Vitest の並列実行
+- **ESM対応**: ネイティブ ESM サポート
+- **設定のシンプル化**: `--openssl-legacy-provider` 不要
+
+### 結果
+- ✅ 開発サーバー起動時間 大幅短縮
+- ✅ テスト: 62 suites / 1,387 tests passed
+- ✅ TypeScript との統合がスムーズ
+
+---
+
 ## 更新履歴
 
 | 日付 | バージョン | 更新内容 |
 |------|------------|----------|
+| 2026-03-05 | 2.0.0 | ADR-002/009/010 更新 + ADR-013/014/015 追加 |
 | 2025-09-04 | 1.0.0 | 初版作成・全ADR記録 |
 
 ---

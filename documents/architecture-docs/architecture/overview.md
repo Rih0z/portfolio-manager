@@ -63,9 +63,11 @@ graph TB
     subgraph "React Application"
         App[App.jsx<br/>ルートコンポーネント]
         
-        subgraph "Context Layer"
-            Auth[AuthContext<br/>認証管理]
-            Portfolio[PortfolioContext<br/>ポートフォリオ管理]
+        subgraph "Zustand Stores"
+            Auth[authStore<br/>認証・JWT管理]
+            Portfolio[portfolioStore<br/>ポートフォリオ管理]
+            UI[uiStore<br/>テーマ・通知]
+            Subscription[subscriptionStore<br/>サブスクリプション]
         end
         
         subgraph "Pages"
@@ -82,7 +84,7 @@ graph TB
         end
         
         subgraph "Components"
-            Atlassian[Atlassian Design<br/>UIコンポーネント]
+            ShadcnUI[shadcn/ui<br/>UIコンポーネント]
             Charts[Recharts<br/>データ可視化]
             Forms[Form Components<br/>入力フォーム]
         end
@@ -95,7 +97,7 @@ graph TB
         AIAdvisor --> API
         Settings --> Admin
         Dashboard --> Charts
-        AIAdvisor --> Atlassian
+        AIAdvisor --> ShadcnUI
         Settings --> Forms
     end
 ```

@@ -19,15 +19,14 @@ cd portfolio-manager/frontend/webapp
 # Install dependencies
 npm install
 
-# Build with production environment
+# Build with production environment (Vite)
 REACT_APP_API_BASE_URL='https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod' \
 REACT_APP_DEFAULT_EXCHANGE_RATE='150.0' \
-NODE_OPTIONS='--openssl-legacy-provider' \
 npm run build
 
 # Deploy to Cloudflare Pages
 npm install -g wrangler
-wrangler pages deploy build --project-name=portfolio-manager
+wrangler pages deploy build --project-name=pfwise-portfolio-manager
 ```
 
 ### 2. Backend Deployment to AWS Lambda
@@ -139,10 +138,10 @@ npm start              # Starts on http://localhost:3000
 ### Testing
 
 ```bash
-# Frontend tests
+# Frontend tests (Vitest)
 cd frontend/webapp
-npm test               # Run all tests
-npm run test:coverage  # With coverage report
+npm test               # vitest run
+npm run test:coverage  # vitest run --coverage
 
 # Backend tests
 cd backend
@@ -198,8 +197,8 @@ Monitor these KPIs:
 - Adjust `MAX_REQUESTS_PER_MINUTE` if needed
 
 #### 4. Build Failures
-- Use `NODE_OPTIONS='--openssl-legacy-provider'` for older Node versions
-- Clear cache: `rm -rf node_modules && npm install`
+- Vite ビルドはNode.js 22+で動作（`--openssl-legacy-provider` 不要）
+- Clear cache: `rm -rf node_modules && npm install --legacy-peer-deps`
 
 ### Debug Mode
 
@@ -233,12 +232,14 @@ jobs:
           node-version: '18'
       - run: |
           cd frontend/webapp
-          npm ci
+          npm ci --legacy-peer-deps
+          REACT_APP_API_BASE_URL=${{ secrets.REACT_APP_API_BASE_URL }} \
+          REACT_APP_DEFAULT_EXCHANGE_RATE=150.0 \
           npm run build
-      - uses: cloudflare/wrangler-action@2.0.0
+      - uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
-          command: pages deploy build --project-name=portfolio-manager
+          command: pages deploy build --project-name=pfwise-portfolio-manager
 
   deploy-backend:
     runs-on: ubuntu-latest

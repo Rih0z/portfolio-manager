@@ -1,6 +1,6 @@
 # デプロイメント トラブルシューティングガイド
 
-最終更新: 2025-09-12
+最終更新: 2026-03-05
 
 ## 📋 目次
 1. [よくあるデプロイエラーと解決方法](#よくあるデプロイエラーと解決方法)
@@ -79,15 +79,13 @@ Creating an optimized production build...
 
 #### 原因
 - メモリ不足
-- react-scripts の問題
 - 大量のソースマップ生成
 
 #### 解決方法
 ```bash
-# 環境変数を設定してビルド
-CI=false \
+# 環境変数を設定してビルド (Vite)
 GENERATE_SOURCEMAP=false \
-NODE_OPTIONS="--max-old-space-size=2048 --openssl-legacy-provider" \
+NODE_OPTIONS="--max-old-space-size=2048" \
 npm run build
 ```
 
@@ -205,9 +203,10 @@ rm -rf node_modules/.cache
 
 # 3. ビルド
 echo "🔨 ビルド開始..."
-CI=false \
 GENERATE_SOURCEMAP=false \
-NODE_OPTIONS="--max-old-space-size=2048 --openssl-legacy-provider" \
+NODE_OPTIONS="--max-old-space-size=2048" \
+REACT_APP_API_BASE_URL='https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod' \
+REACT_APP_DEFAULT_EXCHANGE_RATE='150.0' \
 npm run build
 
 # 4. デプロイ
@@ -292,9 +291,7 @@ wrangler pages deploy build --project-name=pfwise-portfolio-manager
 # Cloudflare
 CLOUDFLARE_API_TOKEN=your-api-token-here
 
-# Build設定
-SKIP_PREFLIGHT_CHECK=true
-NODE_OPTIONS=--openssl-legacy-provider
+# Build設定 (Vite — openssl-legacy-provider 不要)
 GENERATE_SOURCEMAP=false
 
 # API設定
@@ -353,6 +350,6 @@ tail -50 ~/.wrangler/logs/wrangler-*.log >> debug-info.txt
 
 ---
 
-最終更新: 2025-09-12  
+最終更新: 2026-03-05  
 作成者: Claude Code  
 バージョン: 1.0.0
