@@ -33,6 +33,7 @@ import { initGA, trackPageView } from './utils/analytics';
 import { lazyWithRetry } from './utils/lazyWithRetry';
 import PWAUpdatePrompt from './components/pwa/PWAUpdatePrompt';
 import InstallPrompt from './components/pwa/InstallPrompt';
+import { useAlertEvaluation } from './hooks/useAlertEvaluation';
 
 // Route-based code splitting: ページコンポーネントを遅延ロード（リトライ付き）
 const Landing = lazyWithRetry(() => import('./pages/Landing'));
@@ -47,6 +48,7 @@ const Terms = lazyWithRetry(() => import('./pages/legal/Terms'));
 const Privacy = lazyWithRetry(() => import('./pages/legal/Privacy'));
 const KKKR = lazyWithRetry(() => import('./pages/legal/KKKR'));
 const Disclaimer = lazyWithRetry(() => import('./pages/legal/Disclaimer'));
+const SharedPortfolio = lazyWithRetry(() => import('./pages/SharedPortfolio'));
 
 // i18n初期化
 import './i18n';
@@ -221,6 +223,12 @@ const ServerSyncInitializer = () => {
   return null;
 };
 
+// アラート評価（認証後に市場データ更新を監視）
+const AlertEvaluationInitializer = () => {
+  useAlertEvaluation();
+  return null;
+};
+
 // エラー境界コンポーネント
 class ErrorBoundary extends React.Component<any, any> {
   constructor(props: any) {
@@ -278,12 +286,14 @@ const App = () => {
             <Router>
               <PageViewTracker />
               <ServerSyncInitializer />
+              <AlertEvaluationInitializer />
 
               <Routes>
                 {/* 公開ルート — PublicLayout（SettingsChecker なし） */}
                 <Route element={<PublicLayout />}>
                   <Route path="/" element={<Landing />} />
                   <Route path="/pricing" element={<Pricing />} />
+                  <Route path="/share/:shareId" element={<SharedPortfolio />} />
                   <Route path="/legal/terms" element={<Terms />} />
                   <Route path="/legal/privacy" element={<Privacy />} />
                   <Route path="/legal/kkkr" element={<KKKR />} />

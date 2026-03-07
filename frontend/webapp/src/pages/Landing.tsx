@@ -26,6 +26,7 @@ import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import SEOHead from '../components/seo/SEOHead';
 import OAuthLoginButton from '../components/auth/OAuthLoginButton';
+import ReferralBanner from '../components/referral/ReferralBanner';
 
 // ─── アイコン SVG ────────────────────────────────
 const ChartIcon = () => (
@@ -90,6 +91,9 @@ const Landing: React.FC = () => {
       <SEOHead />
 
       <div data-testid="landing-page" className="px-4 sm:px-6 lg:px-8">
+        {/* ───────── Referral Banner ───────── */}
+        <ReferralBanner />
+
         {/* ───────── 1. Hero ───────── */}
         <section className="text-center py-12 sm:py-20 lg:py-28">
           <Badge variant="default" className="mb-4">

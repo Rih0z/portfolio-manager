@@ -74,6 +74,11 @@ provider:
     USAGE_TABLE: ${env:USAGE_TABLE, '${self:service}-${self:provider.stage}-usage'}
     PRICE_HISTORY_TABLE: ${env:PRICE_HISTORY_TABLE, '${self:service}-${self:provider.stage}-price-history'}
     PORTFOLIOS_TABLE: ${env:PORTFOLIOS_TABLE, '${self:service}-${self:provider.stage}-portfolios'}
+    NOTIFICATIONS_TABLE: ${env:NOTIFICATIONS_TABLE, '${self:service}-${self:provider.stage}-notifications'}
+    ALERT_RULES_TABLE: ${env:ALERT_RULES_TABLE, '${self:service}-${self:provider.stage}-alert-rules'}
+    SHARED_PORTFOLIOS_TABLE: ${env:SHARED_PORTFOLIOS_TABLE, '${self:service}-${self:provider.stage}-shared-portfolios'}
+    REFERRALS_TABLE: ${env:REFERRALS_TABLE, '${self:service}-${self:provider.stage}-referrals'}
+    REFERRAL_EVENTS_TABLE: ${env:REFERRAL_EVENTS_TABLE, '${self:service}-${self:provider.stage}-referral-events'}
 
     # Stripe設定
     STRIPE_WEBHOOK_SECRET_NAME: ${env:STRIPE_WEBHOOK_SECRET_NAME, 'pfwise-api/stripe'}
@@ -135,6 +140,13 @@ provider:
         - !GetAtt UsageTable.Arn
         - !GetAtt PriceHistoryTable.Arn
         - !GetAtt PortfoliosTable.Arn
+        - !GetAtt NotificationsTable.Arn
+        - !GetAtt AlertRulesTable.Arn
+        - !GetAtt SharedPortfoliosTable.Arn
+        - !Join ['/', [!GetAtt SharedPortfoliosTable.Arn, 'index/*']]
+        - !GetAtt ReferralsTable.Arn
+        - !Join ['/', [!GetAtt ReferralsTable.Arn, 'index/*']]
+        - !GetAtt ReferralEventsTable.Arn
     # Secrets Manager アクセス権限
     - Effect: Allow
       Action:
@@ -834,6 +846,631 @@ functions:
   #         method: get
   #         cors: true
 
+  # 通知一覧取得（JWT認証必須）
+  getNotifications:
+    handler: src/function/notifications/getNotifications.handler
+    events:
+      - http:
+          path: api/notifications
+          method: get
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+
+  # 通知既読（JWT認証必須）
+  markNotificationRead:
+    handler: src/function/notifications/markRead.handler
+    events:
+      - http:
+          path: api/notifications/{id}/read
+          method: put
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+      - http:
+          path: api/notifications/{id}/read
+          method: options
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+
+  # 全通知一括既読（JWT認証必須）
+  markAllNotificationsRead:
+    handler: src/function/notifications/markAllRead.handler
+    events:
+      - http:
+          path: api/notifications/read-all
+          method: post
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+      - http:
+          path: api/notifications/read-all
+          method: options
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+
+  # 通知削除（JWT認証必須）
+  deleteNotification:
+    handler: src/function/notifications/deleteNotification.handler
+    events:
+      - http:
+          path: api/notifications/{id}
+          method: delete
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+      - http:
+          path: api/notifications/{id}
+          method: options
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+
+  # アラートルール一覧取得（JWT認証必須）
+  getAlertRules:
+    handler: src/function/alerts/getAlertRules.handler
+    events:
+      - http:
+          path: api/alert-rules
+          method: get
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+
+  # アラートルール作成（JWT認証必須）
+  createAlertRule:
+    handler: src/function/alerts/createAlertRule.handler
+    events:
+      - http:
+          path: api/alert-rules
+          method: post
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+      - http:
+          path: api/alert-rules
+          method: options
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+
+  # アラートルール更新（JWT認証必須）
+  updateAlertRule:
+    handler: src/function/alerts/updateAlertRule.handler
+    events:
+      - http:
+          path: api/alert-rules/{id}
+          method: put
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+      - http:
+          path: api/alert-rules/{id}
+          method: options
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+
+  # アラートルール削除（JWT認証必須）
+  deleteAlertRule:
+    handler: src/function/alerts/deleteAlertRule.handler
+    events:
+      - http:
+          path: api/alert-rules/{id}
+          method: delete
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+      - http:
+          path: api/alert-rules/{id}
+          method: options
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+
+  # ポートフォリオ共有作成（JWT認証必須）
+  createShare:
+    handler: src/function/social/createShare.handler
+    events:
+      - http:
+          path: api/social/share
+          method: post
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+      - http:
+          path: api/social/share
+          method: options
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+
+  # 共有ポートフォリオ取得（公開）
+  getShare:
+    handler: src/function/social/getShare.handler
+    events:
+      - http:
+          path: api/social/share/{shareId}
+          method: get
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+
+  # 共有ポートフォリオ削除（JWT認証必須、所有者のみ）
+  deleteShare:
+    handler: src/function/social/deleteShare.handler
+    events:
+      - http:
+          path: api/social/share/{shareId}
+          method: delete
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+      - http:
+          path: api/social/share/{shareId}
+          method: options
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+
+  # ユーザー全共有取得（JWT認証必須）
+  getUserShares:
+    handler: src/function/social/getUserShares.handler
+    events:
+      - http:
+          path: api/social/shares
+          method: get
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+
+  # ピア比較データ取得（任意認証）
+  getPeerComparison:
+    handler: src/function/social/getPeerComparison.handler
+    events:
+      - http:
+          path: api/social/compare
+          method: get
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+
+  # リファラルコード取得（JWT認証必須）
+  getReferralCode:
+    handler: src/function/referral/getCode.handler
+    events:
+      - http:
+          path: api/referral/code
+          method: get
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+
+  # リファラル統計取得（JWT認証必須）
+  getReferralStats:
+    handler: src/function/referral/getStats.handler
+    events:
+      - http:
+          path: api/referral/stats
+          method: get
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+
+  # リファラルコード適用（JWT認証必須）
+  applyReferralCode:
+    handler: src/function/referral/applyCode.handler
+    events:
+      - http:
+          path: api/referral/apply
+          method: post
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+      - http:
+          path: api/referral/apply
+          method: options
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+
+  # リファラルコード検証（公開エンドポイント）
+  validateReferralCode:
+    handler: src/function/referral/validateCode.handler
+    events:
+      - http:
+          path: api/referral/validate
+          method: post
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+      - http:
+          path: api/referral/validate
+          method: options
+          cors:
+            origins:
+              - http://localhost:3001
+              - http://localhost:3000
+              - https://portfolio-wise.com
+              - https://www.portfolio-wise.com
+              - https://app.portfolio-wise.com
+              - https://pfwise-portfolio-manager.pages.dev
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - Cookie
+            allowCredentials: true
+
 resources:
   Resources:
     MarketDataCacheTable:
@@ -1003,6 +1640,119 @@ resources:
         KeySchema:
           - AttributeName: userId
             KeyType: HASH
+
+    # 通知テーブル
+    NotificationsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-${self:provider.stage}-notifications
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
+          - AttributeName: notificationId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
+          - AttributeName: notificationId
+            KeyType: RANGE
+        TimeToLiveSpecification:
+          AttributeName: ttl
+          Enabled: true
+
+    # アラートルールテーブル
+    AlertRulesTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-${self:provider.stage}-alert-rules
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
+          - AttributeName: ruleId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
+          - AttributeName: ruleId
+            KeyType: RANGE
+
+    # 共有ポートフォリオテーブル
+    SharedPortfoliosTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-${self:provider.stage}-shared-portfolios
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: shareId
+            AttributeType: S
+          - AttributeName: userId
+            AttributeType: S
+          - AttributeName: ageGroup
+            AttributeType: S
+          - AttributeName: createdAt
+            AttributeType: S
+        KeySchema:
+          - AttributeName: shareId
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: userId-index
+            KeySchema:
+              - AttributeName: userId
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+          - IndexName: ageGroup-index
+            KeySchema:
+              - AttributeName: ageGroup
+                KeyType: HASH
+              - AttributeName: createdAt
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+        TimeToLiveSpecification:
+          AttributeName: ttl
+          Enabled: true
+
+    # リファラルテーブル
+    ReferralsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-${self:provider.stage}-referrals
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: referralCode
+            AttributeType: S
+          - AttributeName: userId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: referralCode
+            KeyType: HASH
+        GlobalSecondaryIndexes:
+          - IndexName: userId-index
+            KeySchema:
+              - AttributeName: userId
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+
+    # リファラルイベントテーブル
+    ReferralEventsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:service}-${self:provider.stage}-referral-events
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: referralCode
+            AttributeType: S
+          - AttributeName: eventId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: referralCode
+            KeyType: HASH
+          - AttributeName: eventId
+            KeyType: RANGE
 
     # AlertTopic を一時的に無効化
     # AlertTopic:

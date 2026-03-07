@@ -30,7 +30,8 @@ vi.mock('react-router-dom', () => ({
   },
   Link: ({ children, to, ...props }) => <a href={to} {...props}>{children}</a>,
   useNavigate: () => vi.fn(),
-  useLocation: () => ({ pathname: '/', search: '', hash: '', state: null, key: 'default' })
+  useLocation: () => ({ pathname: '/', search: '', hash: '', state: null, key: 'default' }),
+  useParams: () => ({})
 }));
 
 vi.mock('../../../utils/analytics', () => ({
