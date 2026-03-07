@@ -56,7 +56,6 @@ const OAuthLoginButton = () => {
       prompt: 'consent'  // 必ず同意画面を表示
     });
     
-    console.log('Generated redirect_uri:', redirectUri); // デバッグ用
     return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
   };
 
@@ -82,17 +81,12 @@ const OAuthLoginButton = () => {
         // 認証コードの処理を開始（二重実行を防ぐ）
         setCodeProcessed(true);
         setIsProcessing(true);
-        console.log('OAuth code received:', code.substring(0, 20) + '...');
-        console.log('Processing authentication code for the first time');
-        
+
         try {
-          // redirectUriを含めてバックエンドに送信（動的に生成）
           const redirectUri = getRedirectUri();
-          console.log('Sending to backend with redirect_uri:', redirectUri); // デバッグ用
           const result = await loginWithGoogle({ code, redirectUri });
           
           if (result && result.success) {
-            console.log('ログイン成功（Drive権限付き）');
             if (addNotification) {
               addNotification('ログインが完了しました。Google Driveも利用可能です。', 'success');
             }
@@ -108,7 +102,7 @@ const OAuthLoginButton = () => {
           setIsProcessing(false);
         }
       } else if (code && codeProcessed) {
-        console.log('Authentication code already processed, skipping...');
+        // Already processed, skip
       }
     };
     
@@ -132,37 +126,7 @@ const OAuthLoginButton = () => {
 
   // ログインボタンクリック
   const handleLogin = () => {
-    console.log('OAuth login initiated');
-    console.log('Current location:', {
-      origin: window.location.origin,
-      href: window.location.href,
-      protocol: window.location.protocol,
-      host: window.location.host,
-      pathname: window.location.pathname
-    });
-    
-    const redirectUri = getRedirectUri();
-    console.log('Computed redirect_uri:', redirectUri);
-    console.log('Google Client ID:', googleClientId);
-    
     const authUrl = generateOAuthUrl();
-    console.log('Full OAuth URL:', authUrl);
-    
-    // URLをパースして確認
-    try {
-      const url = new URL(authUrl);
-      const params = new URLSearchParams(url.search);
-      console.log('OAuth URL params:', {
-        client_id: params.get('client_id'),
-        redirect_uri: params.get('redirect_uri'),
-        response_type: params.get('response_type'),
-        scope: params.get('scope')
-      });
-    } catch (e) {
-      console.error('Failed to parse OAuth URL:', e);
-    }
-    
-    console.log('Redirecting to Google OAuth...');
     window.location.href = authUrl;
   };
 
