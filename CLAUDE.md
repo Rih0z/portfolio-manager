@@ -57,9 +57,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - [ ] tmpフォルダのクリーンアップ
 - [ ] 完了報告
 
+## 長期計画
+- **収益化・再設計計画書**: [documents/tmp/redesign-plan.md](documents/tmp/redesign-plan.md) — Phase管理・ロードマップ・収益モデル・アーキテクチャ設計の全体計画。新機能実装や方針判断時に必ず参照すること。
+
 ## ファイル組織ルール
 - **スクリプト**: scriptsフォルダ
-- **ドキュメント**: documentsフォルダ  
+- **ドキュメント**: documentsフォルダ
 - **一時ファイル**: 各フォルダ/tmpサブフォルダ（使用後削除）
 - **バグ報告**: documents/tmpフォルダ（解決まで保持）
 

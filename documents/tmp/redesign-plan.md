@@ -1017,10 +1017,27 @@ Phase 2-B:
   - 「後で」ボタンのインラインハンドラー→useCallback抽出
 - [x] テスト: 72ファイル / 1,451テスト PASS / 19 skipped / 0 FAIL
 
-**Phase 5-C以降（未着手）:**
-- [ ] ソーシャル・ポートフォリオ（匿名PF共有、同年代比較、アロケーションランキング）
-- [ ] 通知システム（価格アラート、目標達成通知、リバランス提案）
-- [ ] コンテンツマーケ、リファラルプログラム
+**Phase 5-C: 完了 ✅ (2026-03-07)**
+- [x] 通知システム（価格アラート、目標達成通知、リバランス提案 — アプリ内通知）
+  - NotificationBell + NotificationDropdown + AlertRulesManager + PriceAlertDialog + NotificationPreferences
+  - notificationStore + notificationService + useAlertEvaluation フック
+  - Backend: NotificationsTable + AlertRulesTable + 8 Lambda handlers
+  - プラン制限: Free 2ルール / Standard 20ルール
+- [x] ソーシャル・ポートフォリオ（匿名PF共有、同年代比較、アロケーションランキング）
+  - SharePortfolioButton + ShareDialog + ShareLinkDisplay + PeerComparisonPanel + PeerRankBadge
+  - SharedPortfolio 公開ページ（/share/:shareId）+ Recharts 円グラフ
+  - socialStore + socialService + Backend: SharedPortfoliosTable + 5 Lambda handlers
+  - プラン制限: Free 1件/7日 / Standard 5件/30日
+- [x] リファラルプログラム（紹介コード生成、トラッキング、リワード）
+  - ReferralSection + ReferralBanner + ReferralStatsCard
+  - referralStore + referralService + useReferralCapture フック
+  - Backend: ReferralsTable + ReferralEventsTable + 4 Lambda handlers
+  - 紹介者: Standard 1ヶ月無料延長（最大6ヶ月）/ 被紹介者: 7日間 Standard 体験
+- [x] i18n: notifications / social / referral キー追加（ja.json / en.json）
+- [x] GA4: 12イベント追加
+- [x] テスト: 79ファイル / 1,592テスト PASS / 19 skipped / 0 FAIL
+
+**Phase 6以降（未着手）:**
 - [ ] 【Stage 2】J-Quants Pro or 証券会社API業務提携交渉
 
 ### スケジュール概要
@@ -1036,11 +1053,10 @@ Phase 3:   AI強化+E2E基盤    4週間   ← 完了 ✅ (AI分析3分割 + 強
 Phase 4:   差別化機能        4週間   ← 完了 ✅ (4-A〜4-D: ゴール+月次レポート+バンドル-65%+shadcn/ui移行+レガシー全削除)
 Phase 5-A: SEO+LP            1週間   ← 完了 ✅ (SEOHead + ランディングページ + sitemap + _headers/_redirects)
 Phase 5-B: PWA対応           1週間   ← 完了 ✅ (Service Worker + オフライン + インストール + Workboxキャッシュ戦略)
-Phase 5-C: ソーシャルPF+通知  TBD    ← 未着手
+Phase 5-C: ソーシャル+通知+リファラル  ← 完了 ✅ (通知/共有/リファラル3機能)
 ──────────────────────────────────────
-Phase 0〜4 合計: 約28〜29週間（7〜7.3ヶ月）完了
-Phase 5-A/B追加: +2週間
-テスト: 72ファイル / 1,451テスト PASS
+Phase 0〜5 合計: 約30〜31週間（7.5〜7.8ヶ月）完了
+テスト: 79ファイル / 1,592テスト PASS
 ```
 
 ---
