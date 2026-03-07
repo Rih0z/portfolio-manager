@@ -59,6 +59,7 @@ export default defineConfig({
     alias: {
       '\\.(css|less|scss|sass)$': path.resolve(__dirname, '__mocks__/styleMock.js'),
       '\\.(gif|ttf|eot|svg|png|jpg|jpeg)$': path.resolve(__dirname, '__mocks__/fileMock.js'),
+      'virtual:pwa-register/react': path.resolve(__dirname, '__mocks__/virtualPwaRegister.js'),
     },
   },
 });

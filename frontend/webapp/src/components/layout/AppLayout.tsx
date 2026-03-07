@@ -13,12 +13,14 @@ import Footer from './Footer';
 import TabNavigation from './TabNavigation';
 import SettingsChecker from '../common/SettingsChecker';
 import LoadingFallback from '../common/LoadingFallback';
+import OfflineIndicator from '../pwa/OfflineIndicator';
 
 const AppLayout: React.FC = () => {
   return (
     <SettingsChecker>
       <div className="min-h-screen bg-background text-foreground">
         <Header />
+        <OfflineIndicator />
         <main className="max-w-7xl mx-auto pt-2 sm:pt-4 lg:pt-6 pb-20 sm:pb-6">
           <Suspense fallback={<LoadingFallback />}>
             <Outlet />

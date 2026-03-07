@@ -212,6 +212,16 @@
     "ctaTitle": "Start Free Today",
     "ctaDescription": "No credit card required. Just a Google account to get started immediately."
   },
+  "pwa": {
+    "updateAvailable": "A new version is available",
+    "updateNow": "Update now",
+    "later": "Later",
+    "offlineReady": "Ready for offline use",
+    "offline": "Offline mode — some features are limited",
+    "installTitle": "Install PortfolioWise",
+    "installDescription": "Add to your home screen for a better experience",
+    "install": "Install"
+  },
   "validation": {
     "required": "This field is required",
     "invalidEmail": "Please enter a valid email address",

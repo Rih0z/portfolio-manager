@@ -31,6 +31,8 @@ import { useSubscriptionStore } from './stores/subscriptionStore';
 import { initializeApiConfig, getGoogleClientId } from './utils/envUtils';
 import { initGA, trackPageView } from './utils/analytics';
 import { lazyWithRetry } from './utils/lazyWithRetry';
+import PWAUpdatePrompt from './components/pwa/PWAUpdatePrompt';
+import InstallPrompt from './components/pwa/InstallPrompt';
 
 // Route-based code splitting: ページコンポーネントを遅延ロード（リトライ付き）
 const Landing = lazyWithRetry(() => import('./pages/Landing'));
@@ -304,6 +306,10 @@ const App = () => {
 
             {/* 通知表示（uiStore経由で管理） */}
             <NotificationDisplay />
+
+            {/* PWA: 更新通知 + インストールプロンプト */}
+            <PWAUpdatePrompt />
+            <InstallPrompt />
           </AppInitializer>
         </QueryProvider>
       </HelmetProvider>

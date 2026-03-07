@@ -212,6 +212,16 @@
     "ctaTitle": "今すぐ無料で始める",
     "ctaDescription": "クレジットカード不要。Googleアカウントだけで、すぐに使い始められます。"
   },
+  "pwa": {
+    "updateAvailable": "新しいバージョンが利用可能です",
+    "updateNow": "今すぐ更新",
+    "later": "あとで",
+    "offlineReady": "オフラインで利用可能です",
+    "offline": "オフラインモード — 一部機能が制限されます",
+    "installTitle": "PortfolioWise をインストール",
+    "installDescription": "ホーム画面に追加して、より快適にご利用いただけます",
+    "install": "インストール"
+  },
   "validation": {
     "required": "この項目は必須です",
     "invalidEmail": "有効なメールアドレスを入力してください",
