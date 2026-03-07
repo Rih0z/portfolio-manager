@@ -63,6 +63,7 @@ export default defineConfig({
               cacheName: 'google-oauth',
               networkTimeoutSeconds: 10,
               expiration: { maxEntries: 5, maxAgeSeconds: 60 * 60 * 24 },
+              cacheableResponse: { statuses: [0, 200] },
             },
           },
         ],

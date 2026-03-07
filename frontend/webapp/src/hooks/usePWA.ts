@@ -3,22 +3,30 @@
  *
  * vite-plugin-pwa の useRegisterSW をラップし、
  * SW 更新通知・オフライン準備完了状態を提供する。
- * 60分ごとに SW 更新をチェック。
+ * 60分ごと（±5分ジッター）に SW 更新をチェック。
  *
  * @file src/hooks/usePWA.ts
  */
 import { useRegisterSW } from 'virtual:pwa-register/react';
+import { useEffect, useRef } from 'react';
+import { useUIStore } from '../stores/uiStore';
 
-const SW_CHECK_INTERVAL = 60 * 60 * 1000; // 60分
+const SW_CHECK_BASE_INTERVAL = 60 * 60 * 1000; // 60分
+const SW_CHECK_JITTER = 5 * 60 * 1000; // ±5分
+
+const getJitteredInterval = (): number =>
+  SW_CHECK_BASE_INTERVAL + Math.floor(Math.random() * SW_CHECK_JITTER * 2 - SW_CHECK_JITTER);
 
 export interface UsePWAReturn {
   needRefresh: boolean;
-  offlineReady: boolean;
   updateServiceWorker: () => Promise<void>;
   dismissUpdate: () => void;
 }
 
 export const usePWA = (): UsePWAReturn => {
+  const addNotification = useUIStore(state => state.addNotification);
+  const hasNotifiedOfflineReady = useRef(false);
+
   const {
     needRefresh: [needRefresh, setNeedRefresh],
     offlineReady: [offlineReady],
@@ -26,15 +34,29 @@ export const usePWA = (): UsePWAReturn => {
   } = useRegisterSW({
     onRegisteredSW(_swUrl, registration) {
       if (registration) {
-        setInterval(() => {
-          registration.update();
-        }, SW_CHECK_INTERVAL);
+        const scheduleCheck = () => {
+          setTimeout(() => {
+            registration.update();
+            scheduleCheck();
+          }, getJitteredInterval());
+        };
+        scheduleCheck();
       }
     },
     onRegisterError(error) {
-      console.error('Service Worker registration failed:', error);
+      addNotification(
+        `Service Workerの登録に失敗しました: ${error instanceof Error ? error.message : String(error)}`,
+        'error'
+      );
     },
   });
+
+  useEffect(() => {
+    if (offlineReady && !hasNotifiedOfflineReady.current) {
+      hasNotifiedOfflineReady.current = true;
+      addNotification('アプリがオフラインで利用可能になりました', 'success');
+    }
+  }, [offlineReady, addNotification]);
 
   const dismissUpdate = () => {
     setNeedRefresh(false);
@@ -42,7 +64,6 @@ export const usePWA = (): UsePWAReturn => {
 
   return {
     needRefresh,
-    offlineReady,
     updateServiceWorker: () => updateServiceWorker(true),
     dismissUpdate,
   };

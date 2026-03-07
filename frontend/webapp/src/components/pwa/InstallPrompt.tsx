@@ -8,7 +8,7 @@
  *
  * @file src/components/pwa/InstallPrompt.tsx
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useInstallPrompt } from '../../hooks/useInstallPrompt';
 
@@ -32,6 +32,11 @@ const InstallPrompt: React.FC = () => {
     return () => clearTimeout(timer);
   }, [canInstall, isInstalled]);
 
+  const handleDismiss = useCallback(() => {
+    dismissInstall();
+    setVisible(false);
+  }, [dismissInstall]);
+
   if (!visible) return null;
 
   return (
@@ -42,7 +47,7 @@ const InstallPrompt: React.FC = () => {
       <div className="bg-card border border-border rounded-xl shadow-large p-4">
         <div className="flex items-start gap-3">
           <div className="flex-shrink-0 w-8 h-8 bg-success-50 dark:bg-success-500/10 rounded-full flex items-center justify-center">
-            <svg className="w-4 h-4 text-success-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg aria-hidden="true" className="w-4 h-4 text-success-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
             </svg>
           </div>
@@ -61,10 +66,7 @@ const InstallPrompt: React.FC = () => {
                 {t('pwa.install')}
               </button>
               <button
-                onClick={() => {
-                  dismissInstall();
-                  setVisible(false);
-                }}
+                onClick={handleDismiss}
                 className="px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
                 {t('pwa.later')}

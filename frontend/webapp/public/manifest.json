@@ -10,6 +10,16 @@
       "type": "image/x-icon"
     },
     {
+      "src": "logo96.png",
+      "type": "image/png",
+      "sizes": "96x96"
+    },
+    {
+      "src": "logo128.png",
+      "type": "image/png",
+      "sizes": "128x128"
+    },
+    {
       "src": "logo192.png",
       "type": "image/png",
       "sizes": "192x192"
@@ -31,7 +41,7 @@
   "display": "standalone",
   "orientation": "portrait-primary",
   "theme_color": "#1A56DB",
-  "background_color": "#F8FAFC",
+  "background_color": "#FFFFFF",
   "categories": ["finance", "productivity"],
   "shortcuts": [
     {

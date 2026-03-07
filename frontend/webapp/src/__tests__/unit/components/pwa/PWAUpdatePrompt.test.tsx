@@ -4,7 +4,6 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import PWAUpdatePrompt from '../../../../components/pwa/PWAUpdatePrompt';
 
 // i18n モック
 vi.mock('react-i18next', () => ({
@@ -22,11 +21,11 @@ vi.mock('react-i18next', () => ({
 
 const mockUpdateServiceWorker = vi.fn().mockResolvedValue(undefined);
 const mockDismissUpdate = vi.fn();
+let mockNeedRefresh = true;
 
 vi.mock('../../../../hooks/usePWA', () => ({
   usePWA: () => ({
-    needRefresh: true,
-    offlineReady: false,
+    needRefresh: mockNeedRefresh,
     updateServiceWorker: mockUpdateServiceWorker,
     dismissUpdate: mockDismissUpdate,
   }),
@@ -35,45 +34,43 @@ vi.mock('../../../../hooks/usePWA', () => ({
 describe('PWAUpdatePrompt', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockNeedRefresh = true;
   });
 
-  it('should render update banner when needRefresh is true', () => {
+  it('should render update banner when needRefresh is true', async () => {
+    const PWAUpdatePrompt = (await import('../../../../components/pwa/PWAUpdatePrompt')).default;
     render(<PWAUpdatePrompt />);
     expect(screen.getByText('新しいバージョンが利用可能です')).toBeInTheDocument();
     expect(screen.getByRole('alert')).toBeInTheDocument();
   });
 
-  it('should call updateServiceWorker when clicking update button', () => {
+  it('should call updateServiceWorker when clicking update button', async () => {
+    const PWAUpdatePrompt = (await import('../../../../components/pwa/PWAUpdatePrompt')).default;
     render(<PWAUpdatePrompt />);
     fireEvent.click(screen.getByText('今すぐ更新'));
     expect(mockUpdateServiceWorker).toHaveBeenCalled();
   });
 
-  it('should call dismissUpdate when clicking later button', () => {
+  it('should call dismissUpdate when clicking later button', async () => {
+    const PWAUpdatePrompt = (await import('../../../../components/pwa/PWAUpdatePrompt')).default;
     render(<PWAUpdatePrompt />);
     fireEvent.click(screen.getByText('あとで'));
     expect(mockDismissUpdate).toHaveBeenCalled();
   });
-});
 
-describe('PWAUpdatePrompt - hidden state', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+  it('should not render when needRefresh is false', async () => {
+    mockNeedRefresh = false;
+    const PWAUpdatePrompt = (await import('../../../../components/pwa/PWAUpdatePrompt')).default;
+    const { container } = render(<PWAUpdatePrompt />);
+    expect(container.firstChild).toBeNull();
   });
 
-  it('should not render when needRefresh is false', () => {
-    vi.doMock('../../../../hooks/usePWA', () => ({
-      usePWA: () => ({
-        needRefresh: false,
-        offlineReady: false,
-        updateServiceWorker: vi.fn(),
-        dismissUpdate: vi.fn(),
-      }),
-    }));
-
-    // Since the mock is already set at module level, we test the component logic
-    // by verifying the component renders null when needRefresh is false
-    // This is tested via the conditional rendering in the component itself
-    expect(true).toBe(true);
+  it('should have SVGs with aria-hidden for accessibility', async () => {
+    const PWAUpdatePrompt = (await import('../../../../components/pwa/PWAUpdatePrompt')).default;
+    render(<PWAUpdatePrompt />);
+    const svgs = document.querySelectorAll('svg');
+    svgs.forEach(svg => {
+      expect(svg).toHaveAttribute('aria-hidden', 'true');
+    });
   });
 });

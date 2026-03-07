@@ -24,6 +24,15 @@ describe('useInstallPrompt', () => {
     vi.restoreAllMocks();
   });
 
+  const createInstallEvent = (overrides: Record<string, any> = {}): Event => {
+    const event = new Event('beforeinstallprompt') as any;
+    event.preventDefault = vi.fn();
+    event.prompt = vi.fn().mockResolvedValue(undefined);
+    event.userChoice = Promise.resolve({ outcome: 'dismissed' as const, platform: 'web' });
+    Object.assign(event, overrides);
+    return event;
+  };
+
   it('should initialize with canInstall false', () => {
     const { result } = renderHook(() => useInstallPrompt());
     expect(result.current.canInstall).toBe(false);
@@ -43,24 +52,31 @@ describe('useInstallPrompt', () => {
     const { result } = renderHook(() => useInstallPrompt());
 
     act(() => {
-      const event = new Event('beforeinstallprompt');
-      Object.defineProperty(event, 'preventDefault', { value: vi.fn() });
-      window.dispatchEvent(event);
+      window.dispatchEvent(createInstallEvent());
     });
 
     expect(result.current.canInstall).toBe(true);
   });
 
-  it('should not set canInstall when dismissed within 7 days', () => {
-    // Mock localStorage to return a recent timestamp
-    (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue(Date.now().toString());
-
+  it('should not set canInstall when event lacks prompt method', () => {
     const { result } = renderHook(() => useInstallPrompt());
 
     act(() => {
       const event = new Event('beforeinstallprompt');
       Object.defineProperty(event, 'preventDefault', { value: vi.fn() });
       window.dispatchEvent(event);
+    });
+
+    expect(result.current.canInstall).toBe(false);
+  });
+
+  it('should not set canInstall when dismissed within 7 days', () => {
+    (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue(Date.now().toString());
+
+    const { result } = renderHook(() => useInstallPrompt());
+
+    act(() => {
+      window.dispatchEvent(createInstallEvent());
     });
 
     expect(result.current.canInstall).toBe(false);
@@ -73,9 +89,7 @@ describe('useInstallPrompt', () => {
     const { result } = renderHook(() => useInstallPrompt());
 
     act(() => {
-      const event = new Event('beforeinstallprompt');
-      Object.defineProperty(event, 'preventDefault', { value: vi.fn() });
-      window.dispatchEvent(event);
+      window.dispatchEvent(createInstallEvent());
     });
 
     expect(result.current.canInstall).toBe(true);
@@ -97,9 +111,7 @@ describe('useInstallPrompt', () => {
 
     // Trigger beforeinstallprompt to enable canInstall
     act(() => {
-      const event = new Event('beforeinstallprompt');
-      Object.defineProperty(event, 'preventDefault', { value: vi.fn() });
-      window.dispatchEvent(event);
+      window.dispatchEvent(createInstallEvent());
     });
 
     expect(result.current.canInstall).toBe(true);

@@ -52,9 +52,11 @@ export const useInstallPrompt = (): UseInstallPromptReturn => {
 
     const handleBeforeInstall = (e: Event) => {
       e.preventDefault();
-      deferredPrompt.current = e as BeforeInstallPromptEvent;
-      if (!isDismissed()) {
-        setCanInstall(true);
+      if (typeof (e as any).prompt === 'function') {
+        deferredPrompt.current = e as BeforeInstallPromptEvent;
+        if (!isDismissed()) {
+          setCanInstall(true);
+        }
       }
     };
 
