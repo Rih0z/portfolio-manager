@@ -23,6 +23,7 @@ import { useUIStore } from '../../stores/uiStore';
 import UserProfile from '../auth/UserProfile';
 import OAuthLoginButton from '../auth/OAuthLoginButton';
 import LanguageSwitcher from '../common/LanguageSwitcher';
+import NotificationBell from '../notifications/NotificationBell';
 
 const ThemeToggle = () => {
   const theme = useUIStore(s => s.theme);
@@ -196,6 +197,9 @@ const Header = () => {
             {/* Language Switcher */}
             <LanguageSwitcher />
 
+            {/* Notification Bell (認証時のみ) */}
+            {isAuthenticated && <NotificationBell />}
+
             {/* Auth Section */}
             <div className="ml-3">
               {!authLoading && (
@@ -242,12 +246,13 @@ const Header = () => {
           </div>
         </div>
 
-        {/* Mobile Secondary Row - Language and Auth */}
+        {/* Mobile Secondary Row - Language, Notifications and Auth */}
         <div className="flex sm:hidden justify-between items-center pb-2 -mt-1">
           <div className="flex items-center space-x-2">
             <LanguageSwitcher />
           </div>
-          <div>
+          <div className="flex items-center space-x-2">
+            {isAuthenticated && <NotificationBell />}
             {!authLoading && (
               isAuthenticated ? <UserProfile /> : <OAuthLoginButton />
             )}

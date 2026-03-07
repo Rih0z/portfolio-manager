@@ -24,6 +24,8 @@ import AllocationEditor from '../components/settings/AllocationEditor';
 import AiPromptSettings from '../components/settings/AiPromptSettings';
 import PortfolioYamlConverter from '../components/settings/PortfolioYamlConverter';
 import ResetSettings from '../components/settings/ResetSettings';
+import AlertRulesManager from '../components/notifications/AlertRulesManager';
+import NotificationPreferences from '../components/notifications/NotificationPreferences';
 
 const Settings = () => {
   const { t, i18n } = useTranslation();
@@ -45,6 +47,11 @@ const Settings = () => {
       id: 'data-exchange',
       name: isJapanese ? 'データ交換' : 'Data Exchange',
       icon: '🔄'
+    },
+    {
+      id: 'notifications',
+      name: isJapanese ? '通知設定' : 'Notification Settings',
+      icon: '🔔'
     },
     {
       id: 'system',
@@ -125,6 +132,25 @@ const Settings = () => {
       {activeSection === 'data-exchange' && (
         <div className="space-y-6">
           <PortfolioYamlConverter />
+        </div>
+      )}
+
+      {/* 通知設定セクション */}
+      {activeSection === 'notifications' && (
+        <div className="space-y-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
+              {isJapanese ? 'アラートルール' : 'Alert Rules'}
+            </h2>
+            <AlertRulesManager />
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
+              {isJapanese ? '通知設定' : 'Notification Preferences'}
+            </h2>
+            <NotificationPreferences />
+          </div>
         </div>
       )}
 

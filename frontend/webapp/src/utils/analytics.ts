@@ -20,6 +20,21 @@ export const AnalyticsEvents = {
   GOAL_CREATE: 'goal_create',
   GOAL_UPDATE: 'goal_update',
   GOAL_DELETE: 'goal_delete',
+  // Phase 5-C-1: 通知
+  ALERT_RULE_CREATE: 'alert_rule_create',
+  ALERT_RULE_DELETE: 'alert_rule_delete',
+  ALERT_TRIGGERED: 'alert_triggered',
+  NOTIFICATION_READ: 'notification_read',
+  // Phase 5-C-2: ソーシャル
+  SHARE_CREATE: 'share_create',
+  SHARE_VIEW: 'share_view',
+  SHARE_DELETE: 'share_delete',
+  PEER_COMPARISON_VIEW: 'peer_comparison_view',
+  SHARE_CTA_CLICK: 'share_cta_click',
+  // Phase 5-C-3: リファラル
+  REFERRAL_CODE_COPY: 'referral_code_copy',
+  REFERRAL_CODE_APPLY: 'referral_code_apply',
+  REFERRAL_SIGNUP: 'referral_signup',
 } as const;
 
 /**
