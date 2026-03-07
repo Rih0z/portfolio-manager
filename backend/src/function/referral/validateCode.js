@@ -3,6 +3,7 @@
 const referralDbService = require('../../services/referralDbService');
 const { formatResponse, formatErrorResponse, formatOptionsResponse } = require('../../utils/responseUtils');
 const { ERROR_CODES } = require('../../config/constants');
+const { checkRateLimit, recordUsage } = require('../../services/rateLimitService');
 const logger = require('../../utils/logger');
 
 /**
@@ -17,6 +18,19 @@ const handler = async (event) => {
   }
 
   try {
+    // IP ベースレート制限（公開エンドポイント: 60回/時間）
+    const sourceIp = event.requestContext?.identity?.sourceIp || 'unknown';
+    const rateLimitResult = await checkRateLimit(sourceIp, 'public', 'hour');
+    if (!rateLimitResult.allowed) {
+      return await formatErrorResponse({
+        statusCode: 429,
+        code: ERROR_CODES.RATE_LIMITED || 'RATE_LIMITED',
+        message: 'Too many requests. Please try again later.',
+        event,
+      });
+    }
+    await recordUsage(sourceIp, 'public', 'hour');
+
     // リクエストボディの解析
     let body;
     try {

@@ -1,6 +1,6 @@
 'use strict';
 
-const { GetCommand, PutCommand, QueryCommand } = require('@aws-sdk/lib-dynamodb');
+const { GetCommand, PutCommand, QueryCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
 const { getDynamoDb } = require('../utils/awsConfig');
 const { withRetry } = require('../utils/retry');
 const logger = require('../utils/logger');
@@ -173,6 +173,54 @@ const createReferralEvent = async (referralCode, { refereeUserId, eventType }) =
 };
 
 /**
+ * ユーザーが既にリファラルコードを適用済みか確認する
+ * referral-events テーブルから refereeUserId で検索
+ *
+ * @param {string} referralCode - リファラルコード
+ * @param {string} userId - 被紹介者のユーザーID
+ * @returns {Promise<boolean>} 適用済みなら true
+ */
+const hasUserAppliedCode = async (referralCode, userId) => {
+  const db = getDynamoDb();
+
+  const command = new QueryCommand({
+    TableName: REFERRAL_EVENTS_TABLE,
+    KeyConditionExpression: 'referralCode = :code',
+    FilterExpression: 'refereeUserId = :uid',
+    ExpressionAttributeValues: {
+      ':code': referralCode,
+      ':uid': userId,
+    },
+    Limit: 1,
+  });
+
+  const result = await withRetry(() => db.send(command));
+  return (result.Items && result.Items.length > 0);
+};
+
+/**
+ * リファラルレコードの totalReferrals をインクリメントする
+ *
+ * @param {string} referralCode - リファラルコード
+ * @returns {Promise<void>}
+ */
+const incrementReferralCount = async (referralCode) => {
+  const db = getDynamoDb();
+
+  const command = new UpdateCommand({
+    TableName: REFERRALS_TABLE,
+    Key: { referralCode },
+    UpdateExpression: 'SET totalReferrals = if_not_exists(totalReferrals, :zero) + :one',
+    ExpressionAttributeValues: {
+      ':zero': 0,
+      ':one': 1,
+    },
+  });
+
+  await withRetry(() => db.send(command));
+};
+
+/**
  * リファラルコードが有効かどうかを検証する
  *
  * @param {string} code - リファラルコード
@@ -188,6 +236,8 @@ module.exports = {
   getReferralByCode,
   getReferralStats,
   createReferralEvent,
+  hasUserAppliedCode,
+  incrementReferralCount,
   validateCode,
   // テスト用エクスポート
   REFERRALS_TABLE,

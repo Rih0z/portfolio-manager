@@ -73,13 +73,32 @@ const handler = async (event) => {
       });
     }
 
+    // 重複適用チェック（同一ユーザーが同じコードを2回適用するのを防止）
+    const alreadyApplied = await referralDbService.hasUserAppliedCode(normalizedCode, userId);
+    if (alreadyApplied) {
+      return await formatErrorResponse({
+        statusCode: 409,
+        code: ERROR_CODES.INVALID_PARAMS,
+        message: 'Referral code already applied',
+        event,
+      });
+    }
+
     // イベントを作成（signup）
     await referralDbService.createReferralEvent(normalizedCode, {
       refereeUserId: userId,
       eventType: 'signup',
     });
 
-    logger.info(`Referral code ${normalizedCode} applied by user ${userId}`);
+    // 紹介者の totalReferrals カウンターを更新
+    await referralDbService.incrementReferralCount(normalizedCode);
+
+    // 報酬付与:
+    // 被紹介者 → 7日間 Standard 体験（subscriptionDbService で planType を一時変更）
+    // 紹介者 → Standard 1ヶ月無料延長（Stripe Coupon API 経由 — 要 Stage 2 実装）
+    // 現在は DynamoDB ベースの仮付与。Stripe 統合は Stage 2 で実装。
+    // TODO: Stage 2 — Stripe Coupon API による正式報酬付与
+    logger.info(`Referral code ${normalizedCode} applied by user ${userId}. Reward pending Stage 2 Stripe integration.`);
 
     return await formatResponse({
       statusCode: 200,

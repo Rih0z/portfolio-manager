@@ -25,6 +25,7 @@ interface ReferralState {
   loading: boolean;
   applied: boolean;
   capturedCode: string | null;
+  _statsLastFetched: number | null;
 
   // Actions
   fetchCode: () => Promise<void>;
@@ -38,6 +39,7 @@ interface ReferralState {
 // ─── Constants ───────────────────────────────────────
 
 const REFERRAL_STORAGE_KEY = 'pfwise-referral-code';
+const STATS_CACHE_MS = 5 * 60 * 1000; // 5分間キャッシュ
 
 // ─── Store ───────────────────────────────────────────
 
@@ -49,6 +51,7 @@ export const useReferralStore = create<ReferralState>()(
       loading: false,
       applied: false,
       capturedCode: null,
+      _statsLastFetched: null,
 
       fetchCode: async () => {
         if (get().loading) return;
@@ -64,11 +67,17 @@ export const useReferralStore = create<ReferralState>()(
       },
 
       fetchStats: async () => {
+        // 5分間キャッシュ — 直近取得から5分以内なら再取得しない
+        const now = Date.now();
+        if (get().stats && get()._statsLastFetched && (now - get()._statsLastFetched!) < STATS_CACHE_MS) {
+          return;
+        }
+
         set({ loading: true });
 
         try {
           const stats = await fetchReferralStatsApi();
-          set({ stats, loading: false });
+          set({ stats, loading: false, _statsLastFetched: now });
         } catch {
           // サイレントフェイル
           set({ loading: false });
