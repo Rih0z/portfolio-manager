@@ -28,7 +28,7 @@ export const SEO_DEFAULTS = {
 
 export const SEO_BY_ROUTE: Record<string, SEOMeta> = {
   '/': {
-    title: `${SITE_NAME} — 資産の全体像が、1分でわかる`,
+    title: `${SITE_NAME} — 分散投資の全体像が、ひとつの画面で完結`,
     description:
       'CSVインポートで簡単にポートフォリオを可視化。損益ダッシュボード・PFスコア・AIプロンプトで投資判断をサポート。無料で始められます。',
     ogType: 'website',

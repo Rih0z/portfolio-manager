@@ -1,14 +1,14 @@
 # PortfolioWise 収益化・再設計計画書
 
 **作成日**: 2026-03-03
-**最終更新**: 2026-03-07（カバレッジ閾値達成: 75/65/70/75 → 実績 77.85/67.88/75.66/79.12）
+**最終更新**: 2026-03-07（長期計画見直し: Phase 6完了 + LP改善 + テスト1,897件 + Phase 7計画策定）
 **コスト方針**: ゼロコスト運営から開始。収益が見込めてから有料API導入。
 
 ---
 
 ## 1. 現状分析サマリー
 
-### 現在のプロダクト（Phase 6 完了時点）
+### 現在のプロダクト（Phase 6 完了 + レビュー修正完了時点）
 - 日米株式・投資信託のポートフォリオ管理ツール
 - リバランスシミュレーション + AI分析プロンプト生成（3観点分割） + PFスコア(8指標/100点)
 - 損益ダッシュボード（参考値ベース） + 価格履歴蓄積 + サーバー側ポートフォリオ保存
@@ -40,7 +40,7 @@
 | **Modern*コンポーネント** | ~~旧ModernButton/Card/Inputが21箇所残存~~ | ✅ | Phase 4-Cで全移行+定義ファイル削除完了（-1,091行） |
 | **Atlassianコンポーネント** | ~~旧ファイル7件が未削除~~ | ✅ | Phase 4-Dで完全削除（ファイル+コメント+sideEffects+ドキュメント） |
 | **バンドルサイズ** | ~~1,164KB~~ → 157KB main + lazy chunks（-65%） | ✅ | Phase 4-Bで最適化完了 |
-| **E2Eカバレッジ** | ~~基本フローのみ~~ → 17スペック | ✅ | Phase 6で5→17スペック拡充 |
+| **E2Eカバレッジ** | ~~基本フローのみ~~ → 17スペック | ✅ | Phase 3+6で5→17スペック拡充 |
 | **エラー監視** | ~~本番エラー検知手段なし~~ | ✅ | Phase 6でSentry統合（要DSN設定） |
 | **a11y** | ~~WCAG準拠未対応~~ | ✅ | Phase 6でWCAG 2.1 AA対応 + Phase 6レビュー修正 |
 | **console汚染** | ~~198件のconsole.log散在~~ | ✅ | Phase 6でlogger統一 + ESLint no-console: error |
@@ -664,7 +664,7 @@ PWA: Phase 5でService Worker導入
 
 | テストレベル | 現状 | あるべき姿 | 導入Phase |
 |-------------|------|-----------|-----------|
-| ユニットテスト | ◎ 1,592テスト | ○ 維持・拡充 | 既存 |
+| ユニットテスト | ◎ 1,897テスト（106ファイル） | ○ 維持・拡充 | 既存 |
 | 統合テスト | △ モック過剰 | ○ 実APIとの疎通 | Phase 0-B |
 | E2Eテスト | ○ 17スペック | ◎ カバレッジ拡大 | Phase 3 ✅ + Phase 6 ✅ |
 | スモークテスト | ○ | ◎ デプロイ後必須実行 | Phase 0-B ✅ |
@@ -999,6 +999,9 @@ Phase 2-B:
   - Landing FAQ: aria-expanded/aria-controls アクセシビリティ追加
   - sitemap: lastmod を ISO 8601 形式に修正
   - 装飾SVGに aria-hidden="true" 追加
+- [x] LP改善: ペルソナ（テック系長期投資家）向けデザイン改善（コミット 59cc1b45）
+  - ヒーローコピー: 「資産の全体像が、1分でわかる」→「分散投資の全体像が、ひとつの画面で完結」
+  - テック系長期投資家ペインに最適化
 
 **Phase 5-B 完了日:** 2026-03-07（コミット e2fae2b1 + レビュー修正 3b567291）
 
@@ -1053,7 +1056,7 @@ Phase 2-B:
   - 紹介者: Standard 1ヶ月無料延長（最大6ヶ月）/ 被紹介者: 7日間 Standard 体験
 - [x] i18n: notifications / social / referral キー追加（ja.json / en.json）
 - [x] GA4: 12イベント追加
-- [x] テスト: 79ファイル / 1,592テスト PASS / 19 skipped / 0 FAIL
+- [x] テスト: 79→106ファイル / 1,592→1,897テスト PASS / 19 skipped / 0 FAIL（Phase 6レビュー後の最終値）
 
 ### Phase 6: プロダクション品質強化 ✅ 完了
 
@@ -1088,19 +1091,64 @@ Phase 2-B:
 - [x] PnLSummary: ※マーク → abbr + title（参考値の説明）
 - [x] .env.example: VITE_SENTRY_DSN / SENTRY_AUTH_TOKEN / SENTRY_ORG / SENTRY_PROJECT 文書化
 
-**Phase 6統計:**
-- テスト: 79ファイル / 1,592テスト PASS / 19 skipped / 0 FAIL
-- ビルド: 成功（2.20s）
+**Phase 6統計（最終）:**
+- テスト: 106ファイル / 1,897テスト PASS / 19 skipped / 0 FAIL
+- カバレッジ閾値: statements 75 / branches 65 / functions 70 / lines 75（実績: 77.85/67.88/75.66/79.12）
+- ビルド: 成功
 - TypeScript: エラー0
 - 本番デプロイ: https://portfolio-wise.com/ 反映済み
 
-**Phase 7以降:**
+**Phase 6 完了後のレビュー修正タスク（全完了）:**
 - [x] Sentry DSN本番設定 → コード側準備済み（`VITE_SENTRY_DSN`環境変数で読み込み）。Cloudflare Pagesダッシュボード > Settings > Environment Variables で `VITE_SENTRY_DSN` を設定し再デプロイで有効化
 - [x] カバレッジ閾値段階引き上げ（達成: statements 77.85% / branches 67.88% / functions 75.66% / lines 79.12%）
 - [x] CSP nonce化検討 → 見送り（Google GISライブラリがunsafe-inlineを要求するため、Cloudflare Pages静的ホスティングでのnonce化は実効的セキュリティ向上が限定的。GIS側のCSP nonce対応を待つ）
+- [x] LP改善: ペルソナ（テック系長期投資家）向けコピー・デザイン改善
+- [x] Landing.test.tsx テスト修正（LP改善に伴うアサーション更新）
 
-**将来計画（コーディング外）:**
-- [ ] 【Stage 2】J-Quants Pro or 証券会社API業務提携交渉（交渉タスク・コーディング対象外）
+### Phase 7: ローンチ準備 + ユーザー獲得（次Phase）
+
+**目標:** Phase 0〜6で構築した全機能をローンチ可能な状態に仕上げ、初期ユーザーを獲得する
+
+**7-A: ローンチ前チェック（1〜2週間）**
+- [ ] Sentry DSN 本番環境変数設定 + 再デプロイ（Cloudflare Pages）
+- [ ] 本番スモークテスト完全実行（scripts/smoke-test.sh）
+- [ ] 法務コンテンツ最終確認（利用規約・プライバシーポリシー・特商法表記・免責事項）
+- [ ] Stripe本番モード動作確認（テスト決済→本番切替）
+- [ ] SEO確認（Google Search Console登録 + sitemap送信 + OGP表示確認）
+- [ ] Lighthouse CI パフォーマンス確認（目標: Performance > 90, A11y > 90）
+- [ ] 未追跡ファイル整理（setupProxy.js, emergency-deploy.sh, App.jsx, index.jsx等）
+- [ ] git status クリーンアップ（deleted files コミット + 不要ファイル削除）
+
+**7-B: ベータテスト + ペルソナ検証（2〜3週間）**
+- [ ] ベータユーザー5〜10人招待（X投資クラスタ）
+- [ ] 30分インタビュー実施（PFスコアへの興味、課金意欲調査）
+- [ ] ユーザーフィードバック収集 + 優先度付け
+- [ ] GA4ファネル設定（LP→登録→ダッシュボード→課金）
+- [ ] Critical bugfix対応
+
+**7-C: パブリックローンチ + 初期獲得（2〜3週間）**
+- [ ] Product Hunt Japan 投稿
+- [ ] X（Twitter）投資クラスタ向け告知
+- [ ] 投資系ブログ・メディアへの紹介
+- [ ] LP CVR計測開始（目標: > 3%）
+- [ ] NPS調査機能実装（アプリ内、Month 3目標）
+
+### Phase 8: 継続改善 + Stage 2準備（将来）
+
+**技術的改善:**
+- [ ] TanStack Query カスタムフック作成（useExchangeRate, useStockPrice等）— Phase 0-Cで先送り
+- [ ] Zustand persist移行（Base64→プレーンJSON + サーバー同期強化）
+- [ ] カバレッジ閾値さらなる引き上げ（目標: 80/70/75/80）
+- [ ] TypeScript strict: true 移行（325箇所の any 型解消）
+- [ ] データ精度モニタリング基盤（CloudWatch Metrics）
+- [ ] カナリアデプロイ導入
+
+**Stage 2 移行判断（MRR ¥200K達成時）:**
+- [ ] Claude API直接統合（AIポートフォリオ・コーチ）
+- [ ] Pro プラン新設（¥1,500/月）
+- [ ] J-Quants Pro or 証券会社API業務提携交渉（交渉タスク・コーディング対象外）
+- [ ] Financial Modeling Prep（$29/月）導入検討
+- [ ] React Native or Capacitor モバイルアプリ検討（MAU 5,000超）
 
 ### スケジュール概要
 
@@ -1118,8 +1166,12 @@ Phase 5-B: PWA対応           1週間   ← 完了 ✅ (Service Worker + オフ
 Phase 5-C: ソーシャル+通知+リファラル  ← 完了 ✅ (通知/共有/リファラル3機能)
 Phase 6:   プロダクション品質強化     ← 完了 ✅ (Sentry+WebVitals+a11y+E2E17件+console統一+レビュー修正)
 ──────────────────────────────────────
+Phase 7:   ローンチ準備        5〜8週間  ← 次Phase（7-A/B/C）
+Phase 8:   継続改善+Stage 2    継続      ← 将来
+──────────────────────────────────────
 Phase 0〜6 合計: 約31〜32週間（7.8〜8ヶ月）完了
-テスト: 79ファイル / 1,592テスト PASS
+テスト: 106ファイル / 1,897テスト PASS / 19 skipped
+カバレッジ: statements 77.85% / branches 67.88% / functions 75.66% / lines 79.12%
 ```
 
 ---

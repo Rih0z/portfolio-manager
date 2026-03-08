@@ -89,8 +89,8 @@ describe('Landing', () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText('資産の全体像が、')).toBeInTheDocument();
-    expect(screen.getByText('1分でわかる')).toBeInTheDocument();
+    expect(screen.getByText('分散投資の全体像が、')).toBeInTheDocument();
+    expect(screen.getByText('ひとつの画面で完結')).toBeInTheDocument();
   });
 
   it('CTA（OAuthLoginButton）が表示される', () => {
