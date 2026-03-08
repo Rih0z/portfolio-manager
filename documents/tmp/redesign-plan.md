@@ -1,7 +1,7 @@
 # PortfolioWise 収益化・再設計計画書
 
 **作成日**: 2026-03-03
-**最終更新**: 2026-03-08（Phase 7進行中: UIコントラスト改善 + ヘッダーcompact化 + UIレビューチェックリスト整備）
+**最終更新**: 2026-03-08（Phase 8進行中: 8-A〜D-1完了 — カバレッジ80%・TanStack Query・persist統一・型安全化）
 **コスト方針**: ゼロコスト運営から開始。収益が見込めてから有料API導入。
 
 ---
@@ -1161,13 +1161,44 @@ Phase 2-B:
   - 表示条件: 初回7日後 / 回答後90日間隔 / dismiss後30日間隔
   - テスト: 22件（108ファイル / 1,919テスト PASS）
 
-### Phase 8: 継続改善 + Stage 2準備（将来）
+### Phase 8: 継続改善 + Stage 2準備 ← 進行中
 
-**技術的改善:**
-- [ ] TanStack Query カスタムフック作成（useExchangeRate, useStockPrice等）— Phase 0-Cで先送り
-- [ ] Zustand persist移行（Base64→プレーンJSON + サーバー同期強化）
-- [ ] カバレッジ閾値さらなる引き上げ（目標: 80/70/75/80）
-- [ ] TypeScript strict: true 移行（325箇所の any 型解消）
+**Phase 8-A: テストカバレッジ強化 ✅ 完了**（コミット d27997e5）
+- [x] Dashboard.test.jsx UIコントラスト改善追従（primary-400→500）
+- [x] analytics.test.ts: 6→27テスト（100%カバレッジ）
+- [x] logger.test.js: 38→63テスト（100%カバレッジ）
+- [x] formatters.test.js: +38テスト（100%カバレッジ）
+- [x] portfolioDataEnricher.test.ts: 17→58テスト（95%カバレッジ）
+- [x] apiUtils.test.ts: 19→90テスト（95%カバレッジ）
+- [x] csvParsers.test.ts: 37→98テスト（97%カバレッジ）
+- [x] カバレッジ閾値: 75/65/70/75 → **80/70/75/80**
+- [x] 実績: **81.23%/72.08%/78.98%/82.60%**
+
+**Phase 8-B: TanStack Query カスタムフック ✅ 完了**（コミット a23b8955）
+- [x] useExchangeRate（staleTime: 5分）
+- [x] useStockPrices（staleTime: 1分、バッチ取得）
+- [x] useSubscriptionStatus / useCreateCheckout / useCreatePortal
+- [x] usePriceHistory / usePriceHistories（staleTime: 30分）
+- [x] useNotifications / useAlertRules + CRUD mutations 5フック
+- [x] バレルエクスポート: hooks/queries/index.ts
+- [x] テスト: 42テスト新規追加
+
+**Phase 8-C: Zustand persist 統一 ✅ 完了**（コミット 678f7446）
+- [x] uiStore: 手動localStorage → persist middleware（partialize: themeのみ）
+- [x] 旧 'pfwise-theme' キーからの自動マイグレーション
+- [x] portfolioStore: Base64エンコード → プレーンJSON保存
+- [x] 旧Base64フォーマットの3段階フォールバック後方互換
+
+**Phase 8-D: TypeScript 型安全性強化 ← 進行中**
+- [x] 8-D-1: catch(error: any) → catch(error: unknown) 全54箇所統一（コミット 525a18df）
+  - errorUtils.ts 新規作成（getErrorMessage / isError / getErrorStatus）
+  - stores 6件 / services 8件 / utils 2件 / components 2件 / hooks 1件
+- [ ] 8-D-2: API レスポンス型定義（残存 `: any` 298箇所 → 段階的削減）
+- [ ] 8-D-3: コンポーネント props 型強化
+- [ ] 8-D-4: ユーティリティ関数型定義
+- [ ] 8-D-5: tsconfig strict: true 有効化
+
+**Phase 8 残タスク（将来）:**
 - [ ] データ精度モニタリング基盤（CloudWatch Metrics）
 - [ ] カナリアデプロイ導入
 
@@ -1195,10 +1226,11 @@ Phase 5-C: ソーシャル+通知+リファラル  ← 完了 ✅ (通知/共有
 Phase 6:   プロダクション品質強化     ← 完了 ✅ (Sentry+WebVitals+a11y+E2E17件+console統一+レビュー修正)
 ──────────────────────────────────────
 Phase 7:   ローンチ準備        5〜8週間  ← 進行中（7-A コード完了、7-B/C 手動タスク残）
-Phase 8:   継続改善+Stage 2    継続      ← 将来
+Phase 8:   継続改善+Stage 2    継続      ← 進行中（8-A〜D-1 完了）
 ──────────────────────────────────────
-Phase 0〜7 合計: 約31〜32週間（7.8〜8ヶ月）完了 + Phase 7進行中
-テスト: 108ファイル / 1,919テスト PASS / 19 skipped
+Phase 0〜8 合計: 約32〜33週間（8〜8.3ヶ月）
+テスト: 109ファイル / 2,236テスト PASS / 15 skipped
+カバレッジ: statements 81.23% / branches 72.08% / functions 78.98% / lines 82.60%
 カバレッジ: statements 77.85% / branches 67.88% / functions 75.66% / lines 79.12%
 ```
 
