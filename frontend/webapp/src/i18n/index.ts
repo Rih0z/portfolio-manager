@@ -26,7 +26,7 @@ i18n
 
     // 言語検出の設定
     detection: {
-      order: ['localStorage', 'navigator', 'htmlTag'],
+      order: ['localStorage', 'htmlTag', 'navigator'],
       caches: ['localStorage'],
       lookupLocalStorage: 'i18nextLng',
       // より安定した検出オプション
