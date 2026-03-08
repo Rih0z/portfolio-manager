@@ -176,6 +176,27 @@ global.console = {
   },
 };
 
+// 全テストを Standard（有料）ユーザー前提で実行
+// subscriptionStore の初期状態を standard に設定
+beforeAll(async () => {
+  try {
+    const { useSubscriptionStore } = await import('./src/stores/subscriptionStore');
+    useSubscriptionStore.setState({ planType: 'standard' });
+  } catch {
+    // subscriptionStore が読み込めない場合はスキップ
+  }
+});
+
+afterEach(async () => {
+  try {
+    const { useSubscriptionStore } = await import('./src/stores/subscriptionStore');
+    // 各テスト後も standard を維持（テスト間でリセットされた場合に備える）
+    useSubscriptionStore.setState({ planType: 'standard' });
+  } catch {
+    // subscriptionStore が読み込めない場合はスキップ
+  }
+});
+
 // テスト実行時のエラーハンドリング
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);

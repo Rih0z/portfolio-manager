@@ -28,6 +28,24 @@ const docClient = DynamoDBDocumentClient.from(dynamoClient);
 const USERS_TABLE = process.env.USERS_TABLE || 'pfwise-api-dev-users';
 
 /**
+ * デフォルトで Standard プランを付与するメールアドレス（管理者・テスト用）
+ */
+const PREMIUM_DEFAULT_EMAILS = [
+  'riho.dare@gmail.com',
+];
+
+/**
+ * メールアドレスに基づいて初期プランタイプを決定する
+ * @param {string} email
+ * @returns {string}
+ */
+const getInitialPlanType = (email) => {
+  return PREMIUM_DEFAULT_EMAILS.includes(email)
+    ? PLAN_TYPES.STANDARD
+    : PLAN_TYPES.FREE;
+};
+
+/**
  * ユーザーを取得、存在しなければ作成する
  * Google ログイン時に呼び出される
  *
@@ -42,35 +60,53 @@ const getOrCreateUser = async ({ userId, email, name, picture }) => {
   // 既存ユーザーを検索
   const existing = await getUserById(userId);
   if (existing) {
-    // 最終ログイン日時を更新
+    // Premium デフォルトユーザーが Free のままの場合、自動昇格
+    const shouldUpgrade = PREMIUM_DEFAULT_EMAILS.includes(email)
+      && existing.planType === PLAN_TYPES.FREE;
+
     const now = new Date().toISOString();
+    const updateExpression = shouldUpgrade
+      ? 'SET #lastLoginAt = :now, #name = :name, #picture = :picture, #updatedAt = :now, #planType = :planType'
+      : 'SET #lastLoginAt = :now, #name = :name, #picture = :picture, #updatedAt = :now';
+
+    const expressionNames = {
+      '#lastLoginAt': 'lastLoginAt',
+      '#name': 'name',
+      '#picture': 'picture',
+      '#updatedAt': 'updatedAt',
+      ...(shouldUpgrade && { '#planType': 'planType' }),
+    };
+    const expressionValues = {
+      ':now': now,
+      ':name': name,
+      ':picture': picture,
+      ...(shouldUpgrade && { ':planType': PLAN_TYPES.STANDARD }),
+    };
+
     await docClient.send(new UpdateCommand({
       TableName: USERS_TABLE,
       Key: { userId },
-      UpdateExpression: 'SET #lastLoginAt = :now, #name = :name, #picture = :picture, #updatedAt = :now',
-      ExpressionAttributeNames: {
-        '#lastLoginAt': 'lastLoginAt',
-        '#name': 'name',
-        '#picture': 'picture',
-        '#updatedAt': 'updatedAt',
-      },
-      ExpressionAttributeValues: {
-        ':now': now,
-        ':name': name,
-        ':picture': picture,
-      },
+      UpdateExpression: updateExpression,
+      ExpressionAttributeNames: expressionNames,
+      ExpressionAttributeValues: expressionValues,
     }));
-    return { ...existing, lastLoginAt: now, name, picture };
+
+    const updatedPlan = shouldUpgrade ? PLAN_TYPES.STANDARD : existing.planType;
+    if (shouldUpgrade) {
+      logger.info('Premium default user auto-upgraded', { userId, email, planType: PLAN_TYPES.STANDARD });
+    }
+    return { ...existing, lastLoginAt: now, name, picture, planType: updatedPlan };
   }
 
   // 新規ユーザー作成
   const now = new Date().toISOString();
+  const initialPlanType = getInitialPlanType(email);
   const newUser = {
     userId,
     email,
     name,
     picture,
-    planType: PLAN_TYPES.FREE,
+    planType: initialPlanType,
     stripeCustomerId: '',
     createdAt: now,
     updatedAt: now,
@@ -83,7 +119,7 @@ const getOrCreateUser = async ({ userId, email, name, picture }) => {
     ConditionExpression: 'attribute_not_exists(userId)',
   }));
 
-  logger.info('New user created', { userId, email, planType: PLAN_TYPES.FREE });
+  logger.info('New user created', { userId, email, planType: initialPlanType });
   return newUser;
 };
 
