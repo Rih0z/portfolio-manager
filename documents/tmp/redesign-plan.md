@@ -1,14 +1,14 @@
 # PortfolioWise 収益化・再設計計画書
 
 **作成日**: 2026-03-03
-**最終更新**: 2026-03-06（Phase 4-D完了: レガシー完全削除 + ドキュメント全面刷新 + レビュー修正）
+**最終更新**: 2026-03-07（Phase 6完了: プロダクション品質強化 + レビュー修正）
 **コスト方針**: ゼロコスト運営から開始。収益が見込めてから有料API導入。
 
 ---
 
 ## 1. 現状分析サマリー
 
-### 現在のプロダクト（Phase 3 完了時点）
+### 現在のプロダクト（Phase 6 完了時点）
 - 日米株式・投資信託のポートフォリオ管理ツール
 - リバランスシミュレーション + AI分析プロンプト生成（3観点分割） + PFスコア(8指標/100点)
 - 損益ダッシュボード（参考値ベース） + 価格履歴蓄積 + サーバー側ポートフォリオ保存
@@ -18,10 +18,18 @@
 - React SPA (Vite 7.x) + TypeScript 5.x + Vitest + Zustand + TanStack Query
 - shadcn/ui デザインシステム + ライト/ダークモード切替
 - CSVインポート対応（SBI証券/楽天証券/汎用、Shift-JIS自動検出）
-- Playwright E2Eテスト基盤（スモーク + クリティカルフロー4件）
+- Playwright E2Eテスト基盤（スモーク + クリティカルフロー4件 + 17スペック）
 - ゴールベース投資トラッキング（目標設定 + 進捗追跡 + Free/Standard制限）
 - 月次投資レポート生成（MonthlyReportCard）
-- GA4アナリティクス統合
+- GA4アナリティクス + Web Vitals計測
+- Sentry エラー監視統合（Free Tier）
+- WCAG 2.1 AA アクセシビリティ準拠（スキップリンク + aria属性 + axe-core開発時チェック）
+- 通知システム（価格アラート + 目標達成通知 + リバランス提案）
+- ソーシャル・ポートフォリオ（匿名PF共有 + 同年代比較）
+- リファラルプログラム（紹介コード + リワード）
+- PWA対応（Service Worker + オフライン + インストール）
+- SEO基盤（OGP + 構造化データ + sitemap + CSP強化）
+- console統一（logger.ts + ESLint no-console: error）
 - AWS Lambda + DynamoDB (sessions, cache, rate-limits, users, subscriptions, usage, portfolios, price-history)
 
 ### 現状の課題（残存）
@@ -32,7 +40,12 @@
 | **Modern*コンポーネント** | ~~旧ModernButton/Card/Inputが21箇所残存~~ | ✅ | Phase 4-Cで全移行+定義ファイル削除完了（-1,091行） |
 | **Atlassianコンポーネント** | ~~旧ファイル7件が未削除~~ | ✅ | Phase 4-Dで完全削除（ファイル+コメント+sideEffects+ドキュメント） |
 | **バンドルサイズ** | ~~1,164KB~~ → 157KB main + lazy chunks（-65%） | ✅ | Phase 4-Bで最適化完了 |
-| **E2Eカバレッジ** | 基本フローのみ（認証フロー未テスト） | 🟡 | Phase 4で拡充 |
+| **E2Eカバレッジ** | ~~基本フローのみ~~ → 17スペック | ✅ | Phase 6で5→17スペック拡充 |
+| **エラー監視** | ~~本番エラー検知手段なし~~ | ✅ | Phase 6でSentry統合（要DSN設定） |
+| **a11y** | ~~WCAG準拠未対応~~ | ✅ | Phase 6でWCAG 2.1 AA対応 + Phase 6レビュー修正 |
+| **console汚染** | ~~198件のconsole.log散在~~ | ✅ | Phase 6でlogger統一 + ESLint no-console: error |
+| **CSP** | unsafe-inline/unsafe-eval（Google APIs起因） | 🟡 | nonce化は Google OAuth/GA4 依存で困難。Stage 2で再検討 |
+| **Sentry DSN** | 本番環境変数未設定 | 🟡 | .env.example文書化済。Cloudflare環境変数設定が必要 |
 
 ---
 
@@ -463,6 +476,9 @@ TailwindCSS v3 + Atlassian    →  TailwindCSS v4 + shadcn/ui ← 完了（Phase
 Base64エンコード              →  Zustand persist → サーバー側保存 ← 完了（Phase 2-B）
 なし                          →  Playwright E2Eテスト基盤 ← 完了（Phase 3）
 なし                          →  GA4アナリティクス ← 完了（Phase 2-B）
+なし                          →  Sentry エラー監視 + Web Vitals ← 完了（Phase 6）
+なし                          →  WCAG 2.1 AA アクセシビリティ ← 完了（Phase 6）
+なし                          →  logger統一 + ESLint no-console ← 完了（Phase 6）
 ```
 
 ### 8.2 バックエンド
@@ -648,12 +664,14 @@ PWA: Phase 5でService Worker導入
 
 | テストレベル | 現状 | あるべき姿 | 導入Phase |
 |-------------|------|-----------|-----------|
-| ユニットテスト | ○ | ○ 維持 | 既存 |
+| ユニットテスト | ◎ 1,592テスト | ○ 維持・拡充 | 既存 |
 | 統合テスト | △ モック過剰 | ○ 実APIとの疎通 | Phase 0-B |
-| E2Eテスト | ○ Playwright導入済 | ○ カバレッジ拡大 | Phase 3 ✅ |
-| スモークテスト | ✕ | ◎ デプロイ後必須実行 | Phase 0-B |
-| ヘルスチェック | ✕ | ◎ 常時監視 | Phase 1 |
-| パフォーマンス | ✕ | △ Lighthouse CI | Phase 4 |
+| E2Eテスト | ○ 17スペック | ◎ カバレッジ拡大 | Phase 3 ✅ + Phase 6 ✅ |
+| スモークテスト | ○ | ◎ デプロイ後必須実行 | Phase 0-B ✅ |
+| ヘルスチェック | ○ | ◎ 常時監視 | Phase 1 ✅ |
+| パフォーマンス | △ Web Vitals | ○ Lighthouse CI | Phase 6 ✅（Web Vitals）|
+| エラー監視 | ○ Sentry統合済 | ◎ DSN設定+アラート | Phase 6 ✅ |
+| a11y | ○ WCAG 2.1 AA | ◎ 自動テスト統合 | Phase 6 ✅ |
 
 #### カナリアデプロイ（Phase 3以降）
 - 全ユーザーに即時展開ではなく、一部ユーザーに先行展開
@@ -1037,8 +1055,50 @@ Phase 2-B:
 - [x] GA4: 12イベント追加
 - [x] テスト: 79ファイル / 1,592テスト PASS / 19 skipped / 0 FAIL
 
-**Phase 6以降（未着手）:**
+### Phase 6: プロダクション品質強化 ✅ 完了
+
+**Phase 6-A 完了日:** 2026-03-07（コミット 06d0b6c5）
+
+**エラー監視 + Web Vitals + console クリーンアップ:**
+- [x] Sentry統合（src/utils/sentry.ts — Free Tier, 10%サンプリング, センシティブデータスクラビング）
+- [x] Web Vitals計測（src/utils/webVitals.ts — CLS/INP/LCP/FCP/TTFB → GA4送信）
+- [x] console 198件→0件（logger.ts統一 + ESLint no-console: error）
+- [x] E2Eテスト 5→17スペック拡充
+
+**Phase 6-B: アクセシビリティ WCAG 2.1 AA:**
+- [x] eslint-plugin-jsx-a11y recommended
+- [x] TabNavigation / Header / NotificationDisplay / ErrorBoundary a11y
+- [x] スキップリンク（App.tsx — #main-content）
+- [x] フォームa11y（TickerSearch / HoldingCard）
+- [x] チャートa11y（PnLSummary / PnLTrendChart — role="img" + aria-label）
+- [x] @axe-core/react 開発モード統合
+- [x] i18n a11y キー補完
+
+**Phase 6-C: パフォーマンス + コード品質:**
+- [x] TypeScript強化（noImplicitReturns / noFallthroughCasesInSwitch）
+- [x] Viteチャンク分割最適化（vendor-sentry独立チャンク）
+- [x] カバレッジ閾値追加（statements 65 / branches 55 / functions 60 / lines 65）
+- [x] CSP強化（GA4 + Sentry connect-src追加）
+
+**Phase 6 レビュー修正:** 2026-03-07（コミット 4c5dfadb）
+- [x] TickerSearch: aria-invalid / aria-describedby / role="alert" 追加
+- [x] NotificationBell: aria-controls + NotificationDropdown id 追加
+- [x] HoldingCard: alert() → インライン検証メッセージ + +/- ボタン aria-label
+- [x] PnLTrendChart: 期間ボタンに aria-label（日本語）/ aria-pressed 追加
+- [x] PnLSummary: ※マーク → abbr + title（参考値の説明）
+- [x] .env.example: VITE_SENTRY_DSN / SENTRY_AUTH_TOKEN / SENTRY_ORG / SENTRY_PROJECT 文書化
+
+**Phase 6統計:**
+- テスト: 79ファイル / 1,592テスト PASS / 19 skipped / 0 FAIL
+- ビルド: 成功（2.20s）
+- TypeScript: エラー0
+- 本番デプロイ: https://portfolio-wise.com/ 反映済み
+
+**Phase 7以降（未着手）:**
 - [ ] 【Stage 2】J-Quants Pro or 証券会社API業務提携交渉
+- [ ] Sentry DSN本番設定（Cloudflare Pages環境変数）
+- [ ] カバレッジ閾値段階引き上げ（目標: 75/65/70/75）
+- [ ] CSP nonce化検討（Google OAuth/GA4対応要否調査）
 
 ### スケジュール概要
 
@@ -1054,8 +1114,9 @@ Phase 4:   差別化機能        4週間   ← 完了 ✅ (4-A〜4-D: ゴール
 Phase 5-A: SEO+LP            1週間   ← 完了 ✅ (SEOHead + ランディングページ + sitemap + _headers/_redirects)
 Phase 5-B: PWA対応           1週間   ← 完了 ✅ (Service Worker + オフライン + インストール + Workboxキャッシュ戦略)
 Phase 5-C: ソーシャル+通知+リファラル  ← 完了 ✅ (通知/共有/リファラル3機能)
+Phase 6:   プロダクション品質強化     ← 完了 ✅ (Sentry+WebVitals+a11y+E2E17件+console統一+レビュー修正)
 ──────────────────────────────────────
-Phase 0〜5 合計: 約30〜31週間（7.5〜7.8ヶ月）完了
+Phase 0〜6 合計: 約31〜32週間（7.8〜8ヶ月）完了
 テスト: 79ファイル / 1,592テスト PASS
 ```
 
