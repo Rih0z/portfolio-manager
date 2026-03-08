@@ -1,7 +1,7 @@
 # PortfolioWise 収益化・再設計計画書
 
 **作成日**: 2026-03-03
-**最終更新**: 2026-03-07（長期計画見直し: Phase 6完了 + LP改善 + テスト1,897件 + Phase 7計画策定）
+**最終更新**: 2026-03-08（Phase 7進行中: UIコントラスト改善 + ヘッダーcompact化 + UIレビューチェックリスト整備）
 **コスト方針**: ゼロコスト運営から開始。収益が見込めてから有料API導入。
 
 ---
@@ -30,6 +30,8 @@
 - PWA対応（Service Worker + オフライン + インストール）
 - SEO基盤（OGP + 構造化データ + sitemap + CSP強化）
 - console統一（logger.ts + ESLint no-console: error）
+- UIレビューチェックリスト整備（documents/ui-review-checklist.md — WCAG AA準拠チェック + ペルソナ整合性）
+- OAuthLoginButton compact モード対応（ヘッダー/インライン用の軽量表示）
 - AWS Lambda + DynamoDB (sessions, cache, rate-limits, users, subscriptions, usage, portfolios, price-history)
 
 ### 現状の課題（残存）
@@ -44,6 +46,8 @@
 | **エラー監視** | ~~本番エラー検知手段なし~~ | ✅ | Phase 6でSentry統合（要DSN設定） |
 | **a11y** | ~~WCAG準拠未対応~~ | ✅ | Phase 6でWCAG 2.1 AA対応 + Phase 6レビュー修正 |
 | **console汚染** | ~~198件のconsole.log散在~~ | ✅ | Phase 6でlogger統一 + ESLint no-console: error |
+| **UIコントラスト** | ~~グラデーション文字WCAG不合格 + muted-foreground薄すぎ~~ | ✅ | Phase 7でprimary-500→700 + muted-foreground #475569に強化 |
+| **ヘッダー肥大化** | ~~OAuthLoginButtonがフルカード表示~~ | ✅ | Phase 7でcompactモード追加 |
 | **CSP** | unsafe-inline/unsafe-eval（Google APIs起因） | 🟡 | nonce化は Google OAuth/GA4 依存で困難。Stage 2で再検討 |
 | **Sentry DSN** | 本番環境変数未設定 | 🟡 | .env.example文書化済。Cloudflare環境変数設定が必要 |
 
@@ -1128,6 +1132,14 @@ Phase 2-B:
   - vite-env.d.ts スタブ宣言削除
   - node_modules_backup + node_modules_old 削除（263MB回収）
 - [x] ランディングページ言語検出修正 ✅（日本語デフォルト化、コミット ce6d0c8b）
+- [x] UIコントラスト改善 + ヘッダーcompact化 ✅（コミット 92b76746）
+  - muted-foreground: #64748B → #475569（コントラスト比 4.7:1 → 7.2:1 WCAG AA合格）
+  - グラデーションテキスト: primary-400→600 → primary-500→700（2.5:1 → 6.5:1 WCAG AA合格）
+  - OAuthLoginButton compact モード追加（ヘッダー: フルカード → ボタンのみ「ログイン」）
+  - LP セクション視覚的リズム追加（Pain/Features/Pricing に bg-muted/40〜50 交互背景）
+  - OAuthLoginButton ハードコード色 → セマンティックCSS変数に統一
+  - 全ファイルの primary-400 グラデーション修正（Landing/Header/LandingHeader/Dashboard）
+  - UIレビューチェックリスト作成（documents/ui-review-checklist.md）
 
 **7-B: ベータテスト + ペルソナ検証（2〜3週間）**
 - [ ] ベータユーザー5〜10人招待（X投資クラスタ）← 手動タスク
