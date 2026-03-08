@@ -310,5 +310,24 @@
     "banner": "友達からの紹介で Standard 7日間無料体験！",
     "applied": "紹介コードが適用されました",
     "invalidCode": "無効な紹介コードです"
+  },
+  "nps": {
+    "title": "PortfolioWise をおすすめしますか？",
+    "question": "友人や同僚に PortfolioWise を勧める可能性はどのくらいですか？",
+    "unlikely": "まったく勧めない",
+    "likely": "強く勧める",
+    "point": "点",
+    "commentPromoter": "嬉しいです！特に気に入っている点を教えてください。",
+    "commentPassive": "もっと良くするために、改善点を教えてください。",
+    "commentDetractor": "申し訳ありません。どうすれば改善できるか教えてください。",
+    "commentPlaceholder": "（任意）ご意見をお聞かせください",
+    "commentLabel": "フィードバックコメント",
+    "back": "戻る",
+    "skip": "スキップ",
+    "submit": "送信",
+    "close": "閉じる",
+    "thanks": "ご回答ありがとうございます！",
+    "thanksDetail": "いただいたフィードバックはサービス改善に活用します。",
+    "ariaLabel": "NPS調査"
   }
 }

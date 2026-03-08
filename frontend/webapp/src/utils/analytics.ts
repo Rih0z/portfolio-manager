@@ -37,6 +37,9 @@ export const AnalyticsEvents = {
   REFERRAL_CODE_COPY: 'referral_code_copy',
   REFERRAL_CODE_APPLY: 'referral_code_apply',
   REFERRAL_SIGNUP: 'referral_signup',
+  // Phase 7-C: NPS調査
+  NPS_SUBMIT: 'nps_submit',
+  NPS_DISMISS: 'nps_dismiss',
 } as const;
 
 /**

@@ -310,5 +310,24 @@
     "banner": "Get 7 days of Standard free with a referral!",
     "applied": "Referral code applied",
     "invalidCode": "Invalid referral code"
+  },
+  "nps": {
+    "title": "Would you recommend PortfolioWise?",
+    "question": "How likely are you to recommend PortfolioWise to a friend or colleague?",
+    "unlikely": "Not at all likely",
+    "likely": "Extremely likely",
+    "point": "points",
+    "commentPromoter": "Great to hear! What do you like most about PortfolioWise?",
+    "commentPassive": "Thanks! What could we do better?",
+    "commentDetractor": "We're sorry to hear that. How can we improve?",
+    "commentPlaceholder": "(Optional) Share your feedback",
+    "commentLabel": "Feedback comment",
+    "back": "Back",
+    "skip": "Skip",
+    "submit": "Submit",
+    "close": "Close",
+    "thanks": "Thank you for your feedback!",
+    "thanksDetail": "Your input helps us improve our service.",
+    "ariaLabel": "NPS Survey"
   }
 }

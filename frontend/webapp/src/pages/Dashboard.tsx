@@ -34,6 +34,7 @@ import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { trackEvent, AnalyticsEvents } from '../utils/analytics';
 import SEOHead from '../components/seo/SEOHead';
+import NPSSurvey from '../components/survey/NPSSurvey';
 
 const Dashboard = () => {
   const { t } = useTranslation();
@@ -139,6 +140,9 @@ const Dashboard = () => {
         <DifferenceChart />
         <AssetsTable />
       </div>
+
+      {/* NPS Survey */}
+      <NPSSurvey />
     </div>
     </>
   );
