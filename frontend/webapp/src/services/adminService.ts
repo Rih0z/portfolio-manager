@@ -18,6 +18,7 @@
 
 import axios, { AxiosInstance } from 'axios';
 import { getApiEndpoint } from '../utils/envUtils';
+import { getErrorMessage, getErrorStatus } from '../utils/errorUtils';
 import logger from '../utils/logger';
 
 // 管理者APIの設定
@@ -59,14 +60,14 @@ export const getStatus = async (): Promise<AdminApiResponse> => {
       data: response.data,
       message: 'ステータス情報を取得しました'
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('ステータス取得エラー:', error);
 
-    const errorMessage: string = error?.message || String(error) || 'Unknown error';
+    const errorMessage: string = getErrorMessage(error);
     return {
       success: false,
       error: errorMessage,
-      status: error?.response?.status,
+      status: getErrorStatus(error),
       message: `ステータス取得に失敗しました: ${errorMessage}`
     };
   }
@@ -85,14 +86,14 @@ export const resetUsage = async (): Promise<AdminApiResponse> => {
       data: response.data,
       message: 'API使用量をリセットしました'
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('使用量リセットエラー:', error);
 
-    const errorMessage: string = error?.message || String(error) || 'Unknown error';
+    const errorMessage: string = getErrorMessage(error);
     return {
       success: false,
       error: errorMessage,
-      status: error?.response?.status,
+      status: getErrorStatus(error),
       message: `使用量のリセットに失敗しました: ${errorMessage}`
     };
   }

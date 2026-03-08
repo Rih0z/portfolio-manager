@@ -11,6 +11,7 @@ import {
   loadFromGoogleDrive as apiLoadFromGoogleDrive,
   initGoogleDriveAPI
 } from '../../../services/api';
+import { getErrorMessage } from '../../../utils/errorUtils';
 import logger from '../../../utils/logger';
 
 export class GoogleDriveProvider extends CloudSyncProvider {
@@ -66,11 +67,11 @@ export class GoogleDriveProvider extends CloudSyncProvider {
           message: result.message || 'クラウド保存に失敗しました'
         };
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Google Drive save error:', error);
       return {
         success: false,
-        message: `クラウド保存に失敗しました: ${error.message}`
+        message: `クラウド保存に失敗しました: ${getErrorMessage(error)}`
       };
     }
   }
@@ -109,11 +110,11 @@ export class GoogleDriveProvider extends CloudSyncProvider {
           suggestSaving: true
         };
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Google Drive load error:', error);
       return {
         success: false,
-        message: `クラウドからの読み込みに失敗しました: ${error.message}`
+        message: `クラウドからの読み込みに失敗しました: ${getErrorMessage(error)}`
       };
     }
   }

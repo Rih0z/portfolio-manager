@@ -18,6 +18,7 @@ import { useState, useCallback, useRef } from 'react';
 import { fetchDriveFiles, saveToDrive, loadFromDrive } from '../services/googleDriveService';
 import { useAuth } from './useAuth';
 import { debounce } from '../utils/requestThrottle';
+import { getErrorMessage } from '../utils/errorUtils';
 import logger from '../utils/logger';
 
 interface DriveFile {
@@ -89,9 +90,9 @@ export const useGoogleDrive = (): UseGoogleDriveReturn => {
 
         return null;
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Google Driveファイル一覧取得エラー:', error);
-      setError(error.message || 'ファイル一覧取得エラー');
+      setError(getErrorMessage(error) || 'ファイル一覧取得エラー');
       return null;
     } finally {
       setLoading(false);
@@ -128,9 +129,9 @@ export const useGoogleDrive = (): UseGoogleDriveReturn => {
 
         return null;
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Google Driveファイル保存エラー:', error);
-      setError(error.message || 'ファイル保存エラー');
+      setError(getErrorMessage(error) || 'ファイル保存エラー');
       return null;
     } finally {
       setLoading(false);
@@ -171,9 +172,9 @@ export const useGoogleDrive = (): UseGoogleDriveReturn => {
 
         return null;
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Google Driveファイル読み込みエラー:', error);
-      setError(error.message || 'ファイル読み込みエラー');
+      setError(getErrorMessage(error) || 'ファイル読み込みエラー');
       return null;
     } finally {
       setLoading(false);

@@ -12,6 +12,7 @@ import { trackEvent, AnalyticsEvents } from '../utils/analytics';
 import { usePortfolioStore } from './portfolioStore';
 import { useSubscriptionStore } from './subscriptionStore';
 import logger from '../utils/logger';
+import { getErrorMessage, getErrorStatus } from '../utils/errorUtils';
 
 interface UserData {
   id: string;
@@ -67,8 +68,8 @@ const FAILURE_COOLDOWN_MS = 5 * 60 * 1000;
 const saveSession = (user: UserData, hasDriveAccess: boolean): void => {
   try {
     localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({ user, hasDriveAccess, timestamp: Date.now() }));
-  } catch (e: any) {
-    logger.warn('セッション保存エラー:', e.message);
+  } catch (e: unknown) {
+    logger.warn('セッション保存エラー:', getErrorMessage(e));
   }
 };
 
@@ -190,8 +191,15 @@ export const useAuthStore = create<AuthState>()((set, get) => {
 
       set({ error: response?.message || 'ログインに失敗しました', loading: false });
       return { success: false, hasDriveAccess: false };
-    } catch (err: any) {
-      const errorMessage = err.response?.data?.error?.message || err.response?.data?.message || err.message || 'ログイン処理中にエラーが発生しました';
+    } catch (err: unknown) {
+      // Axios エラーの場合、ネストされたレスポンスデータから最も具体的なメッセージを取得
+      let errorMessage = 'ログイン処理中にエラーが発生しました';
+      if (err && typeof err === 'object' && 'response' in err) {
+        const resp = (err as any).response;
+        errorMessage = resp?.data?.error?.message || resp?.data?.message || getErrorMessage(err);
+      } else {
+        errorMessage = getErrorMessage(err);
+      }
       set({ error: errorMessage, loading: false });
       return { success: false, hasDriveAccess: false };
     }
@@ -202,8 +210,8 @@ export const useAuthStore = create<AuthState>()((set, get) => {
       set({ loading: true });
       const logoutEndpoint = await getApiEndpoint('auth/logout');
       await authFetch(logoutEndpoint, 'post');
-    } catch (err: any) {
-      logger.warn('ログアウトAPI呼び出しエラー:', err.message);
+    } catch (err: unknown) {
+      logger.warn('ログアウトAPI呼び出しエラー:', getErrorMessage(err));
     } finally {
       setAuthState(null, false, false, null);
       notifyPortfolioStore(false, null);
@@ -253,8 +261,8 @@ export const useAuthStore = create<AuthState>()((set, get) => {
             return true;
           }
         }
-      } catch (refreshErr: any) {
-        logger.warn('JWT refresh failed:', refreshErr.message);
+      } catch (refreshErr: unknown) {
+        logger.warn('JWT refresh failed:', getErrorMessage(refreshErr));
       }
 
       // 3. Fallback: legacy session check
@@ -270,8 +278,8 @@ export const useAuthStore = create<AuthState>()((set, get) => {
           set({ loading: false });
           return true;
         }
-      } catch (sessionErr: any) {
-        logger.warn('Session check fallback failed:', sessionErr.message);
+      } catch (sessionErr: unknown) {
+        logger.warn('Session check fallback failed:', getErrorMessage(sessionErr));
       }
 
       // 全認証ティア失敗 → localStorageフォールバックを試行
@@ -290,8 +298,8 @@ export const useAuthStore = create<AuthState>()((set, get) => {
       set({ loading: false });
       return false;
 
-    } catch (err: any) {
-      logger.warn('セッション確認エラー:', err.message);
+    } catch (err: unknown) {
+      logger.warn('セッション確認エラー:', getErrorMessage(err));
       sessionCheckFailureCount++;
       lastFailureTime = Date.now();
 
@@ -317,9 +325,11 @@ export const useAuthStore = create<AuthState>()((set, get) => {
       }
       set({ error: 'Drive API認証URLの取得に失敗しました' });
       return false;
-    } catch (err: any) {
-      if (err.response?.status === 401) {
-        if (err.response?.data?.requiresReauth) {
+    } catch (err: unknown) {
+      if (getErrorStatus(err) === 401) {
+        const requiresReauth = err && typeof err === 'object' && 'response' in err &&
+          (err as any).response?.data?.requiresReauth;
+        if (requiresReauth) {
           set({ error: '再度ログインが必要です。' });
           setAuthState(null, false, false, null);
         } else {

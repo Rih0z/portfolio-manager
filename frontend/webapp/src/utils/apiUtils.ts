@@ -20,6 +20,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 import { getApiEndpoint, isLocalDevelopment } from './envUtils';
 import csrfManager from './csrfManager';
+import { getErrorMessage, getErrorStatus } from './errorUtils';
 import { handleApiError } from './errorHandler';
 import { getJapaneseStockName } from './japaneseStockNames';
 import { guessFundType, FUND_TYPES } from './fundUtils';
@@ -176,12 +177,12 @@ export const refreshAccessToken = async (): Promise<string | null> => {
     }
 
     return null;
-  } catch (error: any) {
-    logger.warn('Token refresh failed:', error.message);
+  } catch (error: unknown) {
+    logger.warn('Token refresh failed:', getErrorMessage(error));
 
     // サーバーが明示的にトークンを拒否した場合のみクリア（401/403）
     // ネットワークエラー（タイムアウト、接続断等）ではトークンを保持
-    const status = error.response?.status;
+    const status = getErrorStatus(error);
     if (status === 401 || status === 403) {
       clearAuthToken();
     }
@@ -262,7 +263,7 @@ export const createApiClient = (withAuth: boolean = false): AxiosInstance => {
 
       return config;
     },
-      (error: any) => {
+      (error: unknown) => {
         logger.error('Request Error:', error);
         return Promise.reject(error);
       }
@@ -298,11 +299,12 @@ export const createApiClient = (withAuth: boolean = false): AxiosInstance => {
 
       return response;
     },
-      async (error: any) => {
-        const originalRequest = error.config;
+      async (error: unknown) => {
+        const axiosError = error as any;
+        const originalRequest = axiosError.config;
 
         // 401エラー: JWT自動リフレッシュ → リトライ
-        if (error.response && error.response.status === 401 && !originalRequest._retry) {
+        if (axiosError.response && axiosError.response.status === 401 && !originalRequest._retry) {
           const url = originalRequest.url || '';
           const isRefreshEndpoint = url.includes('/auth/refresh');
           const isLoginEndpoint = url.includes('/auth/google/login');
@@ -318,14 +320,14 @@ export const createApiClient = (withAuth: boolean = false): AxiosInstance => {
                 originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
                 return client(originalRequest);
               }
-            } catch (refreshError: any) {
-              logger.warn('Auto-refresh failed:', refreshError.message);
+            } catch (refreshError: unknown) {
+              logger.warn('Auto-refresh failed:', getErrorMessage(refreshError));
             }
           }
 
           // リフレッシュ失敗またはリフレッシュ不可
           logger.error('認証エラー:', {
-            status: error.response.status,
+            status: axiosError.response.status,
             url: originalRequest.url,
             hasToken: !!authToken
           });
@@ -335,13 +337,13 @@ export const createApiClient = (withAuth: boolean = false): AxiosInstance => {
           // セッションエンドポイントの401ではトークンをクリアしない
           // （authStoreのcheckSessionがフォールバック処理を完了してから判断する）
           // 明示的な「Invalid token」メッセージの場合のみクリア
-          if (!isDriveEndpoint && error.response.data?.message?.includes('Invalid token')) {
+          if (!isDriveEndpoint && axiosError.response.data?.message?.includes('Invalid token')) {
             clearAuthToken();
           }
         }
 
         // エラーをサニタイズして返す
-        const sanitizedError = handleApiError(error);
+        const sanitizedError = handleApiError(axiosError);
 
         if (process.env.NODE_ENV === 'development') {
           logger.error('API Error Details:', error);
@@ -403,8 +405,8 @@ export const fetchWithRetry = async (
       // 成功したらサーキットブレーカーをリセット
       circuitBreaker.recordSuccess();
       return response.data;
-    } catch (error: any) {
-      logger.error(`API fetch error (attempt ${retries+1}/${maxRetries+1}):`, error.message);
+    } catch (error: unknown) {
+      logger.error(`API fetch error (attempt ${retries+1}/${maxRetries+1}):`, getErrorMessage(error));
 
       // エラーを記録
       circuitBreaker.recordFailure();
@@ -496,34 +498,36 @@ export const authFetch = async (
     // 成功したらサーキットブレーカーをリセット
     circuitBreaker.recordSuccess();
     return response.data;
-  } catch (error: any) {
+  } catch (error: unknown) {
     // エラーを記録
     circuitBreaker.recordFailure();
-    logger.error(`Auth API error (${method} ${endpoint}):`, error.message);
+    const errorMsg = getErrorMessage(error);
+    logger.error(`Auth API error (${method} ${endpoint}):`, errorMsg);
 
     // エラーレスポンスがある場合は詳細を表示
-    if (error.response) {
+    const axiosErr = error as any;
+    if (axiosErr?.response) {
       logger.error('エラーレスポンス詳細:', {
-        status: error.response.status,
-        data: error.response.data,
-        headers: error.response.headers
+        status: axiosErr.response.status,
+        data: axiosErr.response.data,
+        headers: axiosErr.response.headers
       });
 
       // 400エラーの場合、レスポンスデータを返す（エラー情報を含む）
-      if (error.response.status === 400 && error.response.data) {
-        return error.response.data;
+      if (axiosErr.response.status === 400 && axiosErr.response.data) {
+        return axiosErr.response.data;
       }
     }
 
     // Network Errorの詳細情報を出力
-    if (error.message === 'Network Error') {
+    if (errorMsg === 'Network Error') {
       logger.error('Network Error詳細:', {
-        url: error.config?.url,
-        method: error.config?.method,
-        headers: error.config?.headers,
-        data: error.config?.data,
-        baseURL: error.config?.baseURL,
-        withCredentials: error.config?.withCredentials
+        url: axiosErr?.config?.url,
+        method: axiosErr?.config?.method,
+        headers: axiosErr?.config?.headers,
+        data: axiosErr?.config?.data,
+        baseURL: axiosErr?.config?.baseURL,
+        withCredentials: axiosErr?.config?.withCredentials
       });
 
       // CORSエラーの可能性を通知

@@ -18,6 +18,7 @@
 
 import { getApiEndpoint } from '../utils/envUtils';
 import { fetchWithRetry, formatErrorResponse, generateFallbackData, TIMEOUT } from '../utils/apiUtils';
+import { getErrorMessage, getErrorStatus } from '../utils/errorUtils';
 import logger from '../utils/logger';
 
 interface ExchangeRateResponse {
@@ -101,7 +102,7 @@ export const fetchExchangeRate = async (fromCurrency: string = 'USD', toCurrency
 
     // データが期待通りでない場合は元の形式をそのまま返す
     return response;
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error(`Error fetching exchange rate ${fromCurrency}/${toCurrency}:`, error);
 
     // フォールバック値を返す
@@ -109,7 +110,7 @@ export const fetchExchangeRate = async (fromCurrency: string = 'USD', toCurrency
       success: false,
       error: true,
       message: '為替レートの取得に失敗しました',
-      ...formatErrorResponse(error),
+      ...formatErrorResponse(error as any),
       // デフォルト値も含める
       rate: fromCurrency === 'USD' && toCurrency === 'JPY' ? 150.0 :
             fromCurrency === 'JPY' && toCurrency === 'USD' ? 1/150.0 : 1.0,
@@ -153,18 +154,18 @@ export const fetchStockData = async (ticker: string, refresh: boolean = false): 
     );
 
     return response;
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error(`Error fetching ${ticker} from Market Data API:`, {
-      message: error.message,
-      status: error.response?.status,
-      data: error.response?.data,
-      code: error.code
+      message: getErrorMessage(error),
+      status: getErrorStatus(error),
+      data: (error as any)?.response?.data,
+      code: (error as any)?.code
     });
 
     // フォールバック処理
     return {
       success: false,
-      ...formatErrorResponse(error, ticker),
+      ...formatErrorResponse(error as any, ticker),
       // フォールバックデータも含める
       data: {
         [ticker]: generateFallbackData(ticker)

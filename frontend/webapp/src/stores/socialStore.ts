@@ -22,6 +22,7 @@ import { SOCIAL_LIMITS } from '../types/social.types';
 import { useSubscriptionStore } from './subscriptionStore';
 import { useUIStore } from './uiStore';
 import { trackEvent, AnalyticsEvents } from '../utils/analytics';
+import { getErrorMessage } from '../utils/errorUtils';
 
 // ─── Types ───────────────────────────────────────────
 
@@ -88,8 +89,8 @@ export const useSocialStore = create<SocialState>()(
           }));
           trackEvent(AnalyticsEvents.SHARE_CREATE, { ageGroup: input.ageGroup });
           return share;
-        } catch (error: any) {
-          const message = error.message || '共有の作成に失敗しました';
+        } catch (error: unknown) {
+          const message = getErrorMessage(error) || '共有の作成に失敗しました';
           set({ loading: false, error: message });
           const uiStore = useUIStore.getState();
           uiStore.addNotification(message, 'error');
@@ -110,8 +111,8 @@ export const useSocialStore = create<SocialState>()(
           const uiStore = useUIStore.getState();
           uiStore.addNotification('共有を削除しました', 'success');
           return true;
-        } catch (error: any) {
-          const message = error.message || '共有の削除に失敗しました';
+        } catch (error: unknown) {
+          const message = getErrorMessage(error) || '共有の削除に失敗しました';
           set({ loading: false, error: message });
           const uiStore = useUIStore.getState();
           uiStore.addNotification(message, 'error');
@@ -128,8 +129,8 @@ export const useSocialStore = create<SocialState>()(
             shares: result.shares,
             loading: false,
           });
-        } catch (error: any) {
-          set({ loading: false, error: error.message || '共有一覧の取得に失敗しました' });
+        } catch (error: unknown) {
+          set({ loading: false, error: getErrorMessage(error) || '共有一覧の取得に失敗しました' });
         }
       },
 
@@ -143,8 +144,8 @@ export const useSocialStore = create<SocialState>()(
             peerLoading: false,
           });
           trackEvent(AnalyticsEvents.PEER_COMPARISON_VIEW, { ageGroup });
-        } catch (error: any) {
-          set({ peerLoading: false, error: error.message || 'ピア比較の取得に失敗しました' });
+        } catch (error: unknown) {
+          set({ peerLoading: false, error: getErrorMessage(error) || 'ピア比較の取得に失敗しました' });
         }
       },
 

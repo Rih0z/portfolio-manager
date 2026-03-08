@@ -14,6 +14,7 @@ import {
   type SubscriptionStatus,
 } from '../services/subscriptionService';
 import { trackEvent, AnalyticsEvents } from '../utils/analytics';
+import { getErrorMessage } from '../utils/errorUtils';
 
 interface SubscriptionState {
   planType: 'free' | 'standard';
@@ -86,8 +87,8 @@ export const useSubscriptionStore = create<SubscriptionState>()((set, get) => ({
       const { checkoutUrl } = await createCheckoutSession(plan);
       // Stripe Checkout ページにリダイレクト
       window.location.href = checkoutUrl;
-    } catch (err: any) {
-      set({ error: err.message, loading: false });
+    } catch (err: unknown) {
+      set({ error: getErrorMessage(err), loading: false });
     }
   },
 
@@ -96,8 +97,8 @@ export const useSubscriptionStore = create<SubscriptionState>()((set, get) => ({
     try {
       const { portalUrl } = await createPortalSession();
       window.location.href = portalUrl;
-    } catch (err: any) {
-      set({ error: err.message, loading: false });
+    } catch (err: unknown) {
+      set({ error: getErrorMessage(err), loading: false });
     }
   },
 

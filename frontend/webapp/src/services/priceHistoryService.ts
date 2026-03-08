@@ -1,4 +1,5 @@
 import { authFetch } from '../utils/apiUtils';
+import { getErrorMessage, getErrorStatus } from '../utils/errorUtils';
 import logger from '../utils/logger';
 
 export interface PricePoint {
@@ -38,9 +39,9 @@ export const fetchPriceHistory = async (
       return result.data;
     }
     return null;
-  } catch (error: any) {
-    if (error.response?.status !== 401) {
-      logger.warn(`Price history fetch failed for ${ticker}:`, error.message);
+  } catch (error: unknown) {
+    if (getErrorStatus(error) !== 401) {
+      logger.warn(`Price history fetch failed for ${ticker}:`, getErrorMessage(error));
     }
     return null;
   }

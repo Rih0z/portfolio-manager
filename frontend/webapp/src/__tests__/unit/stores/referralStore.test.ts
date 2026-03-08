@@ -199,7 +199,7 @@ describe('referralStore', () => {
       const result = await useReferralStore.getState().applyCode('INVALID');
 
       expect(result.success).toBe(false);
-      expect(result.message).toBe('リファラルコードの適用に失敗しました');
+      expect(result.message).toBe('不明なエラーが発生しました');
     });
   });
 

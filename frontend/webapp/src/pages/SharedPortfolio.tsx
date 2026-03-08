@@ -16,6 +16,7 @@ import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { getShareApi } from '../services/socialService';
 import { trackEvent, AnalyticsEvents } from '../utils/analytics';
+import { getErrorMessage } from '../utils/errorUtils';
 import type { SharedPortfolio as SharedPortfolioType } from '../types/social.types';
 import { AGE_GROUPS } from '../types/social.types';
 
@@ -57,8 +58,8 @@ const SharedPortfolio: React.FC = () => {
         const data = await getShareApi(shareId);
         setShare(data);
         trackEvent(AnalyticsEvents.SHARE_VIEW, { shareId });
-      } catch (err: any) {
-        setError(err.message || '共有ポートフォリオの取得に失敗しました');
+      } catch (err: unknown) {
+        setError(getErrorMessage(err) || '共有ポートフォリオの取得に失敗しました');
       } finally {
         setLoading(false);
       }

@@ -19,6 +19,7 @@ import type {
 } from '../types/notification.types';
 import { NOTIFICATION_LIMITS } from '../types/notification.types';
 import * as notificationService from '../services/notificationService';
+import { getErrorMessage } from '../utils/errorUtils';
 
 // ─── Types ───────────────────────────────────────────
 
@@ -238,8 +239,8 @@ export const useNotificationStore = create<NotificationState>()(
           set((state) => ({ alertRules: [...state.alertRules, rule] }));
           trackEvent(AnalyticsEvents.ALERT_RULE_CREATE, { type: input.type, ticker: input.ticker });
           return { success: true };
-        } catch (error: any) {
-          return { success: false, errors: [error.message] };
+        } catch (error: unknown) {
+          return { success: false, errors: [getErrorMessage(error)] };
         }
       },
 

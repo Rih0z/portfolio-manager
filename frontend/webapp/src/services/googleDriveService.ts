@@ -5,6 +5,7 @@
 
 import { authFetch } from '../utils/apiUtils';
 import { getApiEndpoint } from '../utils/envUtils';
+import { getErrorMessage, getErrorStatus } from '../utils/errorUtils';
 import logger from '../utils/logger';
 
 interface DriveFile {
@@ -67,13 +68,13 @@ export const fetchDriveFiles = async (): Promise<FetchDriveFilesResponse> => {
         errorCode: response?.errorCode
       };
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Google Driveファイル一覧取得エラー:', error);
 
     // 401エラーでDrive OAuthが必要な場合
-    if (error.response && error.response.status === 401) {
-      const responseData = error.response.data;
-      if (responseData.errorCode === 'DRIVE_OAUTH_REQUIRED' && responseData.authUrl) {
+    if (getErrorStatus(error) === 401) {
+      const responseData = (error as any).response?.data;
+      if (responseData?.errorCode === 'DRIVE_OAUTH_REQUIRED' && responseData?.authUrl) {
         return {
           success: false,
           error: responseData.message || 'Google Drive認証が必要です',
@@ -86,7 +87,7 @@ export const fetchDriveFiles = async (): Promise<FetchDriveFilesResponse> => {
 
     return {
       success: false,
-      error: error.message || 'Google Drive接続エラー',
+      error: getErrorMessage(error) || 'Google Drive接続エラー',
       files: []
     };
   }
@@ -113,13 +114,13 @@ export const saveToDrive = async (portfolioData: any): Promise<SaveToDriveRespon
         errorCode: response?.errorCode
       };
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Google Drive保存エラー:', error);
 
     // 401エラーでDrive OAuthが必要な場合
-    if (error.response && error.response.status === 401) {
-      const responseData = error.response.data;
-      if (responseData.errorCode === 'DRIVE_OAUTH_REQUIRED' && responseData.authUrl) {
+    if (getErrorStatus(error) === 401) {
+      const responseData = (error as any).response?.data;
+      if (responseData?.errorCode === 'DRIVE_OAUTH_REQUIRED' && responseData?.authUrl) {
         return {
           success: false,
           error: responseData.message || 'Google Drive認証が必要です',
@@ -137,7 +138,7 @@ export const saveToDrive = async (portfolioData: any): Promise<SaveToDriveRespon
 
     return {
       success: false,
-      error: error.message || 'Google Drive保存エラー'
+      error: getErrorMessage(error) || 'Google Drive保存エラー'
     };
   }
 };
@@ -164,13 +165,13 @@ export const loadFromDrive = async (fileId: string): Promise<LoadFromDriveRespon
         errorCode: response?.errorCode
       };
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Google Drive読み込みエラー:', error);
 
     // 401エラーでDrive OAuthが必要な場合
-    if (error.response && error.response.status === 401) {
-      const responseData = error.response.data;
-      if (responseData.errorCode === 'DRIVE_OAUTH_REQUIRED' && responseData.authUrl) {
+    if (getErrorStatus(error) === 401) {
+      const responseData = (error as any).response?.data;
+      if (responseData?.errorCode === 'DRIVE_OAUTH_REQUIRED' && responseData?.authUrl) {
         return {
           success: false,
           error: responseData.message || 'Google Drive認証が必要です',
@@ -188,7 +189,7 @@ export const loadFromDrive = async (fileId: string): Promise<LoadFromDriveRespon
 
     return {
       success: false,
-      error: error.message || 'Google Drive読み込みエラー'
+      error: getErrorMessage(error) || 'Google Drive読み込みエラー'
     };
   }
 };

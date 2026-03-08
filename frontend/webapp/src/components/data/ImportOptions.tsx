@@ -15,6 +15,7 @@ import {
   detectBrokerFormat,
   parseBrokerCSV,
 } from '../../utils/csvParsers';
+import { getErrorMessage } from '../../utils/errorUtils';
 
 type ImportFormat = 'json' | 'csv' | 'broker-csv';
 
@@ -157,8 +158,8 @@ const ImportOptions = () => {
             } else {
               throw new Error(result?.message || 'インポートに失敗しました');
             }
-          } catch (error: any) {
-            setImportStatus({ type: 'error', message: `インポートに失敗しました: ${error.message}` });
+          } catch (error: unknown) {
+            setImportStatus({ type: 'error', message: `インポートに失敗しました: ${getErrorMessage(error)}` });
           } finally {
             setIsLoading(false);
           }
@@ -186,8 +187,8 @@ const ImportOptions = () => {
             } else {
               throw new Error(result?.message || 'インポートに失敗しました');
             }
-          } catch (error: any) {
-            setImportStatus({ type: 'error', message: `インポートに失敗しました: ${error.message}` });
+          } catch (error: unknown) {
+            setImportStatus({ type: 'error', message: `インポートに失敗しました: ${getErrorMessage(error)}` });
           } finally {
             setIsLoading(false);
           }
@@ -225,8 +226,8 @@ const ImportOptions = () => {
       } else {
         throw new Error(result?.message || 'インポートに失敗しました');
       }
-    } catch (error: any) {
-      setImportStatus({ type: 'error', message: `インポートに失敗しました: ${error.message}` });
+    } catch (error: unknown) {
+      setImportStatus({ type: 'error', message: `インポートに失敗しました: ${getErrorMessage(error)}` });
     } finally {
       setIsLoading(false);
     }
@@ -258,8 +259,8 @@ const ImportOptions = () => {
       } else {
         throw new Error(result?.message || 'インポートに失敗しました');
       }
-    } catch (error: any) {
-      setImportStatus({ type: 'error', message: `インポートに失敗しました: ${error.message}` });
+    } catch (error: unknown) {
+      setImportStatus({ type: 'error', message: `インポートに失敗しました: ${getErrorMessage(error)}` });
     } finally {
       setIsLoading(false);
     }

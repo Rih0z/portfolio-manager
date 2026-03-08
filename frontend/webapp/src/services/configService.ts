@@ -13,6 +13,7 @@
 
 import axios from 'axios';
 import type { ApiConfig } from '../types/portfolio.types';
+import { getErrorMessage } from '../utils/errorUtils';
 import logger from '../utils/logger';
 
 // 設定をキャッシュ
@@ -76,9 +77,9 @@ export const fetchApiConfig = async (): Promise<ApiConfig> => {
       }
       throw new Error('設定の取得に失敗しました');
     })
-    .catch(async (error: any) => {
+    .catch(async (error: unknown) => {
       // エラーの詳細をログに記録
-      logger.warn('API設定の取得エラー:', error.message);
+      logger.warn('API設定の取得エラー:', getErrorMessage(error));
 
       // 本番環境ではプロキシ経由で再試行
       if (process.env.NODE_ENV === 'production' && CONFIG_ENDPOINT.includes('execute-api')) {
@@ -88,8 +89,8 @@ export const fetchApiConfig = async (): Promise<ApiConfig> => {
             configCache = proxyResponse.data.data;
             return configCache as ApiConfig;
           }
-        } catch (proxyError: any) {
-          logger.warn('プロキシ経由でもAPI設定の取得に失敗:', proxyError.message);
+        } catch (proxyError: unknown) {
+          logger.warn('プロキシ経由でもAPI設定の取得に失敗:', getErrorMessage(proxyError));
         }
       }
 

@@ -15,6 +15,7 @@ import {
 } from '../services/referralService';
 import { trackEvent, AnalyticsEvents } from '../utils/analytics';
 import type { ReferralCode, ReferralStats } from '../types/referral.types';
+import { getErrorMessage } from '../utils/errorUtils';
 
 // ─── Types ───────────────────────────────────────────
 
@@ -100,11 +101,11 @@ export const useReferralStore = create<ReferralState>()(
 
           trackEvent(AnalyticsEvents.REFERRAL_CODE_APPLY, { code });
           return { success: true, message: result.message };
-        } catch (err: any) {
+        } catch (err: unknown) {
           set({ loading: false });
           return {
             success: false,
-            message: err.message || 'リファラルコードの適用に失敗しました',
+            message: getErrorMessage(err) || 'リファラルコードの適用に失敗しました',
           };
         }
       },

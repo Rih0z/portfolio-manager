@@ -1,4 +1,5 @@
 import { authFetch } from '../utils/apiUtils';
+import { getErrorStatus } from '../utils/errorUtils';
 import { PortfolioAsset } from '../utils/plCalculation';
 
 export interface TargetAllocation {
@@ -33,8 +34,8 @@ export const fetchServerPortfolio = async (): Promise<ServerPortfolio | null> =>
       return result.data;
     }
     return null;
-  } catch (error: any) {
-    if (error.response?.status === 401) {
+  } catch (error: unknown) {
+    if (getErrorStatus(error) === 401) {
       return null;
     }
     throw error;

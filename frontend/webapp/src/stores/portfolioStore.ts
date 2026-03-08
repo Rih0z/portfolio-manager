@@ -31,6 +31,7 @@ import {
 import { requestManager, debouncedRefreshMarketData, requestDeduplicator } from '../utils/requestThrottle';
 import { shouldUpdateExchangeRate, clearExchangeRateCache } from '../utils/exchangeRateDebounce';
 import { getJapaneseStockName } from '../utils/japaneseStockNames';
+import { getErrorMessage } from '../utils/errorUtils';
 import { useUIStore } from './uiStore';
 
 // --- データシリアライズ/デシリアライズ ---
@@ -304,8 +305,8 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
       notify(`銘柄「${tickerData.name || ticker}」を追加しました`, 'success');
       setTimeout(() => get().saveToLocalStorage(), 100);
       return { success: true, message: '銘柄を追加しました' };
-    } catch (error: any) {
-      notify(`銘柄「${ticker}」の追加に失敗しました: ${error.message}`, 'error');
+    } catch (error: unknown) {
+      notify(`銘柄「${ticker}」の追加に失敗しました: ${getErrorMessage(error)}`, 'error');
       return { success: false, message: '銘柄の追加に失敗しました' };
     } finally {
       useUIStore.getState().setLoading(false);
@@ -440,7 +441,7 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
         notify(`為替レートの取得に失敗しました。デフォルト値（${currentRate.rate}円/ドル）を使用します。5分後に再試行します。`, 'warning');
         setTimeout(() => get().updateExchangeRate(), 5 * 60 * 1000);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       notify(`為替レートの更新中にエラーが発生しました。デフォルト値（${currentRate.rate}円/ドル）を使用します。`, 'error');
     }
   },
@@ -511,8 +512,8 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
           setTimeout(() => get().syncToServer(), 5000);
         }
         return { success: true, message: '市場データを更新しました' };
-      } catch (error: any) {
-        notify(`市場データの更新に失敗しました: ${error.message}`, 'error');
+      } catch (error: unknown) {
+        notify(`市場データの更新に失敗しました: ${getErrorMessage(error)}`, 'error');
         return { success: false, message: '市場データの更新に失敗しました' };
       } finally {
         useUIStore.getState().setLoading(false);
@@ -640,9 +641,9 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
       setTimeout(() => get().saveToLocalStorage(), 100);
       trackEvent(AnalyticsEvents.CSV_IMPORT, { assetCount: (updates as any).currentAssets?.length || 0 });
       return { success: true, message: 'データをインポートしました' };
-    } catch (error: any) {
-      notify(`データのインポートに失敗しました: ${error.message}`, 'error');
-      return { success: false, message: `データのインポートに失敗しました: ${error.message}` };
+    } catch (error: unknown) {
+      notify(`データのインポートに失敗しました: ${getErrorMessage(error)}`, 'error');
+      return { success: false, message: `データのインポートに失敗しました: ${getErrorMessage(error)}` };
     }
   },
 
@@ -721,7 +722,7 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
       }
       notify(`クラウド保存に失敗しました: ${result.message}`, 'error');
       return { success: false, message: result.message };
-    } catch (error: any) {
+    } catch (error: unknown) {
       notify('クラウドへの保存に失敗しました', 'error');
       return { success: false, message: 'クラウド保存に失敗しました' };
     }
@@ -779,9 +780,9 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
         notify(`${message}。現在のデータをクラウドに保存しますか？`, 'info');
         return { success: false, message, suggestSaving: true };
       }
-    } catch (error: any) {
-      notify(`クラウドからの読み込みに失敗しました: ${error.message}`, 'error');
-      return { success: false, message: `クラウド読み込みに失敗しました: ${error.message}` };
+    } catch (error: unknown) {
+      notify(`クラウドからの読み込みに失敗しました: ${getErrorMessage(error)}`, 'error');
+      return { success: false, message: `クラウド読み込みに失敗しました: ${getErrorMessage(error)}` };
     }
   },
 
@@ -840,8 +841,8 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
       }
 
       setTimeout(() => get().updateExchangeRate(), 500);
-    } catch (error: any) {
-      notify(`データの初期化中にエラーが発生しました: ${error.message}`, 'error');
+    } catch (error: unknown) {
+      notify(`データの初期化中にエラーが発生しました: ${getErrorMessage(error)}`, 'error');
       set({ initialized: true });
     }
   },
@@ -871,8 +872,8 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
         syncStatus: 'idle'
       });
       trackEvent(AnalyticsEvents.PORTFOLIO_SYNC, { direction: 'to_server' });
-    } catch (error: any) {
-      if (error.code === 'VERSION_CONFLICT') {
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'code' in error && (error as any).code === 'VERSION_CONFLICT') {
         set({ syncStatus: 'conflict' });
         notify('ポートフォリオが別のセッションで更新されています。最新データを読み込んでください。', 'warning');
       } else {
@@ -925,7 +926,7 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
         });
       }
       trackEvent(AnalyticsEvents.PORTFOLIO_SYNC, { direction: 'from_server' });
-    } catch (error: any) {
+    } catch (error: unknown) {
       set({ syncStatus: 'error' });
     }
   },

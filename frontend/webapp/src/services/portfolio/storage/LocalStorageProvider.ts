@@ -6,6 +6,7 @@
 
 import { StorageProvider } from './StorageInterface';
 import { EncryptionService } from '../EncryptionService';
+import { getErrorMessage } from '../../../utils/errorUtils';
 import logger from '../../../utils/logger';
 
 export class LocalStorageProvider extends StorageProvider {
@@ -37,9 +38,9 @@ export class LocalStorageProvider extends StorageProvider {
       }
 
       localStorage.setItem(key, dataToStore);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('LocalStorage save error:', error);
-      throw new Error(`Failed to save data to LocalStorage: ${error.message}`);
+      throw new Error(`Failed to save data to LocalStorage: ${getErrorMessage(error)}`);
     }
   }
 
@@ -59,13 +60,13 @@ export class LocalStorageProvider extends StorageProvider {
       }
 
       return JSON.parse(storedData);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('LocalStorage load error:', error);
       // パスワードが間違っている可能性があるため、エラーを再スロー
-      if (error.message.includes('復号化')) {
+      if (getErrorMessage(error).includes('復号化')) {
         throw error;
       }
-      throw new Error(`Failed to load data from LocalStorage: ${error.message}`);
+      throw new Error(`Failed to load data from LocalStorage: ${getErrorMessage(error)}`);
     }
   }
 
@@ -75,9 +76,9 @@ export class LocalStorageProvider extends StorageProvider {
   async clear(key: string): Promise<void> {
     try {
       localStorage.removeItem(key);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('LocalStorage clear error:', error);
-      throw new Error(`Failed to clear data from LocalStorage: ${error.message}`);
+      throw new Error(`Failed to clear data from LocalStorage: ${getErrorMessage(error)}`);
     }
   }
 
