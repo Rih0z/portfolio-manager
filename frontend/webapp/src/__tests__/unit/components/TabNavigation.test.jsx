@@ -4,21 +4,13 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import TabNavigation from '../../../components/layout/TabNavigation';
 
-// i18n モック
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key) => {
-      const translations = {
-        'navigation.dashboard': 'ダッシュボード',
-        'navigation.aiPlan': 'AI分析',
-        'navigation.simulation': 'シミュレーション',
-        'navigation.settings': '設定',
-        'navigation.dataImport': 'データ'
-      };
-      return translations[key] || key;
-    },
-    i18n: { language: 'ja' }
-  })
+// Lucide icons をモック
+vi.mock('lucide-react', () => ({
+  LayoutDashboard: (props) => <svg data-testid="icon-dashboard" {...props} />,
+  Bot: (props) => <svg data-testid="icon-bot" {...props} />,
+  BarChart3: (props) => <svg data-testid="icon-barchart" {...props} />,
+  Settings: (props) => <svg data-testid="icon-settings" {...props} />,
+  Upload: (props) => <svg data-testid="icon-upload" {...props} />,
 }));
 
 // usePortfolioContextのモック
@@ -56,9 +48,9 @@ describe('TabNavigation', () => {
   it('renders all navigation tabs', () => {
     renderWithRouter();
 
-    expect(screen.getByText('ダッシュボード')).toBeInTheDocument();
+    expect(screen.getByText('ホーム')).toBeInTheDocument();
     expect(screen.getByText('AI分析')).toBeInTheDocument();
-    expect(screen.getByText('シミュレーション')).toBeInTheDocument();
+    expect(screen.getByText('配分')).toBeInTheDocument();
     expect(screen.getByText('設定')).toBeInTheDocument();
     expect(screen.getByText('データ')).toBeInTheDocument();
   });
@@ -95,7 +87,7 @@ describe('TabNavigation', () => {
     renderWithRouter('/dashboard');
 
     // ダッシュボードのリンクがアクティブ
-    const dashboardLink = screen.getByText('ダッシュボード').closest('a');
+    const dashboardLink = screen.getByText('ホーム').closest('a');
     expect(dashboardLink).toHaveClass('text-primary-500');
   });
 
@@ -137,12 +129,12 @@ describe('TabNavigation', () => {
     expect(container.innerHTML).toBe('');
   });
 
-  it('handles long tab labels without breaking layout', () => {
+  it('handles tab labels without breaking layout', () => {
     renderWithRouter();
 
     // 全てのラベルが表示されていることを確認
-    expect(screen.getByText('ダッシュボード')).toBeInTheDocument();
-    expect(screen.getByText('シミュレーション')).toBeInTheDocument();
+    expect(screen.getByText('ホーム')).toBeInTheDocument();
+    expect(screen.getByText('配分')).toBeInTheDocument();
   });
 
   it('renders with proper responsive design classes', () => {

@@ -1,6 +1,6 @@
 import { vi } from "vitest";
 /**
- * Dashboard.jsx のユニットテスト
+ * Dashboard.tsx のユニットテスト
  * ダッシュボードページコンポーネントのテスト
  */
 
@@ -10,9 +10,17 @@ import '@testing-library/jest-dom';
 import { MemoryRouter } from 'react-router-dom';
 import Dashboard from '../../../pages/Dashboard';
 
-// モック設定
-vi.mock('react-i18next', () => ({
-  useTranslation: vi.fn()
+// react-router-dom の useNavigate をモック
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom');
+  return { ...actual, useNavigate: () => mockNavigate };
+});
+
+// Lucide icons をモック
+vi.mock('lucide-react', () => ({
+  Upload: (props) => <svg data-testid="lucide-upload" {...props} />,
+  PlusCircle: (props) => <svg data-testid="lucide-plus-circle" {...props} />,
 }));
 
 vi.mock('../../../hooks/usePortfolioContext', () => ({
@@ -102,28 +110,12 @@ vi.mock('../../../utils/analytics', () => ({
   AnalyticsEvents: { DASHBOARD_VIEW: 'dashboard_view' },
 }));
 
-import { useTranslation } from 'react-i18next';
 import { usePortfolioContext } from '../../../hooks/usePortfolioContext';
 
 describe('Dashboard', () => {
-  let mockT;
-  
   beforeEach(() => {
     vi.clearAllMocks();
-    
-    // 翻訳関数のモック
-    mockT = vi.fn((key) => {
-      const translations = {
-        'dashboard.noPortfolio': 'ポートフォリオがまだ設定されていません',
-        'dashboard.setupInstructions': '設定ページで保有銘柄を追加してください。',
-        'dashboard.goToSettings': '設定ページへ',
-        'dashboard.title': 'ダッシュボード'
-      };
-      return translations[key] || key;
-    });
-    
-    useTranslation.mockReturnValue({ t: mockT });
-    
+
     // デフォルトのPortfolioContextモック
     usePortfolioContext.mockReturnValue({
       currentAssets: [
@@ -135,14 +127,14 @@ describe('Dashboard', () => {
   describe('データが存在する場合', () => {
     it('ダッシュボードの完全なレイアウトを表示する', () => {
       render(<MemoryRouter><Dashboard /></MemoryRouter>);
-      
+
       // タイトルとサブタイトルの確認
-      expect(screen.getByText('ダッシュボード')).toBeInTheDocument();
-      expect(screen.getByText('Portfolio performance and analytics overview')).toBeInTheDocument();
-      
+      expect(screen.getByText('ポートフォリオダッシュボード')).toBeInTheDocument();
+      expect(screen.getByText('資産配分・損益・スコアの全体概要')).toBeInTheDocument();
+
       // データステータスバーの表示
       expect(screen.getByTestId('data-status-bar')).toBeInTheDocument();
-      
+
       // ダッシュボードコンポーネントの表示
       expect(screen.getByTestId('portfolio-summary')).toBeInTheDocument();
       expect(screen.getByTestId('portfolio-charts')).toBeInTheDocument();
@@ -152,20 +144,14 @@ describe('Dashboard', () => {
 
     it('正しいCSS クラスが適用されている', () => {
       render(<MemoryRouter><Dashboard /></MemoryRouter>);
-      
+
       // メインコンテナのクラス
       const mainContainer = document.querySelector('.space-y-4.sm\\:space-y-6.animate-fade-in');
       expect(mainContainer).toBeInTheDocument();
-      
-      // タイトルのグラデーションクラス
-      const title = screen.getByText('ダッシュボード');
-      expect(title).toHaveClass('bg-gradient-to-r', 'from-primary-500', 'to-primary-600', 'bg-clip-text', 'text-transparent');
-    });
 
-    it('翻訳キーを正しく使用している', () => {
-      render(<MemoryRouter><Dashboard /></MemoryRouter>);
-      
-      expect(mockT).toHaveBeenCalledWith('dashboard.title');
+      // タイトルのグラデーションクラス
+      const title = screen.getByText('ポートフォリオダッシュボード');
+      expect(title).toHaveClass('bg-gradient-to-r', 'from-primary-500', 'to-primary-600', 'bg-clip-text', 'text-transparent');
     });
   });
 
@@ -178,44 +164,39 @@ describe('Dashboard', () => {
 
     it('空の状態のUIを表示する', () => {
       render(<MemoryRouter><Dashboard /></MemoryRouter>);
-      
-      expect(screen.getByText('ポートフォリオがまだ設定されていません')).toBeInTheDocument();
-      expect(screen.getByText('設定ページで保有銘柄を追加してください。')).toBeInTheDocument();
-      expect(screen.getByText('設定ページへ')).toBeInTheDocument();
+
+      expect(screen.getByText('ポートフォリオを始めましょう')).toBeInTheDocument();
+      expect(screen.getByText('証券口座のCSVをインポートするか、銘柄を手動で追加できます。')).toBeInTheDocument();
     });
 
-    it('設定ページへのナビゲーションボタンが機能する', () => {
-      // window.location.hrefをモック
-      delete window.location;
-      window.location = { href: '' };
-      
+    it('CSVインポートボタンでdata-importへ遷移する', () => {
       render(<MemoryRouter><Dashboard /></MemoryRouter>);
-      
-      const settingsButton = screen.getByRole('button');
-      fireEvent.click(settingsButton);
-      
-      expect(window.location.href).toBe('/settings');
+
+      const csvButton = screen.getByText('CSVインポート');
+      fireEvent.click(csvButton);
+
+      expect(mockNavigate).toHaveBeenCalledWith('/data-import');
     });
 
-    it('空の状態のSVGアイコンが表示される', () => {
+    it('手動追加ボタンで設定ページへ遷移する', () => {
       render(<MemoryRouter><Dashboard /></MemoryRouter>);
-      
-      const svgIcon = document.querySelector('svg');
-      expect(svgIcon).toBeInTheDocument();
-      expect(svgIcon).toHaveClass('w-10', 'h-10', 'sm:w-12', 'sm:h-12', 'text-primary-600');
+
+      const manualButton = screen.getByText('手動で追加');
+      fireEvent.click(manualButton);
+
+      expect(mockNavigate).toHaveBeenCalledWith('/settings');
     });
 
-    it('翻訳キーを正しく使用している', () => {
+    it('空の状態にLucideアイコンが表示される', () => {
       render(<MemoryRouter><Dashboard /></MemoryRouter>);
-      
-      expect(mockT).toHaveBeenCalledWith('dashboard.noPortfolio');
-      expect(mockT).toHaveBeenCalledWith('dashboard.setupInstructions');
-      expect(mockT).toHaveBeenCalledWith('dashboard.goToSettings');
+
+      // Upload アイコンはヒーロー + ボタンで2つ
+      expect(screen.getAllByTestId('lucide-upload').length).toBeGreaterThanOrEqual(1);
     });
 
     it('ダッシュボードコンポーネントが表示されない', () => {
       render(<MemoryRouter><Dashboard /></MemoryRouter>);
-      
+
       expect(screen.queryByTestId('portfolio-summary')).not.toBeInTheDocument();
       expect(screen.queryByTestId('portfolio-charts')).not.toBeInTheDocument();
       expect(screen.queryByTestId('difference-chart')).not.toBeInTheDocument();
@@ -227,21 +208,13 @@ describe('Dashboard', () => {
   describe('エラーハンドリング', () => {
     it('usePortfolioContextが未定義を返す場合はエラーが発生する', () => {
       usePortfolioContext.mockReturnValue({});
-      
-      // 実際のコンポーネントはcurrentAssets.lengthでエラーが発生する
+
       expect(() => render(<MemoryRouter><Dashboard /></MemoryRouter>)).toThrow();
     });
 
     it('currentAssetsが未定義の場合はエラーが発生する', () => {
       usePortfolioContext.mockReturnValue({ currentAssets: undefined });
-      
-      // 実際のコンポーネントはcurrentAssets.lengthでエラーが発生する
-      expect(() => render(<MemoryRouter><Dashboard /></MemoryRouter>)).toThrow();
-    });
 
-    it('翻訳関数が利用できない場合でも動作する', () => {
-      useTranslation.mockReturnValue({ t: undefined });
-      
       expect(() => render(<MemoryRouter><Dashboard /></MemoryRouter>)).toThrow();
     });
   });
@@ -252,55 +225,45 @@ describe('Dashboard', () => {
         { id: 1, symbol: 'AAPL', name: 'Apple Inc.', shares: 10, price: 150 },
         { id: 2, symbol: 'GOOGL', name: 'Alphabet Inc.', shares: 5, price: 2500 }
       ];
-      
+
       usePortfolioContext.mockReturnValue({
         currentAssets: mockAssets
       });
-      
+
       render(<MemoryRouter><Dashboard /></MemoryRouter>);
-      
+
       // 1. タイトルエリアの表示
-      expect(screen.getByText('ダッシュボード')).toBeInTheDocument();
-      expect(screen.getByText('Portfolio performance and analytics overview')).toBeInTheDocument();
-      
+      expect(screen.getByText('ポートフォリオダッシュボード')).toBeInTheDocument();
+      expect(screen.getByText('資産配分・損益・スコアの全体概要')).toBeInTheDocument();
+
       // 2. データステータスバーの表示
       expect(screen.getByTestId('data-status-bar')).toBeInTheDocument();
-      
+
       // 3. 全ダッシュボードコンポーネントの表示
       expect(screen.getByTestId('portfolio-summary')).toBeInTheDocument();
       expect(screen.getByTestId('portfolio-charts')).toBeInTheDocument();
       expect(screen.getByTestId('difference-chart')).toBeInTheDocument();
       expect(screen.getByTestId('assets-table')).toBeInTheDocument();
-      
-      // 4. 翻訳キーの使用確認
-      expect(mockT).toHaveBeenCalledWith('dashboard.title');
     });
 
-    it('空の状態から設定ページへの遷移フローが正常に動作する', () => {
+    it('空の状態からの遷移フローが正常に動作する', () => {
       usePortfolioContext.mockReturnValue({ currentAssets: [] });
-      
-      delete window.location;
-      window.location = { href: '' };
-      
+
       render(<MemoryRouter><Dashboard /></MemoryRouter>);
-      
+
       // 1. 空の状態メッセージの表示
-      expect(screen.getByText('ポートフォリオがまだ設定されていません')).toBeInTheDocument();
-      
-      // 2. 設定手順の表示
-      expect(screen.getByText('設定ページで保有銘柄を追加してください。')).toBeInTheDocument();
-      
-      // 3. 設定ページへのボタンクリック
-      const settingsButton = screen.getByRole('button');
-      fireEvent.click(settingsButton);
-      
-      // 4. ナビゲーションの実行確認
-      expect(window.location.href).toBe('/settings');
-      
-      // 5. 翻訳キーの使用確認
-      expect(mockT).toHaveBeenCalledWith('dashboard.noPortfolio');
-      expect(mockT).toHaveBeenCalledWith('dashboard.setupInstructions');
-      expect(mockT).toHaveBeenCalledWith('dashboard.goToSettings');
+      expect(screen.getByText('ポートフォリオを始めましょう')).toBeInTheDocument();
+
+      // 2. 説明の表示
+      expect(screen.getByText('証券口座のCSVをインポートするか、銘柄を手動で追加できます。')).toBeInTheDocument();
+
+      // 3. CSVインポートボタンクリック
+      fireEvent.click(screen.getByText('CSVインポート'));
+      expect(mockNavigate).toHaveBeenCalledWith('/data-import');
+
+      // 4. 手動追加ボタンクリック
+      fireEvent.click(screen.getByText('手動で追加'));
+      expect(mockNavigate).toHaveBeenCalledWith('/settings');
     });
   });
 });
