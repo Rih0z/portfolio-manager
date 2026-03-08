@@ -5,6 +5,7 @@
  * loading states, and theme preferences.
  */
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 type Theme = 'light' | 'dark' | 'system';
 
@@ -48,62 +49,83 @@ const applyTheme = (resolved: 'light' | 'dark') => {
   }
 };
 
-export const useUIStore = create<UIState>((set, get) => ({
-  notifications: [],
-  isLoading: false,
-  theme: 'light',
-  resolvedTheme: 'light',
+export const useUIStore = create<UIState>()(
+  persist(
+    (set, get) => ({
+      notifications: [],
+      isLoading: false,
+      theme: 'light',
+      resolvedTheme: 'light',
 
-  addNotification: (message: string, type: string = 'info'): string => {
-    const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    set(state => ({
-      notifications: [...state.notifications, { id, message, type: type as Notification['type'] }]
-    }));
+      addNotification: (message: string, type: string = 'info'): string => {
+        const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        set(state => ({
+          notifications: [...state.notifications, { id, message, type: type as Notification['type'] }]
+        }));
 
-    // 情報・成功・警告通知は自動消去（5秒後）
-    if (type !== 'error') {
-      setTimeout(() => {
-        get().removeNotification(id);
-      }, 5000);
-    }
-
-    return id;
-  },
-
-  removeNotification: (id: string): void => {
-    set(state => ({
-      notifications: state.notifications.filter(n => n.id !== id)
-    }));
-  },
-
-  setLoading: (loading: boolean): void => {
-    set({ isLoading: loading });
-  },
-
-  setTheme: (theme: Theme): void => {
-    const resolved = theme === 'system' ? getSystemTheme() : theme;
-    applyTheme(resolved);
-    localStorage.setItem('pfwise-theme', theme);
-    set({ theme, resolvedTheme: resolved });
-  },
-
-  initializeTheme: (): void => {
-    const saved = localStorage.getItem('pfwise-theme') as Theme | null;
-    const theme = saved || 'light';
-    const resolved = theme === 'system' ? getSystemTheme() : theme;
-    applyTheme(resolved);
-    set({ theme, resolvedTheme: resolved });
-
-    // OS テーマ変更を監視
-    if (typeof window !== 'undefined') {
-      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-        const current = get().theme;
-        if (current === 'system') {
-          const newResolved = getSystemTheme();
-          applyTheme(newResolved);
-          set({ resolvedTheme: newResolved });
+        // 情報・成功・警告通知は自動消去（5秒後）
+        if (type !== 'error') {
+          setTimeout(() => {
+            get().removeNotification(id);
+          }, 5000);
         }
-      });
+
+        return id;
+      },
+
+      removeNotification: (id: string): void => {
+        set(state => ({
+          notifications: state.notifications.filter(n => n.id !== id)
+        }));
+      },
+
+      setLoading: (loading: boolean): void => {
+        set({ isLoading: loading });
+      },
+
+      setTheme: (theme: Theme): void => {
+        const resolved = theme === 'system' ? getSystemTheme() : theme;
+        applyTheme(resolved);
+        set({ theme, resolvedTheme: resolved });
+      },
+
+      initializeTheme: (): void => {
+        // persist middleware が自動復元した theme を使用
+        const theme = get().theme;
+        const resolved = theme === 'system' ? getSystemTheme() : theme;
+        applyTheme(resolved);
+        set({ resolvedTheme: resolved });
+
+        // OS テーマ変更を監視
+        if (typeof window !== 'undefined') {
+          window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+            const current = get().theme;
+            if (current === 'system') {
+              const newResolved = getSystemTheme();
+              applyTheme(newResolved);
+              set({ resolvedTheme: newResolved });
+            }
+          });
+        }
+      },
+    }),
+    {
+      name: 'pfwise-ui',
+      version: 1,
+      partialize: (state) => ({ theme: state.theme }),
+      migrate: (persisted: any, version: number) => {
+        // v0 → v1: 旧 localStorage('pfwise-theme') からの自動マイグレーション
+        if (version === 0 || !persisted?.theme) {
+          try {
+            const legacy = localStorage.getItem('pfwise-theme');
+            if (legacy && ['light', 'dark', 'system'].includes(legacy)) {
+              localStorage.removeItem('pfwise-theme');
+              return { theme: legacy as Theme };
+            }
+          } catch { /* noop */ }
+        }
+        return persisted as { theme: Theme };
+      },
     }
-  },
-}));
+  )
+);

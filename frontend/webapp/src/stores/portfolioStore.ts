@@ -33,29 +33,38 @@ import { shouldUpdateExchangeRate, clearExchangeRateCache } from '../utils/excha
 import { getJapaneseStockName } from '../utils/japaneseStockNames';
 import { useUIStore } from './uiStore';
 
-// --- 暗号化/復号化ユーティリティ ---
+// --- データシリアライズ/デシリアライズ ---
+// v2: プレーンJSON保存（Base64エンコードは不要 — 真の暗号化ではなく難読化に過ぎなかった）
+// 旧フォーマット（Base64）からの後方互換読み取りを維持
 const encryptData = (data: any): string | null => {
   try {
-    const jsonString = JSON.stringify(data);
-    return btoa(encodeURIComponent(jsonString));
+    return JSON.stringify(data);
   } catch (error) {
-    logger.error('データの暗号化に失敗しました', error);
+    logger.error('データのシリアライズに失敗しました', error);
     return null;
   }
 };
 
-const decryptData = (encryptedData: string): any | null => {
+const decryptData = (storedData: string): any | null => {
+  // まずプレーンJSONとしてパースを試行（v2フォーマット）
   try {
-    const jsonString = decodeURIComponent(atob(encryptedData));
+    const data = JSON.parse(storedData);
+    if (data && typeof data === 'object') return data;
+  } catch { /* v1フォーマット（Base64）の可能性 — フォールバック */ }
+
+  // 旧フォーマット: Base64 + encodeURIComponent
+  try {
+    const jsonString = decodeURIComponent(atob(storedData));
     const data = JSON.parse(jsonString);
     if (!data || typeof data !== 'object') throw new Error('無効なデータ形式です');
     return data;
-  } catch (error: any) {
+  } catch {
+    // 旧フォーマット: Base64のみ（encodeURIComponent なし）
     try {
-      const jsonString = atob(encryptedData);
+      const jsonString = atob(storedData);
       return JSON.parse(jsonString);
     } catch (fallbackError) {
-      logger.error('復号化に失敗しました', fallbackError);
+      logger.error('デシリアライズに失敗しました', fallbackError);
       return null;
     }
   }

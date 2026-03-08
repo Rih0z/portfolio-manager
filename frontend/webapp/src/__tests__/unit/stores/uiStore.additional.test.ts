@@ -108,28 +108,32 @@ describe('useUIStore 追加テスト', () => {
     expect(useUIStore.getState().theme).toBe('system');
   });
 
-  it('setThemeがlocalStorageに保存する', () => {
+  it('setThemeがpersist middlewareを通じてlocalStorageに保存する', () => {
     useUIStore.getState().setTheme('dark');
-    expect(mockSetItem).toHaveBeenCalledWith('pfwise-theme', 'dark');
+    // persist middleware が 'pfwise-ui' キーで自動保存する
+    expect(mockSetItem).toHaveBeenCalledWith(
+      'pfwise-ui',
+      expect.stringContaining('"theme":"dark"')
+    );
   });
 
   // ─── initializeTheme ──────────────────────────────────────
 
   it('initializeThemeが保存なしの場合lightをデフォルトにする', () => {
-    mockGetItem.mockReturnValueOnce(null);
     useUIStore.getState().initializeTheme();
     expect(useUIStore.getState().theme).toBe('light');
   });
 
-  it('initializeThemeがlocalStorageから読み込む', () => {
-    mockGetItem.mockReturnValueOnce('dark');
+  it('initializeThemeがpersist復元済みのthemeを適用する', () => {
+    // persist middleware が復元した状態をシミュレート
+    useUIStore.setState({ theme: 'dark' });
     useUIStore.getState().initializeTheme();
     expect(useUIStore.getState().theme).toBe('dark');
     expect(useUIStore.getState().resolvedTheme).toBe('dark');
   });
 
-  it('initializeThemeがsystem設定を読み込む', () => {
-    mockGetItem.mockReturnValueOnce('system');
+  it('initializeThemeがsystem設定を適用する', () => {
+    useUIStore.setState({ theme: 'system' });
     useUIStore.getState().initializeTheme();
     expect(useUIStore.getState().theme).toBe('system');
     expect(useUIStore.getState().resolvedTheme).toBe('light'); // JSDOM default
