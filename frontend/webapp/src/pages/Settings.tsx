@@ -16,7 +16,8 @@
  */
 
 import React, { useState } from 'react';
-import { BarChart3, Bot, ArrowUpDown, Bell, Settings as SettingsIcon } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { BarChart3, Bot, ArrowUpDown, Bell, Settings as SettingsIcon, Upload } from 'lucide-react';
 import TickerSearch from '../components/settings/TickerSearch';
 import PopularTickers from '../components/settings/PopularTickers';
 import HoldingsEditor from '../components/settings/HoldingsEditor';
@@ -28,6 +29,7 @@ import AlertRulesManager from '../components/notifications/AlertRulesManager';
 import NotificationPreferences from '../components/notifications/NotificationPreferences';
 
 const Settings = () => {
+  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState('portfolio');
 
   const sections = [
@@ -99,6 +101,21 @@ const Settings = () => {
       {/* データ交換セクション */}
       {activeSection === 'data-exchange' && (
         <div className="space-y-6">
+          {/* データ取り込みへのリンク */}
+          <div className="bg-card border border-border rounded-xl shadow-sm p-6">
+            <h2 className="text-lg font-semibold mb-3 text-foreground">データ取り込み</h2>
+            <p className="text-sm text-muted-foreground mb-4">
+              外部AIの分析結果やJSONファイルからポートフォリオデータを取り込めます。
+            </p>
+            <button
+              onClick={() => navigate('/data-import')}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-primary-500 text-white hover:bg-primary-600 transition-colors"
+            >
+              <Upload size={16} />
+              データ取り込みを開く
+            </button>
+          </div>
+
           <PortfolioYamlConverter />
         </div>
       )}

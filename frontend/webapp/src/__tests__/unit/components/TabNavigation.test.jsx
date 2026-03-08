@@ -10,7 +10,6 @@ vi.mock('lucide-react', () => ({
   Bot: (props) => <svg data-testid="icon-bot" {...props} />,
   BarChart3: (props) => <svg data-testid="icon-barchart" {...props} />,
   Settings: (props) => <svg data-testid="icon-settings" {...props} />,
-  Upload: (props) => <svg data-testid="icon-upload" {...props} />,
 }));
 
 // usePortfolioContextのモック
@@ -52,7 +51,6 @@ describe('TabNavigation', () => {
     expect(screen.getByText('AI分析')).toBeInTheDocument();
     expect(screen.getByText('配分')).toBeInTheDocument();
     expect(screen.getByText('設定')).toBeInTheDocument();
-    expect(screen.getByText('データ')).toBeInTheDocument();
   });
 
   it('renders as a nav element', () => {
@@ -66,7 +64,7 @@ describe('TabNavigation', () => {
     renderWithRouter();
 
     const svgIcons = document.querySelectorAll('svg');
-    expect(svgIcons.length).toBeGreaterThanOrEqual(5);
+    expect(svgIcons.length).toBeGreaterThanOrEqual(4);
   });
 
   it('has proper fixed positioning for mobile bottom nav', () => {
@@ -76,11 +74,11 @@ describe('TabNavigation', () => {
     expect(nav).toHaveClass('fixed', 'bottom-0');
   });
 
-  it('renders 5 navigation links', () => {
+  it('renders 4 navigation links', () => {
     renderWithRouter();
 
     const links = document.querySelectorAll('a');
-    expect(links.length).toBe(5);
+    expect(links.length).toBe(4);
   });
 
   it('highlights active tab based on route', () => {
@@ -101,13 +99,12 @@ describe('TabNavigation', () => {
     expect(hrefs).toContain('/ai-advisor');
     expect(hrefs).toContain('/simulation');
     expect(hrefs).toContain('/settings');
-    expect(hrefs).toContain('/data-import');
   });
 
   it('renders grid layout for tabs', () => {
     renderWithRouter();
 
-    const grid = document.querySelector('.grid.grid-cols-5');
+    const grid = document.querySelector('.grid.grid-cols-4');
     expect(grid).toBeInTheDocument();
   });
 

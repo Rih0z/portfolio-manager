@@ -7,6 +7,7 @@ import { vi } from "vitest";
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { MemoryRouter } from 'react-router-dom';
 import Settings from '../../../pages/Settings';
 
 // lucide-react モック
@@ -25,6 +26,9 @@ vi.mock('lucide-react', () => ({
   },
   Settings: function SettingsIcon(props) {
     return <svg data-testid="icon-settings" {...props} />;
+  },
+  Upload: function Upload(props) {
+    return <svg data-testid="icon-upload" {...props} />;
   },
 }));
 
@@ -86,7 +90,7 @@ vi.mock('../../../components/notifications/NotificationPreferences', () => ({
 describe('Settings', () => {
   describe('基本レンダリング', () => {
     it('デフォルトのポートフォリオ設定タブのコンポーネントを表示する', () => {
-      render(<Settings />);
+      render(<MemoryRouter><Settings /></MemoryRouter>);
 
       // ポートフォリオ設定タブ（デフォルト）のコンポーネント
       expect(screen.getByTestId('ticker-search')).toBeInTheDocument();
@@ -96,7 +100,7 @@ describe('Settings', () => {
     });
 
     it('正しいセクションタイトルを表示する（ポートフォリオタブ）', () => {
-      render(<Settings />);
+      render(<MemoryRouter><Settings /></MemoryRouter>);
 
       expect(screen.getByText('銘柄の追加')).toBeInTheDocument();
       expect(screen.getByText('保有資産の設定')).toBeInTheDocument();
@@ -104,7 +108,7 @@ describe('Settings', () => {
     });
 
     it('サブセクションタイトルを表示する', () => {
-      render(<Settings />);
+      render(<MemoryRouter><Settings /></MemoryRouter>);
 
       expect(screen.getByText('銘柄を検索して追加')).toBeInTheDocument();
       expect(screen.getByText('人気銘柄を追加')).toBeInTheDocument();
@@ -113,7 +117,7 @@ describe('Settings', () => {
 
   describe('タブナビゲーション', () => {
     it('セクションタブが表示される', () => {
-      render(<Settings />);
+      render(<MemoryRouter><Settings /></MemoryRouter>);
 
       expect(screen.getByText('銘柄管理')).toBeInTheDocument();
       expect(screen.getByText('AI設定')).toBeInTheDocument();
@@ -123,7 +127,7 @@ describe('Settings', () => {
     });
 
     it('各タブにLucideアイコンが表示される', () => {
-      render(<Settings />);
+      render(<MemoryRouter><Settings /></MemoryRouter>);
 
       expect(screen.getByTestId('icon-bar-chart3')).toBeInTheDocument();
       expect(screen.getByTestId('icon-bot')).toBeInTheDocument();
@@ -133,7 +137,7 @@ describe('Settings', () => {
     });
 
     it('AI設定タブに切り替えるとAiPromptSettingsが表示される', () => {
-      render(<Settings />);
+      render(<MemoryRouter><Settings /></MemoryRouter>);
 
       fireEvent.click(screen.getByText('AI設定'));
 
@@ -143,7 +147,7 @@ describe('Settings', () => {
     });
 
     it('データタブに切り替えるとPortfolioYamlConverterが表示される', () => {
-      render(<Settings />);
+      render(<MemoryRouter><Settings /></MemoryRouter>);
 
       fireEvent.click(screen.getByText('データ'));
 
@@ -151,7 +155,7 @@ describe('Settings', () => {
     });
 
     it('通知タブに切り替えるとAlertRulesManagerとNotificationPreferencesが表示される', () => {
-      render(<Settings />);
+      render(<MemoryRouter><Settings /></MemoryRouter>);
 
       fireEvent.click(screen.getByText('通知'));
 
@@ -162,7 +166,7 @@ describe('Settings', () => {
     });
 
     it('システムタブに切り替えるとResetSettingsが表示される', () => {
-      render(<Settings />);
+      render(<MemoryRouter><Settings /></MemoryRouter>);
 
       fireEvent.click(screen.getByText('システム'));
 
@@ -172,7 +176,7 @@ describe('Settings', () => {
 
   describe('レイアウトとスタイリング', () => {
     it('正しいレイアウトクラスが適用されている', () => {
-      render(<Settings />);
+      render(<MemoryRouter><Settings /></MemoryRouter>);
 
       // メインコンテナの空間設定
       const mainContainer = document.querySelector('.space-y-6');
@@ -180,7 +184,7 @@ describe('Settings', () => {
     });
 
     it('bg-cardのカードレイアウトが適用されている', () => {
-      render(<Settings />);
+      render(<MemoryRouter><Settings /></MemoryRouter>);
 
       // ポートフォリオ設定タブのカード（bg-card + border-border + rounded-xl + shadow-sm）
       const cards = document.querySelectorAll('.bg-card.rounded-xl.shadow-sm');
@@ -189,7 +193,7 @@ describe('Settings', () => {
     });
 
     it('グリッドレイアウトが正しく適用されている', () => {
-      render(<Settings />);
+      render(<MemoryRouter><Settings /></MemoryRouter>);
 
       // 銘柄追加セクションのグリッドレイアウト
       const gridContainer = document.querySelector('.grid.grid-cols-1.md\\:grid-cols-2.gap-6');
@@ -197,7 +201,7 @@ describe('Settings', () => {
     });
 
     it('パディングクラスが正しく適用されている', () => {
-      render(<Settings />);
+      render(<MemoryRouter><Settings /></MemoryRouter>);
 
       // パディングを持つカードコンテナ
       const paddedContainers = document.querySelectorAll('.p-6');
@@ -207,7 +211,7 @@ describe('Settings', () => {
 
   describe('レスポンシブデザイン', () => {
     it('モバイル対応のグリッドクラスが適用されている', () => {
-      render(<Settings />);
+      render(<MemoryRouter><Settings /></MemoryRouter>);
 
       // モバイルでは1列、デスクトップでは2列のグリッド
       const responsiveGrid = document.querySelector('.grid-cols-1.md\\:grid-cols-2');
@@ -215,7 +219,7 @@ describe('Settings', () => {
     });
 
     it('レスポンシブなテキストサイズクラスが適用されている', () => {
-      render(<Settings />);
+      render(<MemoryRouter><Settings /></MemoryRouter>);
 
       // h2とh3タイトルのクラス
       const h2Title = screen.getByText('銘柄の追加').closest('h2');
@@ -228,7 +232,7 @@ describe('Settings', () => {
 
   describe('コンポーネント配置', () => {
     it('銘柄追加セクションが正しく配置されている', () => {
-      render(<Settings />);
+      render(<MemoryRouter><Settings /></MemoryRouter>);
 
       const tickerSection = screen.getByText('銘柄の追加').closest('div');
       expect(tickerSection).toContainElement(screen.getByTestId('ticker-search'));
@@ -236,21 +240,21 @@ describe('Settings', () => {
     });
 
     it('保有資産設定セクションが正しく配置されている', () => {
-      render(<Settings />);
+      render(<MemoryRouter><Settings /></MemoryRouter>);
 
       const holdingsSection = screen.getByText('保有資産の設定').closest('div');
       expect(holdingsSection).toContainElement(screen.getByTestId('holdings-editor'));
     });
 
     it('目標配分設定セクションが正しく配置されている', () => {
-      render(<Settings />);
+      render(<MemoryRouter><Settings /></MemoryRouter>);
 
       const allocationSection = screen.getByText('目標配分の設定').closest('div');
       expect(allocationSection).toContainElement(screen.getByTestId('allocation-editor'));
     });
 
     it('AI分析プロンプト設定がAI設定タブにある', () => {
-      render(<Settings />);
+      render(<MemoryRouter><Settings /></MemoryRouter>);
 
       // AI設定タブに切り替え
       fireEvent.click(screen.getByText('AI設定'));
@@ -262,7 +266,7 @@ describe('Settings', () => {
 
   describe('セマンティック構造', () => {
     it('適切な見出し階層を持つ（ポートフォリオタブ）', () => {
-      render(<Settings />);
+      render(<MemoryRouter><Settings /></MemoryRouter>);
 
       // h2とh3の見出しが存在する
       const h2Headings = screen.getAllByRole('heading', { level: 2 });
@@ -273,7 +277,7 @@ describe('Settings', () => {
     });
 
     it('見出しに適切なテキストが設定されている', () => {
-      render(<Settings />);
+      render(<MemoryRouter><Settings /></MemoryRouter>);
 
       expect(screen.getByRole('heading', { level: 2, name: '銘柄の追加' })).toBeInTheDocument();
       expect(screen.getByRole('heading', { level: 2, name: '保有資産の設定' })).toBeInTheDocument();
@@ -286,7 +290,7 @@ describe('Settings', () => {
   describe('パフォーマンス', () => {
     it('コンポーネントが効率的にレンダリングされる', () => {
       const startTime = performance.now();
-      render(<Settings />);
+      render(<MemoryRouter><Settings /></MemoryRouter>);
       const endTime = performance.now();
 
       // レンダリング時間が100ms以下であることを確認
@@ -296,7 +300,7 @@ describe('Settings', () => {
 
   describe('統合テスト', () => {
     it('完全な設定ページレイアウトが正常に動作する', () => {
-      render(<Settings />);
+      render(<MemoryRouter><Settings /></MemoryRouter>);
 
       // 1. タブナビゲーションの存在確認
       expect(screen.getByText('銘柄管理')).toBeInTheDocument();

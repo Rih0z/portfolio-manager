@@ -8,7 +8,7 @@
  */
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Bot, BarChart3, Settings, Upload } from 'lucide-react';
+import { LayoutDashboard, Bot, BarChart3, Settings } from 'lucide-react';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 
 const TabNavigation = () => {
@@ -36,7 +36,6 @@ const TabNavigation = () => {
     { path: '/ai-advisor', label: 'AI分析', Icon: Bot },
     { path: '/simulation', label: '配分', Icon: BarChart3 },
     { path: '/settings', label: '設定', Icon: Settings },
-    { path: '/data-import', label: 'データ', Icon: Upload },
   ];
 
   return (
@@ -45,7 +44,7 @@ const TabNavigation = () => {
       data-testid="tab-navigation"
       aria-label="メインナビゲーション"
     >
-      <div className="grid grid-cols-5 h-16 sm:h-18 max-w-sm sm:max-w-lg mx-auto">
+      <div className="grid grid-cols-4 h-16 sm:h-18 max-w-sm sm:max-w-lg mx-auto">
         {tabs.map((tab) => (
           <NavLink
             key={tab.path}
