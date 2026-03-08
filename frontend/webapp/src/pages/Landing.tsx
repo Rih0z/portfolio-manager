@@ -5,9 +5,9 @@
  * 認証済みユーザーは /dashboard へ自動リダイレクト。
  *
  * セクション構成:
- *  1. Hero — キャッチコピー + Google Login CTA
+ *  1. Hero — キャッチコピー + Google Login CTA + スタッツバー
  *  2. Pain — 3つのペインカード（課題共感）
- *  3. Solution — スクショ付き3つの解決策
+ *  3. Solution — 3つの解決策
  *  4. Features — PFスコア・AIプロンプト・ゴール管理
  *  5. Trust — Google OAuth + Stripe + AWS
  *  6. Pricing — Free vs Standard 比較（/pricing 誘導）
@@ -59,9 +59,24 @@ const CheckIcon = () => (
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
   </svg>
 );
-const CrossIcon = () => (
-  <svg className="w-5 h-5 text-muted-foreground flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+
+// ペインセクション用アイコン（プロフェッショナルなモノクロSVG）
+const PainIcon1 = () => (
+  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+  </svg>
+);
+const PainIcon2 = () => (
+  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+      d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+const PainIcon3 = () => (
+  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+      d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
   </svg>
 );
 
@@ -100,16 +115,16 @@ const Landing: React.FC = () => {
             {t('landing.heroBadge', '無料で始められる')}
           </Badge>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-foreground leading-tight mb-4">
-            {t('landing.heroTitle', '資産の全体像が、')}
+            {t('landing.heroTitle', '分散投資の全体像が、')}
             <br />
             <span className="bg-gradient-to-r from-primary-400 to-primary-600 bg-clip-text text-transparent">
-              {t('landing.heroTitleAccent', '1分でわかる')}
+              {t('landing.heroTitleAccent', 'ひとつの画面で完結')}
             </span>
           </h1>
           <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto mb-8">
             {t(
               'landing.heroDescription',
-              'CSVインポートで保有銘柄を取り込むだけ。損益ダッシュボード・PFスコア・AIプロンプトであなたの投資判断をサポートします。'
+              '証券会社のCSVをインポートするだけ。日米株・投資信託を一元管理し、損益・配分・リバランスをリアルタイムで把握できます。'
             )}
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -118,38 +133,54 @@ const Landing: React.FC = () => {
           <p className="mt-4 text-xs text-muted-foreground">
             {t('landing.heroCreditCard', 'クレジットカード不要 — 永久無料プランあり')}
           </p>
+
+          {/* スタッツバー */}
+          <div className="mt-10 flex flex-wrap justify-center gap-x-8 gap-y-4">
+            {[
+              { value: '日米株・投信', label: t('landing.stat1', '対応資産クラス') },
+              { value: 'SBI・楽天', label: t('landing.stat2', 'CSV対応証券口座') },
+              { value: '8指標', label: t('landing.stat3', 'PFスコア採点') },
+            ].map((stat) => (
+              <div key={stat.label} className="text-center">
+                <div className="text-xl sm:text-2xl font-bold text-foreground font-mono">{stat.value}</div>
+                <div className="text-xs text-muted-foreground mt-0.5">{stat.label}</div>
+              </div>
+            ))}
+          </div>
         </section>
 
         {/* ───────── 2. Pain（課題共感）───────── */}
         <section className="py-12 sm:py-16">
           <h2 className="text-2xl sm:text-3xl font-bold text-foreground text-center mb-4">
-            {t('landing.painTitle', 'こんな悩み、ありませんか？')}
+            {t('landing.painTitle', 'こんな状況、心当たりはありませんか')}
           </h2>
           <p className="text-muted-foreground text-center mb-10 max-w-xl mx-auto">
-            {t('landing.painSubtitle', '個人投資家が抱えるよくある課題')}
+            {t('landing.painSubtitle', '複数口座で日米分散投資をしている方が抱えがちな課題')}
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {[
               {
-                title: t('landing.pain1Title', '入力が面倒すぎる'),
-                desc: t('landing.pain1Desc', '証券口座ごとにログインして手動で記録…。面倒で続かない。'),
-                emoji: '😩',
+                icon: <PainIcon1 />,
+                title: t('landing.pain1Title', '口座ごとにバラバラで把握できない'),
+                desc: t('landing.pain1Desc', 'SBI・楽天・米国口座と複数に分散していて、全体の評価額と損益を手作業で集計している。'),
               },
               {
-                title: t('landing.pain2Title', '儲かってるか分からない'),
-                desc: t('landing.pain2Desc', '含み益・含み損がバラバラで、全体の損益が把握できない。'),
-                emoji: '😵',
+                icon: <PainIcon2 />,
+                title: t('landing.pain2Title', 'リバランスの計算が面倒'),
+                desc: t('landing.pain2Desc', '目標配分との乖離は感覚でしかわからず、追加投資のたびにスプレッドシートで試算が必要。'),
               },
               {
-                title: t('landing.pain3Title', 'ツールが使いにくい'),
-                desc: t('landing.pain3Desc', '既存のアプリはデザインが古く、操作が複雑で直感的でない。'),
-                emoji: '😤',
+                icon: <PainIcon3 />,
+                title: t('landing.pain3Title', '既存ツールは使いにくい'),
+                desc: t('landing.pain3Desc', 'マネーフォワードは銀行口座連携前提で重い。証券会社のツールは自社口座しか見られない。'),
               },
             ].map((pain) => (
               <Card key={pain.title} hoverable padding="large">
-                <div className="text-4xl mb-3">{pain.emoji}</div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">{pain.title}</h3>
-                <p className="text-sm text-muted-foreground">{pain.desc}</p>
+                <div className="w-10 h-10 mb-3 rounded-lg bg-muted flex items-center justify-center text-muted-foreground">
+                  {pain.icon}
+                </div>
+                <h3 className="text-base font-semibold text-foreground mb-2">{pain.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{pain.desc}</p>
               </Card>
             ))}
           </div>
@@ -181,7 +212,7 @@ const Landing: React.FC = () => {
                 icon: <BrainIcon />,
                 step: t('landing.solution3Step', 'STEP 3'),
                 title: t('landing.solution3Title', 'AIで分析'),
-                desc: t('landing.solution3Desc', 'ポートフォリオデータを元にAI分析プロンプトを自動生成。戦略立案を加速。'),
+                desc: t('landing.solution3Desc', 'ポートフォリオデータを元にAI分析プロンプトを自動生成。ChatGPT/Claudeへそのままコピペ。'),
               },
             ].map((sol) => (
               <Card key={sol.title} hoverable padding="large" className="text-center">
