@@ -17,12 +17,12 @@ import logger from '../../utils/logger';
 
 const PortfolioYamlConverter = () => {
   const { t, i18n } = useTranslation();
-  const { 
-    portfolio, 
-    targetPortfolio, 
-    updatePortfolioFromImport,
+  const {
+    currentAssets,
+    targetPortfolio,
+    importData,
     totalAssets,
-    baseCurrency 
+    baseCurrency
   } = usePortfolioContext();
   
   const [yamlOutput, setYamlOutput] = useState('');
@@ -39,14 +39,14 @@ const PortfolioYamlConverter = () => {
         totalAssets: totalAssets || 0,
         currency: baseCurrency || 'JPY',
         timestamp: new Date().toISOString(),
-        currentAllocation: portfolio.map(item => ({
+        currentAllocation: currentAssets.map(item => ({
           ticker: item.ticker,
           name: item.name,
           holdings: item.holdings || 0,
           price: item.price || 0,
           value: (item.holdings || 0) * (item.price || 0),
           percentage: item.percentage || 0,
-          type: item.type || 'stock'
+          type: item.fundType || 'stock'
         })),
         targetAllocation: targetPortfolio.map(item => ({
           ticker: item.ticker,
@@ -94,7 +94,7 @@ ${yamlData.portfolio.targetAllocation.map(item => `    - ティッカー: ${item
 
     setYamlOutput(yamlString);
     return yamlString;
-  }, [portfolio, targetPortfolio, totalAssets, baseCurrency]);
+  }, [currentAssets, targetPortfolio, totalAssets, baseCurrency]);
 
   // YAMLデータをパースしてポートフォリオに取り込む
   const parseYamlInput = useCallback((yamlText) => {
@@ -151,8 +151,16 @@ ${yamlData.portfolio.targetAllocation.map(item => `    - ティッカー: ${item
   }, []);
 
   const handleGenerateYaml = () => {
-    generateYamlPrompt();
-    setImportStatus({ type: 'success', message: isJapanese ? 'YAML生成完了' : 'YAML generated' });
+    const yamlString = generateYamlPrompt();
+    if (yamlString) {
+      navigator.clipboard.writeText(yamlString).then(() => {
+        setShowCopyConfirm(true);
+        setImportStatus({ type: 'success', message: isJapanese ? 'YAMLを生成してクリップボードにコピーしました' : 'YAML generated and copied to clipboard' });
+        setTimeout(() => setShowCopyConfirm(false), 3000);
+      }).catch(() => {
+        setImportStatus({ type: 'success', message: isJapanese ? 'YAML生成完了（手動でコピーしてください）' : 'YAML generated (please copy manually)' });
+      });
+    }
   };
 
   const handleCopyYaml = () => {
@@ -166,7 +174,7 @@ ${yamlData.portfolio.targetAllocation.map(item => `    - ティッカー: ${item
     const result = parseYamlInput(yamlInput);
     
     if (result.success && result.assets.length > 0) {
-      updatePortfolioFromImport(result.assets);
+      importData({ currentAssets: result.assets, targetPortfolio: result.assets.map(a => ({ id: a.ticker, ticker: a.ticker, name: a.name, targetPercentage: 0 })) });
       setImportStatus({ 
         type: 'success', 
         message: isJapanese 

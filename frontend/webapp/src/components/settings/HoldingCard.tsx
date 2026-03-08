@@ -7,7 +7,7 @@ import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 
-const HoldingCard = ({
+const HoldingCard = React.memo(({
   asset,
   baseCurrency,
   exchangeRate,
@@ -180,7 +180,7 @@ const HoldingCard = ({
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => setIsEditing(true)}
+                onClick={() => { setEditValue(asset.holdings.toString()); setIsEditing(true); }}
                 aria-label={`${asset.symbol}の保有数量を編集`}
                 icon={
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -268,6 +268,8 @@ const HoldingCard = ({
       </div>
     </Card>
   );
-};
+});
+
+HoldingCard.displayName = 'HoldingCard';
 
 export default HoldingCard;

@@ -14,7 +14,7 @@
  * 銘柄ごとの評価額、年間手数料、年間配当金の計算と表示も行う。
  * 小数点以下4桁まで対応した精度の高い保有数量管理が可能。
  */
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 import { formatCurrency, formatPercent } from '../../utils/formatters';
@@ -36,12 +36,12 @@ const HoldingsEditor = () => {
   const [messageType, setMessageType] = useState('');
 
   // 銘柄の削除
-  const handleRemoveTicker = (id, name) => {
+  const handleRemoveTicker = useCallback((id, name) => {
     if (window.confirm(`${name}を削除してもよろしいですか？`)) {
       removeTicker(id);
       showMessage(`${name}を削除しました`, 'success');
     }
-  };
+  }, [removeTicker]);
 
   // メッセージの表示
   const showMessage = (text, type) => {
@@ -81,10 +81,7 @@ const HoldingsEditor = () => {
             asset={asset}
             baseCurrency={baseCurrency}
             exchangeRate={exchangeRate}
-            onUpdateHoldings={(id, value) => {
-              updateHoldings(id, value);
-              showMessage('保有数量を更新しました', 'success');
-            }}
+            onUpdateHoldings={updateHoldings}
             onRemove={handleRemoveTicker}
           />
         ))}
