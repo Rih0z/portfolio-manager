@@ -13,13 +13,12 @@
  */
 
 import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { FileText, FolderOpen, HardDrive, BarChart3, TrendingUp, CheckCircle, ClipboardList, Lightbulb, Gem } from 'lucide-react';
 import { usePortfolioContext } from '../hooks/usePortfolioContext';
 import ScreenshotAnalyzer from '../components/ai/ScreenshotAnalyzer';
 import logger from '../utils/logger';
 
 const DataImport = () => {
-  const { t, i18n } = useTranslation();
   const { portfolio, updatePortfolio } = usePortfolioContext();
   const [activeTab, setActiveTab] = useState('ai-result');
   const [importHistory, setImportHistory] = useState<any[]>([]);
@@ -31,32 +30,24 @@ const DataImport = () => {
   const [jsonImportData, setJsonImportData] = useState('');
   const [isImporting, setIsImporting] = useState(false);
 
-  const isJapanese = i18n.language === 'ja';
-
   const tabs = [
     {
       id: 'ai-result',
-      name: isJapanese ? 'AI分析結果' : 'AI Results',
-      icon: '📄',
-      description: isJapanese
-        ? '外部AIで分析された結果をテキストで受け取り'
-        : 'Receive AI analysis results as text'
+      name: 'AI分析結果',
+      icon: <FileText size={20} />,
+      description: '外部AIで分析された結果をテキストで受け取り'
     },
     {
       id: 'json',
-      name: isJapanese ? 'JSONインポート' : 'JSON Import',
-      icon: '📁',
-      description: isJapanese
-        ? 'JSONファイルからポートフォリオデータを読み込み'
-        : 'Import portfolio data from JSON files'
+      name: 'JSONインポート',
+      icon: <FolderOpen size={20} />,
+      description: 'JSONファイルからポートフォリオデータを読み込み'
     },
     {
       id: 'export',
-      name: isJapanese ? 'データエクスポート' : 'Data Export',
-      icon: '💾',
-      description: isJapanese
-        ? '現在のポートフォリオデータをエクスポート'
-        : 'Export current portfolio data'
+      name: 'データエクスポート',
+      icon: <HardDrive size={20} />,
+      description: '現在のポートフォリオデータをエクスポート'
     }
   ];
 
@@ -217,14 +208,14 @@ const DataImport = () => {
       case 'json':
         return (
           <div className="bg-card rounded-lg p-6">
-            <h3 className="text-xl font-semibold text-white mb-4">
-              📁 {isJapanese ? 'JSONインポート' : 'JSON Import'}
+            <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+              <FolderOpen size={20} className="inline-block" /> JSONインポート
             </h3>
 
             {/* File Import */}
             <div className="mb-6">
               <h4 className="font-medium text-white mb-3">
-                {isJapanese ? 'ファイルからインポート' : 'Import from File'}
+                ファイルからインポート
               </h4>
               <input
                 type="file"
@@ -237,15 +228,12 @@ const DataImport = () => {
             {/* Text Import */}
             <div className="mb-6">
               <h4 className="font-medium text-white mb-3">
-                {isJapanese ? 'JSONテキストから直接インポート' : 'Import from JSON Text'}
+                JSONテキストから直接インポート
               </h4>
               <textarea
                 value={jsonImportData}
                 onChange={(e: any) => setJsonImportData(e.target.value)}
-                placeholder={isJapanese
-                  ? 'JSONデータをここに貼り付けてください...'
-                  : 'Paste JSON data here...'
-                }
+                placeholder="JSONデータをここに貼り付けてください..."
                 className="w-full p-3 bg-muted border border-border rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-primary-400 focus:border-transparent resize-none"
                 rows={10}
               />
@@ -261,10 +249,7 @@ const DataImport = () => {
                         : 'bg-primary-500 hover:bg-primary-600 text-white'
                     }`}
                   >
-                    {isImporting
-                      ? (isJapanese ? 'インポート中...' : 'Importing...')
-                      : (isJapanese ? 'インポート実行' : 'Import Data')
-                    }
+                    {isImporting ? 'インポート中...' : 'インポート実行'}
                   </button>
                 </div>
               )}
@@ -272,27 +257,18 @@ const DataImport = () => {
 
             {/* Format Help */}
             <div className="bg-primary-500/10 border border-primary-500/30 rounded-lg p-4">
-              <h5 className="text-primary-400 font-medium mb-2">
-                💡 {isJapanese ? 'JSONフォーマットについて' : 'JSON Format Info'}
+              <h5 className="text-primary-400 font-medium mb-2 flex items-center gap-2">
+                <Lightbulb size={16} className="inline-block" /> JSONフォーマットについて
               </h5>
               <div className="space-y-1 text-sm text-muted-foreground">
                 <div>
-                  • {isJapanese
-                    ? 'エクスポートされたJSONファイルと同じ形式を使用してください'
-                    : 'Use the same format as exported JSON files'
-                  }
+                  • エクスポートされたJSONファイルと同じ形式を使用してください
                 </div>
                 <div>
-                  • {isJapanese
-                    ? 'assets配列にポートフォリオデータが含まれている必要があります'
-                    : 'Must contain an assets array with portfolio data'
-                  }
+                  • assets配列にポートフォリオデータが含まれている必要があります
                 </div>
                 <div>
-                  • {isJapanese
-                    ? 'インポート時に既存データとマージされます'
-                    : 'Data will be merged with existing portfolio'
-                  }
+                  • インポート時に既存データとマージされます
                 </div>
               </div>
             </div>
@@ -302,36 +278,36 @@ const DataImport = () => {
       case 'export':
         return (
           <div className="bg-card rounded-lg p-6">
-            <h3 className="text-xl font-semibold text-white mb-4">
-              💾 {isJapanese ? 'データエクスポート' : 'Data Export'}
+            <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+              <HardDrive size={20} className="inline-block" /> データエクスポート
             </h3>
 
             {/* Current Portfolio Summary */}
             <div className="mb-6">
               <h4 className="font-medium text-white mb-3">
-                {isJapanese ? '現在のポートフォリオ' : 'Current Portfolio'}
+                現在のポートフォリオ
               </h4>
               <div className="bg-muted rounded-lg p-4 border border-border">
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-muted-foreground">{isJapanese ? '資産数：' : 'Assets:'}</span>
+                    <span className="text-muted-foreground">資産数：</span>
                     <span className="text-white ml-2">{(portfolio as any)?.assets?.length || 0}</span>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">{isJapanese ? '総資産額：' : 'Total Value:'}</span>
+                    <span className="text-muted-foreground">総資産額：</span>
                     <span className="text-white ml-2">¥{(portfolio as any)?.totalValue?.toLocaleString() || '0'}</span>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">{isJapanese ? '最終更新：' : 'Last Updated:'}</span>
+                    <span className="text-muted-foreground">最終更新：</span>
                     <span className="text-white ml-2">
                       {(portfolio as any)?.lastUpdated
                         ? new Date((portfolio as any).lastUpdated).toLocaleDateString()
-                        : isJapanese ? '未設定' : 'Not set'
+                        : '未設定'
                       }
                     </span>
                   </div>
                   <div>
-                    <span className="text-muted-foreground">{isJapanese ? '通貨：' : 'Currency:'}</span>
+                    <span className="text-muted-foreground">通貨：</span>
                     <span className="text-white ml-2">{(portfolio as any)?.baseCurrency || 'JPY'}</span>
                   </div>
                 </div>
@@ -344,39 +320,27 @@ const DataImport = () => {
                 onClick={handleExportJson}
                 className="w-full py-3 px-4 bg-green-500 hover:bg-green-600 text-white font-medium rounded-lg transition-colors duration-200"
               >
-                {isJapanese ? 'JSONファイルとしてエクスポート' : 'Export as JSON File'}
+                JSONファイルとしてエクスポート
               </button>
             </div>
 
             {/* Export Info */}
             <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
-              <h5 className="text-green-400 font-medium mb-2">
-                📄 {isJapanese ? 'エクスポート内容' : 'Export Contents'}
+              <h5 className="text-green-400 font-medium mb-2 flex items-center gap-2">
+                <FileText size={16} className="inline-block" /> エクスポート内容
               </h5>
               <div className="space-y-1 text-sm text-muted-foreground">
                 <div>
-                  • {isJapanese
-                    ? 'すべての保有資産データ'
-                    : 'All asset holdings data'
-                  }
+                  • すべての保有資産データ
                 </div>
                 <div>
-                  • {isJapanese
-                    ? '目標配分設定'
-                    : 'Target allocation settings'
-                  }
+                  • 目標配分設定
                 </div>
                 <div>
-                  • {isJapanese
-                    ? 'ポートフォリオ設定'
-                    : 'Portfolio configuration'
-                  }
+                  • ポートフォリオ設定
                 </div>
                 <div>
-                  • {isJapanese
-                    ? 'エクスポート日時とバージョン情報'
-                    : 'Export timestamp and version info'
-                  }
+                  • エクスポート日時とバージョン情報
                 </div>
               </div>
             </div>
@@ -393,14 +357,11 @@ const DataImport = () => {
       <div className="container mx-auto px-4 py-8 pb-20">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-4">
-            📊 {isJapanese ? 'データ取り込み' : 'Data Import'}
+          <h1 className="text-3xl font-bold mb-4 flex items-center justify-center gap-2">
+            <BarChart3 size={28} className="inline-block" /> データ取り込み
           </h1>
           <p className="text-muted-foreground max-w-2xl mx-auto">
-            {isJapanese
-              ? '外部AIで分析されたデータの受け取りや、JSONファイルでのデータ交換が行えます。プライバシーを保護しながら安全にデータを管理します。'
-              : 'Receive AI-analyzed data and exchange data via JSON files. Manage your data safely while protecting privacy.'
-            }
+            外部AIで分析されたデータの受け取りや、JSONファイルでのデータ交換が行えます。プライバシーを保護しながら安全にデータを管理します。
           </p>
         </div>
 
@@ -413,10 +374,10 @@ const DataImport = () => {
                   {importStats.totalImports}
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  {isJapanese ? 'インポート回数' : 'Total Imports'}
+                  インポート回数
                 </div>
               </div>
-              <div className="text-3xl">📈</div>
+              <TrendingUp size={28} className="text-primary-400" />
             </div>
           </div>
 
@@ -427,10 +388,10 @@ const DataImport = () => {
                   {importStats.successfulImports}
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  {isJapanese ? '成功インポート' : 'Successful Imports'}
+                  成功インポート
                 </div>
               </div>
-              <div className="text-3xl">✅</div>
+              <CheckCircle size={28} className="text-green-400" />
             </div>
           </div>
 
@@ -441,10 +402,10 @@ const DataImport = () => {
                   {importStats.assetsAdded}
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  {isJapanese ? '追加された資産' : 'Assets Added'}
+                  追加された資産
                 </div>
               </div>
-              <div className="text-3xl">💎</div>
+              <Gem size={28} className="text-blue-400" />
             </div>
           </div>
         </div>
@@ -462,7 +423,7 @@ const DataImport = () => {
                     : 'text-muted-foreground hover:text-white hover:bg-muted'
                 }`}
               >
-                <div className="text-xl mb-1">{tab.icon}</div>
+                <div className="flex justify-center mb-1">{tab.icon}</div>
                 <div className="text-sm font-medium">{tab.name}</div>
               </button>
             ))}
@@ -482,8 +443,8 @@ const DataImport = () => {
         {/* Import History */}
         {importHistory.length > 0 && (
           <div className="bg-card rounded-lg p-6">
-            <h3 className="text-xl font-semibold text-white mb-4">
-              📋 {isJapanese ? 'インポート履歴' : 'Import History'}
+            <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+              <ClipboardList size={20} className="inline-block" /> インポート履歴
             </h3>
             <div className="space-y-3">
               {importHistory.map((record: any) => (
@@ -495,15 +456,15 @@ const DataImport = () => {
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-lg">
-                          {record.type === 'screenshot_portfolio' ? '📊' :
-                           record.type === 'market_data_screenshot' ? '📈' : '📋'}
+                          {record.type === 'screenshot_portfolio' ? <BarChart3 size={18} /> :
+                           record.type === 'market_data_screenshot' ? <TrendingUp size={18} /> : <ClipboardList size={18} />}
                         </span>
                         <span className="font-medium text-white">
                           {record.type === 'screenshot_portfolio' ?
-                            (isJapanese ? 'ポートフォリオ' : 'Portfolio') :
+                            'ポートフォリオ' :
                            record.type === 'market_data_screenshot' ?
-                            (isJapanese ? '市場データ' : 'Market Data') :
-                            (isJapanese ? '取引履歴' : 'Transactions')
+                            '市場データ' :
+                            '取引履歴'
                           }
                         </span>
                         <span className={`px-2 py-1 text-xs rounded ${
@@ -511,10 +472,7 @@ const DataImport = () => {
                             ? 'bg-green-500/20 text-green-400'
                             : 'bg-red-500/20 text-red-400'
                         }`}>
-                          {record.status === 'success' ?
-                            (isJapanese ? '成功' : 'Success') :
-                            (isJapanese ? '失敗' : 'Failed')
-                          }
+                          {record.status === 'success' ? '成功' : '失敗'}
                         </span>
                       </div>
                       <div className="text-sm text-muted-foreground">
@@ -522,7 +480,7 @@ const DataImport = () => {
                       </div>
                       {record.data.portfolioData?.assets && (
                         <div className="text-sm text-muted-foreground mt-1">
-                          {record.data.portfolioData.assets.length} {isJapanese ? '件の資産' : 'assets'}
+                          {record.data.portfolioData.assets.length} 件の資産
                         </div>
                       )}
                     </div>
@@ -535,39 +493,24 @@ const DataImport = () => {
 
         {/* Help Section */}
         <div className="mt-8 bg-primary-500/10 border border-primary-500/30 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-primary-400 mb-3">
-            💡 {isJapanese ? '使い方のヒント' : 'Usage Tips'}
+          <h3 className="text-lg font-semibold text-primary-400 mb-3 flex items-center gap-2">
+            <Lightbulb size={18} className="inline-block" /> 使い方のヒント
           </h3>
           <div className="space-y-2 text-sm text-muted-foreground">
             <div>
-              • {isJapanese
-                ? 'プロンプト生成は「AIアドバイザー」タブをご利用ください'
-                : 'Use the "AI Advisor" tab for prompt generation'
-              }
+              • プロンプト生成は「AIアドバイザー」タブをご利用ください
             </div>
             <div>
-              • {isJapanese
-                ? '外部AIでの分析完了後、結果をこちらに貼り付けてください'
-                : 'After analyzing with external AI, paste the results here'
-              }
+              • 外部AIでの分析完了後、結果をこちらに貼り付けてください
             </div>
             <div>
-              • {isJapanese
-                ? 'JSONエクスポート機能でデータのバックアップが取れます'
-                : 'Use JSON export to backup your data'
-              }
+              • JSONエクスポート機能でデータのバックアップが取れます
             </div>
             <div>
-              • {isJapanese
-                ? 'このアプリからスクリーンショットが送信されることはありません'
-                : 'No screenshots are ever sent from this app'
-              }
+              • このアプリからスクリーンショットが送信されることはありません
             </div>
             <div>
-              • {isJapanese
-                ? '複数の証券会社のデータを統合して管理できます'
-                : 'You can integrate data from multiple brokerages'
-              }
+              • 複数の証券会社のデータを統合して管理できます
             </div>
           </div>
         </div>

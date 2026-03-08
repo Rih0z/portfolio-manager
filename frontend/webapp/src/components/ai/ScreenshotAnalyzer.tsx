@@ -13,19 +13,16 @@
  */
 
 import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { FileText, CheckCircle, Lightbulb } from 'lucide-react';
 import logger from '../../utils/logger';
 
 const ScreenshotAnalyzer = ({
   onDataExtracted = () => {},
   className = ''
 }: any) => {
-  const { t, i18n } = useTranslation();
   const [aiResponse, setAiResponse] = useState('');
   const [extractedData, setExtractedData] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
-
-  const isJapanese = i18n.language === 'ja';
 
   const processAIResponse = () => {
     if (!aiResponse.trim()) return;
@@ -93,13 +90,13 @@ const ScreenshotAnalyzer = ({
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-xl font-semibold text-white">
-          📄 {isJapanese ? 'AI分析結果の受け取り' : 'AI Analysis Result Input'}
+          <FileText className="inline-block w-5 h-5 mr-1" /> AI分析結果の受け取り
         </h3>
         <button
           onClick={clearAll}
           className="px-3 py-1 text-sm text-muted-foreground hover:text-foreground border border-border hover:border-muted-foreground rounded transition-colors duration-200"
         >
-          {isJapanese ? 'クリア' : 'Clear'}
+          クリア
         </button>
       </div>
 
@@ -110,26 +107,17 @@ const ScreenshotAnalyzer = ({
             <div className="text-2xl">🔒</div>
             <div>
               <h5 className="text-blue-400 font-medium mb-2">
-                {isJapanese ? 'プライバシー保護について' : 'Privacy Protection'}
+                プライバシー保護について
               </h5>
               <div className="text-sm text-muted-foreground space-y-2">
                 <p>
-                  {isJapanese 
-                    ? 'このアプリではプライバシー保護のため、スクリーンショットのアップロードは一切行いません。'
-                    : 'This app does not upload any screenshots to protect your privacy.'
-                  }
+                  このアプリではプライバシー保護のため、スクリーンショットのアップロードは一切行いません。
                 </p>
                 <p>
-                  {isJapanese 
-                    ? 'スクリーンショット分析プロンプトの生成は「AIアドバイザー」タブで行えます。'
-                    : 'Screenshot analysis prompt generation is available in the "AI Advisor" tab.'
-                  }
+                  スクリーンショット分析プロンプトの生成は「AIアドバイザー」タブで行えます。
                 </p>
                 <p>
-                  {isJapanese 
-                    ? '外部AIで分析された結果をこちらに貼り付けてください。'
-                    : 'Please paste the analysis results from external AI here.'
-                  }
+                  外部AIで分析された結果をこちらに貼り付けてください。
                 </p>
               </div>
             </div>
@@ -140,15 +128,12 @@ const ScreenshotAnalyzer = ({
       {/* AI Response Input */}
       <div className="mb-6">
         <h4 className="font-medium text-white mb-3">
-          {isJapanese ? 'AI分析結果を貼り付け' : 'Paste AI Analysis Result'}
+          AI分析結果を貼り付け
         </h4>
         <textarea
           value={aiResponse}
           onChange={(e) => setAiResponse(e.target.value)}
-          placeholder={isJapanese 
-            ? 'AIからの分析結果をここに貼り付けてください...\n\nJSON形式または通常のテキスト形式のどちらでも対応できます。'
-            : 'Paste AI analysis result here...\n\nBoth JSON and plain text formats are supported.'
-          }
+          placeholder={'AIからの分析結果をここに貼り付けてください...\n\nJSON形式または通常のテキスト形式のどちらでも対応できます。'}
           className="w-full p-3 bg-muted border border-border rounded-lg text-white placeholder-gray-500 focus:ring-2 focus:ring-primary-400 focus:border-transparent resize-none"
           rows={10}
         />
@@ -164,10 +149,7 @@ const ScreenshotAnalyzer = ({
                   : 'bg-green-600 hover:bg-green-700 text-white dark:bg-green-600 dark:hover:bg-green-500'
               }`}
             >
-              {isProcessing 
-                ? (isJapanese ? '処理中...' : 'Processing...')
-                : (isJapanese ? 'データを抽出' : 'Extract Data')
-              }
+              {isProcessing ? '処理中...' : 'データを抽出'}
             </button>
           </div>
         )}
@@ -179,13 +161,13 @@ const ScreenshotAnalyzer = ({
           <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
             <div className="flex justify-between items-center mb-3">
               <h4 className="font-medium text-green-400">
-                ✅ {isJapanese ? '抽出されたデータ' : 'Extracted Data'}
+                <CheckCircle className="inline-block w-5 h-5 mr-1" /> 抽出されたデータ
               </h4>
               <button
                 onClick={downloadExtractedData}
                 className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white text-sm rounded transition-colors duration-200"
               >
-                {isJapanese ? 'ダウンロード' : 'Download'}
+                ダウンロード
               </button>
             </div>
             
@@ -201,26 +183,17 @@ const ScreenshotAnalyzer = ({
       {/* Help Section */}
       <div className="bg-primary-500/10 border border-primary-500/30 rounded-lg p-4">
         <h5 className="text-primary-400 font-medium mb-2">
-          💡 {isJapanese ? '使い方のヒント' : 'Usage Tips'}
+          <Lightbulb className="inline-block w-5 h-5 mr-1" /> 使い方のヒント
         </h5>
         <div className="space-y-1 text-sm text-muted-foreground">
           <div>
-            • {isJapanese 
-              ? 'プロンプト生成は「AIアドバイザー」タブを使用してください'
-              : 'Use the "AI Advisor" tab for prompt generation'
-            }
+            • プロンプト生成は「AIアドバイザー」タブを使用してください
           </div>
           <div>
-            • {isJapanese 
-              ? 'JSON形式（```json ... ```）または通常のテキスト形式の結果を貼り付けてください'
-              : 'Paste results in JSON format (```json ... ```) or plain text'
-            }
+            • JSON形式（```json ... ```）または通常のテキスト形式の結果を貼り付けてください
           </div>
           <div>
-            • {isJapanese 
-              ? 'データは自動的にポートフォリオに統合されます'
-              : 'Data will be automatically integrated into your portfolio'
-            }
+            • データは自動的にポートフォリオに統合されます
           </div>
         </div>
       </div>

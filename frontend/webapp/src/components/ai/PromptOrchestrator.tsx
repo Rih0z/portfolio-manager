@@ -11,7 +11,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
+import { Target, Lightbulb } from 'lucide-react';
 import promptOrchestrationService from '../../services/PromptOrchestrationService';
 import logger from '../../utils/logger';
 
@@ -21,14 +21,11 @@ const PromptOrchestrator = ({
   onPromptGenerated = () => {},
   className = ''
 }: any) => {
-  const { t, i18n } = useTranslation();
   const [generatedPrompt, setGeneratedPrompt] = useState(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [promptHistory, setPromptHistory] = useState([]);
   const [selectedAI, setSelectedAI] = useState('claude');
   const [userFeedback, setUserFeedback] = useState(null);
-
-  const isJapanese = i18n.language === 'ja';
 
   useEffect(() => {
     if (Object.keys(userContext).length > 0) {
@@ -109,11 +106,11 @@ const PromptOrchestrator = ({
 
   const getPromptTypeDisplayName = (type) => {
     const names = {
-      portfolio_analysis: isJapanese ? 'ポートフォリオ分析' : 'Portfolio Analysis',
-      data_import_screenshot: isJapanese ? 'データインポート' : 'Data Import',
-      market_analysis: isJapanese ? '市場分析' : 'Market Analysis',
-      goal_setting: isJapanese ? '目標設定' : 'Goal Setting',
-      emotional_support: isJapanese ? 'メンタルサポート' : 'Emotional Support'
+      portfolio_analysis: 'ポートフォリオ分析',
+      data_import_screenshot: 'データインポート',
+      market_analysis: '市場分析',
+      goal_setting: '目標設定',
+      emotional_support: 'メンタルサポート'
     };
     return names[type] || type;
   };
@@ -122,8 +119,8 @@ const PromptOrchestrator = ({
     <div className={`bg-card rounded-lg p-6 ${className}`}>
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-xl font-semibold text-white">
-          🎯 {isJapanese ? 'プロンプトオーケストレーター' : 'Prompt Orchestrator'}
+        <h3 className="text-xl font-semibold text-white flex items-center gap-2">
+          <Target size={16} /> プロンプトオーケストレーター
         </h3>
         <div className="text-sm text-muted-foreground">
           {getPromptTypeDisplayName(promptType)}
@@ -141,9 +138,9 @@ const PromptOrchestrator = ({
               : 'bg-primary-500 hover:bg-primary-600 text-white'
           }`}
         >
-          {isGenerating 
-            ? (isJapanese ? '生成中...' : 'Generating...')
-            : (isJapanese ? 'パーソナライズドプロンプトを生成' : 'Generate Personalized Prompt')
+          {isGenerating
+            ? '生成中...'
+            : 'パーソナライズドプロンプトを生成'
           }
         </button>
       </div>
@@ -154,13 +151,13 @@ const PromptOrchestrator = ({
           <div className="bg-muted rounded-lg p-4 border border-border">
             <div className="flex justify-between items-center mb-3">
               <h4 className="font-medium text-white">
-                {isJapanese ? '生成されたプロンプト' : 'Generated Prompt'}
+                生成されたプロンプト
               </h4>
               <button
                 onClick={copyToClipboard}
                 className="px-3 py-1 bg-primary-500 hover:bg-primary-600 text-white text-sm rounded transition-colors duration-200"
               >
-                {isJapanese ? 'コピー' : 'Copy'}
+                コピー
               </button>
             </div>
             
@@ -171,7 +168,7 @@ const PromptOrchestrator = ({
             </div>
             
             <div className="mt-3 text-xs text-gray-500">
-              {isJapanese ? '生成日時' : 'Generated'}: {new Date(generatedPrompt.metadata.generatedAt).toLocaleString()}
+              生成日時: {new Date(generatedPrompt.metadata.generatedAt).toLocaleString()}
             </div>
           </div>
         </div>
@@ -181,17 +178,17 @@ const PromptOrchestrator = ({
       {generatedPrompt && (
         <div className="mb-6">
           <h4 className="font-medium text-white mb-3">
-            {isJapanese ? 'AIを選んで相談' : 'Choose AI for Consultation'}
+            AIを選んで相談
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <button
               onClick={() => openAI('claude')}
               className="p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all duration-200 text-white text-center"
             >
-              <div className="text-lg mb-1">🎯</div>
+              <div className="text-lg mb-1 flex justify-center"><Target size={16} /></div>
               <div className="font-medium">Claude</div>
               <div className="text-xs opacity-80">
-                {isJapanese ? '長期戦略・詳細分析' : 'Long-term Strategy'}
+                長期戦略・詳細分析
               </div>
             </button>
 
@@ -202,7 +199,7 @@ const PromptOrchestrator = ({
               <div className="text-lg mb-1">🔍</div>
               <div className="font-medium">Gemini</div>
               <div className="text-xs opacity-80">
-                {isJapanese ? '最新情報・市場分析' : 'Latest Info & Markets'}
+                最新情報・市場分析
               </div>
             </button>
 
@@ -213,7 +210,7 @@ const PromptOrchestrator = ({
               <div className="text-lg mb-1">💬</div>
               <div className="font-medium">ChatGPT</div>
               <div className="text-xs opacity-80">
-                {isJapanese ? '対話・創造的思考' : 'Interactive & Creative'}
+                対話・創造的思考
               </div>
             </button>
           </div>
@@ -224,7 +221,7 @@ const PromptOrchestrator = ({
       {generatedPrompt && !userFeedback && (
         <div className="mb-6">
           <h4 className="font-medium text-white mb-3">
-            {isJapanese ? 'プロンプトの評価' : 'Rate this Prompt'}
+            プロンプトの評価
           </h4>
           <div className="flex gap-2 mb-3">
             {[1, 2, 3, 4, 5].map(rating => (
@@ -238,10 +235,7 @@ const PromptOrchestrator = ({
             ))}
           </div>
           <p className="text-xs text-muted-foreground">
-            {isJapanese 
-              ? 'プロンプトの品質を評価してください（学習に活用されます）'
-              : 'Rate the prompt quality (used for learning)'
-            }
+            プロンプトの品質を評価してください（学習に活用されます）
           </p>
         </div>
       )}
@@ -250,7 +244,7 @@ const PromptOrchestrator = ({
       {userFeedback && (
         <div className="mb-6 p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
           <div className="text-green-400 text-sm">
-            {isJapanese ? 'フィードバックありがとうございます！' : 'Thank you for your feedback!'}
+            フィードバックありがとうございます！
           </div>
         </div>
       )}
@@ -259,7 +253,7 @@ const PromptOrchestrator = ({
       {promptHistory.length > 0 && (
         <div>
           <h4 className="font-medium text-white mb-3">
-            {isJapanese ? '最近のプロンプト' : 'Recent Prompts'}
+            最近のプロンプト
           </h4>
           <div className="space-y-2">
             {promptHistory.map((item, index) => (
@@ -285,15 +279,15 @@ const PromptOrchestrator = ({
       {/* Usage Instructions */}
       {generatedPrompt && (
         <div className="mt-6 p-4 bg-primary-500/10 border border-primary-500/30 rounded-lg">
-          <h4 className="font-medium text-primary-400 mb-2">
-            💡 {isJapanese ? '使い方' : 'How to Use'}
+          <h4 className="font-medium text-primary-400 mb-2 flex items-center gap-2">
+            <Lightbulb size={16} /> 使い方
           </h4>
           <ol className="text-sm text-muted-foreground space-y-1">
-            <li>1. {isJapanese ? '上記プロンプトをコピー' : 'Copy the prompt above'}</li>
-            <li>2. {isJapanese ? 'お好みのAIサービスにアクセス' : 'Access your preferred AI service'}</li>
-            <li>3. {isJapanese ? 'プロンプトを貼り付けて送信' : 'Paste the prompt and send'}</li>
-            <li>4. {isJapanese ? 'AIからのアドバイスを受け取る' : 'Receive advice from AI'}</li>
-            <li>5. {isJapanese ? '結果を評価して学習を改善' : 'Rate the result to improve learning'}</li>
+            <li>1. 上記プロンプトをコピー</li>
+            <li>2. お好みのAIサービスにアクセス</li>
+            <li>3. プロンプトを貼り付けて送信</li>
+            <li>4. AIからのアドバイスを受け取る</li>
+            <li>5. 結果を評価して学習を改善</li>
           </ol>
         </div>
       )}

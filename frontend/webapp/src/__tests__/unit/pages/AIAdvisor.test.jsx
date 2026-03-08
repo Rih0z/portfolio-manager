@@ -72,7 +72,7 @@ describe('AIAdvisor', () => {
       </TestWrapper>
     );
 
-    expect(screen.getByText(/🤖.*AIアドバイザー/)).toBeInTheDocument();
+    expect(screen.getByText(/AIアドバイザー/)).toBeInTheDocument();
     expect(screen.getByText(/あなたの情報を教えてください/)).toBeInTheDocument();
   });
 

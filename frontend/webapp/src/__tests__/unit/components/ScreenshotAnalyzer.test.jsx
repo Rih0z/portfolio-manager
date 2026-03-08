@@ -9,14 +9,6 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { act } from 'react-dom/test-utils';
 import ScreenshotAnalyzer from '../../../components/ai/ScreenshotAnalyzer';
 
-// i18n モック
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key) => key,
-    i18n: { language: 'ja' }
-  })
-}));
-
 // loggerモジュールのモック
 const { mockLogger } = vi.hoisted(() => ({
   mockLogger: { log: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }
@@ -127,7 +119,7 @@ describe('ScreenshotAnalyzer', () => {
       fireEvent.click(screen.getByText('データを抽出'));
     });
 
-    expect(screen.getByText('✅ 抽出されたデータ')).toBeInTheDocument();
+    expect(screen.getByText('抽出されたデータ')).toBeInTheDocument();
     expect(screen.getByText('ダウンロード')).toBeInTheDocument();
   });
 
@@ -145,7 +137,7 @@ describe('ScreenshotAnalyzer', () => {
     fireEvent.click(screen.getByText('クリア'));
 
     expect(textarea.value).toBe('');
-    expect(screen.queryByText('✅ 抽出されたデータ')).not.toBeInTheDocument();
+    expect(screen.queryByText('抽出されたデータ')).not.toBeInTheDocument();
   });
 
   test('applies custom className', () => {
@@ -196,7 +188,7 @@ describe('ScreenshotAnalyzer', () => {
   test('displays usage tips section', () => {
     render(<ScreenshotAnalyzer onDataExtracted={mockOnDataExtracted} />);
 
-    expect(screen.getByText('💡 使い方のヒント')).toBeInTheDocument();
+    expect(screen.getByText('使い方のヒント')).toBeInTheDocument();
     expect(screen.getByText('• プロンプト生成は「AIアドバイザー」タブを使用してください')).toBeInTheDocument();
   });
 

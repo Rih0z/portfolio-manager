@@ -9,12 +9,23 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import Settings from '../../../pages/Settings';
 
-// i18n モック
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key) => key,
-    i18n: { language: 'ja' }
-  })
+// lucide-react モック
+vi.mock('lucide-react', () => ({
+  BarChart3: function BarChart3(props) {
+    return <svg data-testid="icon-bar-chart3" {...props} />;
+  },
+  Bot: function Bot(props) {
+    return <svg data-testid="icon-bot" {...props} />;
+  },
+  ArrowUpDown: function ArrowUpDown(props) {
+    return <svg data-testid="icon-arrow-up-down" {...props} />;
+  },
+  Bell: function Bell(props) {
+    return <svg data-testid="icon-bell" {...props} />;
+  },
+  Settings: function SettingsIcon(props) {
+    return <svg data-testid="icon-settings" {...props} />;
+  },
 }));
 
 // 設定コンポーネントをモック
@@ -60,6 +71,18 @@ vi.mock('../../../components/settings/ResetSettings', () => ({
   },
 }));
 
+vi.mock('../../../components/notifications/AlertRulesManager', () => ({
+  default: function AlertRulesManager() {
+    return <div data-testid="alert-rules-manager">Alert Rules Manager</div>;
+  },
+}));
+
+vi.mock('../../../components/notifications/NotificationPreferences', () => ({
+  default: function NotificationPreferences() {
+    return <div data-testid="notification-preferences">Notification Preferences</div>;
+  },
+}));
+
 describe('Settings', () => {
   describe('基本レンダリング', () => {
     it('デフォルトのポートフォリオ設定タブのコンポーネントを表示する', () => {
@@ -92,34 +115,56 @@ describe('Settings', () => {
     it('セクションタブが表示される', () => {
       render(<Settings />);
 
-      expect(screen.getByText('ポートフォリオ設定')).toBeInTheDocument();
-      expect(screen.getByText('AI分析設定')).toBeInTheDocument();
-      expect(screen.getByText('データ交換')).toBeInTheDocument();
-      expect(screen.getByText('システム設定')).toBeInTheDocument();
+      expect(screen.getByText('銘柄管理')).toBeInTheDocument();
+      expect(screen.getByText('AI設定')).toBeInTheDocument();
+      expect(screen.getByText('データ')).toBeInTheDocument();
+      expect(screen.getByText('通知')).toBeInTheDocument();
+      expect(screen.getByText('システム')).toBeInTheDocument();
     });
 
-    it('AI分析設定タブに切り替えるとAiPromptSettingsが表示される', () => {
+    it('各タブにLucideアイコンが表示される', () => {
       render(<Settings />);
 
-      fireEvent.click(screen.getByText('AI分析設定'));
+      expect(screen.getByTestId('icon-bar-chart3')).toBeInTheDocument();
+      expect(screen.getByTestId('icon-bot')).toBeInTheDocument();
+      expect(screen.getByTestId('icon-arrow-up-down')).toBeInTheDocument();
+      expect(screen.getByTestId('icon-bell')).toBeInTheDocument();
+      expect(screen.getByTestId('icon-settings')).toBeInTheDocument();
+    });
+
+    it('AI設定タブに切り替えるとAiPromptSettingsが表示される', () => {
+      render(<Settings />);
+
+      fireEvent.click(screen.getByText('AI設定'));
 
       expect(screen.getByTestId('ai-prompt-settings')).toBeInTheDocument();
       // ポートフォリオ設定のコンポーネントは非表示
       expect(screen.queryByTestId('ticker-search')).not.toBeInTheDocument();
     });
 
-    it('データ交換タブに切り替えるとPortfolioYamlConverterが表示される', () => {
+    it('データタブに切り替えるとPortfolioYamlConverterが表示される', () => {
       render(<Settings />);
 
-      fireEvent.click(screen.getByText('データ交換'));
+      fireEvent.click(screen.getByText('データ'));
 
       expect(screen.getByTestId('portfolio-yaml-converter')).toBeInTheDocument();
     });
 
-    it('システム設定タブに切り替えるとResetSettingsが表示される', () => {
+    it('通知タブに切り替えるとAlertRulesManagerとNotificationPreferencesが表示される', () => {
       render(<Settings />);
 
-      fireEvent.click(screen.getByText('システム設定'));
+      fireEvent.click(screen.getByText('通知'));
+
+      expect(screen.getByTestId('alert-rules-manager')).toBeInTheDocument();
+      expect(screen.getByTestId('notification-preferences')).toBeInTheDocument();
+      expect(screen.getByText('アラートルール')).toBeInTheDocument();
+      expect(screen.getByText('通知設定')).toBeInTheDocument();
+    });
+
+    it('システムタブに切り替えるとResetSettingsが表示される', () => {
+      render(<Settings />);
+
+      fireEvent.click(screen.getByText('システム'));
 
       expect(screen.getByTestId('reset-settings')).toBeInTheDocument();
     });
@@ -134,12 +179,13 @@ describe('Settings', () => {
       expect(mainContainer).toBeInTheDocument();
     });
 
-    it('白背景のカードレイアウトが適用されている', () => {
+    it('bg-cardのカードレイアウトが適用されている', () => {
       render(<Settings />);
 
-      // ポートフォリオ設定タブのカード
-      const whiteCards = document.querySelectorAll('.bg-white.rounded-lg.shadow');
-      expect(whiteCards.length).toBeGreaterThanOrEqual(3); // タブバー + 3つのセクションカード
+      // ポートフォリオ設定タブのカード（bg-card + border-border + rounded-xl + shadow-sm）
+      const cards = document.querySelectorAll('.bg-card.rounded-xl.shadow-sm');
+      // タブバー + 3つのセクションカード = 4
+      expect(cards.length).toBeGreaterThanOrEqual(4);
     });
 
     it('グリッドレイアウトが正しく適用されている', () => {
@@ -175,8 +221,8 @@ describe('Settings', () => {
       const h2Title = screen.getByText('銘柄の追加').closest('h2');
       const h3Title = screen.getByText('銘柄を検索して追加').closest('h3');
 
-      expect(h2Title).toHaveClass('text-xl', 'font-semibold');
-      expect(h3Title).toHaveClass('text-lg', 'font-medium');
+      expect(h2Title).toHaveClass('text-lg', 'font-semibold');
+      expect(h3Title).toHaveClass('text-base', 'font-medium');
     });
   });
 
@@ -203,11 +249,11 @@ describe('Settings', () => {
       expect(allocationSection).toContainElement(screen.getByTestId('allocation-editor'));
     });
 
-    it('AI分析プロンプト設定がAI分析設定タブにある', () => {
+    it('AI分析プロンプト設定がAI設定タブにある', () => {
       render(<Settings />);
 
-      // AI分析設定タブに切り替え
-      fireEvent.click(screen.getByText('AI分析設定'));
+      // AI設定タブに切り替え
+      fireEvent.click(screen.getByText('AI設定'));
 
       const aiPromptSettings = screen.getByTestId('ai-prompt-settings');
       expect(aiPromptSettings).toBeInTheDocument();
@@ -253,8 +299,11 @@ describe('Settings', () => {
       render(<Settings />);
 
       // 1. タブナビゲーションの存在確認
-      expect(screen.getByText('ポートフォリオ設定')).toBeInTheDocument();
-      expect(screen.getByText('AI分析設定')).toBeInTheDocument();
+      expect(screen.getByText('銘柄管理')).toBeInTheDocument();
+      expect(screen.getByText('AI設定')).toBeInTheDocument();
+      expect(screen.getByText('データ')).toBeInTheDocument();
+      expect(screen.getByText('通知')).toBeInTheDocument();
+      expect(screen.getByText('システム')).toBeInTheDocument();
 
       // 2. デフォルトタブのメインセクション
       expect(screen.getByText('銘柄の追加')).toBeInTheDocument();
@@ -271,9 +320,14 @@ describe('Settings', () => {
       const mainContainer = document.querySelector('.space-y-6');
       expect(mainContainer).toBeInTheDocument();
 
-      // 5. AI分析設定タブに切り替え
-      fireEvent.click(screen.getByText('AI分析設定'));
+      // 5. AI設定タブに切り替え
+      fireEvent.click(screen.getByText('AI設定'));
       expect(screen.getByTestId('ai-prompt-settings')).toBeInTheDocument();
+
+      // 6. 通知タブに切り替え
+      fireEvent.click(screen.getByText('通知'));
+      expect(screen.getByTestId('alert-rules-manager')).toBeInTheDocument();
+      expect(screen.getByTestId('notification-preferences')).toBeInTheDocument();
     });
   });
 });

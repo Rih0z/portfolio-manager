@@ -16,7 +16,7 @@
  */
 
 import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { BarChart3, Bot, ArrowUpDown, Bell, Settings as SettingsIcon } from 'lucide-react';
 import TickerSearch from '../components/settings/TickerSearch';
 import PopularTickers from '../components/settings/PopularTickers';
 import HoldingsEditor from '../components/settings/HoldingsEditor';
@@ -28,54 +28,32 @@ import AlertRulesManager from '../components/notifications/AlertRulesManager';
 import NotificationPreferences from '../components/notifications/NotificationPreferences';
 
 const Settings = () => {
-  const { t, i18n } = useTranslation();
   const [activeSection, setActiveSection] = useState('portfolio');
-  const isJapanese = i18n.language === 'ja';
 
   const sections = [
-    {
-      id: 'portfolio',
-      name: isJapanese ? 'ポートフォリオ設定' : 'Portfolio Settings',
-      icon: '📊'
-    },
-    {
-      id: 'ai-settings',
-      name: isJapanese ? 'AI分析設定' : 'AI Analysis Settings',
-      icon: '🤖'
-    },
-    {
-      id: 'data-exchange',
-      name: isJapanese ? 'データ交換' : 'Data Exchange',
-      icon: '🔄'
-    },
-    {
-      id: 'notifications',
-      name: isJapanese ? '通知設定' : 'Notification Settings',
-      icon: '🔔'
-    },
-    {
-      id: 'system',
-      name: isJapanese ? 'システム設定' : 'System Settings',
-      icon: '⚙️'
-    }
+    { id: 'portfolio', name: '銘柄管理', Icon: BarChart3 },
+    { id: 'ai-settings', name: 'AI設定', Icon: Bot },
+    { id: 'data-exchange', name: 'データ', Icon: ArrowUpDown },
+    { id: 'notifications', name: '通知', Icon: Bell },
+    { id: 'system', name: 'システム', Icon: SettingsIcon },
   ];
 
   return (
     <div data-testid="settings-page" className="max-w-7xl mx-auto">
       {/* セクションタブ */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-6 p-2">
-        <div className="flex flex-wrap gap-2">
+      <div className="bg-card border border-border rounded-xl shadow-sm mb-6 p-1.5">
+        <div className="flex flex-wrap gap-1">
           {sections.map(section => (
             <button
               key={section.id}
               onClick={() => setActiveSection(section.id)}
-              className={`px-4 py-2 rounded-lg transition-all ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 activeSection === section.id
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  ? 'bg-primary-500 text-white shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
               }`}
             >
-              <span className="mr-2">{section.icon}</span>
+              <section.Icon size={16} />
               {section.name}
             </button>
           ))}
@@ -85,37 +63,27 @@ const Settings = () => {
       {/* ポートフォリオ設定セクション */}
       {activeSection === 'portfolio' && (
         <div className="space-y-6">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
-              {isJapanese ? '銘柄の追加' : 'Add Tickers'}
-            </h2>
+          <div className="bg-card border border-border rounded-xl shadow-sm p-6">
+            <h2 className="text-lg font-semibold mb-4 text-foreground">銘柄の追加</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <h3 className="text-lg font-medium mb-3 text-gray-800 dark:text-gray-200">
-                  {isJapanese ? '銘柄を検索して追加' : 'Search and Add'}
-                </h3>
+                <h3 className="text-base font-medium mb-3 text-foreground">銘柄を検索して追加</h3>
                 <TickerSearch />
               </div>
               <div>
-                <h3 className="text-lg font-medium mb-3 text-gray-800 dark:text-gray-200">
-                  {isJapanese ? '人気銘柄を追加' : 'Popular Tickers'}
-                </h3>
+                <h3 className="text-base font-medium mb-3 text-foreground">人気銘柄を追加</h3>
                 <PopularTickers />
               </div>
             </div>
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
-              {isJapanese ? '保有資産の設定' : 'Holdings Settings'}
-            </h2>
+          <div className="bg-card border border-border rounded-xl shadow-sm p-6">
+            <h2 className="text-lg font-semibold mb-4 text-foreground">保有資産の設定</h2>
             <HoldingsEditor />
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
-              {isJapanese ? '目標配分の設定' : 'Target Allocation'}
-            </h2>
+          <div className="bg-card border border-border rounded-xl shadow-sm p-6">
+            <h2 className="text-lg font-semibold mb-4 text-foreground">目標配分の設定</h2>
             <AllocationEditor />
           </div>
         </div>
@@ -138,17 +106,13 @@ const Settings = () => {
       {/* 通知設定セクション */}
       {activeSection === 'notifications' && (
         <div className="space-y-6">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
-              {isJapanese ? 'アラートルール' : 'Alert Rules'}
-            </h2>
+          <div className="bg-card border border-border rounded-xl shadow-sm p-6">
+            <h2 className="text-lg font-semibold mb-4 text-foreground">アラートルール</h2>
             <AlertRulesManager />
           </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">
-              {isJapanese ? '通知設定' : 'Notification Preferences'}
-            </h2>
+          <div className="bg-card border border-border rounded-xl shadow-sm p-6">
+            <h2 className="text-lg font-semibold mb-4 text-foreground">通知設定</h2>
             <NotificationPreferences />
           </div>
         </div>
