@@ -50,8 +50,6 @@ export default defineConfig({
         'src/**/__tests__/**',
         'src/index.tsx',
         'src/vite-env.d.ts',
-        'src/setupTests.js',
-        'src/test-yaml-repair.js',
         'node_modules/**',
         // 型定義のみのファイル
         'src/types/**',

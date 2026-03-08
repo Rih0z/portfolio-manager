@@ -133,13 +133,3 @@ declare module 'recharts' {
   export const ReferenceLine: any;
 }
 
-// Missing component modules (stubs for not-yet-created components)
-declare module '*/components/dashboard/AllocationChart' {
-  const AllocationChart: React.ComponentType<any>;
-  export default AllocationChart;
-}
-
-declare module '*/components/dashboard/RebalanceRecommendations' {
-  const RebalanceRecommendations: React.ComponentType<any>;
-  export default RebalanceRecommendations;
-}
