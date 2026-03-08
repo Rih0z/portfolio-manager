@@ -18,19 +18,26 @@
 import React, { useState } from 'react';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 import { formatCurrency, formatPercent, formatDate } from '../../utils/formatters';
+import ConfirmDialog from '../ui/confirm-dialog';
 
 const SimulationResult = (_props?: any) => {
-  const { 
-    baseCurrency, 
+  const {
+    baseCurrency,
     exchangeRate,
     calculateSimulation,
-    executePurchase 
+    executePurchase
   } = usePortfolioContext();
-  
+
   const [editingId, setEditingId] = useState(null);
   const [editUnits, setEditUnits] = useState(0);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState('');
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  }>({ isOpen: false, title: '', description: '', onConfirm: () => {} });
 
   // シミュレーション結果を取得
   const simulationResults = calculateSimulation();
@@ -86,10 +93,18 @@ const SimulationResult = (_props?: any) => {
 
   // 個別銘柄の購入処理（小数点以下4桁まで対応）
   const handlePurchase = (result) => {
-    if (window.confirm(`${result.name}を${(result.purchaseShares || 0).toFixed(4)}${result.isMutualFund ? '口' : '株'}購入しますか？`)) {
-      executePurchase(result.id, result.purchaseShares);
-      showMessage(`${result.name}を${(result.purchaseShares || 0).toFixed(4)}${result.isMutualFund ? '口' : '株'}購入しました`, 'success');
-    }
+    const units = (result.purchaseShares || 0).toFixed(4);
+    const unitLabel = result.isMutualFund ? '口' : '株';
+    setConfirmDialog({
+      isOpen: true,
+      title: '購入の確認',
+      description: `${result.name}を${units}${unitLabel}購入しますか？`,
+      onConfirm: () => {
+        executePurchase(result.id, result.purchaseShares);
+        showMessage(`${result.name}を${units}${unitLabel}購入しました`, 'success');
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+      },
+    });
   };
 
   // 編集内容を適用して購入（小数点以下4桁まで対応）
@@ -98,12 +113,20 @@ const SimulationResult = (_props?: any) => {
       showMessage('購入株数は0より大きい値を指定してください', 'error');
       return;
     }
-    
-    if (window.confirm(`${result.name}を${(editUnits || 0).toFixed(4)}${result.isMutualFund ? '口' : '株'}購入しますか？`)) {
-      executePurchase(result.id, editUnits);
-      setEditingId(null);
-      showMessage(`${result.name}を${(editUnits || 0).toFixed(4)}${result.isMutualFund ? '口' : '株'}購入しました`, 'success');
-    }
+
+    const units = (editUnits || 0).toFixed(4);
+    const unitLabel = result.isMutualFund ? '口' : '株';
+    setConfirmDialog({
+      isOpen: true,
+      title: '購入の確認',
+      description: `${result.name}を${units}${unitLabel}購入しますか？`,
+      onConfirm: () => {
+        executePurchase(result.id, editUnits);
+        setEditingId(null);
+        showMessage(`${result.name}を${units}${unitLabel}購入しました`, 'success');
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+      },
+    });
   };
 
   // メッセージの表示
@@ -309,13 +332,23 @@ const SimulationResult = (_props?: any) => {
       
       {message && (
         <div className={`mt-4 p-3 rounded text-sm ${
-          messageType === 'success' 
-            ? 'bg-green-100 text-green-700' 
+          messageType === 'success'
+            ? 'bg-green-100 text-green-700'
             : 'bg-red-100 text-red-700'
         }`}>
           {message}
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        confirmLabel="購入"
+        cancelLabel="キャンセル"
+      />
     </div>
   );
 };

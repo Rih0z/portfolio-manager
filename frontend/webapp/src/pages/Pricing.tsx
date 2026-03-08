@@ -7,6 +7,7 @@
  * @file src/pages/Pricing.tsx
  */
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { trackEvent, AnalyticsEvents } from '../utils/analytics';
 import { useSubscriptionStore } from '../stores/subscriptionStore';
@@ -56,9 +57,10 @@ const Pricing: React.FC = () => {
   const periodLabel = billingPeriod === 'monthly' ? '/月' : '/年';
   const annualSavings = (monthlyPrice * 12) - annualPrice;
 
+  const navigate = useNavigate();
   const handleUpgrade = () => {
     if (!isAuthenticated) {
-      window.location.href = '/dashboard';
+      navigate('/dashboard');
       return;
     }
     startCheckout(billingPeriod);

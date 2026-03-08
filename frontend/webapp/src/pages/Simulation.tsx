@@ -15,11 +15,13 @@
  * 予算設定、最適な購入配分のシミュレーション、一括購入実行機能を実装。
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import BudgetInput from '../components/simulation/BudgetInput';
 import SimulationResult from '../components/simulation/SimulationResult';
 import AiAnalysisPrompt from '../components/simulation/AiAnalysisPrompt';
 import { usePortfolioContext } from '../hooks/usePortfolioContext';
+import { useUIStore } from '../stores/uiStore';
+import ConfirmDialog from '../components/ui/confirm-dialog';
 
 const Simulation = () => {
   const {
@@ -29,16 +31,21 @@ const Simulation = () => {
     executeBatchPurchase,
     baseCurrency
   } = usePortfolioContext();
+  const addNotification = useUIStore(s => s.addNotification);
+  const [showBatchConfirm, setShowBatchConfirm] = useState(false);
 
   // シミュレーション結果を計算
   const simulationResults = calculateSimulation();
 
   // 一括購入処理
   const handleBatchPurchase = () => {
-    if (window.confirm('シミュレーション結果に基づいて購入を実行しますか？')) {
-      executeBatchPurchase(simulationResults);
-      alert('購入処理が完了しました。');
-    }
+    setShowBatchConfirm(true);
+  };
+
+  const confirmBatchPurchase = () => {
+    executeBatchPurchase(simulationResults);
+    addNotification('購入処理が完了しました。', 'success');
+    setShowBatchConfirm(false);
   };
 
   // 通貨に応じたフォーマット
@@ -100,6 +107,16 @@ const Simulation = () => {
 
       {/* AI分析プロンプト生成コンポーネントを追加 */}
       <AiAnalysisPrompt />
+
+      <ConfirmDialog
+        isOpen={showBatchConfirm}
+        onConfirm={confirmBatchPurchase}
+        onCancel={() => setShowBatchConfirm(false)}
+        title="一括購入の確認"
+        description="シミュレーション結果に基づいて購入を実行しますか？"
+        confirmLabel="購入実行"
+        cancelLabel="キャンセル"
+      />
     </div>
   );
 };

@@ -42,7 +42,6 @@ const Landing = lazyWithRetry(() => import('./pages/Landing'));
 const Dashboard = lazyWithRetry(() => import('./pages/Dashboard'));
 const Settings = lazyWithRetry(() => import('./pages/Settings'));
 const Simulation = lazyWithRetry(() => import('./pages/Simulation'));
-const DataIntegration = lazyWithRetry(() => import('./pages/DataIntegration'));
 const DataImport = lazyWithRetry(() => import('./pages/DataImport'));
 const AIAdvisor = lazyWithRetry(() => import('./pages/AIAdvisor'));
 const Pricing = lazyWithRetry(() => import('./pages/Pricing'));
@@ -343,7 +342,6 @@ const App = () => {
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/simulation" element={<Simulation />} />
                   <Route path="/investment-calculator" element={<Simulation />} />
-                  <Route path="/data" element={<DataIntegration />} />
                   <Route path="/data-import" element={<DataImport />} />
                   <Route path="/auth/google/callback" element={<Dashboard />} />
                 </Route>

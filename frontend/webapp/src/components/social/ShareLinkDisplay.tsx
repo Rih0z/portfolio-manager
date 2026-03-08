@@ -8,6 +8,7 @@
  */
 import React, { useState } from 'react';
 import { Button } from '../ui/button';
+import ConfirmDialog from '../ui/confirm-dialog';
 import { useSocialStore } from '../../stores/socialStore';
 import type { SharedPortfolio } from '../../types/social.types';
 
@@ -18,6 +19,7 @@ interface ShareLinkDisplayProps {
 
 const ShareLinkDisplay: React.FC<ShareLinkDisplayProps> = ({ share, compact = false }) => {
   const [copied, setCopied] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const deleteShare = useSocialStore((s) => s.deleteShare);
   const loading = useSocialStore((s) => s.loading);
 
@@ -41,10 +43,13 @@ const ShareLinkDisplay: React.FC<ShareLinkDisplayProps> = ({ share, compact = fa
     }
   };
 
-  const handleDelete = async () => {
-    if (window.confirm('この共有リンクを削除しますか？')) {
-      await deleteShare(share.shareId);
-    }
+  const handleDelete = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = async () => {
+    setShowDeleteConfirm(false);
+    await deleteShare(share.shareId);
   };
 
   if (compact) {
@@ -184,6 +189,17 @@ const ShareLinkDisplay: React.FC<ShareLinkDisplayProps> = ({ share, compact = fa
           削除
         </Button>
       </div>
+
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        onConfirm={confirmDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+        title="共有リンクの削除"
+        description="この共有リンクを削除しますか？"
+        confirmLabel="削除"
+        cancelLabel="キャンセル"
+        variant="danger"
+      />
     </div>
   );
 };

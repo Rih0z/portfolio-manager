@@ -12,13 +12,17 @@
 
 import React, { useState } from 'react';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
+import { useUIStore } from '../../stores/uiStore';
 import { Button } from '../ui/button';
+import ConfirmDialog from '../ui/confirm-dialog';
 import { FaExclamationTriangle, FaCheckCircle, FaTools, FaTrash, FaSync } from 'react-icons/fa';
 
 const LocalStorageDiagnostics = () => {
   const { debugLocalStorage, clearLocalStorage, loadFromLocalStorage, initializeData } = usePortfolioContext();
+  const addNotification = useUIStore(s => s.addNotification);
   const [diagnosticsResult, setDiagnosticsResult] = useState(null);
   const [isRunning, setIsRunning] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const runDiagnostics = async () => {
     setIsRunning(true);
@@ -36,25 +40,31 @@ const LocalStorageDiagnostics = () => {
     try {
       const data = loadFromLocalStorage();
       if (data) {
-        window.location.reload(); // ページリロードでデータを再初期化
+        window.location.reload();
       } else {
-        alert('ローカルストレージにデータがありません');
+        addNotification('ローカルストレージにデータがありません', 'warning');
       }
-    } catch (error) {
-      alert(`読み込みエラー: ${error.message}`);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : '不明なエラー';
+      addNotification(`読み込みエラー: ${msg}`, 'error');
     }
   };
 
   const clearAndRestart = async () => {
-    if (window.confirm('ローカルストレージのデータを完全に削除してアプリを再起動しますか？\n\n⚠️ この操作は元に戻せません。Google Driveバックアップがある場合は事前に確認してください。')) {
-      try {
-        clearLocalStorage();
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
-      } catch (error) {
-        alert(`削除エラー: ${error.message}`);
-      }
+    setShowResetConfirm(true);
+  };
+
+  const confirmClearAndRestart = async () => {
+    setShowResetConfirm(false);
+    try {
+      clearLocalStorage();
+      addNotification('データを削除しました。再起動します...', 'success');
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : '不明なエラー';
+      addNotification(`削除エラー: ${msg}`, 'error');
     }
   };
 
@@ -156,6 +166,17 @@ const LocalStorageDiagnostics = () => {
           <li>• <strong>問題継続</strong>: Google Driveバックアップからデータを復元してください</li>
         </ul>
       </div>
+
+      <ConfirmDialog
+        isOpen={showResetConfirm}
+        onConfirm={confirmClearAndRestart}
+        onCancel={() => setShowResetConfirm(false)}
+        title="データリセットの確認"
+        description={'ローカルストレージのデータを完全に削除してアプリを再起動しますか？\n\nこの操作は元に戻せません。Google Driveバックアップがある場合は事前に確認してください。'}
+        confirmLabel="リセット"
+        cancelLabel="キャンセル"
+        variant="danger"
+      />
     </div>
   );
 };

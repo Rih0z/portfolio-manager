@@ -1,6 +1,6 @@
 import { vi } from "vitest";
 /**
- * Simulation.jsx のユニットテスト
+ * Simulation.tsx のユニットテスト
  * シミュレーションページコンポーネントのテスト
  */
 
@@ -12,6 +12,14 @@ import Simulation from '../../../pages/Simulation';
 // usePortfolioContextをモック
 vi.mock('../../../hooks/usePortfolioContext', () => ({
   usePortfolioContext: vi.fn()
+}));
+
+// uiStoreをモック
+vi.mock('../../../stores/uiStore', () => ({
+  useUIStore: vi.fn((selector) => {
+    const state = { addNotification: vi.fn() };
+    return selector ? selector(state) : state;
+  }),
 }));
 
 import { usePortfolioContext } from '../../../hooks/usePortfolioContext';
@@ -150,19 +158,21 @@ describe('Simulation', () => {
       expect(batchPurchaseButton).toHaveClass('bg-success-500', 'hover:bg-success-600');
     });
 
-    it('一括購入ボタンクリック時に確認ダイアログを表示する', () => {
+    it('一括購入ボタンクリック時にConfirmDialogを表示する', () => {
       render(<Simulation />);
-      
+
       const batchPurchaseButton = screen.getByText('一括購入実行');
       fireEvent.click(batchPurchaseButton);
-      
-      expect(global.confirm).toHaveBeenCalledWith('シミュレーション結果に基づいて購入を実行しますか？');
+
+      // ConfirmDialog が表示される
+      expect(screen.getByText('一括購入の確認')).toBeInTheDocument();
+      expect(screen.getByText('シミュレーション結果に基づいて購入を実行しますか？')).toBeInTheDocument();
     });
 
     it('確認後に一括購入を実行する', () => {
       const mockExecuteBatchPurchase = vi.fn();
       const mockSimulationResults = { recommendations: [] };
-      
+
       usePortfolioContext.mockReturnValue({
         totalAssets: 1000000,
         additionalBudget: { amount: 100000, currency: 'JPY' },
@@ -170,20 +180,20 @@ describe('Simulation', () => {
         executeBatchPurchase: mockExecuteBatchPurchase,
         baseCurrency: 'JPY'
       });
-      
+
       render(<Simulation />);
-      
-      const batchPurchaseButton = screen.getByText('一括購入実行');
-      fireEvent.click(batchPurchaseButton);
-      
+
+      // ボタンクリック → ConfirmDialog表示
+      fireEvent.click(screen.getByText('一括購入実行'));
+      // ConfirmDialog内の「購入実行」ボタンをクリック
+      fireEvent.click(screen.getByText('購入実行'));
+
       expect(mockExecuteBatchPurchase).toHaveBeenCalledWith(mockSimulationResults);
-      expect(global.alert).toHaveBeenCalledWith('購入処理が完了しました。');
     });
 
     it('確認をキャンセルした場合は購入を実行しない', () => {
-      global.confirm = vi.fn(() => false);
       const mockExecuteBatchPurchase = vi.fn();
-      
+
       usePortfolioContext.mockReturnValue({
         totalAssets: 1000000,
         additionalBudget: { amount: 100000, currency: 'JPY' },
@@ -191,14 +201,15 @@ describe('Simulation', () => {
         executeBatchPurchase: mockExecuteBatchPurchase,
         baseCurrency: 'JPY'
       });
-      
+
       render(<Simulation />);
-      
-      const batchPurchaseButton = screen.getByText('一括購入実行');
-      fireEvent.click(batchPurchaseButton);
-      
+
+      // ボタンクリック → ConfirmDialog表示
+      fireEvent.click(screen.getByText('一括購入実行'));
+      // ConfirmDialog内の「キャンセル」ボタンをクリック
+      fireEvent.click(screen.getByText('キャンセル'));
+
       expect(mockExecuteBatchPurchase).not.toHaveBeenCalled();
-      expect(global.alert).not.toHaveBeenCalled();
     });
   });
 
@@ -301,13 +312,16 @@ describe('Simulation', () => {
       expect(screen.getByTestId('simulation-result')).toBeInTheDocument();
       expect(screen.getByTestId('ai-analysis-prompt')).toBeInTheDocument();
       
-      // 4. 一括購入フローのテスト
+      // 4. 一括購入フローのテスト（ConfirmDialog経由）
       const batchPurchaseButton = screen.getByText('一括購入実行');
       fireEvent.click(batchPurchaseButton);
-      
-      expect(global.confirm).toHaveBeenCalled();
+
+      // ConfirmDialog が表示される
+      expect(screen.getByText('一括購入の確認')).toBeInTheDocument();
+      // 「購入実行」をクリック
+      fireEvent.click(screen.getByText('購入実行'));
+
       expect(mockExecuteBatchPurchase).toHaveBeenCalled();
-      expect(global.alert).toHaveBeenCalledWith('購入処理が完了しました。');
     });
   });
 });

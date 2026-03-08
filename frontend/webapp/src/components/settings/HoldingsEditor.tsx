@@ -21,27 +21,36 @@ import { formatCurrency, formatPercent } from '../../utils/formatters';
 import { FUND_TYPES } from '../../utils/fundUtils';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import HoldingCard from './HoldingCard';
+import ConfirmDialog from '../ui/confirm-dialog';
 
 const HoldingsEditor = () => {
   const { t } = useTranslation();
-  const { 
+  const {
     currentAssets,
     updateHoldings,
     removeTicker,
     baseCurrency,
     exchangeRate
   } = usePortfolioContext();
-  
+
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    isOpen: boolean;
+    id: string;
+    name: string;
+  }>({ isOpen: false, id: '', name: '' });
 
   // 銘柄の削除
-  const handleRemoveTicker = useCallback((id, name) => {
-    if (window.confirm(`${name}を削除してもよろしいですか？`)) {
-      removeTicker(id);
-      showMessage(`${name}を削除しました`, 'success');
-    }
-  }, [removeTicker]);
+  const handleRemoveTicker = useCallback((id: string, name: string) => {
+    setDeleteConfirm({ isOpen: true, id, name });
+  }, []);
+
+  const confirmRemoveTicker = useCallback(() => {
+    removeTicker(deleteConfirm.id);
+    showMessage(`${deleteConfirm.name}を削除しました`, 'success');
+    setDeleteConfirm({ isOpen: false, id: '', name: '' });
+  }, [deleteConfirm, removeTicker]);
 
   // メッセージの表示
   const showMessage = (text, type) => {
@@ -118,6 +127,17 @@ const HoldingsEditor = () => {
         </CardContent>
       </Card>
       
+      <ConfirmDialog
+        isOpen={deleteConfirm.isOpen}
+        onConfirm={confirmRemoveTicker}
+        onCancel={() => setDeleteConfirm({ isOpen: false, id: '', name: '' })}
+        title="銘柄の削除"
+        description={`${deleteConfirm.name}を削除してもよろしいですか？`}
+        confirmLabel="削除"
+        cancelLabel="キャンセル"
+        variant="danger"
+      />
+
       {/* Message Display */}
       {message && (
         <Card padding="medium" className={`border-l-4 ${
