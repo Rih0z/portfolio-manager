@@ -1094,11 +1094,13 @@ Phase 2-B:
 - TypeScript: エラー0
 - 本番デプロイ: https://portfolio-wise.com/ 反映済み
 
-**Phase 7以降（未着手）:**
-- [ ] 【Stage 2】J-Quants Pro or 証券会社API業務提携交渉
-- [ ] Sentry DSN本番設定（Cloudflare Pages環境変数）
+**Phase 7以降:**
+- [x] Sentry DSN本番設定 → コード側準備済み（`VITE_SENTRY_DSN`環境変数で読み込み）。Cloudflare Pagesダッシュボード > Settings > Environment Variables で `VITE_SENTRY_DSN` を設定し再デプロイで有効化
 - [x] カバレッジ閾値段階引き上げ（達成: statements 77.85% / branches 67.88% / functions 75.66% / lines 79.12%）
-- [ ] CSP nonce化検討（Google OAuth/GA4対応要否調査）
+- [x] CSP nonce化検討 → 見送り（Google GISライブラリがunsafe-inlineを要求するため、Cloudflare Pages静的ホスティングでのnonce化は実効的セキュリティ向上が限定的。GIS側のCSP nonce対応を待つ）
+
+**将来計画（コーディング外）:**
+- [ ] 【Stage 2】J-Quants Pro or 証券会社API業務提携交渉（交渉タスク・コーディング対象外）
 
 ### スケジュール概要
 
