@@ -159,7 +159,7 @@ describe('Dashboard', () => {
       
       // タイトルのグラデーションクラス
       const title = screen.getByText('ダッシュボード');
-      expect(title).toHaveClass('bg-gradient-to-r', 'from-primary-400', 'to-primary-500', 'bg-clip-text', 'text-transparent');
+      expect(title).toHaveClass('bg-gradient-to-r', 'from-primary-500', 'to-primary-600', 'bg-clip-text', 'text-transparent');
     });
 
     it('翻訳キーを正しく使用している', () => {

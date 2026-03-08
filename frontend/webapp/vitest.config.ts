@@ -73,10 +73,10 @@ export default defineConfig({
         'src/components/simulation/**',
       ],
       thresholds: {
-        statements: 75,
-        branches: 65,
-        functions: 70,
-        lines: 75,
+        statements: 80,
+        branches: 70,
+        functions: 75,
+        lines: 80,
       },
     },
     // Mock modules

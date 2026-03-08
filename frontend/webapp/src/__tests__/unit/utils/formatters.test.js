@@ -6,6 +6,7 @@ import { vi } from "vitest";
 
 import {
   formatCurrency,
+  formatPercent,
   formatPercentage,
   formatNumber,
   formatDate,
@@ -263,6 +264,263 @@ describe('formatters', () => {
       const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
       const result = formatDateRelative(oneHourAgo, 'en-US');
       expect(result).toContain('ago') || expect(result).toContain('hour');
+    });
+  });
+
+  describe('formatPercent', () => {
+    it('正の値を正しくフォーマットする', () => {
+      expect(formatPercent(10)).toBe('10%');
+      expect(formatPercent(12.5)).toBe('12.50%');
+      expect(formatPercent(100)).toBe('100%');
+    });
+
+    it('負の値を正しくフォーマットする', () => {
+      expect(formatPercent(-10)).toBe('-10%');
+      expect(formatPercent(-12.5)).toBe('-12.50%');
+    });
+
+    it('ゼロを正しくフォーマットする', () => {
+      expect(formatPercent(0)).toBe('0%');
+    });
+
+    it('.00で終わる値の末尾ゼロを除去する', () => {
+      // value.toFixed(2) が '.00' で終わる場合、整数部分のみ表示
+      expect(formatPercent(5)).toBe('5%');
+      expect(formatPercent(100)).toBe('100%');
+      expect(formatPercent(-3)).toBe('-3%');
+    });
+
+    it('.00で終わらない小数値はそのまま表示する', () => {
+      // toFixed(2)の結果が'.00'で終わらないので、そのまま返される
+      expect(formatPercent(5.25)).toBe('5.25%');
+      expect(formatPercent(10.10)).toBe('10.10%'); // 10.1.toFixed(2) = "10.10"
+      expect(formatPercent(0.01)).toBe('0.01%');
+    });
+
+    it('小数点桁数を指定できる', () => {
+      expect(formatPercent(12.345, 1)).toBe('12.3%');
+      expect(formatPercent(12.345, 0)).toBe('12%');
+      expect(formatPercent(12.345, 3)).toBe('12.345%');
+      expect(formatPercent(12.345, 4)).toBe('12.3450%');
+    });
+
+    it('fractionDigits=0の場合は整数表示する', () => {
+      expect(formatPercent(12.6, 0)).toBe('13%');
+      expect(formatPercent(0, 0)).toBe('0%');
+    });
+
+    it('NaNの場合はN/Aを返す', () => {
+      expect(formatPercent(NaN)).toBe('N/A');
+    });
+
+    it('非数値型の場合はN/Aを返す', () => {
+      expect(formatPercent('abc')).toBe('N/A');
+      expect(formatPercent(undefined)).toBe('N/A');
+      expect(formatPercent(null)).toBe('N/A');
+    });
+
+    it('デフォルトで小数点2桁を使用する', () => {
+      expect(formatPercent(12.345)).toBe('12.35%');
+      expect(formatPercent(12.3)).toBe('12.30%'); // 12.3.toFixed(2) = "12.30"
+    });
+  });
+
+  describe('formatDate with formatStr', () => {
+    it('yyyy/MM/ddフォーマットで日付を返す', () => {
+      const date = new Date(2024, 0, 15); // 2024-01-15 ローカル
+      expect(formatDate(date, 'yyyy/MM/dd')).toBe('2024/01/15');
+    });
+
+    it('yyyy/MM/ddフォーマットで月・日を0埋めする', () => {
+      const date = new Date(2024, 2, 5); // 2024-03-05 ローカル
+      expect(formatDate(date, 'yyyy/MM/dd')).toBe('2024/03/05');
+    });
+
+    it('yyyy/MM/ddフォーマットで文字列日付を処理する', () => {
+      const result = formatDate('2024-12-25T00:00:00', 'yyyy/MM/dd');
+      expect(result).toBe('2024/12/25');
+    });
+
+    it('yyyy/MM/ddフォーマットでタイムスタンプを処理する', () => {
+      const timestamp = new Date(2024, 5, 1).getTime(); // 2024-06-01 ローカル
+      expect(formatDate(timestamp, 'yyyy/MM/dd')).toBe('2024/06/01');
+    });
+
+    it('formatStrなしの場合はデフォルトのISO風フォーマットを返す', () => {
+      const date = new Date(2024, 0, 15);
+      expect(formatDate(date)).toBe('2024-01-15');
+    });
+  });
+
+  describe('formatDateIntl', () => {
+    it('デフォルトオプションとja-JPロケールでフォーマットする', () => {
+      const result = formatDateIntl(new Date('2024-01-15T00:00:00'));
+      // ja-JPロケールでyear:numeric, month:2-digit, day:2-digitのデフォルト
+      expect(result).toMatch(/2024/);
+      expect(result).toMatch(/01/);
+      expect(result).toMatch(/15/);
+    });
+
+    it('カスタムオプションを適用する', () => {
+      const result = formatDateIntl(new Date('2024-01-15T00:00:00'), {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      }, 'ja-JP');
+      expect(result).toContain('2024');
+    });
+
+    it('en-USロケールでフォーマットする', () => {
+      const result = formatDateIntl(new Date('2024-01-15T00:00:00'), {}, 'en-US');
+      expect(result).toMatch(/01/);
+      expect(result).toMatch(/15/);
+      expect(result).toMatch(/2024/);
+    });
+
+    it('文字列日付を受け付ける', () => {
+      const result = formatDateIntl('2024-06-20T00:00:00');
+      expect(result).toMatch(/2024/);
+      expect(result).toMatch(/06/);
+      expect(result).toMatch(/20/);
+    });
+
+    it('タイムスタンプを受け付ける', () => {
+      const timestamp = new Date('2024-01-15T00:00:00').getTime();
+      const result = formatDateIntl(timestamp);
+      expect(result).toMatch(/2024/);
+      expect(result).toMatch(/01/);
+      expect(result).toMatch(/15/);
+    });
+
+    it('nullの場合はInvalid Dateを返す', () => {
+      expect(formatDateIntl(null)).toBe('Invalid Date');
+    });
+
+    it('undefinedの場合はInvalid Dateを返す', () => {
+      expect(formatDateIntl(undefined)).toBe('Invalid Date');
+    });
+
+    it('無効な文字列の場合はInvalid Dateを返す', () => {
+      expect(formatDateIntl('not-a-date')).toBe('Invalid Date');
+    });
+
+    it('空文字列の場合はInvalid Dateを返す', () => {
+      expect(formatDateIntl('')).toBe('Invalid Date');
+    });
+
+    it('カスタムオプションがデフォルトオプションをオーバーライドする', () => {
+      const result = formatDateIntl(new Date('2024-01-15T00:00:00'), {
+        month: 'short'
+      }, 'en-US');
+      // month: 'short' がデフォルトの month: '2-digit' をオーバーライド
+      expect(result).toContain('2024');
+      expect(result).toContain('15');
+    });
+
+    it('toLocaleDateStringが例外をスローした場合はInvalid Dateを返す', () => {
+      // 無効なオプションを渡してtoLocaleDateStringの例外をトリガー
+      const result = formatDateIntl(new Date('2024-01-15T00:00:00'), {
+        timeZone: 'Invalid/Timezone'
+      });
+      expect(result).toBe('Invalid Date');
+    });
+  });
+
+  describe('formatDateRelative 追加テスト', () => {
+    const now = new Date('2024-01-15T12:00:00Z');
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+      vi.setSystemTime(now);
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('未来の日付（秒単位）を正しく表示する', () => {
+      const thirtySecondsLater = new Date(now.getTime() + 30 * 1000);
+      const result = formatDateRelative(thirtySecondsLater);
+      // diffMs が負数なので、rtf.format に正数が渡される → 「後」が含まれる
+      expect(result).toMatch(/秒後|後/);
+    });
+
+    it('未来の日付（分単位）を正しく表示する', () => {
+      const fiveMinutesLater = new Date(now.getTime() + 5 * 60 * 1000);
+      const result = formatDateRelative(fiveMinutesLater);
+      expect(result).toMatch(/分後|後/);
+    });
+
+    it('未来の日付（時間単位）を正しく表示する', () => {
+      const twoHoursLater = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+      const result = formatDateRelative(twoHoursLater);
+      expect(result).toMatch(/時間後|後/);
+    });
+
+    it('未来の日付（日単位）を正しく表示する', () => {
+      const threeDaysLater = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+      const result = formatDateRelative(threeDaysLater);
+      expect(result).toMatch(/日後|後/);
+    });
+
+    it('en-USロケールで秒単位を表示する', () => {
+      const tenSecondsAgo = new Date(now.getTime() - 10 * 1000);
+      const result = formatDateRelative(tenSecondsAgo, 'en-US');
+      expect(result).toMatch(/second|ago/);
+    });
+
+    it('en-USロケールで分単位を表示する', () => {
+      const threeMinutesAgo = new Date(now.getTime() - 3 * 60 * 1000);
+      const result = formatDateRelative(threeMinutesAgo, 'en-US');
+      expect(result).toMatch(/minute|ago/);
+    });
+
+    it('en-USロケールで日単位を表示する', () => {
+      const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
+      const result = formatDateRelative(twoDaysAgo, 'en-US');
+      expect(result).toMatch(/day|ago/);
+    });
+
+    it('タイムスタンプ（数値）を受け付ける', () => {
+      const fiveMinutesAgoMs = now.getTime() - 5 * 60 * 1000;
+      const result = formatDateRelative(fiveMinutesAgoMs);
+      expect(result).toContain('分前');
+    });
+
+    it('ちょうど1分の境界値を正しく処理する', () => {
+      // 59999ms → 秒として扱われる
+      const justUnder1Min = new Date(now.getTime() - 59999);
+      const resultUnder = formatDateRelative(justUnder1Min);
+      expect(resultUnder).toMatch(/秒前/);
+
+      // 60000ms → 分として扱われる
+      const exactly1Min = new Date(now.getTime() - 60000);
+      const resultExact = formatDateRelative(exactly1Min);
+      expect(resultExact).toMatch(/分前/);
+    });
+
+    it('ちょうど1時間の境界値を正しく処理する', () => {
+      // 3599999ms → 分として扱われる
+      const justUnder1Hr = new Date(now.getTime() - 3599999);
+      const resultUnder = formatDateRelative(justUnder1Hr);
+      expect(resultUnder).toMatch(/分前/);
+
+      // 3600000ms → 時間として扱われる
+      const exactly1Hr = new Date(now.getTime() - 3600000);
+      const resultExact = formatDateRelative(exactly1Hr);
+      expect(resultExact).toMatch(/時間前/);
+    });
+
+    it('ちょうど1日の境界値を正しく処理する', () => {
+      // 86399999ms → 時間として扱われる
+      const justUnder1Day = new Date(now.getTime() - 86399999);
+      const resultUnder = formatDateRelative(justUnder1Day);
+      expect(resultUnder).toMatch(/時間前/);
+
+      // 86400000ms → 日として扱われる（numeric: 'auto'により「昨日」と表示される場合がある）
+      const exactly1Day = new Date(now.getTime() - 86400000);
+      const resultExact = formatDateRelative(exactly1Day);
+      expect(resultExact).toMatch(/日前|昨日/);
     });
   });
 
