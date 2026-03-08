@@ -117,7 +117,7 @@ const Landing: React.FC = () => {
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-foreground leading-tight mb-4">
             {t('landing.heroTitle', '分散投資の全体像が、')}
             <br />
-            <span className="bg-gradient-to-r from-primary-400 to-primary-600 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-primary-500 to-primary-700 bg-clip-text text-transparent">
               {t('landing.heroTitleAccent', 'ひとつの画面で完結')}
             </span>
           </h1>
@@ -150,7 +150,7 @@ const Landing: React.FC = () => {
         </section>
 
         {/* ───────── 2. Pain（課題共感）───────── */}
-        <section className="py-12 sm:py-16">
+        <section className="py-12 sm:py-16 bg-muted/40 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 rounded-2xl">
           <h2 className="text-2xl sm:text-3xl font-bold text-foreground text-center mb-4">
             {t('landing.painTitle', 'こんな状況、心当たりはありませんか')}
           </h2>
@@ -228,7 +228,7 @@ const Landing: React.FC = () => {
         </section>
 
         {/* ───────── 4. Features ───────── */}
-        <section className="py-12 sm:py-16 bg-muted/30 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 rounded-2xl">
+        <section className="py-12 sm:py-16 bg-muted/50 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 rounded-2xl">
           <h2 className="text-2xl sm:text-3xl font-bold text-foreground text-center mb-10">
             {t('landing.featuresTitle', '主要機能')}
           </h2>
@@ -327,7 +327,7 @@ const Landing: React.FC = () => {
         </section>
 
         {/* ───────── 6. Pricing ───────── */}
-        <section className="py-12 sm:py-16">
+        <section className="py-12 sm:py-16 bg-muted/40 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 rounded-2xl">
           <h2 className="text-2xl sm:text-3xl font-bold text-foreground text-center mb-4">
             {t('landing.pricingTitle', 'シンプルな料金体系')}
           </h2>

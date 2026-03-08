@@ -107,7 +107,7 @@ const Dashboard = () => {
 
       {/* Welcome Section */}
       <div className="mb-4 sm:mb-8 pt-2">
-        <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-primary-400 to-primary-500 bg-clip-text text-transparent mb-2 leading-tight">
+        <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-primary-500 to-primary-600 bg-clip-text text-transparent mb-2 leading-tight">
           {t('dashboard.title')}
         </h1>
         <p className="text-muted-foreground text-sm sm:text-base">
