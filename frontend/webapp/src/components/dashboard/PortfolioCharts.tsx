@@ -17,6 +17,7 @@
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
+import { CHART_COLORS } from '../../constants/chartColors';
 
 const PortfolioCharts = () => {
   const { currentAssets, targetPortfolio, baseCurrency, totalAssets, exchangeRate } = usePortfolioContext();
@@ -59,20 +60,16 @@ const PortfolioCharts = () => {
     });
   }
 
-  // チャート用カラーパレット
-  const COLORS = [
-    '#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8',
-    '#82CA9D', '#FF6B6B', '#6C5CE7', '#FFA502', '#2ED573',
-    '#1E90FF', '#FF7F50', '#32CD32', '#FF00FF', '#FFD700'
-  ];
+  // チャート用カラーパレット（CSS変数経由でテーマ連動）
+  const COLORS = CHART_COLORS;
 
   // カスタムツールチップ
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white p-2 border border-gray-200 shadow-sm text-sm">
-          <p className="font-medium">{payload[0].payload.name}</p>
-          <p className="text-gray-700">
+        <div className="bg-card border border-border rounded-lg shadow-sm p-2 text-sm">
+          <p className="font-medium text-foreground">{payload[0].payload.name}</p>
+          <p className="text-muted-foreground">
             {payload[0].payload.ticker}: {payload[0].value.toFixed(2)}%
           </p>
         </div>
@@ -82,8 +79,8 @@ const PortfolioCharts = () => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow p-6 mb-6">
-      <h2 className="text-xl font-semibold mb-4">ポートフォリオ配分</h2>
+    <div className="bg-card border border-border rounded-xl shadow-sm p-6 mb-6">
+      <h2 className="text-xl font-semibold mb-4 text-foreground">ポートフォリオ配分</h2>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>

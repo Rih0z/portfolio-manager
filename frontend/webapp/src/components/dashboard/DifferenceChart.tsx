@@ -17,6 +17,7 @@
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
+import { SEMANTIC_COLORS } from '../../constants/chartColors';
 
 const DifferenceChart = () => {
   const { currentAssets, targetPortfolio, baseCurrency, totalAssets, exchangeRate } = usePortfolioContext();
@@ -72,9 +73,9 @@ const DifferenceChart = () => {
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white p-2 border border-gray-200 shadow-sm text-sm">
-          <p className="font-medium">{payload[0].payload.name}</p>
-          <p className="text-gray-700">
+        <div className="bg-card border border-border rounded-lg shadow-sm p-2 text-sm">
+          <p className="font-medium text-foreground">{payload[0].payload.name}</p>
+          <p className="text-muted-foreground">
             {payload[0].payload.ticker}: {payload[0].value > 0 ? '+' : ''}{payload[0].value}%
           </p>
         </div>
@@ -86,16 +87,16 @@ const DifferenceChart = () => {
   // 表示するデータがない場合
   if (differenceData.length === 0) {
     return (
-      <div className="bg-white rounded-lg shadow p-6 mb-6 text-center">
-        <h2 className="text-xl font-semibold mb-2">ポートフォリオ差分</h2>
-        <p className="text-gray-500">表示するデータがありません。目標配分を設定してください。</p>
+      <div className="bg-card border border-border rounded-xl shadow-sm p-6 mb-6 text-center">
+        <h2 className="text-xl font-semibold mb-2 text-foreground">ポートフォリオ差分</h2>
+        <p className="text-muted-foreground">表示するデータがありません。目標配分を設定してください。</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg shadow p-6 mb-6">
-      <h2 className="text-xl font-semibold mb-4">ポートフォリオ差分</h2>
+    <div className="bg-card border border-border rounded-xl shadow-sm p-6 mb-6">
+      <h2 className="text-xl font-semibold mb-4 text-foreground">ポートフォリオ差分</h2>
       
       <ResponsiveContainer width="100%" height={400}>
         <BarChart
@@ -119,9 +120,9 @@ const DifferenceChart = () => {
             }} 
           />
           <Tooltip content={<CustomTooltip />} />
-          <Bar 
-            dataKey="difference" 
-            fill={(entry) => entry.difference > 0 ? '#4CAF50' : '#F44336'} 
+          <Bar
+            dataKey="difference"
+            fill={(entry) => entry.difference > 0 ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.danger}
           />
         </BarChart>
       </ResponsiveContainer>

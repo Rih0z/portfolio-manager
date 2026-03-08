@@ -26,6 +26,29 @@
   --input: #E2E8F0;
   --ring: #1A56DB;
   --radius: 0.75rem;
+
+  /* セマンティックカラー（SVG/Recharts 用） */
+  --color-primary-500: #1A56DB;
+  --color-success-500: #059669;
+  --color-danger-500: #E11D48;
+  --color-warning-500: #F59E0B;
+
+  /* チャート専用カラーパレット（15色） */
+  --chart-1: #3B82F6;
+  --chart-2: #10B981;
+  --chart-3: #F59E0B;
+  --chart-4: #EF4444;
+  --chart-5: #8B5CF6;
+  --chart-6: #06B6D4;
+  --chart-7: #F97316;
+  --chart-8: #EC4899;
+  --chart-9: #84CC16;
+  --chart-10: #6366F1;
+  --chart-11: #14B8A6;
+  --chart-12: #F43F5E;
+  --chart-13: #A855F7;
+  --chart-14: #22D3EE;
+  --chart-15: #FB923C;
 }
 
 /* ダークモード */
@@ -41,6 +64,29 @@
   --border: #334155;
   --input: #334155;
   --ring: #60A5FA;
+
+  /* セマンティックカラー（SVG/Recharts 用） */
+  --color-primary-500: #60A5FA;
+  --color-success-500: #34D399;
+  --color-danger-500: #FB7185;
+  --color-warning-500: #FBBF24;
+
+  /* チャート専用カラーパレット（ダーク用: 明度を上げて視認性確保） */
+  --chart-1: #60A5FA;
+  --chart-2: #34D399;
+  --chart-3: #FBBF24;
+  --chart-4: #FB7185;
+  --chart-5: #A78BFA;
+  --chart-6: #22D3EE;
+  --chart-7: #FB923C;
+  --chart-8: #F472B6;
+  --chart-9: #A3E635;
+  --chart-10: #818CF8;
+  --chart-11: #2DD4BF;
+  --chart-12: #FB7185;
+  --chart-13: #C084FC;
+  --chart-14: #67E8F9;
+  --chart-15: #FDBA74;
 }
 
 /* 後方互換: 旧ダークテーマ変数 */

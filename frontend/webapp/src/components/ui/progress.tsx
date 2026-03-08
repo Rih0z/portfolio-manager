@@ -4,6 +4,7 @@
  */
 import React from 'react';
 import { cn } from '../../lib/utils';
+import { SEMANTIC_COLORS } from '../../constants/chartColors';
 
 interface ProgressProps extends React.HTMLAttributes<HTMLDivElement> {
   value: number;
@@ -93,10 +94,10 @@ function CircularProgress({
   const offset = circumference - (percentage / 100) * circumference;
 
   const getColor = (pct: number) => {
-    if (pct >= 80) return '#059669'; // success
-    if (pct >= 60) return '#1A56DB'; // primary
-    if (pct >= 40) return '#F59E0B'; // warning
-    return '#E11D48'; // danger
+    if (pct >= 80) return SEMANTIC_COLORS.success;
+    if (pct >= 60) return SEMANTIC_COLORS.primary;
+    if (pct >= 40) return SEMANTIC_COLORS.warning;
+    return SEMANTIC_COLORS.danger;
   };
 
   return (

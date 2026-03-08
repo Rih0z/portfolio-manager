@@ -27,6 +27,7 @@ import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input, Select } from '../components/ui/input';
 import { BarChart3, TrendingUp, ClipboardList, Bot, Sparkles, Target, Camera, Lock, Search, MessageCircle, Lightbulb } from 'lucide-react';
+import { SEMANTIC_COLORS } from '../constants/chartColors';
 import logger from '../utils/logger';
 
 const AIAdvisor = () => {
@@ -397,7 +398,7 @@ ${portfolioSummary}
                         onChange={(e: any) => setUserData(prev => ({ ...prev, age: parseInt(e.target.value) }))}
                         className="w-full h-3 bg-neutral-200 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-400"
                         style={{
-                          background: `linear-gradient(to right, #0052CC 0%, #0052CC ${((userData.age - 18) / (80 - 18)) * 100}%, #E5E7EA ${((userData.age - 18) / (80 - 18)) * 100}%, #E5E7EA 100%)`
+                          background: `linear-gradient(to right, ${SEMANTIC_COLORS.primary} 0%, ${SEMANTIC_COLORS.primary} ${((userData.age - 18) / (80 - 18)) * 100}%, var(--border) ${((userData.age - 18) / (80 - 18)) * 100}%, var(--border) 100%)`
                         }}
                       />
                       <div className="flex justify-between text-sm text-neutral-600">

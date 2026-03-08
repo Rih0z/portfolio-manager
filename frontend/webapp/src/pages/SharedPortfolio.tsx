@@ -19,12 +19,7 @@ import { trackEvent, AnalyticsEvents } from '../utils/analytics';
 import { getErrorMessage } from '../utils/errorUtils';
 import type { SharedPortfolio as SharedPortfolioType } from '../types/social.types';
 import { AGE_GROUPS } from '../types/social.types';
-
-const CHART_COLORS = [
-  '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6',
-  '#06B6D4', '#F97316', '#EC4899', '#84CC16', '#6366F1',
-  '#14B8A6', '#F43F5E', '#A855F7', '#22D3EE', '#FB923C',
-];
+import { CHART_COLORS } from '../constants/chartColors';
 
 const CustomTooltip = ({ active, payload }: any) => {
   if (active && payload && payload.length) {
