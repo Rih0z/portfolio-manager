@@ -1,6 +1,7 @@
 /**
  * リクエストスロットリング・デバウンス・レート制限ユーティリティ
  */
+import logger from './logger';
 
 interface QueueItem<T> {
   fn: () => Promise<T>;
@@ -157,7 +158,7 @@ class RateLimitedRequestManager {
 
         // エクスポネンシャルバックオフで再試行
         const retryAfter = this.calculateRetryAfter(apiType, error as RateLimitError);
-        console.log(`Rate limit hit for ${apiType}, retrying after ${retryAfter}ms`);
+        logger.log(`Rate limit hit for ${apiType}, retrying after ${retryAfter}ms`);
 
         await new Promise<void>(resolve => setTimeout(resolve, retryAfter));
         return this.request(apiType, fn, { ...options, retryOnRateLimit: false });

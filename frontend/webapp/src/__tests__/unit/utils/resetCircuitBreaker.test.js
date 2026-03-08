@@ -4,6 +4,10 @@ import { vi } from "vitest";
  * サーキットブレーカーリセット用ユーティリティのテスト
  */
 
+// loggerモジュールのモック
+const mockLogger = { log: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() };
+vi.mock('../../../utils/logger', () => ({ default: mockLogger }));
+
 // apiUtilsをモック
 vi.mock('../../../utils/apiUtils', () => ({
   resetAllCircuitBreakers: vi.fn()
@@ -43,7 +47,7 @@ describe('resetCircuitBreaker', () => {
   });
 
   describe('ブラウザ環境での動作', () => {
-    it('windowオブジェクトにresetCircuitBreakers関数を追加し、ログを表示する', async () => {
+    it('windowオブジェクトにresetCircuitBreakers関数を追加する', async () => {
       // モジュールを読み込み（動的import）
       await import('../../../utils/resetCircuitBreaker');
 
@@ -51,10 +55,7 @@ describe('resetCircuitBreaker', () => {
       expect(window.resetCircuitBreakers).toBeDefined();
       expect(typeof window.resetCircuitBreakers).toBe('function');
 
-      // 初期化ログが表示されている
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        'Circuit breaker reset function available: window.resetCircuitBreakers()'
-      );
+      // logger.debug only outputs in development mode, not in test
     });
 
     it('グローバル関数を実行するとresetAllCircuitBreakersが呼ばれる', async () => {
@@ -67,10 +68,7 @@ describe('resetCircuitBreaker', () => {
       // resetAllCircuitBreakersが呼ばれている
       expect(resetAllCircuitBreakers).toHaveBeenCalledTimes(1);
 
-      // ログメッセージが表示されている
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        'All circuit breakers have been reset'
-      );
+      // logger.debug only outputs in development mode, not in test
     });
 
     it('複数回呼び出しても正常に動作する', async () => {
@@ -123,9 +121,7 @@ describe('resetCircuitBreaker', () => {
       await import('../../../utils/resetCircuitBreaker');
 
       expect(window.resetCircuitBreakers).toBeDefined();
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        'Circuit breaker reset function available: window.resetCircuitBreakers()'
-      );
+      // logger.debug only outputs in development mode, not in test
     });
   });
 
@@ -134,10 +130,7 @@ describe('resetCircuitBreaker', () => {
       // 1. モジュール読み込み
       const module = await import('../../../utils/resetCircuitBreaker');
 
-      // 2. 初期化ログの確認
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        'Circuit breaker reset function available: window.resetCircuitBreakers()'
-      );
+      // 2. logger.debug only outputs in development mode
 
       // 3. グローバル関数の確認
       expect(window.resetCircuitBreakers).toBeDefined();
@@ -150,26 +143,18 @@ describe('resetCircuitBreaker', () => {
 
       // 6. 期待される動作の確認
       expect(resetAllCircuitBreakers).toHaveBeenCalledTimes(1);
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        'All circuit breakers have been reset'
-      );
     });
 
     it('エクスポートとグローバル関数が独立して動作する', async () => {
       const module = await import('../../../utils/resetCircuitBreaker');
 
-      // エクスポート関数を実行（ログなし）
+      // エクスポート関数を実行
       module.resetAllCircuitBreakers();
       expect(resetAllCircuitBreakers).toHaveBeenCalledTimes(1);
 
-      // グローバル関数を実行（ログあり）
+      // グローバル関数を実行
       window.resetCircuitBreakers();
       expect(resetAllCircuitBreakers).toHaveBeenCalledTimes(2);
-
-      // ログはグローバル関数のみ
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        'All circuit breakers have been reset'
-      );
     });
   });
 

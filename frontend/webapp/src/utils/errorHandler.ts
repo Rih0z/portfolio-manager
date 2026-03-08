@@ -3,6 +3,9 @@
  * センシティブな情報を含まないエラーメッセージを返す
  */
 
+import { captureException, captureMessage } from './sentry';
+import logger from './logger';
+
 interface SanitizedError {
     message: string;
     code: string;
@@ -156,10 +159,8 @@ export function setupGlobalErrorHandlers(): void {
         const sanitized = sanitizeError(error);
 
         if (!isDevelopment) {
-            // 本番環境ではエラーを報告（実際のエラー追跡サービスに送信）
-            console.error('Unhandled promise rejection:', sanitized.code);
-
-            // デフォルトの動作を防ぐ
+            logger.error('Unhandled promise rejection:', sanitized.code);
+            captureException(error, { type: 'unhandledrejection', code: sanitized.code });
             event.preventDefault();
         }
     });
@@ -170,10 +171,8 @@ export function setupGlobalErrorHandlers(): void {
         const sanitized = sanitizeError(error);
 
         if (!isDevelopment) {
-            // 本番環境ではエラーを報告
-            console.error('Global error:', sanitized.code);
-
-            // デフォルトの動作を防ぐ
+            logger.error('Global error:', sanitized.code);
+            captureException(error, { type: 'global_error', code: sanitized.code });
             event.preventDefault();
         }
     });
@@ -186,13 +185,11 @@ export function logErrorToService(error: Error, errorInfo: Record<string, any>):
     const isDevelopment = process.env.NODE_ENV === 'development';
 
     if (isDevelopment) {
-        console.error('Error caught by boundary:', error, errorInfo);
+        logger.error('Error caught by boundary:', error, errorInfo);
     } else {
-        // 本番環境では外部サービスに送信（例：Sentry）
+        // 本番環境では Sentry に送信
         const sanitized = sanitizeError(error as ErrorInput);
-        console.error('Error boundary:', sanitized.code);
-
-        // TODO: 実際のエラー追跡サービスに送信
-        // Sentry.captureException(error, { extra: errorInfo });
+        logger.error('Error boundary:', sanitized.code);
+        captureException(error, { ...errorInfo, code: sanitized.code });
     }
 }

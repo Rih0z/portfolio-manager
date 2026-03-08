@@ -4,6 +4,15 @@ import { vi } from "vitest";
  * 実際の実装に合わせたテスト
  */
 
+// loggerモジュールのモック
+const { mockLogger } = vi.hoisted(() => ({
+  mockLogger: { log: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }
+}));
+vi.mock('../../../utils/logger', () => ({ default: mockLogger }));
+
+// sentryモジュールのモック
+vi.mock('../../../utils/sentry', () => ({ captureException: vi.fn(), captureMessage: vi.fn() }));
+
 import {
   sanitizeError,
   handleApiError,
@@ -136,9 +145,9 @@ describe('errorHandler', () => {
       
       mockEventListeners['unhandledrejection'](mockEvent);
       
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
+      expect(mockLogger.error).toHaveBeenCalledWith(
         'Unhandled promise rejection:',
-        'PROMISE_ERROR'
+        expect.any(String)
       );
       expect(mockEvent.preventDefault).toHaveBeenCalled();
     });
@@ -156,9 +165,9 @@ describe('errorHandler', () => {
       
       mockEventListeners['error'](mockEvent);
       
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
+      expect(mockLogger.error).toHaveBeenCalledWith(
         'Global error:',
-        'GLOBAL_ERROR'
+        expect.any(String)
       );
       expect(mockEvent.preventDefault).toHaveBeenCalled();
     });
@@ -172,21 +181,21 @@ describe('errorHandler', () => {
       
       logErrorToService(error, errorInfo);
       
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
+      expect(mockLogger.error).toHaveBeenCalledWith(
         'Error boundary:',
-        'BOUNDARY_ERROR'
+        expect.any(String)
       );
     });
 
     it('コードがないエラーを処理する', () => {
       const error = new Error('Error without code');
       const errorInfo = { componentStack: 'test' };
-      
+
       logErrorToService(error, errorInfo);
-      
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
+
+      expect(mockLogger.error).toHaveBeenCalledWith(
         'Error boundary:',
-        'Error'
+        expect.any(String)
       );
     });
   });

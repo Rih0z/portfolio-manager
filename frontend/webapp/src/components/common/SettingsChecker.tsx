@@ -13,6 +13,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
+import logger from '../../utils/logger';
 
 const SettingsChecker = ({ children }) => {
   const [hasChecked, setHasChecked] = useState(false);
@@ -46,7 +47,7 @@ const SettingsChecker = ({ children }) => {
         
         setHasChecked(true);
       } catch (error) {
-        console.error('SettingsChecker error:', error);
+        logger.error('SettingsChecker error:', error);
         setHasChecked(true);
       }
     }

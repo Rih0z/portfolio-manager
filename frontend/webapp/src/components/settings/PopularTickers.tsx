@@ -16,6 +16,7 @@
 import React, { useState } from 'react';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 import { getJapaneseStockName } from '../../utils/japaneseStockNames';
+import logger from '../../utils/logger';
 
 // 人気銘柄のリスト（更新版）
 // 日本の投資信託
@@ -91,7 +92,7 @@ const PopularTickers = () => {
         showMessage(result.message || `${ticker}の追加に失敗しました`, 'error');
       }
     } catch (error) {
-      console.error('Add popular ticker error:', error);
+      logger.error('Add popular ticker error:', error);
       showMessage(`${ticker}の追加中にエラーが発生しました`, 'error');
     } finally {
       setIsLoading(false);

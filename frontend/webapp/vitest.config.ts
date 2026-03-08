@@ -54,6 +54,12 @@ export default defineConfig({
         'src/test-yaml-repair.js',
         'node_modules/**',
       ],
+      thresholds: {
+        statements: 60,
+        branches: 50,
+        functions: 55,
+        lines: 60,
+      },
     },
     // Mock modules
     alias: {

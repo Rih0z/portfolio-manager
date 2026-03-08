@@ -34,6 +34,8 @@ import { lazyWithRetry } from './utils/lazyWithRetry';
 import PWAUpdatePrompt from './components/pwa/PWAUpdatePrompt';
 import InstallPrompt from './components/pwa/InstallPrompt';
 import { useAlertEvaluation } from './hooks/useAlertEvaluation';
+import { setSentryUser, captureException } from './utils/sentry';
+import logger from './utils/logger';
 
 // Route-based code splitting: ページコンポーネントを遅延ロード（リトライ付き）
 const Landing = lazyWithRetry(() => import('./pages/Landing'));
@@ -53,6 +55,17 @@ const SharedPortfolio = lazyWithRetry(() => import('./pages/SharedPortfolio'));
 // i18n初期化
 import './i18n';
 
+// 開発環境でのアクセシビリティチェック（@axe-core/react）
+if (import.meta.env.DEV) {
+  import('@axe-core/react').then((axe) => {
+    import('react-dom').then((ReactDOM) => {
+      axe.default(React, ReactDOM, 1000);
+    });
+  }).catch(() => {
+    // axe-core が利用できない場合は無視
+  });
+}
+
 // API設定の初期化
 const AppInitializer = ({ children }: any) => {
   const [initialized, setInitialized] = useState(false);
@@ -67,7 +80,7 @@ const AppInitializer = ({ children }: any) => {
         initGA();
         setInitialized(true);
       } catch (error) {
-        console.error('API設定の初期化に失敗しました:', error);
+        logger.error('API設定の初期化に失敗しました:', error);
         setInitialized(true);
       }
     };
@@ -100,7 +113,7 @@ const AppInitializer = ({ children }: any) => {
   return (
     <GoogleOAuthProvider
       clientId={googleClientId || 'dummy-client-id'}
-      onScriptLoadError={(() => console.error('Google OAuth script load error')) as any}
+      onScriptLoadError={(() => logger.error('Google OAuth script load error')) as any}
     >
       {children}
     </GoogleOAuthProvider>
@@ -134,6 +147,7 @@ const StoreInitializer = () => {
     if (isAuthenticated) {
       return setupSessionInterval();
     }
+    return undefined;
   }, [isAuthenticated, setupSessionInterval]);
 
   // Visibility handler (when authenticated)
@@ -141,6 +155,7 @@ const StoreInitializer = () => {
     if (isAuthenticated) {
       return setupVisibilityHandler();
     }
+    return undefined;
   }, [isAuthenticated, setupVisibilityHandler]);
 
   // Portfolio initialization (once)
@@ -163,6 +178,16 @@ const StoreInitializer = () => {
     }
   }, [isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Sentry ユーザー情報の設定
+  const user = useAuthStore(s => s.user);
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      setSentryUser({ id: user.id, email: user.email });
+    } else {
+      setSentryUser(null);
+    }
+  }, [isAuthenticated, user]);
+
   return null;
 };
 
@@ -174,10 +199,11 @@ const NotificationDisplay = () => {
   if (notifications.length === 0) return null;
 
   return (
-    <div className="fixed bottom-0 right-0 p-4 space-y-2 z-50">
+    <div className="fixed bottom-0 right-0 p-4 space-y-2 z-50" aria-live="assertive" aria-atomic="false">
       {notifications.map((notification: any) => (
         <div
           key={notification.id}
+          role="alert"
           className={`p-3 rounded-md shadow-md text-sm ${
             notification.type === 'error' ? 'bg-danger-100 text-danger-700 dark:bg-danger-900/30 dark:text-danger-300' :
             notification.type === 'warning' ? 'bg-warning-100 text-warning-700 dark:bg-warning-500/20 dark:text-warning-400' :
@@ -190,6 +216,7 @@ const NotificationDisplay = () => {
             <button
               onClick={() => removeNotification(notification.id)}
               className="ml-2 text-muted-foreground hover:text-foreground"
+              aria-label="閉じる"
             >
               &times;
             </button>
@@ -241,13 +268,14 @@ class ErrorBoundary extends React.Component<any, any> {
   }
 
   componentDidCatch(error: any, errorInfo: any) {
-    console.error('アプリケーションエラー:', error, errorInfo);
+    logger.error('アプリケーションエラー:', error);
+    captureException(error, errorInfo);
   }
 
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-background px-4">
+        <div className="min-h-screen flex items-center justify-center bg-background px-4" role="alert">
           <div className="bg-card border border-border p-6 sm:p-8 rounded-2xl max-w-md w-full text-center shadow-large">
             <div className="w-16 h-16 mx-auto mb-4 bg-danger-50 dark:bg-danger-500/10 rounded-full flex items-center justify-center border border-danger-200 dark:border-danger-500/20">
               <svg className="w-8 h-8 text-danger-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -262,6 +290,7 @@ class ErrorBoundary extends React.Component<any, any> {
             <button
               className="w-full sm:w-auto bg-primary-500 text-white px-6 py-3 rounded-xl hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-all duration-200 font-medium shadow-lg hover:shadow-glow"
               onClick={() => window.location.reload()}
+              aria-label="アプリケーションをリロード"
             >
               リロードする
             </button>
@@ -284,6 +313,13 @@ const App = () => {
             <StoreInitializer />
 
             <Router>
+              {/* スキップリンク: キーボードユーザーがナビゲーションをスキップできる */}
+              <a
+                href="#main-content"
+                className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[100] focus:bg-primary-500 focus:text-white focus:px-4 focus:py-2 focus:rounded-md focus:shadow-lg"
+              >
+                メインコンテンツへスキップ
+              </a>
               <PageViewTracker />
               <ServerSyncInitializer />
               <AlertEvaluationInitializer />

@@ -18,6 +18,7 @@ import { fetchMultipleStocks } from '../services/marketDataService';
 import { fetchServerPortfolio, saveServerPortfolio } from '../services/portfolioSyncService';
 import { getAuthToken } from '../utils/apiUtils';
 import { trackEvent, AnalyticsEvents } from '../utils/analytics';
+import logger from '../utils/logger';
 import {
   FUND_TYPES,
   guessFundType,
@@ -38,7 +39,7 @@ const encryptData = (data: any): string | null => {
     const jsonString = JSON.stringify(data);
     return btoa(encodeURIComponent(jsonString));
   } catch (error) {
-    console.error('データの暗号化に失敗しました', error);
+    logger.error('データの暗号化に失敗しました', error);
     return null;
   }
 };
@@ -54,7 +55,7 @@ const decryptData = (encryptedData: string): any | null => {
       const jsonString = atob(encryptedData);
       return JSON.parse(jsonString);
     } catch (fallbackError) {
-      console.error('復号化に失敗しました', fallbackError);
+      logger.error('復号化に失敗しました', fallbackError);
       return null;
     }
   }
@@ -629,7 +630,7 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
       localStorage.setItem('portfolioData', encrypted);
       return true;
     } catch (error) {
-      console.error('ローカルストレージへの保存に失敗しました', error);
+      logger.error('ローカルストレージへの保存に失敗しました', error);
       return false;
     }
   },

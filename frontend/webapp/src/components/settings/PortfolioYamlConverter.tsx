@@ -13,6 +13,7 @@
 import React, { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
+import logger from '../../utils/logger';
 
 const PortfolioYamlConverter = () => {
   const { t, i18n } = useTranslation();
@@ -144,7 +145,7 @@ ${yamlData.portfolio.targetAllocation.map(item => `    - ティッカー: ${item
       
       return { assets, success: true };
     } catch (error) {
-      console.error('YAML parse error:', error);
+      logger.error('YAML parse error:', error);
       return { success: false, error: error.message };
     }
   }, []);

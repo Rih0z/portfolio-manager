@@ -1,6 +1,7 @@
 /**
  * 為替レート更新のデバウンス管理
  */
+import logger from './logger';
 
 // 最後の為替レート更新時刻を記録
 let lastExchangeRateUpdate: number = 0;
@@ -12,14 +13,14 @@ export function shouldUpdateExchangeRate(forceUpdate: boolean = false): boolean 
 
   // 強制更新の場合はデバウンスをスキップ
   if (forceUpdate) {
-    console.log('為替レート強制更新を実行します');
+    logger.log('為替レート強制更新を実行します');
     lastExchangeRateUpdate = now;
     return true;
   }
 
   if (timeSinceLastUpdate < MIN_UPDATE_INTERVAL) {
     const minutes = Math.round(timeSinceLastUpdate / 1000 / 60);
-    console.log(`為替レート更新をスキップ: 前回から${minutes}分しか経過していません（1時間待機）`);
+    logger.log(`為替レート更新をスキップ: 前回から${minutes}分しか経過していません（1時間待機）`);
     return false;
   }
 
@@ -28,13 +29,13 @@ export function shouldUpdateExchangeRate(forceUpdate: boolean = false): boolean 
 }
 
 export function resetExchangeRateTimer(): void {
-  console.log('為替レートタイマーをリセットしました');
+  logger.log('為替レートタイマーをリセットしました');
   lastExchangeRateUpdate = 0;
 }
 
 // 為替レートキャッシュをクリア
 export function clearExchangeRateCache(): void {
-  console.log('為替レートキャッシュをクリアします');
+  logger.log('為替レートキャッシュをクリアします');
   // 全ての通貨ペアのキャッシュをクリア
   ['JPY', 'USD'].forEach((currency: string) => {
     const cacheKey = `exchangeRate_${currency}`;

@@ -30,6 +30,12 @@ vi.mock('../../../services/PromptOrchestrationService', () => ({
   default: mockService
 }));
 
+// loggerモジュールのモック
+const { mockLogger } = vi.hoisted(() => ({
+  mockLogger: { log: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }
+}));
+vi.mock('../../../utils/logger', () => ({ default: mockLogger }));
+
 // window.open をモック
 global.open = vi.fn();
 
@@ -366,8 +372,6 @@ describe('PromptOrchestrator', () => {
       throw new Error('Generation failed');
     });
 
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
     render(
       <TestWrapper>
         <PromptOrchestrator
@@ -380,9 +384,7 @@ describe('PromptOrchestrator', () => {
 
     await clickGenerateAndWait();
 
-    expect(consoleSpy).toHaveBeenCalledWith('プロンプト生成エラー:', expect.any(Error));
-
-    consoleSpy.mockRestore();
+    expect(mockLogger.error).toHaveBeenCalledWith('プロンプト生成エラー:', expect.objectContaining({}));
   });
 
   test('shows prompt history when available', () => {

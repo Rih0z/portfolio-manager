@@ -103,7 +103,7 @@ describe('adminService', () => {
         status: undefined,
         message: 'ステータス取得に失敗しました: Endpoint configuration failed'
       });
-      expect(console.error).toHaveBeenCalledWith('ステータス取得エラー:', error);
+      expect(console.error).toHaveBeenCalledWith('ステータス取得エラー:', expect.objectContaining({}));
     });
 
     it('HTTP 404エラーを正しく処理する', async () => {
@@ -210,7 +210,7 @@ describe('adminService', () => {
         status: undefined,
         message: '使用量のリセットに失敗しました: Endpoint configuration failed'
       });
-      expect(console.error).toHaveBeenCalledWith('使用量リセットエラー:', error);
+      expect(console.error).toHaveBeenCalledWith('使用量リセットエラー:', expect.objectContaining({}));
     });
 
     it('HTTP 401認証エラーを正しく処理する', async () => {

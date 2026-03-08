@@ -32,7 +32,8 @@
     "simulation": "投資配分",
     "data": "Data",
     "dataImport": "データ取り込み",
-    "settings": "Settings"
+    "settings": "Settings",
+    "mainNav": "メインナビゲーション"
   },
   "auth": {
     "login": "ログイン",

@@ -6,6 +6,7 @@
 
 import { Asset, ValidationChanges } from '../types/portfolio.types';
 import { guessFundType, FUND_TYPES, FUND_TYPE_FEES, TICKER_SPECIFIC_FEES } from './fundUtils';
+import logger from './logger';
 
 interface AssetValidationResult {
   updatedAssets: Asset[];
@@ -182,7 +183,7 @@ export const validateAssetTypes = (assets: Asset[]): AssetValidationResult => {
       fundTypeChanges++;
     } else if (asset.fundType !== correctFundType) {
       // 既存のファンドタイプが推測と異なる場合も修正
-      console.log(`ファンドタイプを修正: ${ticker} - ${asset.fundType} → ${correctFundType}`);
+      logger.log(`ファンドタイプを修正: ${ticker} - ${asset.fundType} → ${correctFundType}`);
       updatedAsset.fundType = correctFundType;
       fundTypeChanges++;
     }

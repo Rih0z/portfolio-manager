@@ -5,6 +5,7 @@
  */
 
 import type { Asset, TargetAllocation, ExchangeRate } from '../../types/portfolio.types';
+import logger from '../../utils/logger';
 
 interface AssetWithAllocation extends Asset {
   currentValue: number;
@@ -110,7 +111,7 @@ export class PortfolioCalculationService {
     }
 
     // サポートされていない通貨ペア
-    console.warn(`Unsupported currency pair: ${fromCurrency}/${toCurrency}`);
+    logger.warn(`Unsupported currency pair: ${fromCurrency}/${toCurrency}`);
     return amount;
   }
 

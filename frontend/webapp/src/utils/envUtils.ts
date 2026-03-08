@@ -18,6 +18,7 @@
  */
 
 import { fetchApiConfig } from '../services/configService';
+import logger from './logger';
 import { ApiConfig } from '../types/portfolio.types';
 
 // 環境の判定
@@ -37,7 +38,7 @@ const getApiConfig = async (): Promise<ApiConfig> => {
     try {
       apiConfigCache = await fetchApiConfig();
     } catch (error: any) {
-      console.warn('API設定の取得に失敗しました（フォールバック設定を使用）:', error.message);
+      logger.warn('API設定の取得に失敗しました（フォールバック設定を使用）:', error.message);
       // 403エラーの場合でもアプリを動作させるため、適切なフォールバック設定を提供
       apiConfigCache = {
         marketDataApiUrl: (import.meta as any).env.VITE_API_BASE_URL || 'https://gglwlh6sc7.execute-api.us-west-2.amazonaws.com/prod',
@@ -107,12 +108,12 @@ export const getGoogleClientId = async (): Promise<string> => {
     const clientId = config?.googleClientId;
     // フォールバック: 一般的な開発環境用のダミーGoogle Client ID
     if (!clientId) {
-      console.warn('Google Client ID が取得できません。フォールバックIDを使用します。');
+      logger.warn('Google Client ID が取得できません。フォールバックIDを使用します。');
       return 'dummy-client-id-for-development';
     }
     return clientId;
   } catch (error: any) {
-    console.warn('Google Client ID の取得に失敗しました（フォールバックを使用）:', error.message);
+    logger.warn('Google Client ID の取得に失敗しました（フォールバックを使用）:', error.message);
     return 'dummy-client-id-for-development';
   }
 };

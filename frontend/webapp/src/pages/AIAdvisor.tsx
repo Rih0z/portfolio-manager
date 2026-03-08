@@ -26,6 +26,7 @@ import { enrichPortfolioData } from '../utils/portfolioDataEnricher';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input, Select } from '../components/ui/input';
+import logger from '../utils/logger';
 
 const AIAdvisor = () => {
   const { t, i18n } = useTranslation();
@@ -312,7 +313,7 @@ Based on the above information, please advise me on:
         await navigator.clipboard.writeText(generatedScreenshotPrompt.content);
         // Success feedback could be added here
       } catch (error) {
-        console.error('コピー失敗:', error);
+        logger.error('コピー失敗:', error);
       }
     }
   };

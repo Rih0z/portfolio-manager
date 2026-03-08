@@ -1,4 +1,5 @@
 import axios from 'axios';
+import logger from './logger';
 
 interface AxiosRequestConfig {
   method?: string;
@@ -77,7 +78,7 @@ class CSRFManager {
             throw new Error('Invalid CSRF token response');
             */
         } catch (error) {
-            console.error('Failed to refresh CSRF token:', error);
+            logger.error('Failed to refresh CSRF token:', error);
             throw error;
         }
     }
@@ -111,7 +112,7 @@ class CSRFManager {
             // CSRFトークンの取得に失敗しても、リクエストは続行
             // console.warnではなく、より静かに処理
             if (process.env.NODE_ENV === 'development') {
-                console.debug('CSRF token not required for this request');
+                logger.debug('CSRF token not required for this request');
             }
             return config;
         }

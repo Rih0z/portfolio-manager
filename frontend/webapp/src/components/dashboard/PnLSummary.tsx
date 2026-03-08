@@ -5,6 +5,7 @@ import { fetchMultiplePriceHistories, PriceHistoryResponse } from '../../service
 import { Card, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { trackEvent, AnalyticsEvents } from '../../utils/analytics';
+import logger from '../../utils/logger';
 
 const formatCurrency = (value: number, currency: string): string => {
   if (currency === 'JPY') {
@@ -27,7 +28,7 @@ const PnLSummary: React.FC = () => {
   useEffect(() => {
     if (currentAssets.length === 0) {
       setLoading(false);
-      return;
+      return undefined;
     }
 
     let cancelled = false;
@@ -37,7 +38,7 @@ const PnLSummary: React.FC = () => {
       .then(data => { if (!cancelled) setPriceHistories(data); })
       .catch(error => {
         if (!cancelled) {
-          console.warn('[PnLSummary] Failed to fetch price histories:', error.message);
+          logger.warn('[PnLSummary] Failed to fetch price histories:', error.message);
         }
       })
       .finally(() => { if (!cancelled) setLoading(false); });
@@ -75,6 +76,7 @@ const PnLSummary: React.FC = () => {
   return (
     <Card elevation="low" padding="medium" data-testid="pnl-summary">
       <CardContent>
+        <div role="img" aria-label={hasPurchaseData ? `ポートフォリオ損益サマリー: 総投資額 ${formatCurrency(pnl.totalInvestment, baseCurrency)}、参考評価額 ${formatCurrency(pnl.totalCurrentValue, baseCurrency)}、損益 ${pnl.totalPnL >= 0 ? '+' : ''}${formatCurrency(pnl.totalPnL, baseCurrency)} (${formatPercent(pnl.totalPnLPercent)})` : '損益データがありません'}>
         {hasPurchaseData ? (
           <div className="space-y-3">
             {/* 総投資額 */}
@@ -143,6 +145,7 @@ const PnLSummary: React.FC = () => {
             </p>
           </div>
         )}
+        </div>
       </CardContent>
     </Card>
   );

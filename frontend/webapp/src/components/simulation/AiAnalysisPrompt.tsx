@@ -16,6 +16,7 @@
 import React, { useState } from 'react';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 import { formatCurrency, formatPercent, formatDate } from '../../utils/formatters';
+import logger from '../../utils/logger';
 
 const AiAnalysisPrompt = () => {
   const {
@@ -219,7 +220,7 @@ ${targetAllocation.length > 0
         setTimeout(() => setIsCopied(false), 3000);
       },
       (err) => {
-        console.error('クリップボードへのコピーに失敗しました:', err);
+        logger.error('クリップボードへのコピーに失敗しました:', err);
       }
     );
   };

@@ -230,6 +230,12 @@ vi.mock('../../../utils/lazyWithRetry', () => ({
 // i18nモック
 vi.mock('../../../i18n', () => ({}));
 
+// loggerモジュールのモック
+const { mockLogger } = vi.hoisted(() => ({
+  mockLogger: { log: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }
+}));
+vi.mock('../../../utils/logger', () => ({ default: mockLogger }));
+
 import App from '../../../App';
 
 // Promiseを全てフラッシュするヘルパー
@@ -290,7 +296,7 @@ describe('App', () => {
       await renderAndWaitForInit();
 
       expect(screen.getByTestId('google-oauth-provider')).toBeInTheDocument();
-      expect(consoleErrorSpy).toHaveBeenCalledWith('API設定の初期化に失敗しました:', expect.any(Error));
+      expect(mockLogger.error).toHaveBeenCalledWith('API設定の初期化に失敗しました:', expect.objectContaining({}));
     });
 
     it('Google Client ID取得失敗時にダミーIDを使用する', async () => {

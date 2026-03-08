@@ -20,7 +20,9 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
 import App from './App';
-import { replaceConsoleLog } from './utils/logger'; // ログフィルタリング
+import logger, { replaceConsoleLog } from './utils/logger';
+import { initSentry } from './utils/sentry';
+import { reportWebVitals } from './utils/webVitals';
 
 // 開発環境でのテスト機能の現代化
 const loadDevelopmentFeatures = async () => {
@@ -32,28 +34,32 @@ const loadDevelopmentFeatures = async () => {
           await import('./utils/resetCircuitBreaker');
           await import('./utils/fixExchangeRate');
         } catch (error) {
-          console.warn('開発機能の読み込みに失敗しました:', error);
+          logger.warn('開発機能の読み込みに失敗しました:', error);
         }
       }, 2000);
     } catch (error) {
-      console.warn('開発機能の読み込みに失敗しました:', error);
+      logger.warn('開発機能の読み込みに失敗しました:', error);
     }
   }
 };
+
+// Sentry エラー監視の初期化（React render 前）
+initSentry();
 
 // 本番環境でログをフィルタリング
 try {
   replaceConsoleLog();
 } catch (error) {
-  console.warn('Logger setup failed:', error);
+  logger.warn('Logger setup failed:', error);
 }
 
 // グローバルエラーハンドラーの設定
-// try {
-//   setupGlobalErrorHandlers();
-// } catch (error) {
-//   console.warn('Error handler setup failed:', error);
-// }
+import { setupGlobalErrorHandlers } from './utils/errorHandler';
+try {
+  setupGlobalErrorHandlers();
+} catch {
+  // セットアップ失敗時はサイレントフォールバック
+}
 
 // React 18の推奨レンダリング方法を使用
 const container = document.getElementById('root');
@@ -67,3 +73,6 @@ root.render(
 
 // 開発機能の非同期読み込み
 loadDevelopmentFeatures();
+
+// Web Vitals 計測（本番のみ、非同期で遅延ロード）
+reportWebVitals();

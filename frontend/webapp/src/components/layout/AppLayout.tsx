@@ -21,7 +21,7 @@ const AppLayout: React.FC = () => {
       <div className="min-h-screen bg-background text-foreground">
         <Header />
         <OfflineIndicator />
-        <main className="max-w-7xl mx-auto pt-2 sm:pt-4 lg:pt-6 pb-20 sm:pb-6">
+        <main id="main-content" className="max-w-7xl mx-auto pt-2 sm:pt-4 lg:pt-6 pb-20 sm:pb-6">
           <Suspense fallback={<LoadingFallback />}>
             <Outlet />
           </Suspense>

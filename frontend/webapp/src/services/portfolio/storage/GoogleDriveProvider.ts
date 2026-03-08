@@ -11,6 +11,7 @@ import {
   loadFromGoogleDrive as apiLoadFromGoogleDrive,
   initGoogleDriveAPI
 } from '../../../services/api';
+import logger from '../../../utils/logger';
 
 export class GoogleDriveProvider extends CloudSyncProvider {
   initialized: boolean;
@@ -66,7 +67,7 @@ export class GoogleDriveProvider extends CloudSyncProvider {
         };
       }
     } catch (error: any) {
-      console.error('Google Drive save error:', error);
+      logger.error('Google Drive save error:', error);
       return {
         success: false,
         message: `クラウド保存に失敗しました: ${error.message}`
@@ -93,7 +94,7 @@ export class GoogleDriveProvider extends CloudSyncProvider {
       if (result.success && (result as any).data) {
         // バージョンチェック
         if ((result as any).data.version && (result as any).data.version !== '1.0.0') {
-          console.warn(`データバージョンの不一致: ${(result as any).data.version}`);
+          logger.warn(`データバージョンの不一致: ${(result as any).data.version}`);
         }
 
         return {
@@ -109,7 +110,7 @@ export class GoogleDriveProvider extends CloudSyncProvider {
         };
       }
     } catch (error: any) {
-      console.error('Google Drive load error:', error);
+      logger.error('Google Drive load error:', error);
       return {
         success: false,
         message: `クラウドからの読み込みに失敗しました: ${error.message}`
@@ -133,7 +134,7 @@ export class GoogleDriveProvider extends CloudSyncProvider {
         lastSync: new Date().toISOString()
       };
     } catch (error) {
-      console.error('Sync status check error:', error);
+      logger.error('Sync status check error:', error);
       return { synced: false };
     }
   }

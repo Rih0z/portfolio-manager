@@ -16,6 +16,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
+import logger from '../../utils/logger';
 
 const ExportOptions = () => {
   const { currentAssets, targetPortfolio, baseCurrency, exchangeRate } = usePortfolioContext();
@@ -106,7 +107,7 @@ const ExportOptions = () => {
         return { success: true };
       }
     } catch (error) {
-      console.error('ファイルダウンロードエラー:', error);
+      logger.error('ファイルダウンロードエラー:', error);
       throw error;
     }
   }, []);
@@ -124,7 +125,7 @@ const ExportOptions = () => {
       // 3秒後にステータスをクリア
       setTimeout(() => setExportStatus(null), 3000);
     } catch (error) {
-      console.error('エクスポートエラー:', error);
+      logger.error('エクスポートエラー:', error);
       setExportStatus({ type: 'error', message: 'エクスポートに失敗しました' });
     }
   }, [exportFormat, convertToJson, convertToCsv]);
@@ -140,12 +141,12 @@ const ExportOptions = () => {
           setTimeout(() => setExportStatus(null), 3000);
         },
         (err) => {
-          console.error('クリップボードコピーエラー:', err);
+          logger.error('クリップボードコピーエラー:', err);
           setExportStatus({ type: 'error', message: 'クリップボードへのコピーに失敗しました' });
         }
       );
     } catch (error) {
-      console.error('エクスポートエラー:', error);
+      logger.error('エクスポートエラー:', error);
       setExportStatus({ type: 'error', message: 'データの生成に失敗しました' });
     }
   }, [exportFormat, convertToJson, convertToCsv]);

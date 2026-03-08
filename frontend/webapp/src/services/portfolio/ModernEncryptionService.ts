@@ -6,6 +6,8 @@
  * AES-GCMアルゴリズムによる強固な暗号化
  */
 
+import logger from '../../utils/logger';
+
 export class ModernEncryptionService {
   /**
    * パスワードが設定されているかチェック
@@ -109,7 +111,7 @@ export class ModernEncryptionService {
 
       return this.arrayBufferToBase64(combined);
     } catch (error) {
-      console.error('暗号化エラー:', error);
+      logger.error('暗号化エラー:', error);
       throw new Error('データの暗号化に失敗しました');
     }
   }
@@ -146,7 +148,7 @@ export class ModernEncryptionService {
 
       return JSON.parse(jsonStr);
     } catch (error) {
-      console.error('復号化エラー:', error);
+      logger.error('復号化エラー:', error);
       throw new Error('データの復号化に失敗しました。パスワードが間違っている可能性があります。');
     }
   }

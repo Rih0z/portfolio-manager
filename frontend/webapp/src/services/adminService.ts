@@ -18,6 +18,7 @@
 
 import axios, { AxiosInstance } from 'axios';
 import { getApiEndpoint } from '../utils/envUtils';
+import logger from '../utils/logger';
 
 // 管理者APIの設定
 const ADMIN_API_TIMEOUT: number = 5000; // 5秒
@@ -59,7 +60,7 @@ export const getStatus = async (): Promise<AdminApiResponse> => {
       message: 'ステータス情報を取得しました'
     };
   } catch (error: any) {
-    console.error('ステータス取得エラー:', error);
+    logger.error('ステータス取得エラー:', error);
 
     const errorMessage: string = error?.message || String(error) || 'Unknown error';
     return {
@@ -85,7 +86,7 @@ export const resetUsage = async (): Promise<AdminApiResponse> => {
       message: 'API使用量をリセットしました'
     };
   } catch (error: any) {
-    console.error('使用量リセットエラー:', error);
+    logger.error('使用量リセットエラー:', error);
 
     const errorMessage: string = error?.message || String(error) || 'Unknown error';
     return {

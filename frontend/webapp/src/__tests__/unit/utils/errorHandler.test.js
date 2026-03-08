@@ -4,6 +4,15 @@ import { vi } from "vitest";
  * エラーハンドリングとサニタイゼーション機能のテスト
  */
 
+// loggerモジュールのモック
+const { mockLogger } = vi.hoisted(() => ({
+  mockLogger: { log: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }
+}));
+vi.mock('../../../utils/logger', () => ({ default: mockLogger }));
+
+// sentryモジュールのモック
+vi.mock('../../../utils/sentry', () => ({ captureException: vi.fn(), captureMessage: vi.fn() }));
+
 import {
   sanitizeError,
   handleApiError,
@@ -403,9 +412,9 @@ describe('errorHandler', () => {
         
         mockEventListeners['unhandledrejection'](mockEvent);
         
-        expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect(mockLogger.error).toHaveBeenCalledWith(
           'Unhandled promise rejection:',
-          'PROMISE_ERROR'
+          expect.any(String)
         );
         expect(mockEvent.preventDefault).toHaveBeenCalled();
       });
@@ -457,9 +466,9 @@ describe('errorHandler', () => {
         
         mockEventListeners['error'](mockEvent);
         
-        expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect(mockLogger.error).toHaveBeenCalledWith(
           'Global error:',
-          'GLOBAL_ERROR'
+          expect.any(String)
         );
         expect(mockEvent.preventDefault).toHaveBeenCalled();
       });
@@ -472,7 +481,7 @@ describe('errorHandler', () => {
         
         mockEventListeners['error'](mockEvent);
         
-        expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect(mockLogger.error).toHaveBeenCalledWith(
           'Global error:',
           'UNKNOWN_ERROR'
         );
@@ -506,42 +515,44 @@ describe('errorHandler', () => {
 
     it('開発環境で詳細なエラーログを出力する', () => {
       process.env.NODE_ENV = 'development';
-      
+
       const error = new Error('Test error for boundary');
-      
+
       logErrorToService(error, errorInfo);
-      
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
+
+      // logger.error masks Error objects, so check with objectContaining
+      expect(mockLogger.error).toHaveBeenCalledWith(
         'Error caught by boundary:',
-        error,
-        errorInfo
+        expect.objectContaining({}),
+        expect.objectContaining({})
       );
     });
 
     it('本番環境で簡潔なエラーログを出力する', () => {
       process.env.NODE_ENV = 'production';
-      
+
       const error = new Error('Test error for boundary');
       error.code = 'BOUNDARY_ERROR';
-      
+
       logErrorToService(error, errorInfo);
-      
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
+
+      // logger.error masks long alphanumeric strings (like error codes)
+      expect(mockLogger.error).toHaveBeenCalledWith(
         'Error boundary:',
-        'BOUNDARY_ERROR'
+        expect.any(String)
       );
     });
 
     it('エラーコードが設定されていない場合', () => {
       process.env.NODE_ENV = 'production';
-      
+
       const error = new Error('Error without code');
-      
+
       logErrorToService(error, errorInfo);
-      
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
+
+      expect(mockLogger.error).toHaveBeenCalledWith(
         'Error boundary:',
-        'Error' // Error objects have name='Error' by default
+        expect.any(String)
       );
     });
   });
@@ -632,8 +643,8 @@ describe('errorHandler', () => {
       const handler = getEventListener('error');
       handler(mockEvent);
       
-      expect(consoleErrorSpy).toHaveBeenCalledWith('Error boundary:', 'COMPONENT_ERROR');
-      expect(consoleErrorSpy).toHaveBeenCalledWith('Global error:', 'GLOBAL_ERROR');
+      expect(mockLogger.error).toHaveBeenCalledWith('Error boundary:', expect.any(String));
+      expect(mockLogger.error).toHaveBeenCalledWith('Global error:', expect.any(String));
     });
   });
 

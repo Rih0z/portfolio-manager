@@ -16,6 +16,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePortfolioContext } from '../hooks/usePortfolioContext';
 import ScreenshotAnalyzer from '../components/ai/ScreenshotAnalyzer';
+import logger from '../utils/logger';
 
 const DataImport = () => {
   const { t, i18n } = useTranslation();
@@ -60,7 +61,7 @@ const DataImport = () => {
   ];
 
   const handleDataExtracted = (extractedData: any, analysisType: any) => {
-    console.log('抽出されたデータ:', extractedData);
+    logger.debug('抽出されたデータ:', extractedData);
 
     // データインポートの統計を更新
     setImportStats(prev => ({
@@ -122,7 +123,7 @@ const DataImport = () => {
   };
 
   const handlePromptGenerated = (prompt: any) => {
-    console.log('生成されたプロンプト:', prompt);
+    logger.debug('生成されたプロンプト:', prompt);
   };
 
   const handleJsonImport = () => {
@@ -163,12 +164,12 @@ const DataImport = () => {
         setImportHistory(prev => [importRecord, ...prev.slice(0, 9)]);
         setJsonImportData('');
 
-        console.log('JSONインポート成功:', importedData);
+        logger.log('JSONインポート成功:', importedData);
       } else {
         throw new Error('Invalid portfolio data format');
       }
     } catch (error) {
-      console.error('JSONインポートエラー:', error);
+      logger.error('JSONインポートエラー:', error);
       // エラーハンドリング
     } finally {
       setIsImporting(false);

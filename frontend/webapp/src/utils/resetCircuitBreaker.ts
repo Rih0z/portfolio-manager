@@ -4,15 +4,16 @@
  */
 
 import { resetAllCircuitBreakers } from './apiUtils';
+import logger from './logger';
 
 // グローバルに公開（デバッグ用）
 if (typeof window !== 'undefined') {
   (window as any).resetCircuitBreakers = (): void => {
     resetAllCircuitBreakers();
-    console.log('All circuit breakers have been reset');
+    logger.debug('All circuit breakers have been reset');
   };
 
-  console.log('Circuit breaker reset function available: window.resetCircuitBreakers()');
+  logger.debug('Circuit breaker reset function available: window.resetCircuitBreakers()');
 }
 
 export { resetAllCircuitBreakers };

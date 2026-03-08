@@ -14,6 +14,12 @@ vi.mock('../../../../hooks/usePortfolioContext', () => ({
   usePortfolioContext: vi.fn()
 }));
 
+// loggerモジュールのモック
+const { mockLogger } = vi.hoisted(() => ({
+  mockLogger: { log: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }
+}));
+vi.mock('../../../../utils/logger', () => ({ default: mockLogger }));
+
 import { usePortfolioContext } from '../../../../hooks/usePortfolioContext';
 
 // window.location.reload のモック
@@ -147,9 +153,6 @@ describe('ResetSettings', () => {
       })
     });
 
-    // console.error をモック
-    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation();
-
     renderWithMock(mockContext);
 
     // リセットボタンをクリックして確認ダイアログを表示
@@ -164,10 +167,10 @@ describe('ResetSettings', () => {
       'error'
     );
 
-    // console.error が呼ばれる
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
+    // logger.error が呼ばれる
+    expect(mockLogger.error).toHaveBeenCalledWith(
       '設定のリセットに失敗しました:',
-      expect.any(Error)
+      expect.objectContaining({})
     );
 
     // タイマーを進めてもページはリロードされない
@@ -176,7 +179,6 @@ describe('ResetSettings', () => {
     });
     expect(window.location.reload).not.toHaveBeenCalled();
 
-    consoleErrorSpy.mockRestore();
     vi.useRealTimers();
   });
 

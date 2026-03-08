@@ -17,7 +17,7 @@ const PublicLayout: React.FC = () => {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <LandingHeader />
-      <main className="max-w-7xl mx-auto pt-2 sm:pt-4 lg:pt-6 pb-6">
+      <main id="main-content" className="max-w-7xl mx-auto pt-2 sm:pt-4 lg:pt-6 pb-6">
         <Suspense fallback={<LoadingFallback />}>
           <Outlet />
         </Suspense>

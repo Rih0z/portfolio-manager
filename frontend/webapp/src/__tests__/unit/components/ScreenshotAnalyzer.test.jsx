@@ -17,6 +17,12 @@ vi.mock('react-i18next', () => ({
   })
 }));
 
+// loggerモジュールのモック
+const { mockLogger } = vi.hoisted(() => ({
+  mockLogger: { log: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }
+}));
+vi.mock('../../../utils/logger', () => ({ default: mockLogger }));
+
 // URL.createObjectURL と URL.revokeObjectURL のモック
 global.URL.createObjectURL = vi.fn(() => 'blob:test-url');
 global.URL.revokeObjectURL = vi.fn();
@@ -154,8 +160,6 @@ describe('ScreenshotAnalyzer', () => {
   });
 
   test('handles processing errors gracefully', async () => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-
     render(<ScreenshotAnalyzer onDataExtracted={mockOnDataExtracted} />);
 
     const textarea = screen.getByPlaceholderText(/AIからの分析結果をここに貼り付けてください/);
@@ -165,9 +169,7 @@ describe('ScreenshotAnalyzer', () => {
       fireEvent.click(screen.getByText('データを抽出'));
     });
 
-    expect(consoleSpy).toHaveBeenCalledWith('AI応答の解析エラー:', expect.any(Error));
-
-    consoleSpy.mockRestore();
+    expect(mockLogger.error).toHaveBeenCalledWith('AI応答の解析エラー:', expect.objectContaining({}));
   });
 
   test('handles text response (non-JSON)', async () => {

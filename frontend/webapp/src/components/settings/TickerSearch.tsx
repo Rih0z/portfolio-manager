@@ -16,6 +16,7 @@
 import React, { useState } from 'react';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 import { getJapaneseStockName } from '../../utils/japaneseStockNames';
+import logger from '../../utils/logger';
 
 const TickerSearch = () => {
   const { addTicker } = usePortfolioContext();
@@ -57,7 +58,7 @@ const TickerSearch = () => {
         showMessage(result.message || '銘柄の追加に失敗しました', 'error');
       }
     } catch (error) {
-      console.error('Add ticker error:', error);
+      logger.error('Add ticker error:', error);
       showMessage('銘柄の追加中にエラーが発生しました', 'error');
     } finally {
       setIsLoading(false);
@@ -83,6 +84,7 @@ const TickerSearch = () => {
             value={ticker}
             onChange={(e) => setTicker(e.target.value)}
             placeholder="例: AAPL, 7203.T"
+            aria-label="ティッカーシンボルを入力"
             className="flex-1 p-2 border rounded-l"
             disabled={isLoading}
           />
@@ -113,11 +115,14 @@ const TickerSearch = () => {
       </div>
       
       {message && (
-        <div className={`p-2 rounded text-sm ${
-          messageType === 'success' 
-            ? 'bg-green-100 text-green-700' 
-            : 'bg-red-100 text-red-700'
-        }`}>
+        <div
+          aria-live="polite"
+          className={`p-2 rounded text-sm ${
+            messageType === 'success'
+              ? 'bg-green-100 text-green-700'
+              : 'bg-red-100 text-red-700'
+          }`}
+        >
           {message}
         </div>
       )}

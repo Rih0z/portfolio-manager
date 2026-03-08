@@ -6,6 +6,7 @@
 
 import { StorageProvider } from './StorageInterface';
 import { EncryptionService } from '../EncryptionService';
+import logger from '../../../utils/logger';
 
 export class LocalStorageProvider extends StorageProvider {
   encryptionEnabled: boolean;
@@ -37,7 +38,7 @@ export class LocalStorageProvider extends StorageProvider {
 
       localStorage.setItem(key, dataToStore);
     } catch (error: any) {
-      console.error('LocalStorage save error:', error);
+      logger.error('LocalStorage save error:', error);
       throw new Error(`Failed to save data to LocalStorage: ${error.message}`);
     }
   }
@@ -59,7 +60,7 @@ export class LocalStorageProvider extends StorageProvider {
 
       return JSON.parse(storedData);
     } catch (error: any) {
-      console.error('LocalStorage load error:', error);
+      logger.error('LocalStorage load error:', error);
       // パスワードが間違っている可能性があるため、エラーを再スロー
       if (error.message.includes('復号化')) {
         throw error;
@@ -75,7 +76,7 @@ export class LocalStorageProvider extends StorageProvider {
     try {
       localStorage.removeItem(key);
     } catch (error: any) {
-      console.error('LocalStorage clear error:', error);
+      logger.error('LocalStorage clear error:', error);
       throw new Error(`Failed to clear data from LocalStorage: ${error.message}`);
     }
   }

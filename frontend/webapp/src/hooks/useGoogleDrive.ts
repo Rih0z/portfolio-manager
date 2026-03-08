@@ -18,6 +18,7 @@ import { useState, useCallback, useRef } from 'react';
 import { fetchDriveFiles, saveToDrive, loadFromDrive } from '../services/googleDriveService';
 import { useAuth } from './useAuth';
 import { debounce } from '../utils/requestThrottle';
+import logger from '../utils/logger';
 
 interface DriveFile {
   id: string;
@@ -60,7 +61,7 @@ export const useGoogleDrive = (): UseGoogleDriveReturn => {
     const now = Date.now();
     if (!forceRefresh && filesCacheRef.current.files &&
         (now - filesCacheRef.current.timestamp) < FILES_CACHE_DURATION) {
-      console.log('Google Driveファイルリストをキャッシュから取得');
+      logger.debug('Google Driveファイルリストをキャッシュから取得');
       return filesCacheRef.current.files;
     }
 
@@ -82,14 +83,14 @@ export const useGoogleDrive = (): UseGoogleDriveReturn => {
 
         // Drive OAuth認証が必要な場合
         if (result.needsDriveAuth && result.authUrl) {
-          console.log('Drive API認証が必要です。リダイレクトします。');
+          logger.log('Drive API認証が必要です。リダイレクトします。');
           window.location.href = result.authUrl;
         }
 
         return null;
       }
     } catch (error: any) {
-      console.error('Google Driveファイル一覧取得エラー:', error);
+      logger.error('Google Driveファイル一覧取得エラー:', error);
       setError(error.message || 'ファイル一覧取得エラー');
       return null;
     } finally {
@@ -119,7 +120,7 @@ export const useGoogleDrive = (): UseGoogleDriveReturn => {
 
         // Drive OAuth認証が必要な場合
         if (result.needsDriveAuth && result.authUrl) {
-          console.log('Drive API認証が必要です。リダイレクトします。');
+          logger.log('Drive API認証が必要です。リダイレクトします。');
           window.location.href = result.authUrl;
         } else if (result.needsAuth) {
           // 通常の認証が必要な場合の処理
@@ -128,7 +129,7 @@ export const useGoogleDrive = (): UseGoogleDriveReturn => {
         return null;
       }
     } catch (error: any) {
-      console.error('Google Driveファイル保存エラー:', error);
+      logger.error('Google Driveファイル保存エラー:', error);
       setError(error.message || 'ファイル保存エラー');
       return null;
     } finally {
@@ -162,7 +163,7 @@ export const useGoogleDrive = (): UseGoogleDriveReturn => {
 
         // Drive OAuth認証が必要な場合
         if (result.needsDriveAuth && result.authUrl) {
-          console.log('Drive API認証が必要です。リダイレクトします。');
+          logger.log('Drive API認証が必要です。リダイレクトします。');
           window.location.href = result.authUrl;
         } else if (result.needsAuth) {
           // 通常の認証が必要な場合の処理
@@ -171,7 +172,7 @@ export const useGoogleDrive = (): UseGoogleDriveReturn => {
         return null;
       }
     } catch (error: any) {
-      console.error('Google Driveファイル読み込みエラー:', error);
+      logger.error('Google Driveファイル読み込みエラー:', error);
       setError(error.message || 'ファイル読み込みエラー');
       return null;
     } finally {

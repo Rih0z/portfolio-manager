@@ -14,6 +14,7 @@
 
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import logger from '../../utils/logger';
 
 const ScreenshotAnalyzer = ({
   onDataExtracted = () => {},
@@ -45,7 +46,7 @@ const ScreenshotAnalyzer = ({
         onDataExtracted(structuredData, 'ai_analysis');
       }
     } catch (error) {
-      console.error('AI応答の解析エラー:', error);
+      logger.error('AI応答の解析エラー:', error);
       // エラーハンドリング
     } finally {
       setIsProcessing(false);

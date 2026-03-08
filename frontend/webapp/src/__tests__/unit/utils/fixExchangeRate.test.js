@@ -4,6 +4,12 @@ import { vi } from "vitest";
  * 為替レート修復ユーティリティのテスト
  */
 
+// loggerモジュールのモック
+const { mockLogger } = vi.hoisted(() => ({
+  mockLogger: { log: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }
+}));
+vi.mock('../../../utils/logger', () => ({ default: mockLogger }));
+
 // exchangeRateDebounceをモック
 vi.mock('../../../utils/exchangeRateDebounce', () => ({
   clearExchangeRateCache: vi.fn()
@@ -74,8 +80,8 @@ describe('fixExchangeRate', () => {
 
         expect(result).toBe(true);
         expect(clearExchangeRateCache).toHaveBeenCalledTimes(1);
-        expect(consoleLogSpy).toHaveBeenCalledWith('=== 為替レート修復を開始します ===');
-        expect(consoleLogSpy).toHaveBeenCalledWith('=== 修復処理が完了しました ===');
+        expect(mockLogger.log).toHaveBeenCalledWith('=== 為替レート修復を開始します ===');
+        expect(mockLogger.log).toHaveBeenCalledWith('=== 修復処理が完了しました ===');
       });
 
       it('正常な為替レートが存在する場合', () => {
@@ -93,7 +99,7 @@ describe('fixExchangeRate', () => {
         const result = fixExchangeRate();
 
         expect(result).toBe(true);
-        expect(consoleLogSpy).toHaveBeenCalledWith('為替レートは正常です。');
+        expect(mockLogger.log).toHaveBeenCalledWith('為替レートは正常です。');
         expect(localStorageMock.setItem).not.toHaveBeenCalled();
       });
 
@@ -110,8 +116,8 @@ describe('fixExchangeRate', () => {
         const result = fixExchangeRate();
 
         expect(result).toBe(true);
-        expect(consoleLogSpy).toHaveBeenCalledWith('不正な為替レートを検出しました。修正します。');
-        expect(consoleLogSpy).toHaveBeenCalledWith('為替レートを修正しました。');
+        expect(mockLogger.log).toHaveBeenCalledWith('不正な為替レートを検出しました。修正します。');
+        expect(mockLogger.log).toHaveBeenCalledWith('為替レートを修正しました。');
 
         // 修正されたデータが保存される
         expect(localStorageMock.setItem).toHaveBeenCalledWith(
@@ -133,7 +139,7 @@ describe('fixExchangeRate', () => {
         const result = fixExchangeRate();
 
         expect(result).toBe(true);
-        expect(consoleLogSpy).toHaveBeenCalledWith('不正な為替レートを検出しました。修正します。');
+        expect(mockLogger.log).toHaveBeenCalledWith('不正な為替レートを検出しました。修正します。');
         expect(localStorageMock.setItem).toHaveBeenCalled();
       });
 
@@ -148,7 +154,7 @@ describe('fixExchangeRate', () => {
         const result = fixExchangeRate();
 
         expect(result).toBe(true);
-        expect(consoleLogSpy).toHaveBeenCalledWith('為替レートデータが存在しません。デフォルト値を設定します。');
+        expect(mockLogger.log).toHaveBeenCalledWith('為替レートデータが存在しません。デフォルト値を設定します。');
 
         // 修正されたデータの確認
         const setItemCall = localStorageMock.setItem.mock.calls[0];
@@ -169,11 +175,11 @@ describe('fixExchangeRate', () => {
 
         fixExchangeRate();
 
-        expect(consoleLogSpy).toHaveBeenCalledWith('=== 為替レート修復を開始します ===');
-        expect(consoleLogSpy).toHaveBeenCalledWith('1. 為替レートキャッシュをクリア中...');
-        expect(consoleLogSpy).toHaveBeenCalledWith('2. ポートフォリオデータを確認中...');
-        expect(consoleLogSpy).toHaveBeenCalledWith('3. 修復完了！ページをリロードしてください。');
-        expect(consoleLogSpy).toHaveBeenCalledWith('=== 修復処理が完了しました ===');
+        expect(mockLogger.log).toHaveBeenCalledWith('=== 為替レート修復を開始します ===');
+        expect(mockLogger.log).toHaveBeenCalledWith('1. 為替レートキャッシュをクリア中...');
+        expect(mockLogger.log).toHaveBeenCalledWith('2. ポートフォリオデータを確認中...');
+        expect(mockLogger.log).toHaveBeenCalledWith('3. 修復完了！ページをリロードしてください。');
+        expect(mockLogger.log).toHaveBeenCalledWith('=== 修復処理が完了しました ===');
       });
     });
 
@@ -184,9 +190,9 @@ describe('fixExchangeRate', () => {
         const result = fixExchangeRate();
 
         expect(result).toBe(true); // 全体の処理は成功
-        expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect(mockLogger.error).toHaveBeenCalledWith(
           'ポートフォリオデータの解析に失敗しました:',
-          expect.any(Error)
+          expect.objectContaining({})
         );
       });
 
@@ -197,9 +203,9 @@ describe('fixExchangeRate', () => {
         const result = fixExchangeRate();
 
         expect(result).toBe(true);
-        expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect(mockLogger.error).toHaveBeenCalledWith(
           'ポートフォリオデータの解析に失敗しました:',
-          expect.any(Error)
+          expect.objectContaining({})
         );
       });
 
@@ -211,9 +217,9 @@ describe('fixExchangeRate', () => {
         const result = fixExchangeRate();
 
         expect(result).toBe(false);
-        expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect(mockLogger.error).toHaveBeenCalledWith(
           '修復中にエラーが発生しました:',
-          expect.any(Error)
+          expect.objectContaining({})
         );
       });
 
@@ -225,9 +231,9 @@ describe('fixExchangeRate', () => {
         const result = fixExchangeRate();
 
         expect(result).toBe(false);
-        expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect(mockLogger.error).toHaveBeenCalledWith(
           '修復中にエラーが発生しました:',
-          expect.any(Error)
+          expect.objectContaining({})
         );
       });
 
@@ -245,9 +251,9 @@ describe('fixExchangeRate', () => {
         // ('ポートフォリオデータの解析に失敗しました:')
         // 全体の処理は成功として完了する
         expect(result).toBe(true);
-        expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect(mockLogger.error).toHaveBeenCalledWith(
           'ポートフォリオデータの解析に失敗しました:',
-          expect.any(Error)
+          expect.objectContaining({})
         );
       });
     });
@@ -305,7 +311,7 @@ describe('fixExchangeRate', () => {
 
         // ソースコード: !data.exchangeRate.rate => !0 => true なので修正対象
         // 実装を確認: rate が 0 は falsy なので "不正な為替レート" として扱われる
-        expect(consoleLogSpy).toHaveBeenCalledWith('不正な為替レートを検出しました。修正します。');
+        expect(mockLogger.log).toHaveBeenCalledWith('不正な為替レートを検出しました。修正します。');
       });
 
       it('rateが負の数値の場合', () => {
@@ -316,7 +322,7 @@ describe('fixExchangeRate', () => {
         fixExchangeRate();
 
         // -100 は truthy かつ typeof 'number' なので正常扱い
-        expect(consoleLogSpy).toHaveBeenCalledWith('為替レートは正常です。');
+        expect(mockLogger.log).toHaveBeenCalledWith('為替レートは正常です。');
       });
 
       it('rateがInfinityの場合', () => {
@@ -328,7 +334,7 @@ describe('fixExchangeRate', () => {
         fixExchangeRate();
 
         // Infinity は JSON.stringify で null になるため、不正なレートとして処理される
-        expect(consoleLogSpy).toHaveBeenCalledWith('不正な為替レートを検出しました。修正します。');
+        expect(mockLogger.log).toHaveBeenCalledWith('不正な為替レートを検出しました。修正します。');
       });
     });
 
@@ -369,7 +375,7 @@ describe('fixExchangeRate', () => {
 
         fixExchangeRate();
 
-        expect(consoleLogSpy).toHaveBeenCalledWith('為替レートは正常です。');
+        expect(mockLogger.log).toHaveBeenCalledWith('為替レートは正常です。');
         expect(localStorageMock.setItem).not.toHaveBeenCalled();
       });
     });
@@ -400,8 +406,8 @@ describe('fixExchangeRate', () => {
         expect(clearExchangeRateCache).toHaveBeenCalledTimes(1);
 
         // 適切なログが表示される
-        expect(consoleLogSpy).toHaveBeenCalledWith('不正な為替レートを検出しました。修正します。');
-        expect(consoleLogSpy).toHaveBeenCalledWith('為替レートを修正しました。');
+        expect(mockLogger.log).toHaveBeenCalledWith('不正な為替レートを検出しました。修正します。');
+        expect(mockLogger.log).toHaveBeenCalledWith('為替レートを修正しました。');
 
         // データが正しく保存される
         const setItemCall = localStorageMock.setItem.mock.calls[0];

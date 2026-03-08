@@ -3,6 +3,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 import { fetchMultiplePriceHistories, PriceHistoryResponse, PricePeriod } from '../../services/priceHistoryService';
 import { Card, CardContent } from '../ui/card';
+import logger from '../../utils/logger';
 
 const PERIOD_OPTIONS: { value: PricePeriod; label: string }[] = [
   { value: '1w', label: '1W' },
@@ -22,7 +23,7 @@ const PnLTrendChart: React.FC = () => {
   useEffect(() => {
     if (currentAssets.length === 0) {
       setLoading(false);
-      return;
+      return undefined;
     }
 
     let cancelled = false;
@@ -33,7 +34,7 @@ const PnLTrendChart: React.FC = () => {
       .then(data => { if (!cancelled) setPriceHistories(data); })
       .catch(error => {
         if (!cancelled) {
-          console.warn('[PnLTrendChart] Failed to fetch price histories:', error.message);
+          logger.warn('[PnLTrendChart] Failed to fetch price histories:', error.message);
         }
       })
       .finally(() => { if (!cancelled) setLoading(false); });
@@ -172,6 +173,7 @@ const PnLTrendChart: React.FC = () => {
           </div>
         </div>
 
+        <div role="img" aria-label={`ポートフォリオ資産推移チャート（${PERIOD_OPTIONS.find(o => o.value === period)?.label || period}期間）`}>
         <ResponsiveContainer width="100%" height={200}>
           <AreaChart data={chartData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
             <defs>
@@ -214,6 +216,7 @@ const PnLTrendChart: React.FC = () => {
             />
           </AreaChart>
         </ResponsiveContainer>
+        </div>
       </CardContent>
     </Card>
   );

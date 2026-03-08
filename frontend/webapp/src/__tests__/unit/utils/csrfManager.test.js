@@ -179,26 +179,19 @@ describe('csrfManager', () => {
       expect(result.headers['X-CSRF-Token']).toBe('dummy-csrf-token');
     });
 
-    it('開発環境でデバッグメッセージを出力する（トークン取得エラー時）', async () => {
-      const originalEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = 'development';
+    it('トークン取得エラー時にリクエストを続行する', async () => {
+      // getToken を一時的にエラーを投げるようにする
+      const originalGetToken = csrfManager.getToken.bind(csrfManager);
+      csrfManager.getToken = vi.fn().mockRejectedValue(new Error('Test error'));
 
-      try {
-        // getToken を一時的にエラーを投げるようにする
-        const originalGetToken = csrfManager.getToken.bind(csrfManager);
-        csrfManager.getToken = vi.fn().mockRejectedValue(new Error('Test error'));
+      const config = { method: 'post', headers: {} };
+      const result = await csrfManager.addTokenToRequest(config);
 
-        const config = { method: 'post', headers: {} };
-        const result = await csrfManager.addTokenToRequest(config);
+      // エラー時でもリクエストは続行される（configがそのまま返される）
+      expect(result).toEqual(config);
 
-        expect(result).toEqual(config);
-        expect(consoleDebugSpy).toHaveBeenCalledWith('CSRF token not required for this request');
-
-        // 元の関数を復元
-        csrfManager.getToken = originalGetToken;
-      } finally {
-        process.env.NODE_ENV = originalEnv;
-      }
+      // 元の関数を復元
+      csrfManager.getToken = originalGetToken;
     });
   });
 

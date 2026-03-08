@@ -5,6 +5,7 @@
 
 import { authFetch } from '../utils/apiUtils';
 import { getApiEndpoint } from '../utils/envUtils';
+import logger from '../utils/logger';
 
 interface DriveFile {
   id: string;
@@ -67,7 +68,7 @@ export const fetchDriveFiles = async (): Promise<FetchDriveFilesResponse> => {
       };
     }
   } catch (error: any) {
-    console.error('Google Driveファイル一覧取得エラー:', error);
+    logger.error('Google Driveファイル一覧取得エラー:', error);
 
     // 401エラーでDrive OAuthが必要な場合
     if (error.response && error.response.status === 401) {
@@ -113,7 +114,7 @@ export const saveToDrive = async (portfolioData: any): Promise<SaveToDriveRespon
       };
     }
   } catch (error: any) {
-    console.error('Google Drive保存エラー:', error);
+    logger.error('Google Drive保存エラー:', error);
 
     // 401エラーでDrive OAuthが必要な場合
     if (error.response && error.response.status === 401) {
@@ -164,7 +165,7 @@ export const loadFromDrive = async (fileId: string): Promise<LoadFromDriveRespon
       };
     }
   } catch (error: any) {
-    console.error('Google Drive読み込みエラー:', error);
+    logger.error('Google Drive読み込みエラー:', error);
 
     // 401エラーでDrive OAuthが必要な場合
     if (error.response && error.response.status === 401) {

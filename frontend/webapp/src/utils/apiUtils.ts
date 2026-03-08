@@ -23,6 +23,7 @@ import csrfManager from './csrfManager';
 import { handleApiError } from './errorHandler';
 import { getJapaneseStockName } from './japaneseStockNames';
 import { guessFundType, FUND_TYPES } from './fundUtils';
+import logger from './logger';
 
 // リトライ設定
 export const RETRY = {
@@ -82,7 +83,7 @@ class CircuitBreaker {
     if (this.failureCount >= this.threshold) {
       this.state = 'OPEN';
       this.nextAttempt = Date.now() + this.timeout;
-      console.log(`Circuit breaker ${this.name} is now OPEN. Will retry at ${new Date(this.nextAttempt).toISOString()}`);
+      logger.log(`Circuit breaker ${this.name} is now OPEN. Will retry at ${new Date(this.nextAttempt).toISOString()}`);
     }
   }
 
@@ -93,7 +94,7 @@ class CircuitBreaker {
 
     if (this.state === 'OPEN' && Date.now() >= this.nextAttempt) {
       this.state = 'HALF_OPEN';
-      console.log(`Circuit breaker ${this.name} is now HALF_OPEN`);
+      logger.log(`Circuit breaker ${this.name} is now HALF_OPEN`);
       return true;
     }
 
@@ -176,7 +177,7 @@ export const refreshAccessToken = async (): Promise<string | null> => {
 
     return null;
   } catch (error: any) {
-    console.warn('Token refresh failed:', error.message);
+    logger.warn('Token refresh failed:', error.message);
 
     // サーバーが明示的にトークンを拒否した場合のみクリア（401/403）
     // ネットワークエラー（タイムアウト、接続断等）ではトークンを保持
@@ -214,7 +215,7 @@ export const createApiClient = (withAuth: boolean = false): AxiosInstance => {
     client.interceptors.request.use(
       async (config: any) => {
           if (process.env.NODE_ENV === 'development') {
-        console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`);
+        logger.debug(`API Request: ${config.method?.toUpperCase()} ${config.url}`);
       }
 
       // CSRFトークンを追加（GETリクエスト以外）
@@ -222,7 +223,7 @@ export const createApiClient = (withAuth: boolean = false): AxiosInstance => {
         try {
           await csrfManager.addTokenToRequest(config);
         } catch (error) {
-          console.warn('Failed to add CSRF token:', error);
+          logger.warn('Failed to add CSRF token:', error);
         }
       }
 
@@ -232,7 +233,7 @@ export const createApiClient = (withAuth: boolean = false): AxiosInstance => {
 
       // POSTリクエストのデバッグ（開発環境のみ）
       if (process.env.NODE_ENV === 'development' && config.method === 'post' && config.data) {
-        console.log('POST Request Body:', JSON.stringify(config.data, null, 2));
+        logger.debug('POST Request Body:', JSON.stringify(config.data, null, 2));
       }
 
       // 認証が必要な場合はAuthorizationヘッダーを追加
@@ -251,7 +252,7 @@ export const createApiClient = (withAuth: boolean = false): AxiosInstance => {
 
       // デバッグ情報（本番環境では無効）
       if (process.env.NODE_ENV === 'development' && (withAuth || config.url.includes('/drive/') || config.url.includes('/auth/'))) {
-        console.log('認証情報付きリクエスト:', {
+        logger.debug('認証情報付きリクエスト:', {
           url: config.url,
           method: config.method,
           hasToken: !!authToken,
@@ -262,7 +263,7 @@ export const createApiClient = (withAuth: boolean = false): AxiosInstance => {
       return config;
     },
       (error: any) => {
-        console.error('Request Error:', error);
+        logger.error('Request Error:', error);
         return Promise.reject(error);
       }
     );
@@ -274,7 +275,7 @@ export const createApiClient = (withAuth: boolean = false): AxiosInstance => {
       (response: AxiosResponse) => {
       // 成功レスポンスを処理
       if (process.env.NODE_ENV === 'development') {
-        console.log(`API Response: ${response.config.method?.toUpperCase()} ${response.config.url} -> ${response.status}`);
+        logger.debug(`API Response: ${response.config.method?.toUpperCase()} ${response.config.url} -> ${response.status}`);
       }
 
       // JWT Access Token を優先的に検出（簡素化）
@@ -318,12 +319,12 @@ export const createApiClient = (withAuth: boolean = false): AxiosInstance => {
                 return client(originalRequest);
               }
             } catch (refreshError: any) {
-              console.warn('Auto-refresh failed:', refreshError.message);
+              logger.warn('Auto-refresh failed:', refreshError.message);
             }
           }
 
           // リフレッシュ失敗またはリフレッシュ不可
-          console.error('認証エラー:', {
+          logger.error('認証エラー:', {
             status: error.response.status,
             url: originalRequest.url,
             hasToken: !!authToken
@@ -343,7 +344,7 @@ export const createApiClient = (withAuth: boolean = false): AxiosInstance => {
         const sanitizedError = handleApiError(error);
 
         if (process.env.NODE_ENV === 'development') {
-          console.error('API Error Details:', error);
+          logger.error('API Error Details:', error);
         }
 
         return Promise.reject(sanitizedError);
@@ -387,7 +388,7 @@ export const fetchWithRetry = async (
       const url = endpoint.startsWith('http') || endpoint.startsWith('/') ? endpoint : await getApiEndpoint(endpoint);
 
       if (process.env.NODE_ENV === 'development') {
-        console.log(`[Attempt ${retries + 1}] 市場データ取得: ${url}`, params);
+        logger.debug(`[Attempt ${retries + 1}] 市場データ取得: ${url}`, params);
       }
 
       // APIキーは AWS から動的に取得されるため、ここでは設定しない
@@ -403,7 +404,7 @@ export const fetchWithRetry = async (
       circuitBreaker.recordSuccess();
       return response.data;
     } catch (error: any) {
-      console.error(`API fetch error (attempt ${retries+1}/${maxRetries+1}):`, error.message);
+      logger.error(`API fetch error (attempt ${retries+1}/${maxRetries+1}):`, error.message);
 
       // エラーを記録
       circuitBreaker.recordFailure();
@@ -417,7 +418,7 @@ export const fetchWithRetry = async (
       const baseDelay = RETRY.INITIAL_DELAY * Math.pow(RETRY.BACKOFF_FACTOR, retries);
       const jitteredDelay = baseDelay * (0.9 + Math.random() * 0.2);
       const delay = Math.min(jitteredDelay, RETRY.MAX_DELAY); // 最大遅延を制限
-      console.log(`リトライ待機: ${Math.round(delay)}ms`);
+      logger.debug(`リトライ待機: ${Math.round(delay)}ms`);
       await delayFn(delay);
 
       // リトライカウントを増やす
@@ -446,8 +447,8 @@ export const authFetch = async (
     const url = endpoint.startsWith('http') || endpoint.startsWith('/') ? endpoint : await getApiEndpoint(endpoint);
 
     if (process.env.NODE_ENV === 'development') {
-      console.log(`認証付きリクエスト: ${method.toUpperCase()} ${url}`);
-      console.log('authFetch debug:', {
+      logger.debug(`認証付きリクエスト: ${method.toUpperCase()} ${url}`);
+      logger.debug('authFetch debug:', {
         endpoint: endpoint,
         fullUrl: url,
         hasToken: !!authToken,
@@ -486,7 +487,7 @@ export const authFetch = async (
 
     // レスポンスデータの詳細をログ（開発環境のみ）
     if (process.env.NODE_ENV === 'development') {
-      console.log('APIレスポンス詳細:', {
+      logger.debug('APIレスポンス詳細:', {
         status: response.status,
         data: response.data
       });
@@ -498,11 +499,11 @@ export const authFetch = async (
   } catch (error: any) {
     // エラーを記録
     circuitBreaker.recordFailure();
-    console.error(`Auth API error (${method} ${endpoint}):`, error.message);
+    logger.error(`Auth API error (${method} ${endpoint}):`, error.message);
 
     // エラーレスポンスがある場合は詳細を表示
     if (error.response) {
-      console.error('エラーレスポンス詳細:', {
+      logger.error('エラーレスポンス詳細:', {
         status: error.response.status,
         data: error.response.data,
         headers: error.response.headers
@@ -516,7 +517,7 @@ export const authFetch = async (
 
     // Network Errorの詳細情報を出力
     if (error.message === 'Network Error') {
-      console.error('Network Error詳細:', {
+      logger.error('Network Error詳細:', {
         url: error.config?.url,
         method: error.config?.method,
         headers: error.config?.headers,
@@ -526,10 +527,10 @@ export const authFetch = async (
       });
 
       // CORSエラーの可能性を通知
-      console.error('CORSエラーの可能性があります。以下を確認してください:');
-      console.error('1. API Gatewayで正しいCORSヘッダーが設定されているか');
-      console.error('2. プリフライトリクエスト(OPTIONS)が正しく処理されているか');
-      console.error('3. Access-Control-Allow-Origin ヘッダーが適切に設定されているか');
+      logger.error('CORSエラーの可能性があります。以下を確認してください:');
+      logger.error('1. API Gatewayで正しいCORSヘッダーが設定されているか');
+      logger.error('2. プリフライトリクエスト(OPTIONS)が正しく処理されているか');
+      logger.error('3. Access-Control-Allow-Origin ヘッダーが適切に設定されているか');
     }
 
     throw error;

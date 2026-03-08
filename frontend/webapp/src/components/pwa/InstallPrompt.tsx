@@ -22,7 +22,7 @@ const InstallPrompt: React.FC = () => {
   useEffect(() => {
     if (!canInstall || isInstalled) {
       setVisible(false);
-      return;
+      return undefined;
     }
 
     const timer = setTimeout(() => {

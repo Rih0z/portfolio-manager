@@ -16,6 +16,7 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
+import logger from '../../utils/logger';
 
 const UserProfile = () => {
   const { user, handleLogout } = useAuth();
@@ -28,7 +29,7 @@ const UserProfile = () => {
       setIsLoggingOut(true);
       await handleLogout();
     } catch (error) {
-      console.error('ログアウト処理エラー:', error);
+      logger.error('ログアウト処理エラー:', error);
     } finally {
       setIsLoggingOut(false);
     }

@@ -7,6 +7,7 @@
  * @file src/utils/lazyWithRetry.ts
  */
 import { lazy, type ComponentType } from 'react';
+import logger from './logger';
 
 type LazyImportFn = () => Promise<{ default: ComponentType<any> }>;
 
@@ -26,7 +27,7 @@ export function lazyWithRetry(importFn: LazyImportFn): ReturnType<typeof lazy> {
           continue;
         }
         // All retries exhausted — return fallback component
-        console.error('チャンクロード失敗（リトライ上限到達）:', error);
+        logger.error('チャンクロード失敗（リトライ上限到達）:', error);
         return {
           default: () => {
             const handleReload = () => window.location.reload();

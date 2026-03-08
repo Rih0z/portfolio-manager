@@ -22,9 +22,7 @@ export class AppPage {
   }
 
   async waitForAppLoad() {
-    // Wait for header or main content to be visible
     await this.page.waitForLoadState('domcontentloaded');
-    // Give React time to hydrate
     await this.page.waitForTimeout(1000);
   }
 
@@ -47,7 +45,7 @@ export class DashboardPage extends AppPage {
   }
 
   async goto() {
-    await super.goto('/');
+    await super.goto('/dashboard');
   }
 }
 
@@ -58,7 +56,45 @@ export class SettingsPage extends AppPage {
 }
 
 export class PricingPage extends AppPage {
+  readonly pricingPage: Locator;
+
+  constructor(page: Page) {
+    super(page);
+    this.pricingPage = page.locator(SELECTORS.pricingPage);
+  }
+
   async goto() {
     await super.goto('/pricing');
+  }
+}
+
+export class LandingPage extends AppPage {
+  readonly landingPage: Locator;
+
+  constructor(page: Page) {
+    super(page);
+    this.landingPage = page.locator(SELECTORS.landingPage);
+  }
+
+  async goto() {
+    await super.goto('/');
+  }
+}
+
+export class LegalPage extends AppPage {
+  async gotoTerms() {
+    await super.goto('/legal/terms');
+  }
+
+  async gotoPrivacy() {
+    await super.goto('/legal/privacy');
+  }
+
+  async gotoKKKR() {
+    await super.goto('/legal/kkkr');
+  }
+
+  async gotoDisclaimer() {
+    await super.goto('/legal/disclaimer');
   }
 }

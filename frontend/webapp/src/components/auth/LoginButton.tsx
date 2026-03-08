@@ -23,6 +23,7 @@ import React, { useState } from 'react';
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../../hooks/useAuth';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
+import logger from '../../utils/logger';
 
 const LoginButtonContent = () => {
   const { loginWithGoogle, loading, error, initiateDriveAuth } = useAuth();
@@ -31,12 +32,12 @@ const LoginButtonContent = () => {
   
   const handleGoogleLogin = async (credentialResponse) => {
     if (process.env.NODE_ENV === 'development') {
-      console.log('Google認証レスポンス受信');
+      logger.debug('Google認証レスポンス受信');
     }
     
     // 認証情報の確認
     if (!credentialResponse.credential && !credentialResponse.code) {
-      console.error('認証情報がレスポンスに含まれていません', credentialResponse);
+      logger.error('認証情報がレスポンスに含まれていません', credentialResponse);
       setLoginError('認証情報が取得できませんでした');
       return;
     }
@@ -45,23 +46,23 @@ const LoginButtonContent = () => {
       const result = await loginWithGoogle(credentialResponse);
       
       if (!result || !result.success) {
-        console.error('バックエンドでの認証処理に失敗しました');
+        logger.error('バックエンドでの認証処理に失敗しました');
         setLoginError('ログイン処理に失敗しました');
       } else {
-        console.log('ログイン成功');
+        logger.log('ログイン成功');
         setLoginError(null);
         
         // hasDriveAccessフラグをチェック
         if (result.hasDriveAccess) {
-          console.log('既にDriveアクセス権限を持っています');
+          logger.log('既にDriveアクセス権限を持っています');
           if (addNotification) {
             addNotification('ログインが完了しました。Google Driveも利用可能です。', 'success');
           }
         } else {
-          console.log('Driveアクセス権限がありません。追加認証が必要です。');
+          logger.log('Driveアクセス権限がありません。追加認証が必要です。');
           
           // Google One Tapの制限により、Drive連携は別途必要
-          console.log('Google Drive連携を自動的に開始します...');
+          logger.log('Google Drive連携を自動的に開始します...');
           
           // ユーザーに通知
           if (addNotification) {
@@ -71,22 +72,22 @@ const LoginButtonContent = () => {
           setTimeout(async () => {
             try {
               if (initiateDriveAuth) {
-                console.log('Drive連携を開始します...');
+                logger.log('Drive連携を開始します...');
                 const driveSuccess = await initiateDriveAuth();
                 if (driveSuccess) {
-                  console.log('Drive連携処理が開始されました');
+                  logger.log('Drive連携処理が開始されました');
                   // Drive連携が成功した場合の通知は、リダイレクト先で行われるため不要
                 } else {
-                  console.warn('Drive連携の開始に失敗しました');
+                  logger.warn('Drive連携の開始に失敗しました');
                   if (addNotification) {
                     addNotification('Google Drive連携に失敗しました。設定画面から再度お試しください。', 'warning');
                   }
                 }
               } else {
-                console.warn('Drive連携機能が利用できません');
+                logger.warn('Drive連携機能が利用できません');
               }
             } catch (driveError) {
-              console.error('Drive連携の開始に失敗しました:', driveError);
+              logger.error('Drive連携の開始に失敗しました:', driveError);
               // Drive連携のエラーは通知のみで、ログイン自体は成功とする
               if (addNotification) {
                 addNotification('Google Drive連携でエラーが発生しました。後で再度お試しください。', 'warning');
@@ -96,7 +97,7 @@ const LoginButtonContent = () => {
         }
       }
     } catch (err) {
-      console.error('ログイン処理中にエラーが発生しました:', err);
+      logger.error('ログイン処理中にエラーが発生しました:', err);
       const message = err?.message || '不明なエラー';
       setLoginError(`ログインエラー: ${message}`);
     }
@@ -115,7 +116,7 @@ const LoginButtonContent = () => {
         <GoogleLogin
           onSuccess={handleGoogleLogin}
           onError={() => {
-            console.log('Google Login Failed');
+            logger.log('Google Login Failed');
             setLoginError('Googleログインに失敗しました');
           }}
           useOneTap

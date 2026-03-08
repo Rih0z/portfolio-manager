@@ -28,6 +28,7 @@ import {
   fetchMultipleStocks as fetchMultipleTickerData,
   fetchApiStatus
 } from './marketDataService';
+import logger from '../utils/logger';
 
 // 新しいGoogleDriveフックをインポート
 import useGoogleDrive from '../hooks/useGoogleDrive';
@@ -79,17 +80,17 @@ export { fetchTickerData, fetchExchangeRate, fetchMultipleTickerData, fetchApiSt
 
 // 互換性のために仮実装
 export const fetchFundInfo = async (fundId: string, fundName?: string): Promise<any> => {
-  console.warn('[API] fetchFundInfo is not implemented yet. Using fetchTickerData as fallback.');
+  logger.warn('[API] fetchFundInfo is not implemented yet. Using fetchTickerData as fallback.');
   return fetchTickerData(fundId);
 };
 
 export const fetchDividendData = async (ticker: string): Promise<any> => {
-  console.warn('[API] fetchDividendData is not implemented yet. Using fetchTickerData as fallback.');
+  logger.warn('[API] fetchDividendData is not implemented yet. Using fetchTickerData as fallback.');
   return fetchTickerData(ticker);
 };
 
 export const checkDataFreshness = async (): Promise<DataFreshnessResult> => {
-  console.warn('[API] checkDataFreshness is not implemented yet.');
+  logger.warn('[API] checkDataFreshness is not implemented yet.');
   return { success: true, fresh: true };
 };
 
@@ -98,7 +99,7 @@ export const checkDataFreshness = async (): Promise<DataFreshnessResult> => {
  * 互換性のために残していますが、新しいコードでは useGoogleDrive フックを使用することを推奨します。
  */
 export const initGoogleDriveAPI = (): GoogleDriveAPI => {
-  console.warn('[API] initGoogleDriveAPI is deprecated. Use useGoogleDrive hook instead.');
+  logger.warn('[API] initGoogleDriveAPI is deprecated. Use useGoogleDrive hook instead.');
 
   // 注意: これはReactフックの原則に違反する可能性があるため、
   // 既存コードとの互換性のためだけに提供しています。
@@ -106,19 +107,19 @@ export const initGoogleDriveAPI = (): GoogleDriveAPI => {
 
   return {
     saveFile: async (portfolioData: any): Promise<GoogleDriveResult> => {
-      console.warn('[API] Using deprecated Google Drive API method. Please update your code to use useGoogleDrive hook.');
+      logger.warn('[API] Using deprecated Google Drive API method. Please update your code to use useGoogleDrive hook.');
       // フックの外部での使用なので、実際の機能は提供できません
       return { success: false, message: 'この関数は非推奨です。useGoogleDriveフックを使用してください。' };
     },
 
     loadFile: async (fileId: string): Promise<GoogleDriveResult> => {
-      console.warn('[API] Using deprecated Google Drive API method. Please update your code to use useGoogleDrive hook.');
+      logger.warn('[API] Using deprecated Google Drive API method. Please update your code to use useGoogleDrive hook.');
       // フックの外部での使用なので、実際の機能は提供できません
       return { success: false, message: 'この関数は非推奨です。useGoogleDriveフックを使用してください。' };
     },
 
     listFiles: async (): Promise<GoogleDriveResult> => {
-      console.warn('[API] Using deprecated Google Drive API method. Please update your code to use useGoogleDrive hook.');
+      logger.warn('[API] Using deprecated Google Drive API method. Please update your code to use useGoogleDrive hook.');
       // フックの外部での使用なので、実際の機能は提供できません
       return { success: false, message: 'この関数は非推奨です。useGoogleDriveフックを使用してください。' };
     }
@@ -131,20 +132,20 @@ export const initGoogleDriveAPI = (): GoogleDriveAPI => {
  */
 
 export const setGoogleAccessToken = (token: string): void => {
-  console.warn('[API] setGoogleAccessToken is deprecated. Use authStore methods instead.');
+  logger.warn('[API] setGoogleAccessToken is deprecated. Use authStore methods instead.');
 };
 
 export const getGoogleAccessToken = async (): Promise<string | null> => {
-  console.warn('[API] getGoogleAccessToken is deprecated. Use authStore methods instead.');
+  logger.warn('[API] getGoogleAccessToken is deprecated. Use authStore methods instead.');
   return null;
 };
 
 export const saveToGoogleDrive = async (data: any, userData: any, filename: string = 'portfolio_data.json'): Promise<GoogleDriveResult> => {
-  console.warn('[API] saveToGoogleDrive is deprecated. Use portfolioStore.saveToGoogleDrive instead.');
+  logger.warn('[API] saveToGoogleDrive is deprecated. Use portfolioStore.saveToGoogleDrive instead.');
   return { success: false, message: 'この関数は非推奨です。portfolioStore.saveToGoogleDriveを使用してください。' };
 };
 
 export const loadFromGoogleDrive = async (userData: any, filename: string = 'portfolio_data.json'): Promise<GoogleDriveResult> => {
-  console.warn('[API] loadFromGoogleDrive is deprecated. Use portfolioStore.loadFromGoogleDrive instead.');
+  logger.warn('[API] loadFromGoogleDrive is deprecated. Use portfolioStore.loadFromGoogleDrive instead.');
   return { success: false, message: 'この関数は非推奨です。portfolioStore.loadFromGoogleDriveを使用してください。' };
 };

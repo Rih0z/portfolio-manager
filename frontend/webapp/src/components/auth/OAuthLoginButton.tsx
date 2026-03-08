@@ -13,6 +13,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
+import logger from '../../utils/logger';
 
 // 必須スコープ（Drive権限を含む）
 const REQUIRED_SCOPES = [
@@ -67,7 +68,7 @@ const OAuthLoginButton = () => {
       const error = urlParams.get('error');
       
       if (error) {
-        console.error('OAuth error:', error);
+        logger.error('OAuth error:', error);
         setLoginError('認証がキャンセルされました');
         // URLパラメータをクリア
         window.history.replaceState({}, document.title, window.location.pathname);
@@ -96,7 +97,7 @@ const OAuthLoginButton = () => {
             handleLoginError(result);
           }
         } catch (err) {
-          console.error('ログイン処理エラー:', err);
+          logger.error('ログイン処理エラー:', err);
           setLoginError(ERROR_MESSAGES.GENERAL_ERROR);
         } finally {
           setIsProcessing(false);

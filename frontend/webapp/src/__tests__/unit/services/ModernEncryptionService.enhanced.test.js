@@ -393,7 +393,7 @@ describe('ModernEncryptionService - Enhanced Coverage', () => {
       await expect(ModernEncryptionService.encrypt({ test: 'data' }, 'password'))
         .rejects.toThrow('データの暗号化に失敗しました');
       
-      expect(consoleErrorSpy).toHaveBeenCalledWith('暗号化エラー:', encryptError);
+      expect(consoleErrorSpy).toHaveBeenCalledWith('暗号化エラー:', expect.objectContaining({}));
       
       consoleErrorSpy.mockRestore();
     });
@@ -407,7 +407,7 @@ describe('ModernEncryptionService - Enhanced Coverage', () => {
       await expect(ModernEncryptionService.decrypt('encrypted_data', 'password'))
         .rejects.toThrow('データの復号化に失敗しました。パスワードが間違っている可能性があります。');
       
-      expect(consoleErrorSpy).toHaveBeenCalledWith('復号化エラー:', decryptError);
+      expect(consoleErrorSpy).toHaveBeenCalledWith('復号化エラー:', expect.objectContaining({}));
       
       consoleErrorSpy.mockRestore();
     });

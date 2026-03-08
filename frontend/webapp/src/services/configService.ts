@@ -13,6 +13,7 @@
 
 import axios from 'axios';
 import type { ApiConfig } from '../types/portfolio.types';
+import logger from '../utils/logger';
 
 // 設定をキャッシュ
 let configCache: ApiConfig | null = null;
@@ -25,7 +26,7 @@ const CONFIG_ENDPOINT: string = import.meta.env.VITE_API_BASE_URL
 
 // デバッグ用（開発環境のみ）
 if (process.env.NODE_ENV === 'development') {
-  console.log('ConfigService initialization:', {
+  logger.debug('ConfigService initialization:', {
     CONFIG_ENDPOINT,
     REACT_APP_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
     NODE_ENV: process.env.NODE_ENV
@@ -48,8 +49,8 @@ export const fetchApiConfig = async (): Promise<ApiConfig> => {
 
   // CONFIG_ENDPOINTが設定されていない場合はエラー
   if (!CONFIG_ENDPOINT) {
-    console.error('REACT_APP_API_BASE_URL が設定されていません。.env ファイルを確認してください。');
-    console.error('Current env:', {
+    logger.error('REACT_APP_API_BASE_URL が設定されていません。.env ファイルを確認してください。');
+    logger.error('Current env:', {
       REACT_APP_API_BASE_URL: import.meta.env.VITE_API_BASE_URL,
       NODE_ENV: process.env.NODE_ENV,
       allEnvVars: Object.keys(process.env).filter(key => key.startsWith('REACT_APP_'))
@@ -77,7 +78,7 @@ export const fetchApiConfig = async (): Promise<ApiConfig> => {
     })
     .catch(async (error: any) => {
       // エラーの詳細をログに記録
-      console.warn('API設定の取得エラー:', error.message);
+      logger.warn('API設定の取得エラー:', error.message);
 
       // 本番環境ではプロキシ経由で再試行
       if (process.env.NODE_ENV === 'production' && CONFIG_ENDPOINT.includes('execute-api')) {
@@ -88,7 +89,7 @@ export const fetchApiConfig = async (): Promise<ApiConfig> => {
             return configCache as ApiConfig;
           }
         } catch (proxyError: any) {
-          console.warn('プロキシ経由でもAPI設定の取得に失敗:', proxyError.message);
+          logger.warn('プロキシ経由でもAPI設定の取得に失敗:', proxyError.message);
         }
       }
 

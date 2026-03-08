@@ -13,6 +13,7 @@
   "dependencies": {
     "@headlessui/react": "^1.7.15",
     "@react-oauth/google": "^0.12.2",
+    "@sentry/react": "^10.42.0",
     "@stripe/stripe-js": "^2.4.0",
     "@tanstack/react-query": "^5.90.21",
     "@testing-library/jest-dom": "5.16.5",
@@ -39,6 +40,8 @@
     "tailwind-merge": "^3.5.0",
     "tailwindcss": "^3.3.1",
     "vite-plugin-pwa": "^1.2.0",
+    "web-vitals": "^5.1.0",
+    "workbox-window": "^7.4.0",
     "zustand": "^5.0.11"
   },
   "scripts": {
@@ -50,15 +53,22 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:view-coverage": "open coverage/lcov-report/index.html || xdg-open coverage/lcov-report/index.html || start coverage/lcov-report/index.html",
+    "test:ci": "vitest run --coverage --reporter=json --outputFile=test-results.json",
     "test:clean": "rimraf coverage test-results",
     "typecheck": "tsc --noEmit",
     "health-check": "node scripts/health-check.js",
     "check-backend": "npm run health-check"
   },
   "eslintConfig": {
+    "plugins": [
+      "jsx-a11y"
+    ],
+    "extends": [
+      "plugin:jsx-a11y/recommended"
+    ],
     "rules": {
       "no-console": [
-        "warn",
+        "error",
         {
           "allow": [
             "warn",
@@ -66,7 +76,9 @@
           ]
         }
       ],
-      "no-unused-vars": "warn"
+      "no-unused-vars": "warn",
+      "jsx-a11y/label-has-associated-control": "error",
+      "jsx-a11y/role-has-required-aria-props": "error"
     }
   },
   "browserslist": {
@@ -82,6 +94,9 @@
     ]
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.1",
+    "@axe-core/react": "^4.11.1",
+    "@sentry/vite-plugin": "^5.1.1",
     "@types/node": "^25.3.3",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
@@ -99,7 +114,8 @@
     "rimraf": "^3.0.2",
     "typescript": "^5.9.3",
     "vite": "^7.3.1",
-    "vitest": "^4.0.18"
+    "vitest": "^4.0.18",
+    "vitest-axe": "^0.1.0"
   },
   "engines": {
     "node": ">=18.0.0",

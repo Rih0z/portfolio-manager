@@ -24,7 +24,7 @@ const NotificationBell: React.FC = () => {
   // ─── Click outside to close ──────────────────────────
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) return undefined;
 
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -49,7 +49,7 @@ const NotificationBell: React.FC = () => {
   // ─── Escape key to close ─────────────────────────────
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) return undefined;
 
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {

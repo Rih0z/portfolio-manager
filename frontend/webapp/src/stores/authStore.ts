@@ -11,6 +11,7 @@ import { authFetch, setAuthToken, getAuthToken, clearAuthToken, refreshAccessTok
 import { trackEvent, AnalyticsEvents } from '../utils/analytics';
 import { usePortfolioStore } from './portfolioStore';
 import { useSubscriptionStore } from './subscriptionStore';
+import logger from '../utils/logger';
 
 interface UserData {
   id: string;
@@ -67,7 +68,7 @@ const saveSession = (user: UserData, hasDriveAccess: boolean): void => {
   try {
     localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({ user, hasDriveAccess, timestamp: Date.now() }));
   } catch (e: any) {
-    console.warn('セッション保存エラー:', e.message);
+    logger.warn('セッション保存エラー:', e.message);
   }
 };
 
@@ -202,7 +203,7 @@ export const useAuthStore = create<AuthState>()((set, get) => {
       const logoutEndpoint = await getApiEndpoint('auth/logout');
       await authFetch(logoutEndpoint, 'post');
     } catch (err: any) {
-      console.warn('ログアウトAPI呼び出しエラー:', err.message);
+      logger.warn('ログアウトAPI呼び出しエラー:', err.message);
     } finally {
       setAuthState(null, false, false, null);
       notifyPortfolioStore(false, null);
@@ -253,7 +254,7 @@ export const useAuthStore = create<AuthState>()((set, get) => {
           }
         }
       } catch (refreshErr: any) {
-        console.warn('JWT refresh failed:', refreshErr.message);
+        logger.warn('JWT refresh failed:', refreshErr.message);
       }
 
       // 3. Fallback: legacy session check
@@ -270,13 +271,13 @@ export const useAuthStore = create<AuthState>()((set, get) => {
           return true;
         }
       } catch (sessionErr: any) {
-        console.warn('Session check fallback failed:', sessionErr.message);
+        logger.warn('Session check fallback failed:', sessionErr.message);
       }
 
       // 全認証ティア失敗 → localStorageフォールバックを試行
       const fallbackSession = loadSession();
       if (fallbackSession) {
-        console.warn('全認証ティア失敗。localStorageフォールバック使用');
+        logger.warn('全認証ティア失敗。localStorageフォールバック使用');
         setAuthState(fallbackSession.user, true, fallbackSession.hasDriveAccess, null);
         sessionCheckFailureCount++;
         lastFailureTime = Date.now();
@@ -290,7 +291,7 @@ export const useAuthStore = create<AuthState>()((set, get) => {
       return false;
 
     } catch (err: any) {
-      console.warn('セッション確認エラー:', err.message);
+      logger.warn('セッション確認エラー:', err.message);
       sessionCheckFailureCount++;
       lastFailureTime = Date.now();
 

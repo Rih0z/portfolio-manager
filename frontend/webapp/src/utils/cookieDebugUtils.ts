@@ -2,6 +2,7 @@
  * Cookie Debug Utilities
  * Cookie送信問題のデバッグ用ユーティリティ
  */
+import logger from './logger';
 
 interface CookieDetail {
   name: string | undefined;
@@ -51,11 +52,11 @@ export const logCookieStatus = (context: string = ''): CookieAnalysis => {
   const analysis = analyzeCookies();
 
   console.group(`Cookie Status ${context ? `(${context})` : ''}`);
-  console.log('Cookie count:', analysis.count);
-  console.log('Has cookies:', analysis.hasCookies);
-  console.log('Session cookies:', analysis.sessionCookies);
-  console.log('All cookies:', analysis.cookies);
-  console.log('Raw cookie string:', analysis.cookieString);
+  logger.log('Cookie count:', analysis.count);
+  logger.log('Has cookies:', analysis.hasCookies);
+  logger.log('Session cookies:', analysis.sessionCookies);
+  logger.log('All cookies:', analysis.cookies);
+  logger.log('Raw cookie string:', analysis.cookieString);
   console.groupEnd();
 
   return analysis;
@@ -72,29 +73,29 @@ export const debugDriveAuth = async (
   logCookieStatus('Before Drive Auth');
 
   // 2. テストリクエスト
-  console.log('Testing Drive auth endpoint...');
+  logger.log('Testing Drive auth endpoint...');
   try {
     const testEndpoint = getApiEndpoint('auth/google/drive/initiate');
-    console.log('Test endpoint:', testEndpoint);
+    logger.log('Test endpoint:', testEndpoint);
 
     // XMLHttpRequestで直接テスト（比較用）
-    console.log('Testing with XMLHttpRequest...');
+    logger.log('Testing with XMLHttpRequest...');
     const xhr = new XMLHttpRequest();
     xhr.withCredentials = true;
     xhr.open('GET', testEndpoint as string, false); // 同期的に実行（デバッグ用）
     xhr.setRequestHeader('Content-Type', 'application/json');
     xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
 
-    console.log('XHR settings:', {
+    logger.log('XHR settings:', {
       withCredentials: xhr.withCredentials,
       readyState: xhr.readyState
     });
 
     // 実際には送信しない（デバッグ情報の確認のみ）
-    console.log('XHR would send with cookies:', document.cookie);
+    logger.log('XHR would send with cookies:', document.cookie);
 
   } catch (error) {
-    console.error('Debug test failed:', error);
+    logger.error('Debug test failed:', error);
   }
 
   console.groupEnd();
@@ -110,28 +111,28 @@ export const testCookieSettings = (): void => {
 
   // 設定確認
   const hasTestCookie = document.cookie.includes(testCookieName);
-  console.log('Test cookie set successfully:', hasTestCookie);
+  logger.log('Test cookie set successfully:', hasTestCookie);
 
   // クリーンアップ
   document.cookie = `${testCookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/`;
 
   // SameSite属性のテスト
-  console.log('Testing SameSite settings...');
+  logger.log('Testing SameSite settings...');
   try {
     // SameSite=None; Secureのテスト（HTTPSが必要）
     if (window.location.protocol === 'https:') {
       document.cookie = 'test_samesite_none=value; SameSite=None; Secure; path=/';
-      console.log('SameSite=None cookie set (HTTPS)');
+      logger.log('SameSite=None cookie set (HTTPS)');
     } else {
-      console.warn('SameSite=None requires HTTPS');
+      logger.warn('SameSite=None requires HTTPS');
     }
 
     // SameSite=Laxのテスト
     document.cookie = 'test_samesite_lax=value; SameSite=Lax; path=/';
-    console.log('SameSite=Lax cookie set');
+    logger.log('SameSite=Lax cookie set');
 
   } catch (error) {
-    console.error('SameSite test failed:', error);
+    logger.error('SameSite test failed:', error);
   }
 
   console.groupEnd();
@@ -152,7 +153,7 @@ export const testCorsSettings = async (apiEndpoint: string): Promise<void> => {
       }
     });
 
-    console.log('CORS preflight response:', {
+    logger.log('CORS preflight response:', {
       status: response.status,
       headers: {
         'access-control-allow-origin': response.headers.get('access-control-allow-origin'),
@@ -163,7 +164,7 @@ export const testCorsSettings = async (apiEndpoint: string): Promise<void> => {
     });
 
   } catch (error) {
-    console.error('CORS test failed:', error);
+    logger.error('CORS test failed:', error);
   }
 
   console.groupEnd();

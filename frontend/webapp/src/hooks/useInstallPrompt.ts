@@ -47,7 +47,7 @@ export const useInstallPrompt = (): UseInstallPromptReturn => {
     // standalone モード = 既にインストール済み
     if (window.matchMedia('(display-mode: standalone)').matches) {
       setIsInstalled(true);
-      return;
+      return undefined;
     }
 
     const handleBeforeInstall = (e: Event) => {

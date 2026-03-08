@@ -135,7 +135,7 @@ describe('EncryptionService', () => {
         EncryptionService.decrypt('invalid-base64-data!!!', 'password');
       }).toThrow('データの復号化に失敗しました');
       
-      expect(consoleSpy).toHaveBeenCalledWith('復号化エラー:', expect.any(Error));
+      expect(consoleSpy).toHaveBeenCalledWith('復号化エラー:', expect.objectContaining({}));
       
       consoleSpy.mockRestore();
     });

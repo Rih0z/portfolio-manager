@@ -1,3 +1,5 @@
+import logger from './logger';
+
 declare global {
   interface Window {
     gtag: (...args: any[]) => void;
@@ -46,7 +48,7 @@ export const initGA = (measurementId?: string): void => {
 
   // 開発環境ではスキップ
   if (import.meta.env.DEV) {
-    console.log('[Analytics] Skipping GA4 initialization in development mode');
+    logger.debug('[Analytics] Skipping GA4 initialization in development mode');
     return;
   }
 
@@ -68,7 +70,7 @@ export const initGA = (measurementId?: string): void => {
 
     initialized = true;
   } catch (error) {
-    console.warn('[Analytics] Failed to initialize GA4:', error);
+    logger.warn('[Analytics] Failed to initialize GA4:', error);
   }
 };
 

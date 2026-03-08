@@ -15,6 +15,7 @@ import React, { useState } from 'react';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
+import logger from '../../utils/logger';
 
 const ResetSettings = () => {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -45,7 +46,7 @@ const ResetSettings = () => {
       }, 1000);
       
     } catch (error) {
-      console.error('設定のリセットに失敗しました:', error);
+      logger.error('設定のリセットに失敗しました:', error);
       addNotification('設定のリセットに失敗しました', 'error');
       setIsResetting(false);
     }

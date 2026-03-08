@@ -10,6 +10,7 @@ export const URLS = {
 };
 
 export const SELECTORS = {
+  // Existing
   appHeader: '[data-testid="app-header"]',
   tabNavigation: '[data-testid="tab-navigation"]',
   portfolioScoreCard: '[data-testid="portfolio-score-card"]',
@@ -17,6 +18,23 @@ export const SELECTORS = {
   strengthsWeaknessCard: '[data-testid="strengths-weakness-card"]',
   loginButton: 'button:has-text("Google"), button:has-text("ログイン"), button:has-text("Login")',
   errorBoundary: '[data-testid="error-boundary"], .error-boundary',
+  // New for Phase 6
+  landingPage: '[data-testid="landing-page"]',
+  pricingPage: '[data-testid="pricing-page"]',
+  dashboardPage: '[data-testid="dashboard-page"]',
+  settingsPage: '[data-testid="settings-page"]',
+  simulationPage: '[data-testid="simulation-page"]',
+  aiAdvisorPage: '[data-testid="ai-advisor-page"]',
+  dataImportPage: '[data-testid="data-import-page"]',
+  notificationBell: '[data-testid="notification-bell"]',
+  notificationDropdown: '[data-testid="notification-dropdown"]',
+  referralSection: '[data-testid="referral-section"]',
+  loadingFallback: '[data-testid="loading-fallback"]',
+  loadingSpinner: '[data-testid="loading-spinner"]',
+  termsPage: '[data-testid="terms-page"]',
+  privacyPage: '[data-testid="privacy-page"]',
+  disclaimerPage: '[data-testid="disclaimer-page"]',
+  kkkrPage: '[data-testid="kkkr-page"]',
 };
 
 export const TIMEOUTS = {

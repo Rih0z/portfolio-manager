@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 import { Button } from '../ui/button';
 import { FaUpload, FaCheckCircle, FaExclamationTriangle, FaTimes } from 'react-icons/fa';
+import logger from '../../utils/logger';
 
 const AIDataImportModal = ({ isOpen, onClose, onImportSuccess }: any) => {
   const { t } = useTranslation();
@@ -61,7 +62,7 @@ const AIDataImportModal = ({ isOpen, onClose, onImportSuccess }: any) => {
       const data = parseStandardYAML(yamlText);
       return { success: true, data };
     } catch (e) {
-      console.log('標準YAML解析失敗:', e.message);
+      logger.debug('標準YAML解析失敗:', e.message);
     }
 
     // 戦略2: 説明文除去後解析
@@ -70,7 +71,7 @@ const AIDataImportModal = ({ isOpen, onClose, onImportSuccess }: any) => {
       const data = parseStandardYAML(cleanedText);
       return { success: true, data };
     } catch (e) {
-      console.log('説明文除去解析失敗:', e.message);
+      logger.debug('説明文除去解析失敗:', e.message);
     }
 
     // 戦略3: JSON形式として解析
@@ -78,7 +79,7 @@ const AIDataImportModal = ({ isOpen, onClose, onImportSuccess }: any) => {
       const data = JSON.parse(yamlText);
       return { success: true, data: convertJSONToYAML(data) };
     } catch (e) {
-      console.log('JSON解析失敗:', e.message);
+      logger.debug('JSON解析失敗:', e.message);
     }
 
     // 戦略4: カスタム解析

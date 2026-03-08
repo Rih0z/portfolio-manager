@@ -18,6 +18,7 @@
 
 import { getApiEndpoint } from '../utils/envUtils';
 import { fetchWithRetry, formatErrorResponse, generateFallbackData, TIMEOUT } from '../utils/apiUtils';
+import logger from '../utils/logger';
 
 interface ExchangeRateResponse {
   success: boolean;
@@ -78,7 +79,7 @@ export const fetchExchangeRate = async (fromCurrency: string = 'USD', toCurrency
       if (exchangeData) {
         // 警告があるかチェック
         if (exchangeData.isDefault || exchangeData.isStale || exchangeData.error) {
-          console.warn(`為替レート警告 (${pairKey}):`, {
+          logger.warn(`為替レート警告 (${pairKey}):`, {
             isDefault: exchangeData.isDefault,
             isStale: exchangeData.isStale,
             error: exchangeData.error
@@ -101,7 +102,7 @@ export const fetchExchangeRate = async (fromCurrency: string = 'USD', toCurrency
     // データが期待通りでない場合は元の形式をそのまま返す
     return response;
   } catch (error: any) {
-    console.error(`Error fetching exchange rate ${fromCurrency}/${toCurrency}:`, error);
+    logger.error(`Error fetching exchange rate ${fromCurrency}/${toCurrency}:`, error);
 
     // フォールバック値を返す
     return {
@@ -139,7 +140,7 @@ export const fetchStockData = async (ticker: string, refresh: boolean = false): 
   }
 
   try {
-    console.log(`Attempting to fetch data for ${ticker} from Market Data API`);
+    logger.debug(`Attempting to fetch data for ${ticker} from Market Data API`);
     const endpoint = await getApiEndpoint('api/market-data');
     const response = await fetchWithRetry(
       endpoint,
@@ -153,7 +154,7 @@ export const fetchStockData = async (ticker: string, refresh: boolean = false): 
 
     return response;
   } catch (error: any) {
-    console.error(`Error fetching ${ticker} from Market Data API:`, {
+    logger.error(`Error fetching ${ticker} from Market Data API:`, {
       message: error.message,
       status: error.response?.status,
       data: error.response?.data,
@@ -207,7 +208,7 @@ export const fetchMultipleStocks = async (tickers: string[], refresh: boolean = 
         }
       })
       .catch(error => {
-        console.error('Error fetching US stocks:', error);
+        logger.error('Error fetching US stocks:', error);
         // フォールバック処理
         usStocks.forEach(ticker => {
           results.data[ticker] = generateFallbackData(ticker);
@@ -228,7 +229,7 @@ export const fetchMultipleStocks = async (tickers: string[], refresh: boolean = 
         }
       })
       .catch(error => {
-        console.error('Error fetching JP stocks:', error);
+        logger.error('Error fetching JP stocks:', error);
         // フォールバック処理
         jpStocks.forEach(ticker => {
           results.data[ticker] = generateFallbackData(ticker);
@@ -249,7 +250,7 @@ export const fetchMultipleStocks = async (tickers: string[], refresh: boolean = 
         }
       })
       .catch(error => {
-        console.error('Error fetching mutual funds:', error);
+        logger.error('Error fetching mutual funds:', error);
         // フォールバック処理
         mutualFunds.forEach(ticker => {
           results.data[ticker] = generateFallbackData(ticker);
@@ -284,7 +285,7 @@ const fetchStockBatch = async (type: string, symbols: string[], refresh: boolean
       timeout
     );
   } catch (error) {
-    console.error(`Error in fetchStockBatch (${type}):`, error);
+    logger.error(`Error in fetchStockBatch (${type}):`, error);
     throw error;
   }
 };
@@ -301,7 +302,7 @@ export const fetchApiStatus = async (): Promise<ApiStatusResponse> => {
     );
     return response;
   } catch (error) {
-    console.error('Error fetching API status:', error);
+    logger.error('Error fetching API status:', error);
     return { success: false, error: formatErrorResponse(error as any) };
   }
 };

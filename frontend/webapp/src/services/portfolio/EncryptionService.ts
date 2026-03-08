@@ -4,6 +4,8 @@
  * Single Responsibility: データの暗号化と復号化のみを担当
  */
 
+import logger from '../../utils/logger';
+
 export class EncryptionService {
   /**
    * パスワードが設定されているかチェック
@@ -77,7 +79,7 @@ export class EncryptionService {
 
       return JSON.parse(decrypted);
     } catch (error) {
-      console.error('復号化エラー:', error);
+      logger.error('復号化エラー:', error);
       throw new Error('データの復号化に失敗しました。パスワードが間違っている可能性があります。');
     }
   }

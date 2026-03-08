@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import { sentryVitePlugin } from '@sentry/vite-plugin';
 import path from 'path';
 
 export default defineConfig({
@@ -72,7 +73,17 @@ export default defineConfig({
         enabled: false,
       },
     }),
-  ],
+    // Sentry ソースマップアップロード（SENTRY_AUTH_TOKEN が設定されている場合のみ有効）
+    process.env.SENTRY_AUTH_TOKEN && sentryVitePlugin({
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT,
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      sourcemaps: {
+        filesToDeleteAfterUpload: ['./build/**/*.map'],
+      },
+      telemetry: false,
+    }),
+  ].filter(Boolean),
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -97,7 +108,8 @@ export default defineConfig({
   },
   build: {
     outDir: 'build',
-    sourcemap: false,
+    chunkSizeWarningLimit: 200,
+    sourcemap: !!process.env.SENTRY_AUTH_TOKEN,
     rollupOptions: {
       output: {
         manualChunks: {
@@ -105,6 +117,7 @@ export default defineConfig({
           'vendor-charts': ['recharts'],
           'vendor-csv': ['papaparse'],
           'vendor-query': ['@tanstack/react-query', 'zustand', 'axios'],
+          'vendor-sentry': ['@sentry/react'],
         },
       },
     },

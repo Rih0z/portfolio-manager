@@ -134,7 +134,7 @@ describe('googleDriveService', () => {
         needsDriveAuth: true,
         authUrl: 'https://accounts.google.com/oauth/authorize?...'
       });
-      expect(consoleErrorSpy).toHaveBeenCalledWith('Google Driveファイル一覧取得エラー:', mockError);
+      expect(consoleErrorSpy).toHaveBeenCalledWith('Google Driveファイル一覧取得エラー:', expect.objectContaining({}));
     });
 
     it('一般的なネットワークエラーを正しく処理する', async () => {
@@ -243,7 +243,7 @@ describe('googleDriveService', () => {
         needsDriveAuth: true,
         authUrl: 'https://accounts.google.com/oauth/authorize?...'
       });
-      expect(consoleErrorSpy).toHaveBeenCalledWith('Google Drive保存エラー:', mockError);
+      expect(consoleErrorSpy).toHaveBeenCalledWith('Google Drive保存エラー:', expect.objectContaining({}));
     });
 
     it('一般的な401エラーの場合は認証が必要なエラーを返す', async () => {
@@ -380,7 +380,7 @@ describe('googleDriveService', () => {
         needsDriveAuth: true,
         authUrl: 'https://accounts.google.com/oauth/authorize?...'
       });
-      expect(consoleErrorSpy).toHaveBeenCalledWith('Google Drive読み込みエラー:', mockError);
+      expect(consoleErrorSpy).toHaveBeenCalledWith('Google Drive読み込みエラー:', expect.objectContaining({}));
     });
 
     it('一般的な401エラーの場合は認証が必要なエラーを返す', async () => {

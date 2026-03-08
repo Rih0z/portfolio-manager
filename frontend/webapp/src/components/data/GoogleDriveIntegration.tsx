@@ -21,6 +21,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 import { useGoogleDrive } from '../../hooks/useGoogleDrive';
 import { logCookieStatus, testCookieSettings } from '../../utils/cookieDebugUtils';
+import logger from '../../utils/logger';
 
 const GoogleDriveIntegration = () => {
   const { isAuthenticated, user, hasDriveAccess, initiateDriveAuth } = useAuth();
@@ -182,7 +183,7 @@ const GoogleDriveIntegration = () => {
                 prompt: 'consent'
               });
               
-              console.log('Redirect URI for re-login:', redirectUri); // デバッグ用
+              logger.debug('Redirect URI for re-login:', redirectUri);
               window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
             }}
             className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"

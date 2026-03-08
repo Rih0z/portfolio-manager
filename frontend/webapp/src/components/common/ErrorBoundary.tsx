@@ -17,6 +17,7 @@
 
 import React, { Component } from 'react';
 import { logErrorToService, sanitizeError } from '../../utils/errorHandler';
+import { captureException } from '../../utils/sentry';
 
 /**
  * 現代的なエラーバウンダリーコンポーネント
@@ -48,11 +49,10 @@ class ErrorBoundary extends Component<any, any> {
   // エラーログを非同期で処理
   logErrorAsync = async (error, errorInfo) => {
     try {
+      captureException(error, errorInfo);
       await logErrorToService(error, errorInfo);
-    } catch (loggingError) {
-      // ログ送信に失敗した場合はコンソールにフォールバック
-      console.error('エラーログの送信に失敗:', loggingError);
-      console.error('元のエラー:', error);
+    } catch {
+      // ログ送信に失敗してもアプリは継続
     }
   };
   
@@ -73,7 +73,7 @@ class ErrorBoundary extends Component<any, any> {
       const isDevelopment = process.env.NODE_ENV === 'development';
       
       return (
-        <div className="p-4 border border-red-200 rounded-md bg-red-50 my-4">
+        <div className="p-4 border border-red-200 rounded-md bg-red-50 my-4" role="alert" data-testid="error-boundary">
           <h2 className="text-lg font-semibold text-red-700 mb-2">
             エラーが発生しました
           </h2>
@@ -92,6 +92,7 @@ class ErrorBoundary extends Component<any, any> {
           <button
             className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
             onClick={this.resetError}
+            aria-label="再読み込み"
           >
             再読み込み
           </button>

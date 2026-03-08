@@ -13,6 +13,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import promptOrchestrationService from '../../services/PromptOrchestrationService';
+import logger from '../../utils/logger';
 
 const PromptOrchestrator = ({
   promptType = 'portfolio_analysis',
@@ -60,7 +61,7 @@ const PromptOrchestrator = ({
       onPromptGenerated(prompt);
       loadPromptHistory();
     } catch (error) {
-      console.error('プロンプト生成エラー:', error);
+      logger.error('プロンプト生成エラー:', error);
     } finally {
       setIsGenerating(false);
     }
@@ -72,7 +73,7 @@ const PromptOrchestrator = ({
         await navigator.clipboard.writeText(generatedPrompt.content);
         // Success feedback could be added here
       } catch (error) {
-        console.error('コピー失敗:', error);
+        logger.error('コピー失敗:', error);
       }
     }
   };
