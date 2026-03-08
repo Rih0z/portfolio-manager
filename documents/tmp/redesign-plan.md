@@ -1109,29 +1109,45 @@ Phase 2-B:
 
 **目標:** Phase 0〜6で構築した全機能をローンチ可能な状態に仕上げ、初期ユーザーを獲得する
 
-**7-A: ローンチ前チェック（1〜2週間）**
-- [ ] Sentry DSN 本番環境変数設定 + 再デプロイ（Cloudflare Pages）
+**7-A: ローンチ前チェック（1〜2週間）** ✅ コーディング部分完了
+- [ ] Sentry DSN 本番環境変数設定 + 再デプロイ（Cloudflare Pages）← 手動タスク
 - [ ] 本番スモークテスト完全実行（scripts/smoke-test.sh）
-- [ ] 法務コンテンツ最終確認（利用規約・プライバシーポリシー・特商法表記・免責事項）
-- [ ] Stripe本番モード動作確認（テスト決済→本番切替）
-- [ ] SEO確認（Google Search Console登録 + sitemap送信 + OGP表示確認）
+- [x] 法務コンテンツ最終確認（利用規約・プライバシーポリシー・特商法表記・免責事項）
+  - 🔴 KKKR: 住所・電話番号の事前表示が必要（個人事業主明記 or 住所追加）
+  - ✅ Disclaimer: 金融商品取引法準拠、投資助言非該当明記
+  - ✅ Privacy: APPI準拠
+  - ⚠️ Terms: 自動更新の事前通知詳細が軽微に不足
+- [ ] Stripe本番モード動作確認（テスト決済→本番切替）← 手動タスク
+- [ ] SEO確認（Google Search Console登録 + sitemap送信 + OGP表示確認）← 手動タスク
 - [ ] Lighthouse CI パフォーマンス確認（目標: Performance > 90, A11y > 90）
-- [ ] 未追跡ファイル整理（setupProxy.js, emergency-deploy.sh, App.jsx, index.jsx等）
-- [ ] git status クリーンアップ（deleted files コミット + 不要ファイル削除）
+- [x] 未追跡ファイル整理 ✅ 16ファイル削除（Phase 7-A 前半）
+- [x] git status クリーンアップ ✅ クリーン状態
+- [x] 技術的負債解消 ✅（コミット 96067771）
+  - CRA/Jestレガシー削除: craco.config.js, jest.config.*.js, setupTests.js
+  - 未使用ページ削除: Portfolio.tsx（存在しないコンポーネント依存）
+  - vite-env.d.ts スタブ宣言削除
+  - node_modules_backup + node_modules_old 削除（263MB回収）
+- [x] ランディングページ言語検出修正 ✅（日本語デフォルト化、コミット ce6d0c8b）
 
 **7-B: ベータテスト + ペルソナ検証（2〜3週間）**
-- [ ] ベータユーザー5〜10人招待（X投資クラスタ）
-- [ ] 30分インタビュー実施（PFスコアへの興味、課金意欲調査）
+- [ ] ベータユーザー5〜10人招待（X投資クラスタ）← 手動タスク
+- [ ] 30分インタビュー実施（PFスコアへの興味、課金意欲調査）← 手動タスク
 - [ ] ユーザーフィードバック収集 + 優先度付け
-- [ ] GA4ファネル設定（LP→登録→ダッシュボード→課金）
+- [x] GA4ファネル設定（LP→登録→ダッシュボード→課金）✅ イベント既に実装済み
+  - landing_view / login / dashboard_view / pricing_view / checkout_start
+  - GA4管理画面でのファネルレポート設定は手動タスク
 - [ ] Critical bugfix対応
 
 **7-C: パブリックローンチ + 初期獲得（2〜3週間）**
-- [ ] Product Hunt Japan 投稿
-- [ ] X（Twitter）投資クラスタ向け告知
-- [ ] 投資系ブログ・メディアへの紹介
-- [ ] LP CVR計測開始（目標: > 3%）
-- [ ] NPS調査機能実装（アプリ内、Month 3目標）
+- [ ] Product Hunt Japan 投稿 ← 手動タスク
+- [ ] X（Twitter）投資クラスタ向け告知 ← 手動タスク
+- [ ] 投資系ブログ・メディアへの紹介 ← 手動タスク
+- [ ] LP CVR計測開始（目標: > 3%）← GA4で計測可能
+- [x] NPS調査機能実装（アプリ内、Month 3目標）✅（コミット 1e74cab4）
+  - NPSSurvey コンポーネント + useNPSSurvey フック
+  - GA4 nps_submit / nps_dismiss イベント（バックエンドAPI不要）
+  - 表示条件: 初回7日後 / 回答後90日間隔 / dismiss後30日間隔
+  - テスト: 22件（108ファイル / 1,919テスト PASS）
 
 ### Phase 8: 継続改善 + Stage 2準備（将来）
 
@@ -1166,11 +1182,11 @@ Phase 5-B: PWA対応           1週間   ← 完了 ✅ (Service Worker + オフ
 Phase 5-C: ソーシャル+通知+リファラル  ← 完了 ✅ (通知/共有/リファラル3機能)
 Phase 6:   プロダクション品質強化     ← 完了 ✅ (Sentry+WebVitals+a11y+E2E17件+console統一+レビュー修正)
 ──────────────────────────────────────
-Phase 7:   ローンチ準備        5〜8週間  ← 次Phase（7-A/B/C）
+Phase 7:   ローンチ準備        5〜8週間  ← 進行中（7-A コード完了、7-B/C 手動タスク残）
 Phase 8:   継続改善+Stage 2    継続      ← 将来
 ──────────────────────────────────────
-Phase 0〜6 合計: 約31〜32週間（7.8〜8ヶ月）完了
-テスト: 106ファイル / 1,897テスト PASS / 19 skipped
+Phase 0〜7 合計: 約31〜32週間（7.8〜8ヶ月）完了 + Phase 7進行中
+テスト: 108ファイル / 1,919テスト PASS / 19 skipped
 カバレッジ: statements 77.85% / branches 67.88% / functions 75.66% / lines 79.12%
 ```
 
