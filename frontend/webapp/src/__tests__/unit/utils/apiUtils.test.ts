@@ -179,7 +179,7 @@ describe('apiUtils', () => {
 
       expect(result.ticker).toBe('AAPL');
       expect(result.currency).toBe('USD');
-      expect(result.price).toBe(100);
+      expect(result.price).toBe(230); // AAPLは主要銘柄のためフォールバック概算価格を使用
       expect(result.isStock).toBe(true);
       expect(result.isMutualFund).toBe(false);
     });

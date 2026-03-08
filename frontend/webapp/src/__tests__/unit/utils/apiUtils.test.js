@@ -497,7 +497,7 @@ describe('apiUtils', () => {
       
       expect(result).toEqual({
         ticker: 'AAPL',
-        price: 100,
+        price: 230, // AAPLは主要銘柄のためフォールバック概算価格を使用
         name: 'AAPL (フォールバック)',
         currency: 'USD',
         lastUpdated: expect.any(String),

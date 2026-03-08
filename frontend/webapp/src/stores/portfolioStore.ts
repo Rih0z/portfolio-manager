@@ -142,14 +142,26 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
   // --- Validate Asset Types ---
   validateAssetTypes: (assets: any[]) => {
     if (!Array.isArray(assets) || assets.length === 0) {
-      return { updatedAssets: [], changes: { fundType: 0, fees: 0, dividends: 0 } };
+      return { updatedAssets: [], changes: { fundType: 0, fees: 0, dividends: 0, currency: 0 } };
     }
 
     let fundTypeChanges = 0;
     let feeChanges = 0;
     let dividendChanges = 0;
+    let currencyChanges = 0;
     const fundTypeChangeDetails: any[] = [];
     const feeChangeDetails: any[] = [];
+
+    // ティッカーパターンから通貨を推定するヘルパー関数
+    const guessCurrencyFromTicker = (t: string): string => {
+      // 日本の投資信託（8桁数字 or 7桁+英字）
+      if (/^\d{7,8}[A-Z]?$/i.test(t)) return 'JPY';
+      // 日本株（4桁.T or 4桁数字のみ）
+      if (/^\d{4}(\.T)?$/.test(t)) return 'JPY';
+      // 英字1-5文字 = 米国市場
+      if (/^[A-Z]{1,5}$/.test(t)) return 'USD';
+      return 'JPY';
+    };
 
     const validatedAssets = assets.map((asset: any) => {
       if (!asset.ticker) return asset;
@@ -184,17 +196,23 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
         asset.hasDividend !== dividendInfo.hasDividend ||
         asset.dividendFrequency !== dividendInfo.dividendFrequency;
 
+      // 通貨の検証
+      const correctCurrency = guessCurrencyFromTicker(ticker);
+      const currencyIsWrong = !asset.currency || asset.currency !== correctCurrency;
+
       if (fundTypeIsWrong) { fundTypeChanges++; fundTypeChangeDetails.push({ ticker, name: asset.name, oldType: asset.fundType, newType: correctFundType }); }
       if (feeIsWrong) { feeChanges++; feeChangeDetails.push({ ticker, name: asset.name, oldFee: asset.annualFee, newFee: correctFee }); }
       if (dividendIsWrong) dividendChanges++;
+      if (currencyIsWrong) currencyChanges++;
 
       const nameIsWrong = name !== asset.name;
-      if (fundTypeIsWrong || feeIsWrong || dividendIsWrong || nameIsWrong) {
+      if (fundTypeIsWrong || feeIsWrong || dividendIsWrong || nameIsWrong || currencyIsWrong) {
         return {
           ...asset, name, fundType: correctFundType, isStock: correctIsStock,
           annualFee: correctFee, feeSource, feeIsEstimated,
           dividendYield: dividendInfo.yield, hasDividend: dividendInfo.hasDividend,
           dividendFrequency: dividendInfo.dividendFrequency, dividendIsEstimated: dividendInfo.isEstimated,
+          currency: correctCurrency,
         };
       }
       return asset;
@@ -202,7 +220,7 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
 
     return {
       updatedAssets: validatedAssets,
-      changes: { fundType: fundTypeChanges, fees: feeChanges, dividends: dividendChanges, fundTypeDetails: fundTypeChangeDetails, feeDetails: feeChangeDetails }
+      changes: { fundType: fundTypeChanges, fees: feeChanges, dividends: dividendChanges, currency: currencyChanges, fundTypeDetails: fundTypeChangeDetails, feeDetails: feeChangeDetails }
     };
   },
 
@@ -400,6 +418,15 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
           notify(result.isDefault ? 'デフォルトの為替レート（150円/ドル）を使用しています。' : '為替レートが古い可能性があります。', 'warning');
         }
         localStorage.setItem(cacheKey, JSON.stringify({ data: rateData, timestamp: new Date().toISOString() }));
+      } else if (result.rate && typeof result.rate === 'number' && result.rate > 0) {
+        // API失敗でもフォールバックレートが返されている場合はキャッシュして使用
+        const rateData = { rate: result.rate, source: result.source || 'Fallback', lastUpdated: result.lastUpdated || new Date().toISOString() };
+        set({ exchangeRate: rateData });
+        // フォールバック値は短めにキャッシュ（1時間）
+        localStorage.setItem(cacheKey, JSON.stringify({ data: rateData, timestamp: new Date().toISOString() }));
+        notify(`為替レートの取得に失敗しました。フォールバック値（${result.rate}円/ドル）を使用します。`, 'warning');
+        // 1時間後に再試行（フォールバック値をキャッシュしているので頻繁なリトライは不要）
+        setTimeout(() => get().updateExchangeRate(true), 60 * 60 * 1000);
       } else if (result.error) {
         notify(`為替レートの取得に失敗しました。デフォルト値（${currentRate.rate}円/ドル）を使用します。5分後に再試行します。`, 'warning');
         setTimeout(() => get().updateExchangeRate(), 5 * 60 * 1000);
@@ -586,6 +613,7 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
         updates.currentAssets = updatedAssets;
         if (changes.fundType > 0) notify(`${changes.fundType}件の銘柄で種別情報を修正しました`, 'info');
         if (changes.fees > 0) notify(`${changes.fees}件の銘柄で手数料情報を修正しました`, 'info');
+        if (changes.currency > 0) notify(`${changes.currency}件の銘柄で通貨情報を修正しました`, 'info');
       }
 
       if (Array.isArray(data.targetPortfolio)) updates.targetPortfolio = data.targetPortfolio;

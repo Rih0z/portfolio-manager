@@ -591,6 +591,20 @@ interface FallbackData {
   fundType: string;
 }
 
+// 主要ETF/銘柄のフォールバック概算価格（USD）
+const FALLBACK_PRICES: Record<string, number> = {
+  SPY: 580, VOO: 530, VTI: 280, QQQ: 500, IVV: 580,
+  VGT: 560, VYM: 120, VEA: 50, VWO: 44, BND: 72,
+  BNDX: 50, AGG: 100, VNQ: 90, GLD: 240, LQD: 108,
+  EIDO: 22, INDA: 52, IBIT: 55, DIA: 430, XLF: 46,
+  XLE: 90, XLK: 220, XLV: 145, SCHD: 82, IEMG: 54,
+  IJH: 60, IJR: 110, ARKK: 55, ARKW: 80, ARKG: 35,
+  ARKF: 30, IEFA: 72, EEM: 44, EFA: 78, ITOT: 115,
+  DVY: 130, MUB: 107, TLT: 90, SHY: 82, HYG: 78,
+  JNK: 95, VXUS: 58, AAPL: 230, MSFT: 420, GOOGL: 170,
+  AMZN: 200, NVDA: 130, TSLA: 350, META: 580,
+};
+
 // フォールバックデータを生成する関数
 export const generateFallbackData = (ticker: string): FallbackData => {
   // 銘柄のタイプを判定
@@ -611,10 +625,21 @@ export const generateFallbackData = (ticker: string): FallbackData => {
     fundType = guessFundType(displayName, ticker);
   }
 
+  // フォールバック価格の決定
+  const upperTicker = ticker.toUpperCase();
+  let price: number;
+  if (isJPStock) {
+    price = 1000;
+  } else if (isMutualFund) {
+    price = 10000;
+  } else {
+    price = FALLBACK_PRICES[upperTicker] || 100;
+  }
+
   // デフォルト値
   return {
     ticker: ticker,
-    price: isJPStock ? 1000 : isMutualFund ? 10000 : 100,
+    price,
     name: displayName,
     currency: isJPStock || isMutualFund ? 'JPY' : 'USD',
     lastUpdated: new Date().toISOString(),
