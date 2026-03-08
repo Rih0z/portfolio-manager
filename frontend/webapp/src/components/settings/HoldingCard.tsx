@@ -7,9 +7,9 @@ import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 
-const HoldingCard = ({ 
-  asset, 
-  baseCurrency, 
+const HoldingCard = ({
+  asset,
+  baseCurrency,
   exchangeRate,
   onUpdateHoldings,
   onRemove
@@ -17,6 +17,7 @@ const HoldingCard = ({
   const { t } = useTranslation();
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(asset.holdings.toString());
+  const [validationError, setValidationError] = useState('');
 
   // 資産の評価額を計算
   const calculateAssetValue = () => {
@@ -57,16 +58,18 @@ const HoldingCard = ({
   const handleSave = () => {
     const value = parseFloat(editValue);
     if (isNaN(value) || value < 0) {
-      alert('有効な数値を入力してください');
+      setValidationError('有効な数値を入力してください');
       return;
     }
-    
+
+    setValidationError('');
     onUpdateHoldings(asset.id, parseFloat(value.toFixed(4)));
     setIsEditing(false);
   };
 
   const handleCancel = () => {
     setEditValue(asset.holdings.toString());
+    setValidationError('');
     setIsEditing(false);
   };
 
@@ -142,21 +145,31 @@ const HoldingCard = ({
         </label>
         
         {isEditing ? (
-          <div className="flex items-center space-x-2">
-            <Input
-              type="number"
-              value={editValue}
-              onChange={(e) => setEditValue(e.target.value)}
-              step="0.0001"
-              min="0"
-              className="flex-1"
-            />
-            <Button size="sm" onClick={handleSave} variant="success">
-              保存
-            </Button>
-            <Button size="sm" onClick={handleCancel} variant="secondary">
-              キャンセル
-            </Button>
+          <div>
+            <div className="flex items-center space-x-2">
+              <Input
+                type="number"
+                value={editValue}
+                onChange={(e) => { setEditValue(e.target.value); setValidationError(''); }}
+                step="0.0001"
+                min="0"
+                className="flex-1"
+                aria-invalid={validationError ? true : undefined}
+                aria-describedby={validationError ? `holding-error-${asset.id}` : undefined}
+                aria-label={`${asset.symbol}の保有数量`}
+              />
+              <Button size="sm" onClick={handleSave} variant="success">
+                保存
+              </Button>
+              <Button size="sm" onClick={handleCancel} variant="secondary">
+                キャンセル
+              </Button>
+            </div>
+            {validationError && (
+              <p id={`holding-error-${asset.id}`} role="alert" className="text-xs text-danger-600 mt-1">
+                {validationError}
+              </p>
+            )}
           </div>
         ) : (
           <div className="flex items-center justify-between">
@@ -183,6 +196,7 @@ const HoldingCard = ({
                 variant="outline"
                 onClick={() => handleIncrement(-1)}
                 disabled={asset.holdings <= 0}
+                aria-label={`${asset.symbol}の保有数量を1減らす`}
               >
                 -1
               </Button>
@@ -190,6 +204,7 @@ const HoldingCard = ({
                 size="sm"
                 variant="outline"
                 onClick={() => handleIncrement(1)}
+                aria-label={`${asset.symbol}の保有数量を1増やす`}
               >
                 +1
               </Button>
@@ -197,6 +212,7 @@ const HoldingCard = ({
                 size="sm"
                 variant="outline"
                 onClick={() => handleIncrement(10)}
+                aria-label={`${asset.symbol}の保有数量を10増やす`}
               >
                 +10
               </Button>

@@ -82,6 +82,7 @@ const NotificationBell: React.FC = () => {
         }
         aria-expanded={isOpen}
         aria-haspopup="true"
+        aria-controls="notification-dropdown-panel"
       >
         {/* Bell SVG icon */}
         <svg

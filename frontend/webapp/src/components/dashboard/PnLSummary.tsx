@@ -90,7 +90,7 @@ const PnLSummary: React.FC = () => {
             {/* 参考評価額 */}
             <div className="flex items-baseline justify-between">
               <span className="text-sm text-muted-foreground">
-                参考評価額 <span className="text-xs">※</span>
+                参考評価額 <abbr title="yahoo-finance2参考値に基づく概算" className="text-xs no-underline cursor-help">※</abbr>
               </span>
               <span className="text-lg font-bold font-mono tabular-nums text-foreground">
                 {formatCurrency(pnl.totalCurrentValue, baseCurrency)}
@@ -100,7 +100,7 @@ const PnLSummary: React.FC = () => {
             {/* 参考損益 */}
             <div className="flex items-baseline justify-between">
               <span className="text-sm text-muted-foreground">
-                参考損益 <span className="text-xs">※</span>
+                参考損益 <abbr title="yahoo-finance2参考値に基づく概算" className="text-xs no-underline cursor-help">※</abbr>
               </span>
               <div className="flex items-center gap-2">
                 <span className={`text-lg font-bold font-mono tabular-nums ${
@@ -118,7 +118,7 @@ const PnLSummary: React.FC = () => {
             {pnl.totalDayChange !== 0 && (
               <div className="flex items-baseline justify-between pt-1 border-t border-border">
                 <span className="text-xs text-muted-foreground">
-                  前日比 <span className="text-xs">※</span>
+                  前日比 <abbr title="yahoo-finance2参考値に基づく概算" className="text-xs no-underline cursor-help">※</abbr>
                 </span>
                 <span className={`text-sm font-mono tabular-nums ${
                   pnl.totalDayChange >= 0 ? 'text-success-600' : 'text-danger-600'

@@ -5,13 +5,13 @@ import { fetchMultiplePriceHistories, PriceHistoryResponse, PricePeriod } from '
 import { Card, CardContent } from '../ui/card';
 import logger from '../../utils/logger';
 
-const PERIOD_OPTIONS: { value: PricePeriod; label: string }[] = [
-  { value: '1w', label: '1W' },
-  { value: '1m', label: '1M' },
-  { value: '3m', label: '3M' },
-  { value: '6m', label: '6M' },
-  { value: '1y', label: '1Y' },
-  { value: 'ytd', label: 'YTD' }
+const PERIOD_OPTIONS: { value: PricePeriod; label: string; ariaLabel: string }[] = [
+  { value: '1w', label: '1W', ariaLabel: '1週間' },
+  { value: '1m', label: '1M', ariaLabel: '1ヶ月' },
+  { value: '3m', label: '3M', ariaLabel: '3ヶ月' },
+  { value: '6m', label: '6M', ariaLabel: '6ヶ月' },
+  { value: '1y', label: '1Y', ariaLabel: '1年' },
+  { value: 'ytd', label: 'YTD', ariaLabel: '年初来' }
 ];
 
 const PnLTrendChart: React.FC = () => {
@@ -161,6 +161,8 @@ const PnLTrendChart: React.FC = () => {
               <button
                 key={opt.value}
                 onClick={() => setPeriod(opt.value)}
+                aria-label={`${opt.ariaLabel}の推移を表示`}
+                aria-pressed={period === opt.value}
                 className={`px-2 py-1 text-xs rounded-md transition-colors ${
                   period === opt.value
                     ? 'bg-primary-500 text-white'

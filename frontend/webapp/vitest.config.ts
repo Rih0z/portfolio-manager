@@ -55,10 +55,10 @@ export default defineConfig({
         'node_modules/**',
       ],
       thresholds: {
-        statements: 60,
-        branches: 50,
-        functions: 55,
-        lines: 60,
+        statements: 65,
+        branches: 55,
+        functions: 60,
+        lines: 65,
       },
     },
     // Mock modules

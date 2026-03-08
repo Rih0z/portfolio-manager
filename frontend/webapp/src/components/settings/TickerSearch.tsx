@@ -85,6 +85,9 @@ const TickerSearch = () => {
             onChange={(e) => setTicker(e.target.value)}
             placeholder="例: AAPL, 7203.T"
             aria-label="ティッカーシンボルを入力"
+            aria-invalid={messageType === 'error' ? true : undefined}
+            aria-describedby={message ? 'ticker-search-message' : undefined}
+            aria-busy={isLoading}
             className="flex-1 p-2 border rounded-l"
             disabled={isLoading}
           />
@@ -116,6 +119,8 @@ const TickerSearch = () => {
       
       {message && (
         <div
+          id="ticker-search-message"
+          role={messageType === 'error' ? 'alert' : 'status'}
           aria-live="polite"
           className={`p-2 rounded text-sm ${
             messageType === 'success'

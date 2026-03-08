@@ -45,6 +45,7 @@ const NotificationDropdown: React.FC = () => {
 
   return (
     <div
+      id="notification-dropdown-panel"
       data-testid="notification-dropdown"
       className="absolute right-0 top-full mt-2 w-80 sm:w-96 rounded-xl border border-border bg-card shadow-large z-50 overflow-hidden"
       role="menu"
