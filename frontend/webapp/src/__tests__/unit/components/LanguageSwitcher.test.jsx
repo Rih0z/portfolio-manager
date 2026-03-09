@@ -21,153 +21,79 @@ describe('LanguageSwitcher', () => {
     vi.clearAllMocks();
   });
 
-  it('renders language switcher button', () => {
+  it('renders language switcher with main button', () => {
     render(<LanguageSwitcher />);
 
-    // 言語切り替えボタンが表示されることを確認（最初のボタンを取得）
     const buttons = screen.getAllByRole('button');
-    expect(buttons.length).toBeGreaterThanOrEqual(1);
-    expect(buttons[0]).toBeInTheDocument();
+    // メインボタン + 2つの言語オプション = 3つ以上
+    expect(buttons.length).toBeGreaterThanOrEqual(3);
   });
 
-  it('displays current language', () => {
+  it('displays current language (日本語)', () => {
     render(<LanguageSwitcher />);
 
-    // 日本語が複数箇所に表示される（ヘッダー + ドロップダウン）
     const japaneseTexts = screen.getAllByText(/日本語/);
     expect(japaneseTexts.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('shows language options when clicked', () => {
+  it('shows both language options', () => {
     render(<LanguageSwitcher />);
 
-    // Both languages should be visible (in dropdown)
     expect(screen.getByText(/English/)).toBeInTheDocument();
-    const japaneseTexts = screen.getAllByText(/日本語/);
-    expect(japaneseTexts.length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/日本語/).length).toBeGreaterThanOrEqual(1);
   });
 
-  it('changes language when option is selected', () => {
+  it('calls changeLanguage with "en" when English is selected', () => {
     render(<LanguageSwitcher />);
 
-    // 英語オプションをクリック
-    const englishOption = screen.getByText(/English/);
-    fireEvent.click(englishOption);
+    fireEvent.click(screen.getByText(/English/));
 
-    // changeLanguageが呼ばれることを確認
     expect(mockChangeLanguage).toHaveBeenCalledWith('en');
   });
 
-  it('renders with dropdown menu', () => {
+  it('calls changeLanguage with "ja" when 日本語 is selected', () => {
     render(<LanguageSwitcher />);
 
-    // ドロップダウンメニュー要素が存在することを確認
+    const japaneseTexts = screen.getAllByText(/日本語/);
+    fireEvent.click(japaneseTexts[japaneseTexts.length - 1]);
+
+    expect(mockChangeLanguage).toHaveBeenCalledWith('ja');
+  });
+
+  it('renders dropdown menu', () => {
+    render(<LanguageSwitcher />);
+
     const dropdown = document.querySelector('.absolute');
     expect(dropdown).toBeInTheDocument();
   });
 
-  it('closes dropdown when clicking outside', () => {
+  it('renders flag emojis for each language', () => {
     render(<LanguageSwitcher />);
 
-    // このコンポーネントはCSS hoverベースなので、クリック外での閉じる動作はテストしない
+    const japanFlags = screen.getAllByText('🇯🇵');
+    const usFlags = screen.getAllByText('🇺🇸');
+    expect(japanFlags.length).toBeGreaterThanOrEqual(1);
+    expect(usFlags.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('marks current language with checkmark indicator', () => {
+    render(<LanguageSwitcher />);
+
+    // 日本語が選択中なので、日本語ボタンにはbg-blue-50クラスがある
     const buttons = screen.getAllByRole('button');
-    expect(buttons.length).toBeGreaterThan(0);
+    const jaButton = buttons.find(btn => btn.textContent?.includes('日本語') && btn.classList.contains('bg-blue-50'));
+    expect(jaButton).toBeTruthy();
   });
 
-  it('handles keyboard navigation', () => {
+  it('handles rapid language switching without crash', () => {
     render(<LanguageSwitcher />);
 
-    const buttons = screen.getAllByRole('button');
-    const mainButton = buttons[0];
-
-    // キーボードイベントのテストはシンプルに
-    fireEvent.keyDown(mainButton, { key: 'Enter' });
-    expect(mainButton).toBeInTheDocument();
-  });
-
-  it('renders language flags or icons', () => {
-    render(<LanguageSwitcher />);
-
-    // フラグ絵文字が表示されていることを確認（複数箇所に表示される）
-    const flags = screen.getAllByText(/🇺🇸|🇯🇵/);
-    expect(flags.length).toBeGreaterThanOrEqual(1);
-  });
-
-  it('has proper accessibility attributes', () => {
-    render(<LanguageSwitcher />);
-
-    const buttons = screen.getAllByRole('button');
-
-    // ボタンがアクセシブルであることを確認
-    expect(buttons[0]).toBeInTheDocument();
-    expect(buttons[0].tagName).toBe('BUTTON');
-  });
-
-  it('renders with proper styling', () => {
-    render(<LanguageSwitcher />);
-
-    const buttons = screen.getAllByRole('button');
-
-    // スタイリングクラスが適用されていることを確認
-    const hasStyles = buttons[0].className.includes('flex') ||
-                     buttons[0].className.includes('items-center');
-    expect(hasStyles).toBe(true);
-  });
-
-  it('handles language change errors gracefully', () => {
-    render(<LanguageSwitcher />);
-
-    const englishOption = screen.getByText(/English/);
-    fireEvent.click(englishOption);
-
-    // エラーが発生してもクラッシュしないことを確認
-    expect(englishOption).toBeInTheDocument();
-  });
-
-  it('persists language selection', () => {
-    render(<LanguageSwitcher />);
-
-    const englishOption = screen.getByText(/English/);
-    fireEvent.click(englishOption);
-
-    // changeLanguageが呼ばれることを確認
-    expect(mockChangeLanguage).toHaveBeenCalledWith('en');
-  });
-
-  it('renders current language indicator correctly', () => {
-    render(<LanguageSwitcher />);
-
-    // 現在の言語が表示されることを確認（複数箇所に表示）
-    const japaneseTexts = screen.getAllByText(/日本語/);
-    expect(japaneseTexts.length).toBeGreaterThanOrEqual(1);
-  });
-
-  it('supports multiple language options', () => {
-    render(<LanguageSwitcher />);
-
-    // 複数の言語オプションがサポートされていることを確認
-    const buttons = screen.getAllByRole('button');
-    expect(buttons.length).toBeGreaterThanOrEqual(2); // Main button + language options
-  });
-
-  it('handles rapid language switching', () => {
-    render(<LanguageSwitcher />);
-
-    // 連続して言語切り替えを実行
     fireEvent.click(screen.getByText(/English/));
-    // 日本語は複数箇所にあるのでgetAllByTextを使用
     const japaneseTexts = screen.getAllByText(/日本語/);
-    fireEvent.click(japaneseTexts[japaneseTexts.length - 1]); // ドロップダウンの日本語をクリック
+    fireEvent.click(japaneseTexts[japaneseTexts.length - 1]);
 
-    // クラッシュしないことを確認
-    expect(screen.getAllByText(/日本語/).length).toBeGreaterThanOrEqual(1);
-  });
-
-  it('renders with responsive design', () => {
-    render(<LanguageSwitcher />);
-
-    // レスポンシブクラスが存在することを確認
-    const responsiveElements = document.querySelectorAll('.sm\\:block, .md\\:inline, .lg\\:flex');
-    expect(responsiveElements.length).toBeGreaterThanOrEqual(0);
+    expect(mockChangeLanguage).toHaveBeenCalledTimes(2);
+    expect(mockChangeLanguage).toHaveBeenCalledWith('en');
+    expect(mockChangeLanguage).toHaveBeenCalledWith('ja');
   });
 });

@@ -5,7 +5,7 @@
  * @file src/__tests__/unit/components/settings/HoldingsEditor.test.tsx
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import React from 'react';
 
 // --- Mock dependencies ---
@@ -129,12 +129,9 @@ describe('HoldingsEditor', () => {
       // ダイアログを開く
       fireEvent.click(screen.getByTestId('delete-btn-a1'));
 
-      // 「削除」ボタンをクリック（ConfirmDialogのconfirmLabel）
-      const confirmButtons = screen.getAllByText('削除');
-      // ConfirmDialogの確認ボタンを特定（role="dialog"内のボタン）
+      // ConfirmDialogの「削除」ボタンをクリック（dialog内のボタンをテキストで特定）
       const dialog = screen.getByRole('dialog');
-      const confirmButton = dialog.querySelector('button.bg-danger-500');
-      fireEvent.click(confirmButton!);
+      fireEvent.click(within(dialog).getByText('削除'));
 
       expect(mockRemoveTicker).toHaveBeenCalledWith('a1');
     });
@@ -160,8 +157,7 @@ describe('HoldingsEditor', () => {
       // ダイアログを開く → 確認
       fireEvent.click(screen.getByTestId('delete-btn-a1'));
       const dialog = screen.getByRole('dialog');
-      const confirmButton = dialog.querySelector('button.bg-danger-500');
-      fireEvent.click(confirmButton!);
+      fireEvent.click(within(dialog).getByText('削除'));
 
       // 成功メッセージの確認
       expect(screen.getByText('Appleを削除しました')).toBeInTheDocument();

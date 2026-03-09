@@ -5,7 +5,7 @@
  * @file src/__tests__/unit/components/social/ShareLinkDisplay.test.tsx
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import React from 'react';
 
 // --- Mocks ---
@@ -108,10 +108,9 @@ describe('ShareLinkDisplay', () => {
       // ダイアログを開く
       fireEvent.click(screen.getByText('削除'));
 
-      // ConfirmDialogの「削除」ボタンをクリック
+      // ConfirmDialogの「削除」ボタンをクリック（dialog内のボタンをテキストで特定）
       const dialog = screen.getByRole('dialog');
-      const confirmButton = dialog.querySelector('button.bg-danger-500');
-      fireEvent.click(confirmButton!);
+      fireEvent.click(within(dialog).getByText('削除'));
 
       await waitFor(() => {
         expect(mockDeleteShare).toHaveBeenCalledWith('share-123');

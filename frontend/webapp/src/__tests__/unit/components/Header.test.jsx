@@ -1,6 +1,6 @@
 import { vi } from "vitest";
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import Header from '../../../components/layout/Header';
 
@@ -41,7 +41,7 @@ vi.mock('../../../components/common/LanguageSwitcher', () => ({
   },
 }));
 
-// Mock the OAuthLoginButton component (actual component name used in Header)
+// Mock the OAuthLoginButton component
 vi.mock('../../../components/auth/OAuthLoginButton', () => ({
   default: function OAuthLoginButton() {
     return <button data-testid="login-button">Login</button>;
@@ -88,7 +88,6 @@ describe('Header', () => {
   beforeEach(() => {
     useAuth.mockReturnValue(mockAuthContext);
     usePortfolioContext.mockReturnValue(mockPortfolioContext);
-    // localStorage mock for initialSetupCompleted
     Storage.prototype.getItem = vi.fn(() => 'true');
   });
 
@@ -99,14 +98,12 @@ describe('Header', () => {
   it('renders header with logo and title', () => {
     render(<MemoryRouter><Header /></MemoryRouter>);
 
-    // アプリ名が表示されることを確認
     expect(screen.getByText('PortfolioWise')).toBeInTheDocument();
   });
 
   it('renders language switcher', () => {
     render(<MemoryRouter><Header /></MemoryRouter>);
 
-    // 複数のLanguageSwitcherが表示される（デスクトップ + モバイル）
     const switchers = screen.getAllByTestId('language-switcher');
     expect(switchers.length).toBeGreaterThanOrEqual(1);
   });
@@ -129,7 +126,7 @@ describe('Header', () => {
     expect(screen.queryByTestId('login-button')).not.toBeInTheDocument();
   });
 
-  it('renders loading state properly', () => {
+  it('renders loading state without crashing', () => {
     useAuth.mockReturnValue({
       ...mockAuthContext,
       loading: true
@@ -137,55 +134,29 @@ describe('Header', () => {
 
     render(<MemoryRouter><Header /></MemoryRouter>);
 
-    // ローディング中でもクラッシュしないことを確認
-    const switchers = screen.getAllByTestId('language-switcher');
-    expect(switchers.length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('PortfolioWise')).toBeInTheDocument();
   });
 
-  it('has proper navigation structure', () => {
+  it('has proper navigation structure with header element', () => {
     render(<MemoryRouter><Header /></MemoryRouter>);
 
-    // header要素があることを確認
     const header = document.querySelector('header');
     expect(header).toBeInTheDocument();
-  });
-
-  it('renders responsive design elements', () => {
-    render(<MemoryRouter><Header /></MemoryRouter>);
-
-    // レスポンシブクラスが存在することを確認
-    const responsiveElements = document.querySelectorAll('.hidden.sm\\:flex, .flex.sm\\:hidden');
-    expect(responsiveElements.length).toBeGreaterThanOrEqual(0);
-  });
-
-  it('has accessibility features', () => {
-    render(<MemoryRouter><Header /></MemoryRouter>);
-
-    // アクセシビリティ属性があることを確認
-    const accessibleElements = document.querySelectorAll('[aria-label], [role], [tabindex], [title]');
-    expect(accessibleElements.length).toBeGreaterThanOrEqual(0);
-  });
-
-  it('renders proper header styling', () => {
-    render(<MemoryRouter><Header /></MemoryRouter>);
-
-    // ヘッダーのスタイリングクラスが存在することを確認
-    const header = document.querySelector('header');
     expect(header).toHaveClass('sticky');
   });
 
   it('handles auth state changes correctly', () => {
     const { rerender } = render(<MemoryRouter><Header /></MemoryRouter>);
 
-    const loginButtons = screen.getAllByTestId('login-button');
-    expect(loginButtons.length).toBeGreaterThanOrEqual(1);
+    // 未認証: ログインボタン表示
+    expect(screen.getAllByTestId('login-button').length).toBeGreaterThanOrEqual(1);
 
-    // 認証状態を変更
+    // 認証状態に変更
     useAuth.mockReturnValue(authenticatedAuthContext);
     rerender(<MemoryRouter><Header /></MemoryRouter>);
 
-    const userProfiles = screen.getAllByTestId('user-profile');
-    expect(userProfiles.length).toBeGreaterThanOrEqual(1);
+    // 認証後: ユーザープロフィール表示、ログインボタンなし
+    expect(screen.getAllByTestId('user-profile').length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByTestId('login-button')).not.toBeInTheDocument();
   });
 
@@ -201,9 +172,7 @@ describe('Header', () => {
 
     render(<MemoryRouter><Header /></MemoryRouter>);
 
-    // エッジケースでもクラッシュしないことを確認
-    const switchers = screen.getAllByTestId('language-switcher');
-    expect(switchers.length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('PortfolioWise')).toBeInTheDocument();
   });
 
   it('shows simple header when no settings exist', () => {
@@ -213,12 +182,10 @@ describe('Header', () => {
       targetPortfolio: [],
       additionalBudget: { amount: 0, currency: 'JPY' }
     });
-    // initialSetupCompleted is not set
     Storage.prototype.getItem = vi.fn(() => null);
 
     render(<MemoryRouter><Header /></MemoryRouter>);
 
-    // シンプルなヘッダーが表示される（通貨切替ボタンなし）
     expect(screen.getByText('PortfolioWise')).toBeInTheDocument();
   });
 });
