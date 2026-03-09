@@ -57,7 +57,9 @@
     "test:clean": "rimraf coverage test-results",
     "typecheck": "tsc --noEmit",
     "health-check": "node scripts/health-check.js",
-    "check-backend": "npm run health-check"
+    "check-backend": "npm run health-check",
+    "test:e2e": "npx playwright test e2e/tests/core-flows.spec.ts",
+    "test:e2e:ui": "npx playwright test e2e/tests/core-flows.spec.ts --ui"
   },
   "eslintConfig": {
     "plugins": [
@@ -96,6 +98,7 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.11.1",
     "@axe-core/react": "^4.11.1",
+    "@playwright/test": "^1.58.2",
     "@sentry/vite-plugin": "^5.1.1",
     "@types/node": "^25.3.3",
     "@types/react": "^19.2.14",
