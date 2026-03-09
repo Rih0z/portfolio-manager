@@ -106,6 +106,8 @@ test-*.js
 e2e/*.spec.js
 frontend/webapp/e2e/*.spec.js
 !frontend/webapp/e2e/tests/core-flows.spec.ts
+!frontend/webapp/e2e/tests/visual-regression.spec.ts
+!frontend/webapp/e2e/tests/visual-regression.spec.ts-snapshots/
 !frontend/webapp/playwright.config.ts
 frontend/webapp/test-screenshots/
 frontend/webapp/test-results-production/

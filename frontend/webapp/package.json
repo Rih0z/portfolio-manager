@@ -59,7 +59,9 @@
     "health-check": "node scripts/health-check.js",
     "check-backend": "npm run health-check",
     "test:e2e": "npx playwright test e2e/tests/core-flows.spec.ts",
-    "test:e2e:ui": "npx playwright test e2e/tests/core-flows.spec.ts --ui"
+    "test:e2e:ui": "npx playwright test e2e/tests/core-flows.spec.ts --ui",
+    "test:visual": "npx playwright test e2e/tests/visual-regression.spec.ts",
+    "test:visual:update": "npx playwright test e2e/tests/visual-regression.spec.ts --update-snapshots"
   },
   "eslintConfig": {
     "plugins": [
