@@ -8,7 +8,6 @@
  */
 
 import React, { useState, useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Tabs, TabPanel } from '../ui/tabs';
 import { Card } from '../ui/card';
 import CopyToClipboard from './CopyToClipboard';
@@ -24,14 +23,12 @@ interface AnalysisPerspectiveTabsProps {
 
 const PERSPECTIVES: Array<{
   id: AnalysisPerspective;
-  labelJa: string;
-  labelEn: string;
+  label: string;
   icon: React.ReactNode;
 }> = [
   {
     id: 'risk_analysis',
-    labelJa: 'リスク分析',
-    labelEn: 'Risk Analysis',
+    label: 'リスク分析',
     icon: (
       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
@@ -40,8 +37,7 @@ const PERSPECTIVES: Array<{
   },
   {
     id: 'cost_optimization',
-    labelJa: 'コスト最適化',
-    labelEn: 'Cost Optimization',
+    label: 'コスト最適化',
     icon: (
       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -50,8 +46,7 @@ const PERSPECTIVES: Array<{
   },
   {
     id: 'growth_strategy',
-    labelJa: '成長戦略',
-    labelEn: 'Growth Strategy',
+    label: '成長戦略',
     icon: (
       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
@@ -64,13 +59,11 @@ const AnalysisPerspectiveTabs: React.FC<AnalysisPerspectiveTabsProps> = ({
   enrichedData,
   userContext,
 }) => {
-  const { i18n } = useTranslation();
-  const isJapanese = i18n.language === 'ja';
   const [activeTab, setActiveTab] = useState<string>('risk_analysis');
 
   const tabs = PERSPECTIVES.map((p) => ({
     id: p.id,
-    label: isJapanese ? p.labelJa : p.labelEn,
+    label: p.label,
     icon: p.icon,
   }));
 
@@ -94,7 +87,7 @@ const AnalysisPerspectiveTabs: React.FC<AnalysisPerspectiveTabsProps> = ({
     <Card elevation="medium" padding="medium" data-testid="analysis-perspective-tabs">
       <div className="space-y-4">
         <h3 className="text-base font-semibold text-foreground">
-          {isJapanese ? 'AI分析プロンプト' : 'AI Analysis Prompts'}
+          AI分析プロンプト
         </h3>
 
         <Tabs
@@ -111,7 +104,7 @@ const AnalysisPerspectiveTabs: React.FC<AnalysisPerspectiveTabsProps> = ({
               <div className="bg-muted rounded-lg p-4 border border-border">
                 <div className="flex justify-between items-center mb-3">
                   <h4 className="text-sm font-medium text-foreground">
-                    {isJapanese ? '生成プロンプト' : 'Generated Prompt'}
+                    生成プロンプト
                   </h4>
                   <CopyToClipboard text={currentPrompt} mode="button" />
                 </div>
@@ -125,7 +118,7 @@ const AnalysisPerspectiveTabs: React.FC<AnalysisPerspectiveTabsProps> = ({
               {/* External AI links */}
               <div>
                 <h4 className="text-sm font-medium text-foreground mb-3">
-                  {isJapanese ? 'AIで分析する' : 'Analyze with AI'}
+                  AIで分析する
                 </h4>
                 <ExternalAILinks textToCopy={currentPrompt} />
               </div>

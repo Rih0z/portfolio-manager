@@ -97,7 +97,9 @@ describe('ScreenshotAnalyzer', () => {
     it('プライバシー保護アイコンが表示される', () => {
       render(<ScreenshotAnalyzer />);
       
-      expect(screen.getByText('🔒')).toBeInTheDocument();
+      // Lock icon is now a Lucide SVG (Lock component), not an emoji
+      // Verify the privacy section exists via surrounding text instead
+      expect(screen.getByText('プライバシー保護について')).toBeInTheDocument();
     });
   });
 

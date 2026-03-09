@@ -135,13 +135,15 @@ const SharedPortfolio: React.FC = () => {
     value: item.percentage,
   }));
 
-  const ageGroupLabel = AGE_GROUPS.find((g) => g.value === share.ageGroup)?.label || share.ageGroup;
+  const ageGroupLabel = share.ageGroup
+    ? AGE_GROUPS.find((g) => g.value === share.ageGroup)?.label || share.ageGroup
+    : null;
 
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
         <title>{share.displayName} のポートフォリオ - PortfolioWise</title>
-        <meta name="description" content={`${share.displayName}（${ageGroupLabel}）の資産配分を確認 - PortfolioWise`} />
+        <meta name="description" content={`${share.displayName}${ageGroupLabel ? `（${ageGroupLabel}）` : ''}の資産配分を確認 - PortfolioWise`} />
         <meta property="og:title" content={`${share.displayName} のポートフォリオ - PortfolioWise`} />
         <meta property="og:description" content={`${share.assetCount}銘柄、スコア${share.portfolioScore}点の投資ポートフォリオ`} />
         <meta property="og:type" content="website" />
@@ -168,7 +170,7 @@ const SharedPortfolio: React.FC = () => {
             {share.displayName}
           </h1>
           <div className="flex items-center justify-center gap-2">
-            <Badge variant="secondary">{ageGroupLabel}</Badge>
+            {ageGroupLabel && <Badge variant="secondary">{ageGroupLabel}</Badge>}
             <Badge variant="outline">{share.assetCount} 銘柄</Badge>
             <span className="text-xs text-muted-foreground">
               {new Date(share.createdAt).toLocaleDateString('ja-JP')} 共有

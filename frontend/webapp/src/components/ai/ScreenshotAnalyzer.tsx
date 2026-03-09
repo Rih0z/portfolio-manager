@@ -13,7 +13,7 @@
  */
 
 import React, { useState } from 'react';
-import { FileText, CheckCircle, Lightbulb } from 'lucide-react';
+import { FileText, CheckCircle, Lightbulb, Lock } from 'lucide-react';
 import logger from '../../utils/logger';
 
 const ScreenshotAnalyzer = ({
@@ -104,7 +104,7 @@ const ScreenshotAnalyzer = ({
       <div className="mb-6">
         <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
           <div className="flex items-start space-x-3">
-            <div className="text-2xl">🔒</div>
+            <div className="text-2xl flex items-center"><Lock className="w-6 h-6 text-blue-400" /></div>
             <div>
               <h5 className="text-blue-400 font-medium mb-2">
                 プライバシー保護について

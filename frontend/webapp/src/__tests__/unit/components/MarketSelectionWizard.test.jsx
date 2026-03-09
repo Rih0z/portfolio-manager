@@ -240,33 +240,13 @@ describe('MarketSelectionWizard', () => {
     expect(container.firstChild).toHaveClass('custom-class');
   });
 
-  test('renders in English when language is set to English', () => {
-    // i18nの言語を英語に変更
-    i18n.changeLanguage('en');
-
-    render(
-      <I18nextProvider i18n={i18n}>
-        <MarketSelectionWizard
-          selectedMarkets={[]}
-          onMarketsChange={mockOnMarketsChange}
-        />
-      </I18nextProvider>
-    );
-
-    expect(screen.getByText('Which markets would you like to invest in?')).toBeInTheDocument();
-    expect(screen.getByText('US Market')).toBeInTheDocument();
-
-    // 日本語に戻す
-    i18n.changeLanguage('ja');
-  });
-
   test('INVESTMENT_MARKETS constant has correct structure', () => {
     // 全ての市場が必要なプロパティを持っていることを確認
     Object.values(INVESTMENT_MARKETS).forEach(market => {
       expect(market).toHaveProperty('id');
       expect(market).toHaveProperty('name');
       expect(market).toHaveProperty('nameEn');
-      expect(market).toHaveProperty('icon');
+      expect(market).toHaveProperty('iconKey');
       expect(market).toHaveProperty('examples');
       expect(market).toHaveProperty('examplesEn');
       expect(market).toHaveProperty('japanAvailable');

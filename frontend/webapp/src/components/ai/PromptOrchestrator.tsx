@@ -11,7 +11,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Target, Lightbulb } from 'lucide-react';
+import { Target, Lightbulb, Search, MessageSquare, Star } from 'lucide-react';
 import promptOrchestrationService from '../../services/PromptOrchestrationService';
 import logger from '../../utils/logger';
 
@@ -196,7 +196,7 @@ const PromptOrchestrator = ({
               onClick={() => openAI('gemini')}
               className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 text-white text-center"
             >
-              <div className="text-lg mb-1">🔍</div>
+              <div className="text-lg mb-1 flex justify-center"><Search size={16} /></div>
               <div className="font-medium">Gemini</div>
               <div className="text-xs opacity-80">
                 最新情報・市場分析
@@ -207,7 +207,7 @@ const PromptOrchestrator = ({
               onClick={() => openAI('chatgpt')}
               className="p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 text-white text-center"
             >
-              <div className="text-lg mb-1">💬</div>
+              <div className="text-lg mb-1 flex justify-center"><MessageSquare size={16} /></div>
               <div className="font-medium">ChatGPT</div>
               <div className="text-xs opacity-80">
                 対話・創造的思考
@@ -230,7 +230,7 @@ const PromptOrchestrator = ({
                 onClick={() => submitFeedback(rating)}
                 className="w-10 h-10 rounded-full bg-muted hover:bg-yellow-500 border border-border hover:border-yellow-400 transition-all duration-200 flex items-center justify-center"
               >
-                <span className="text-lg">⭐</span>
+                <Star size={16} className="text-yellow-400" />
               </button>
             ))}
           </div>

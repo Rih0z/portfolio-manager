@@ -12,7 +12,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
+import { Globe, Globe2, Building2, Gem, BarChart3, Trophy } from 'lucide-react';
 
 // 投資対象市場の定義
 export const INVESTMENT_MARKETS = {
@@ -20,7 +20,7 @@ export const INVESTMENT_MARKETS = {
     id: 'US',
     name: '米国市場',
     nameEn: 'US Market',
-    icon: '🇺🇸',
+    iconKey: 'US',
     examples: ['S&P500', 'NASDAQ', '個別米国株'],
     examplesEn: ['S&P500', 'NASDAQ', 'Individual US Stocks'],
     japanAvailable: true,
@@ -30,7 +30,7 @@ export const INVESTMENT_MARKETS = {
     id: 'JAPAN',
     name: '日本市場',
     nameEn: 'Japan Market',
-    icon: '🇯🇵',
+    iconKey: 'JAPAN',
     examples: ['日経225', 'TOPIX', '個別日本株'],
     examplesEn: ['Nikkei 225', 'TOPIX', 'Individual Japanese Stocks'],
     japanAvailable: true,
@@ -40,7 +40,7 @@ export const INVESTMENT_MARKETS = {
     id: 'GLOBAL',
     name: '全世界',
     nameEn: 'Global Markets',
-    icon: '🌐',
+    iconKey: 'GLOBAL',
     examples: ['オルカン', 'VTI', '新興国含む'],
     examplesEn: ['All Country', 'VTI', 'Including Emerging Markets'],
     japanAvailable: true,
@@ -50,7 +50,7 @@ export const INVESTMENT_MARKETS = {
     id: 'REIT',
     name: 'REIT',
     nameEn: 'REIT',
-    icon: '🏠',
+    iconKey: 'REIT',
     examples: ['J-REIT', '米国REIT', '不動産投資'],
     examplesEn: ['J-REIT', 'US REIT', 'Real Estate Investment'],
     japanAvailable: true,
@@ -60,7 +60,7 @@ export const INVESTMENT_MARKETS = {
     id: 'CRYPTO',
     name: '仮想通貨',
     nameEn: 'Cryptocurrency',
-    icon: '💎',
+    iconKey: 'CRYPTO',
     examples: ['ビットコイン', 'イーサリアム', 'その他暗号資産'],
     examplesEn: ['Bitcoin', 'Ethereum', 'Other Crypto Assets'],
     japanAvailable: true,
@@ -70,7 +70,7 @@ export const INVESTMENT_MARKETS = {
     id: 'BONDS',
     name: '債券',
     nameEn: 'Bonds',
-    icon: '📊',
+    iconKey: 'BONDS',
     examples: ['国債・社債', '先進国債券', '新興国債券'],
     examplesEn: ['Government/Corporate Bonds', 'Developed Market Bonds', 'Emerging Market Bonds'],
     japanAvailable: true,
@@ -78,26 +78,33 @@ export const INVESTMENT_MARKETS = {
   }
 };
 
+// 市場アイコンマップ（Lucide Icons）
+const MARKET_ICONS: Record<string, React.ReactNode> = {
+  US: <span className="flex items-center justify-center gap-1"><Globe className="w-6 h-6" /><span className="text-xs font-bold">US</span></span>,
+  JAPAN: <span className="flex items-center justify-center gap-1"><Globe className="w-6 h-6" /><span className="text-xs font-bold">JP</span></span>,
+  GLOBAL: <Globe2 className="w-6 h-6" />,
+  REIT: <Building2 className="w-6 h-6" />,
+  CRYPTO: <Gem className="w-6 h-6" />,
+  BONDS: <BarChart3 className="w-6 h-6" />,
+};
+
 // 人気の組み合わせ
 export const POPULAR_COMBINATIONS = [
   {
     id: 'us_japan',
     name: '米国 + 日本',
-    nameEn: 'US + Japan',
     percentage: 68,
     markets: ['US', 'JAPAN']
   },
   {
     id: 'global_only',
     name: '全世界のみ',
-    nameEn: 'Global Only',
     percentage: 23,
     markets: ['GLOBAL']
   },
   {
     id: 'us_japan_reit',
     name: '米国 + 日本 + REIT',
-    nameEn: 'US + Japan + REIT',
     percentage: 15,
     markets: ['US', 'JAPAN', 'REIT']
   }
@@ -110,11 +117,8 @@ const MarketSelectionWizard = ({
   showPopularCombinations = true,
   className = ''
 }: any) => {
-  const { t, i18n } = useTranslation();
   const [localSelectedMarkets, setLocalSelectedMarkets] = useState(selectedMarkets);
   const [animatingCards, setAnimatingCards] = useState(new Set());
-
-  const isJapanese = i18n.language === 'ja';
 
   useEffect(() => {
     setLocalSelectedMarkets(selectedMarkets);
@@ -151,10 +155,10 @@ const MarketSelectionWizard = ({
       {showTitle && (
         <div className="text-center">
           <h3 className="text-xl font-semibold text-white mb-2">
-            {isJapanese ? 'どの市場に投資したいですか？' : 'Which markets would you like to invest in?'}
+            どの市場に投資したいですか？
           </h3>
           <p className="text-muted-foreground text-sm">
-            {isJapanese ? '複数選択可能です' : 'Multiple selections allowed'}
+            複数選択可能です
           </p>
         </div>
       )}
@@ -190,12 +194,12 @@ const MarketSelectionWizard = ({
 
               {/* Market content */}
               <div className="text-center space-y-2">
-                <div className="text-3xl mb-2">{market.icon}</div>
+                <div className="text-3xl mb-2 flex items-center justify-center">{MARKET_ICONS[market.id]}</div>
                 <h4 className="font-semibold text-white text-sm">
-                  {isJapanese ? market.name : market.nameEn}
+                  {market.name}
                 </h4>
                 <div className="space-y-1">
-                  {(isJapanese ? market.examples : market.examplesEn).map((example, index) => (
+                  {market.examples.map((example, index) => (
                     <div key={index} className="text-xs text-muted-foreground">
                       {example}
                     </div>
@@ -217,7 +221,7 @@ const MarketSelectionWizard = ({
       {showPopularCombinations && (
         <div className="mt-6">
           <h4 className="text-lg font-medium text-white mb-3">
-            {isJapanese ? '人気の組み合わせ:' : 'Popular Combinations:'}
+            人気の組み合わせ:
           </h4>
           <div className="space-y-2">
             {POPULAR_COMBINATIONS.map((combination) => (
@@ -228,11 +232,12 @@ const MarketSelectionWizard = ({
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
-                    <span className="text-yellow-400 font-bold">
-                      {combination.percentage === 68 ? '🥇' : combination.percentage === 23 ? '🥈' : '🥉'}
+                    <span className="text-yellow-400 font-bold flex items-center gap-1">
+                      <Trophy className="w-4 h-4" />
+                      {combination.percentage === 68 ? '1位' : combination.percentage === 23 ? '2位' : '3位'}
                     </span>
                     <span className="text-white font-medium">
-                      {isJapanese ? combination.name : combination.nameEn}
+                      {combination.name}
                     </span>
                   </div>
                   <span className="text-muted-foreground text-sm">
@@ -249,7 +254,7 @@ const MarketSelectionWizard = ({
       {localSelectedMarkets.length > 0 && (
         <div className="mt-6 p-4 bg-muted rounded-lg border border-border">
           <h4 className="text-white font-medium mb-2">
-            {isJapanese ? '選択された市場:' : 'Selected Markets:'}
+            選択された市場:
           </h4>
           <div className="flex flex-wrap gap-2">
             {localSelectedMarkets.map((marketId) => {
@@ -259,8 +264,8 @@ const MarketSelectionWizard = ({
                   key={marketId}
                   className={`inline-flex items-center px-3 py-1 rounded-full text-sm bg-gradient-to-r ${market.color} text-white`}
                 >
-                  <span className="mr-1">{market.icon}</span>
-                  {isJapanese ? market.name : market.nameEn}
+                  <span className="mr-1 flex items-center">{MARKET_ICONS[market.id]}</span>
+                  {market.name}
                 </span>
               );
             })}

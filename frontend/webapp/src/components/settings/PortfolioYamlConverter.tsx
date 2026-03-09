@@ -11,12 +11,10 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { useTranslation } from 'react-i18next';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 import logger from '../../utils/logger';
 
 const PortfolioYamlConverter = () => {
-  const { t, i18n } = useTranslation();
   const {
     currentAssets,
     targetPortfolio,
@@ -29,8 +27,6 @@ const PortfolioYamlConverter = () => {
   const [yamlInput, setYamlInput] = useState('');
   const [importStatus, setImportStatus] = useState(null);
   const [showCopyConfirm, setShowCopyConfirm] = useState(false);
-  
-  const isJapanese = i18n.language === 'ja';
 
   // ポートフォリオデータをYAML形式に変換
   const generateYamlPrompt = useCallback(() => {
@@ -155,10 +151,10 @@ ${yamlData.portfolio.targetAllocation.map(item => `    - ティッカー: ${item
     if (yamlString) {
       navigator.clipboard.writeText(yamlString).then(() => {
         setShowCopyConfirm(true);
-        setImportStatus({ type: 'success', message: isJapanese ? 'YAMLを生成してクリップボードにコピーしました' : 'YAML generated and copied to clipboard' });
+        setImportStatus({ type: 'success', message: 'YAMLを生成してクリップボードにコピーしました' });
         setTimeout(() => setShowCopyConfirm(false), 3000);
       }).catch(() => {
-        setImportStatus({ type: 'success', message: isJapanese ? 'YAML生成完了（手動でコピーしてください）' : 'YAML generated (please copy manually)' });
+        setImportStatus({ type: 'success', message: 'YAML生成完了（手動でコピーしてください）' });
       });
     }
   };
@@ -175,19 +171,15 @@ ${yamlData.portfolio.targetAllocation.map(item => `    - ティッカー: ${item
     
     if (result.success && result.assets.length > 0) {
       importData({ currentAssets: result.assets, targetPortfolio: result.assets.map(a => ({ id: a.ticker, ticker: a.ticker, name: a.name, targetPercentage: 0 })) });
-      setImportStatus({ 
-        type: 'success', 
-        message: isJapanese 
-          ? `${result.assets.length}件の資産を取り込みました` 
-          : `Imported ${result.assets.length} assets`
+      setImportStatus({
+        type: 'success',
+        message: `${result.assets.length}件の資産を取り込みました`
       });
       setYamlInput('');
     } else {
-      setImportStatus({ 
-        type: 'error', 
-        message: isJapanese 
-          ? 'YAMLの解析に失敗しました' 
-          : 'Failed to parse YAML'
+      setImportStatus({
+        type: 'error',
+        message: 'YAMLの解析に失敗しました'
       });
     }
   };
@@ -197,20 +189,18 @@ ${yamlData.portfolio.targetAllocation.map(item => `    - ティッカー: ${item
       {/* YAML生成セクション */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
-          {isJapanese ? 'AI分析用YAMLプロンプト生成' : 'Generate YAML Prompt for AI Analysis'}
+          AI分析用YAMLプロンプト生成
         </h3>
         
         <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-          {isJapanese 
-            ? '現在のポートフォリオをYAML形式で出力し、AIに分析を依頼できます。'
-            : 'Export your portfolio in YAML format for AI analysis.'}
+          現在のポートフォリオをYAML形式で出力し、AIに分析を依頼できます。
         </p>
 
         <button
           onClick={handleGenerateYaml}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors mb-4"
         >
-          {isJapanese ? 'YAMLプロンプトを生成' : 'Generate YAML Prompt'}
+          YAMLプロンプトを生成
         </button>
 
         {yamlOutput && (
@@ -233,21 +223,17 @@ ${yamlData.portfolio.targetAllocation.map(item => `    - ティッカー: ${item
       {/* YAML取り込みセクション */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
-          {isJapanese ? 'AI分析結果（YAML）の取り込み' : 'Import AI Analysis Results (YAML)'}
+          AI分析結果（YAML）の取り込み
         </h3>
         
         <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-          {isJapanese 
-            ? 'AIから返却されたYAML形式のデータを貼り付けて取り込みます。'
-            : 'Paste YAML data returned from AI analysis.'}
+          AIから返却されたYAML形式のデータを貼り付けて取り込みます。
         </p>
 
         <textarea
           value={yamlInput}
           onChange={(e) => setYamlInput(e.target.value)}
-          placeholder={isJapanese 
-            ? 'AIから返却されたYAMLデータをここに貼り付けてください...' 
-            : 'Paste YAML data from AI here...'}
+          placeholder="AIから返却されたYAMLデータをここに貼り付けてください..."
           className="w-full h-48 p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-sm font-mono"
         />
 
@@ -260,7 +246,7 @@ ${yamlData.portfolio.targetAllocation.map(item => `    - ティッカー: ${item
               : 'bg-gray-300 text-gray-500 cursor-not-allowed'
           }`}
         >
-          {isJapanese ? 'YAMLデータを取り込む' : 'Import YAML Data'}
+          YAMLデータを取り込む
         </button>
 
         {importStatus && (
@@ -277,13 +263,13 @@ ${yamlData.portfolio.targetAllocation.map(item => `    - ティッカー: ${item
       {/* 使用方法の説明 */}
       <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
         <h4 className="font-semibold text-blue-900 dark:text-blue-200 mb-2">
-          {isJapanese ? '使用方法' : 'How to Use'}
+          使用方法
         </h4>
         <ol className="list-decimal list-inside space-y-1 text-sm text-blue-800 dark:text-blue-300">
-          <li>{isJapanese ? 'YAMLプロンプトを生成してコピー' : 'Generate and copy YAML prompt'}</li>
-          <li>{isJapanese ? 'Claude、ChatGPT等のAIに貼り付けて分析を依頼' : 'Paste to AI (Claude, ChatGPT) for analysis'}</li>
-          <li>{isJapanese ? 'AIから返却された改善案（YAML形式）を取り込み' : 'Import AI suggestions in YAML format'}</li>
-          <li>{isJapanese ? 'ポートフォリオが自動的に更新されます' : 'Portfolio will be updated automatically'}</li>
+          <li>YAMLプロンプトを生成してコピー</li>
+          <li>Claude、ChatGPT等のAIに貼り付けて分析を依頼</li>
+          <li>AIから返却された改善案（YAML形式）を取り込み</li>
+          <li>ポートフォリオが自動的に更新されます</li>
         </ol>
       </div>
     </div>

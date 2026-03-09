@@ -161,7 +161,7 @@ const ShareLinkDisplay: React.FC<ShareLinkDisplayProps> = ({ share, compact = fa
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
           <span>Score: {share.portfolioScore}</span>
           <span>{share.assetCount} 銘柄</span>
-          <span>{share.ageGroup}</span>
+          {share.ageGroup && <span>{share.ageGroup}</span>}
         </div>
         <Button
           variant="ghost"

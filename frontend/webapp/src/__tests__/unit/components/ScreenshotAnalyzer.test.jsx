@@ -46,7 +46,7 @@ describe('ScreenshotAnalyzer', () => {
     render(<ScreenshotAnalyzer onDataExtracted={mockOnDataExtracted} />);
 
     expect(screen.getByText('プライバシー保護について')).toBeInTheDocument();
-    expect(screen.getByText('🔒')).toBeInTheDocument();
+    // Lock icon is now a Lucide SVG (Lock component), not an emoji
   });
 
   test('displays AI response input textarea', () => {

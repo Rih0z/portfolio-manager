@@ -22,6 +22,7 @@ interface ShareDialogProps {
 
 const ShareDialog: React.FC<ShareDialogProps> = ({ isOpen, onClose }) => {
   const [displayName, setDisplayName] = useState('');
+  const [showAgeGroup, setShowAgeGroup] = useState(false);
   const [ageGroup, setAgeGroup] = useState('');
   const [createdShare, setCreatedShare] = useState<any>(null);
   const [error, setError] = useState('');
@@ -76,11 +77,6 @@ const ShareDialog: React.FC<ShareDialogProps> = ({ isOpen, onClose }) => {
       return;
     }
 
-    if (!ageGroup) {
-      setError('年代を選択してください');
-      return;
-    }
-
     const allocationSnapshot = generateAllocationSnapshot();
     if (allocationSnapshot.length === 0) {
       setError('ポートフォリオにデータがありません。先に設定を行ってください。');
@@ -89,7 +85,7 @@ const ShareDialog: React.FC<ShareDialogProps> = ({ isOpen, onClose }) => {
 
     const share = await createShare({
       displayName: displayName.trim(),
-      ageGroup,
+      ageGroup: showAgeGroup && ageGroup ? ageGroup : undefined,
       allocationSnapshot,
       portfolioScore: calculateSimpleScore(),
       assetCount: currentAssets?.length || 0,
@@ -102,6 +98,7 @@ const ShareDialog: React.FC<ShareDialogProps> = ({ isOpen, onClose }) => {
 
   const handleClose = () => {
     setDisplayName('');
+    setShowAgeGroup(false);
     setAgeGroup('');
     setCreatedShare(null);
     setError('');
@@ -151,15 +148,30 @@ const ShareDialog: React.FC<ShareDialogProps> = ({ isOpen, onClose }) => {
               required
             />
 
-            <Select
-              label="年代"
-              options={AGE_GROUPS.map((g) => ({ value: g.value, label: g.label }))}
-              value={ageGroup}
-              onChange={(e) => setAgeGroup(e.target.value)}
-              placeholder="年代を選択"
-              helperText="同年代の投資家との比較に使用されます"
-              required
-            />
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showAgeGroup}
+                  onChange={(e) => {
+                    setShowAgeGroup(e.target.checked);
+                    if (!e.target.checked) setAgeGroup('');
+                  }}
+                  className="rounded border-border text-primary-500 focus:ring-primary-500"
+                />
+                <span className="text-sm text-foreground">年代を公開する</span>
+              </label>
+              {showAgeGroup && (
+                <Select
+                  label="年代"
+                  options={AGE_GROUPS.map((g) => ({ value: g.value, label: g.label }))}
+                  value={ageGroup}
+                  onChange={(e) => setAgeGroup(e.target.value)}
+                  placeholder="年代を選択"
+                  helperText="同年代の投資家との比較に使用されます"
+                />
+              )}
+            </div>
 
             {error && (
               <p className="text-sm text-danger-500" role="alert">

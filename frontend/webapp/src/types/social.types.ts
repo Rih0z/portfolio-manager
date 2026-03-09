@@ -9,7 +9,7 @@
 export interface SharedPortfolio {
   shareId: string;
   displayName: string;
-  ageGroup: string;
+  ageGroup?: string;
   allocationSnapshot: { category: string; percentage: number }[];
   portfolioScore: number;
   assetCount: number;

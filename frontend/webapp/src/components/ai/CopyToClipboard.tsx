@@ -8,7 +8,6 @@
  */
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Button } from '../ui/button';
 import { cn } from '../../lib/utils';
 
@@ -42,9 +41,7 @@ const CopyToClipboard: React.FC<CopyToClipboardProps> = ({
   className,
   onCopied,
 }) => {
-  const { i18n } = useTranslation();
   const [copied, setCopied] = useState(false);
-  const isJapanese = i18n.language === 'ja';
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -82,7 +79,7 @@ const CopyToClipboard: React.FC<CopyToClipboardProps> = ({
             : 'text-muted-foreground hover:text-foreground hover:bg-muted',
           className
         )}
-        title={copied ? (isJapanese ? 'コピー済み' : 'Copied') : (isJapanese ? 'コピー' : 'Copy')}
+        title={copied ? 'コピー済み' : 'コピー'}
       >
         {copied ? <CheckIcon /> : <CopyIcon />}
       </button>
@@ -98,9 +95,7 @@ const CopyToClipboard: React.FC<CopyToClipboardProps> = ({
       className={className}
       data-testid="copy-to-clipboard"
     >
-      {copied
-        ? (isJapanese ? 'コピー済み' : 'Copied!')
-        : (isJapanese ? 'コピー' : 'Copy')}
+      {copied ? 'コピー済み' : 'コピー'}
     </Button>
   );
 };

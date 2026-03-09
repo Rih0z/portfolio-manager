@@ -8,8 +8,8 @@
  */
 
 import React, { useCallback } from 'react';
-import { useTranslation } from 'react-i18next';
 import { cn } from '../../lib/utils';
+import { Target, Search, MessageSquare } from 'lucide-react';
 
 interface ExternalAILinksProps {
   textToCopy: string;
@@ -20,9 +20,8 @@ interface AIService {
   id: string;
   name: string;
   url: string;
-  icon: string;
-  descJa: string;
-  descEn: string;
+  icon: React.ReactNode;
+  desc: string;
   gradient: string;
 }
 
@@ -31,27 +30,24 @@ const AI_SERVICES: AIService[] = [
     id: 'claude',
     name: 'Claude',
     url: 'https://claude.ai/new',
-    icon: '🎯',
-    descJa: '長期戦略・詳細分析',
-    descEn: 'Long-term Strategy',
+    icon: <Target size={16} />,
+    desc: '長期戦略・詳細分析',
     gradient: 'from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700',
   },
   {
     id: 'gemini',
     name: 'Gemini',
     url: 'https://gemini.google.com/app',
-    icon: '🔍',
-    descJa: '最新情報・市場分析',
-    descEn: 'Latest Info & Markets',
+    icon: <Search size={16} />,
+    desc: '最新情報・市場分析',
     gradient: 'from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700',
   },
   {
     id: 'chatgpt',
     name: 'ChatGPT',
     url: 'https://chatgpt.com/',
-    icon: '💬',
-    descJa: '対話・創造的思考',
-    descEn: 'Interactive & Creative',
+    icon: <MessageSquare size={16} />,
+    desc: '対話・創造的思考',
     gradient: 'from-green-500 to-green-600 hover:from-green-600 hover:to-green-700',
   },
 ];
@@ -60,9 +56,6 @@ const ExternalAILinks: React.FC<ExternalAILinksProps> = ({
   textToCopy,
   className,
 }) => {
-  const { i18n } = useTranslation();
-  const isJapanese = i18n.language === 'ja';
-
   const handleCopyAndOpen = useCallback(
     async (service: AIService) => {
       try {
@@ -97,10 +90,10 @@ const ExternalAILinks: React.FC<ExternalAILinksProps> = ({
           <div className="text-lg mb-1">{service.icon}</div>
           <div className="font-medium">{service.name}</div>
           <div className="text-xs opacity-80">
-            {isJapanese ? service.descJa : service.descEn}
+            {service.desc}
           </div>
           <div className="text-[10px] opacity-60 mt-1">
-            {isJapanese ? 'コピーして開く' : 'Copy & Open'}
+            コピーして開く
           </div>
         </button>
       ))}

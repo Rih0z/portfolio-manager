@@ -262,7 +262,10 @@ describe('PromptOrchestrator', () => {
     await clickGenerateAndWait();
 
     expect(screen.getByText('プロンプトの評価')).toBeInTheDocument();
-    expect(screen.getAllByText('⭐')).toHaveLength(5);
+    // Star icons are Lucide SVGs inside buttons (5 rating buttons)
+    const ratingSection = screen.getByText('プロンプトの評価').closest('div');
+    const ratingButtons = ratingSection.querySelectorAll('button');
+    expect(ratingButtons.length).toBe(5);
   });
 
   test('submits feedback when star is clicked', async () => {
@@ -279,7 +282,9 @@ describe('PromptOrchestrator', () => {
     await clickGenerateAndWait();
 
     await act(async () => {
-      const starButtons = screen.getAllByText('⭐');
+      // Star icons are Lucide SVGs inside buttons
+      const ratingSection = screen.getByText('プロンプトの評価').closest('div');
+      const starButtons = ratingSection.querySelectorAll('button');
       fireEvent.click(starButtons[4]); // 5 star rating
       await flushPromises();
     });

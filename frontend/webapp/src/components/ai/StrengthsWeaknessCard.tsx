@@ -9,7 +9,6 @@
 
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import type { EnrichedPortfolioData } from '../../utils/portfolioDataEnricher';
@@ -21,9 +20,7 @@ interface StrengthsWeaknessCardProps {
 const StrengthsWeaknessCard: React.FC<StrengthsWeaknessCardProps> = ({
   enrichedData,
 }) => {
-  const { i18n } = useTranslation();
   const navigate = useNavigate();
-  const isJapanese = i18n.language === 'ja';
 
   return (
     <Card
@@ -33,14 +30,14 @@ const StrengthsWeaknessCard: React.FC<StrengthsWeaknessCardProps> = ({
     >
       <div className="space-y-3">
         <h3 className="text-sm font-semibold text-foreground">
-          {isJapanese ? 'ポートフォリオ・インサイト' : 'Portfolio Insights'}
+          ポートフォリオ・インサイト
         </h3>
 
         <div className="space-y-2">
           {/* Strength */}
           <div className="flex items-start gap-2">
             <Badge variant="success" className="shrink-0 mt-0.5">
-              {isJapanese ? '強み' : 'Strength'}
+              強み
             </Badge>
             <span className="text-sm text-foreground leading-snug">
               {enrichedData.strengthLine}
@@ -50,7 +47,7 @@ const StrengthsWeaknessCard: React.FC<StrengthsWeaknessCardProps> = ({
           {/* Weakness */}
           <div className="flex items-start gap-2">
             <Badge variant="danger" className="shrink-0 mt-0.5">
-              {isJapanese ? '弱み' : 'Weakness'}
+              弱み
             </Badge>
             <span className="text-sm text-foreground leading-snug">
               {enrichedData.weaknessLine}
@@ -76,7 +73,7 @@ const StrengthsWeaknessCard: React.FC<StrengthsWeaknessCardProps> = ({
               d="M13 7l5 5m0 0l-5 5m5-5H6"
             />
           </svg>
-          {isJapanese ? 'AI分析を見る' : 'View AI Analysis'}
+          AI分析を見る
         </button>
       </div>
     </Card>

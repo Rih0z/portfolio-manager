@@ -106,7 +106,7 @@ function DialogHeader({
         <button
           onClick={onClose}
           className="ml-4 rounded-lg p-1 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-          aria-label="Close"
+          aria-label="閉じる"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"

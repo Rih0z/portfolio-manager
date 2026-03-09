@@ -1,11 +1,11 @@
 import { vi } from "vitest";
 /**
  * InitialSetupWizard.jsx のユニットテスト
- * 初期設定ウィザードのテスト
+ * 1画面統合版の初期設定ウィザードテスト
  */
 
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import InitialSetupWizard from '../../../../components/common/InitialSetupWizard';
 
@@ -16,14 +16,6 @@ vi.mock('../../../../hooks/usePortfolioContext', () => ({
 
 import { usePortfolioContext } from '../../../../hooks/usePortfolioContext';
 
-// i18next のモック
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key) => key,
-    i18n: { language: 'ja' }
-  })
-}));
-
 // モックコンテキスト値を作成するヘルパー関数
 const createMockContext = (overrides = {}) => ({
   setBaseCurrency: vi.fn(),
@@ -31,6 +23,12 @@ const createMockContext = (overrides = {}) => ({
   addNotification: vi.fn(),
   ...overrides
 });
+
+// detectCurrency()はnavigator.languageを使うため、テスト環境でのデフォルト通貨を把握
+const getDefaultCurrency = () => {
+  const lang = navigator.language || 'ja';
+  return lang.startsWith('ja') ? 'JPY' : 'USD';
+};
 
 describe('InitialSetupWizard', () => {
   let mockOnComplete;
@@ -40,374 +38,196 @@ describe('InitialSetupWizard', () => {
     mockOnComplete = vi.fn();
   });
 
-  describe('ステップ1: 基本設定', () => {
-    it('初期表示でステップ1が表示される', () => {
+  describe('初期表示', () => {
+    it('ウェルカムメッセージが表示される', () => {
       const mockContext = createMockContext();
-
       usePortfolioContext.mockReturnValue(mockContext);
-      render(
-        <InitialSetupWizard onComplete={mockOnComplete} />
-      );
+      render(<InitialSetupWizard onComplete={mockOnComplete} />);
 
       expect(screen.getByText('Portfolio Wiseへようこそ！')).toBeInTheDocument();
-      expect(screen.getByText('まず、基本的な設定から始めましょう。')).toBeInTheDocument();
-      expect(screen.getByText('表示通貨を選択してください')).toBeInTheDocument();
+      expect(screen.getByText(/基本設定を行いましょう/)).toBeInTheDocument();
+    });
+
+    it('通貨選択ボタンが表示される', () => {
+      const mockContext = createMockContext();
+      usePortfolioContext.mockReturnValue(mockContext);
+      render(<InitialSetupWizard onComplete={mockOnComplete} />);
+
+      expect(screen.getByText('表示通貨')).toBeInTheDocument();
       expect(screen.getByText('¥ 日本円')).toBeInTheDocument();
       expect(screen.getByText('$ 米ドル')).toBeInTheDocument();
     });
 
-    it('デフォルトでJPYが選択されている', () => {
+    it('予算入力フィールドが表示される', () => {
       const mockContext = createMockContext();
-
       usePortfolioContext.mockReturnValue(mockContext);
-      render(
-        <InitialSetupWizard onComplete={mockOnComplete} />
-      );
+      render(<InitialSetupWizard onComplete={mockOnComplete} />);
 
-      const jpyButton = screen.getByText('¥ 日本円').closest('button');
-      const usdButton = screen.getByText('$ 米ドル').closest('button');
+      expect(screen.getByText('投資予算（任意）')).toBeInTheDocument();
+    });
 
-      expect(jpyButton).toHaveClass('border-primary-500', 'bg-primary-50');
-      expect(usdButton).not.toHaveClass('border-primary-500', 'bg-primary-50');
+    it('投資対象市場セクションが表示される', () => {
+      const mockContext = createMockContext();
+      usePortfolioContext.mockReturnValue(mockContext);
+      render(<InitialSetupWizard onComplete={mockOnComplete} />);
+
+      expect(screen.getByText('投資対象市場')).toBeInTheDocument();
+    });
+
+    it('設定完了ボタンとスキップリンクが表示される', () => {
+      const mockContext = createMockContext();
+      usePortfolioContext.mockReturnValue(mockContext);
+      render(<InitialSetupWizard onComplete={mockOnComplete} />);
+
+      expect(screen.getByRole('button', { name: '設定を完了' })).toBeInTheDocument();
+      expect(screen.getByText('スキップしてダッシュボードへ')).toBeInTheDocument();
+    });
+  });
+
+  describe('通貨選択', () => {
+    it('デフォルト通貨が選択されている', () => {
+      const mockContext = createMockContext();
+      usePortfolioContext.mockReturnValue(mockContext);
+      render(<InitialSetupWizard onComplete={mockOnComplete} />);
+
+      const defaultCurrency = getDefaultCurrency();
+      const selectedLabel = defaultCurrency === 'JPY' ? '¥ 日本円' : '$ 米ドル';
+      const selectedButton = screen.getByText(selectedLabel).closest('button');
+      expect(selectedButton).toHaveClass('border-primary-500');
     });
 
     it('通貨を切り替えることができる', () => {
       const mockContext = createMockContext();
-
       usePortfolioContext.mockReturnValue(mockContext);
-      render(
-        <InitialSetupWizard onComplete={mockOnComplete} />
-      );
+      render(<InitialSetupWizard onComplete={mockOnComplete} />);
 
-      const jpyButton = screen.getByText('¥ 日本円').closest('button');
-      const usdButton = screen.getByText('$ 米ドル').closest('button');
-      
-      // USDに切り替え
-      fireEvent.click(usdButton);
-      expect(usdButton).toHaveClass('border-primary-500', 'bg-primary-50');
-      expect(jpyButton).not.toHaveClass('border-primary-500', 'bg-primary-50');
-      
-      // JPYに戻す
-      fireEvent.click(jpyButton);
-      expect(jpyButton).toHaveClass('border-primary-500', 'bg-primary-50');
-      expect(usdButton).not.toHaveClass('border-primary-500', 'bg-primary-50');
+      // 初期と反対の通貨を選択
+      const defaultCurrency = getDefaultCurrency();
+      const targetLabel = defaultCurrency === 'JPY' ? '$ 米ドル' : '¥ 日本円';
+      const targetButton = screen.getByText(targetLabel).closest('button');
+      fireEvent.click(targetButton);
+
+      expect(targetButton).toHaveClass('border-primary-500');
     });
 
-    it('次へボタンでステップ2に進む', () => {
+    it('JPYを選択するとプレースホルダーが300000になる', () => {
       const mockContext = createMockContext();
-
       usePortfolioContext.mockReturnValue(mockContext);
-      render(
-        <InitialSetupWizard onComplete={mockOnComplete} />
-      );
+      render(<InitialSetupWizard onComplete={mockOnComplete} />);
 
-      fireEvent.click(screen.getByRole('button', { name: '次へ' }));
+      // JPYを明示的に選択
+      fireEvent.click(screen.getByText('¥ 日本円').closest('button'));
 
-      // ステップ2の内容が表示される
-      expect(screen.getByText('投資予算の設定')).toBeInTheDocument();
-      expect(mockContext.setBaseCurrency).toHaveBeenCalledWith('JPY');
-    });
-  });
-
-  describe('ステップ2: 投資予算', () => {
-    it('ステップ2の内容が正しく表示される', () => {
-      const mockContext = createMockContext();
-
-      usePortfolioContext.mockReturnValue(mockContext);
-      render(
-        <InitialSetupWizard onComplete={mockOnComplete} />
-      );
-
-      // ステップ2に進む
-      fireEvent.click(screen.getByRole('button', { name: '次へ' }));
-
-      expect(screen.getByText('投資予算の設定')).toBeInTheDocument();
-      expect(screen.getByText('今回の投資に使用する予算を入力してください。')).toBeInTheDocument();
-      // プレースホルダーでinput要素を確認
       expect(screen.getByPlaceholderText('300000')).toBeInTheDocument();
-      expect(screen.getByText('¥')).toBeInTheDocument();
     });
 
-    it('USDを選択した場合は$記号が表示される', () => {
+    it('USDを選択するとプレースホルダーが2000になる', () => {
       const mockContext = createMockContext();
-
       usePortfolioContext.mockReturnValue(mockContext);
-      render(
-        <InitialSetupWizard onComplete={mockOnComplete} />
-      );
+      render(<InitialSetupWizard onComplete={mockOnComplete} />);
 
-      // USDを選択
+      // USDを明示的に選択
       fireEvent.click(screen.getByText('$ 米ドル').closest('button'));
-      
-      // ステップ2に進む
-      fireEvent.click(screen.getByRole('button', { name: '次へ' }));
 
-      expect(screen.getByText('$')).toBeInTheDocument();
-    });
-
-    it('予算を入力せずに次へをクリックすると警告が表示される', () => {
-      const mockContext = createMockContext();
-
-      usePortfolioContext.mockReturnValue(mockContext);
-      render(
-        <InitialSetupWizard onComplete={mockOnComplete} />
-      );
-
-      // ステップ2に進む
-      fireEvent.click(screen.getByRole('button', { name: '次へ' }));
-
-      // 予算を入力せずに次へ
-      fireEvent.click(screen.getByRole('button', { name: '次へ' }));
-
-      expect(mockContext.addNotification).toHaveBeenCalledWith(
-        '投資予算を入力してください',
-        'warning'
-      );
-    });
-
-    it('予算を入力して次へをクリックするとステップ3に進む', () => {
-      const mockContext = createMockContext();
-
-      usePortfolioContext.mockReturnValue(mockContext);
-      render(
-        <InitialSetupWizard onComplete={mockOnComplete} />
-      );
-
-      // ステップ2に進む
-      fireEvent.click(screen.getByRole('button', { name: '次へ' }));
-
-      // 予算を入力
-      const input = screen.getByPlaceholderText('300000');
-      fireEvent.change(input, { target: { value: '500000' } });
-
-      // 次へ
-      fireEvent.click(screen.getByRole('button', { name: '次へ' }));
-
-      expect(mockContext.setAdditionalBudget).toHaveBeenCalledWith(500000, 'JPY');
-      expect(screen.getByText('投資対象の選択')).toBeInTheDocument();
-    });
-
-    it('戻るボタンでステップ1に戻る', () => {
-      const mockContext = createMockContext();
-
-      usePortfolioContext.mockReturnValue(mockContext);
-      render(
-        <InitialSetupWizard onComplete={mockOnComplete} />
-      );
-
-      // ステップ2に進む
-      fireEvent.click(screen.getByRole('button', { name: '次へ' }));
-
-      // 戻るボタンをクリック
-      fireEvent.click(screen.getByRole('button', { name: '戻る' }));
-
-      expect(screen.getByText('Portfolio Wiseへようこそ！')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('2000')).toBeInTheDocument();
     });
   });
 
-  describe('ステップ3: 投資スタイル', () => {
-    const goToStep3 = () => {
-      // ステップ2に進む
-      fireEvent.click(screen.getByRole('button', { name: '次へ' }));
-      
-      // 予算を入力
-      const input = screen.getByPlaceholderText('300000');
-      fireEvent.change(input, { target: { value: '500000' } });
-      
-      // ステップ3に進む
-      fireEvent.click(screen.getByRole('button', { name: '次へ' }));
-    };
-
-    it('ステップ3の内容が正しく表示される', () => {
+  describe('設定完了', () => {
+    it('設定完了ボタンで通貨が設定され完了する', () => {
       const mockContext = createMockContext();
-
       usePortfolioContext.mockReturnValue(mockContext);
-      render(
-        <InitialSetupWizard onComplete={mockOnComplete} />
-      );
+      render(<InitialSetupWizard onComplete={mockOnComplete} />);
 
-      goToStep3();
-
-      expect(screen.getByText('投資対象の選択')).toBeInTheDocument();
-      expect(screen.getByText('どの市場に投資したいですか？複数選択可能です。')).toBeInTheDocument();
-      expect(screen.getByText('米国市場')).toBeInTheDocument();
-      expect(screen.getByText('日本市場')).toBeInTheDocument();
-      expect(screen.getByText('全世界')).toBeInTheDocument();
-      expect(screen.getByText('REIT')).toBeInTheDocument();
-    });
-
-    it('投資対象を選択せずに完了をクリックすると警告が表示される', () => {
-      const mockContext = createMockContext();
-
-      usePortfolioContext.mockReturnValue(mockContext);
-      render(
-        <InitialSetupWizard onComplete={mockOnComplete} />
-      );
-
-      goToStep3();
-
-      // 投資対象を選択せずに完了
+      const defaultCurrency = getDefaultCurrency();
       fireEvent.click(screen.getByRole('button', { name: '設定を完了' }));
 
-      expect(mockContext.addNotification).toHaveBeenCalledWith(
-        '投資対象を選択してください',
-        'warning'
-      );
-    });
-
-    it('投資対象を選択できる', () => {
-      const mockContext = createMockContext();
-
-      usePortfolioContext.mockReturnValue(mockContext);
-      render(
-        <InitialSetupWizard onComplete={mockOnComplete} />
-      );
-
-      goToStep3();
-
-      // 米国市場を選択
-      const usButton = screen.getByText('米国市場').closest('button');
-      fireEvent.click(usButton);
-      
-      // 選択状態の確認（MarketSelectionWizardの動作）
-      expect(usButton).toHaveClass('scale-105');
-    });
-
-    it('完了ボタンで設定が完了する', () => {
-      const mockContext = createMockContext();
-
-      usePortfolioContext.mockReturnValue(mockContext);
-      render(
-        <InitialSetupWizard onComplete={mockOnComplete} />
-      );
-
-      goToStep3();
-
-      // 投資対象を選択
-      fireEvent.click(screen.getByText('米国市場').closest('button'));
-
-      // 完了
-      fireEvent.click(screen.getByRole('button', { name: '設定を完了' }));
-
+      expect(mockContext.setBaseCurrency).toHaveBeenCalledWith(defaultCurrency);
       expect(mockContext.addNotification).toHaveBeenCalledWith(
         '初期設定が完了しました',
         'success'
       );
       expect(mockOnComplete).toHaveBeenCalled();
     });
-  });
 
-  describe('プログレスバー', () => {
-    it('各ステップでプログレスバーが正しく表示される', () => {
+    it('予算を入力して完了すると予算も設定される', () => {
       const mockContext = createMockContext();
-
       usePortfolioContext.mockReturnValue(mockContext);
-      render(
-        <InitialSetupWizard onComplete={mockOnComplete} />
-      );
+      render(<InitialSetupWizard onComplete={mockOnComplete} />);
 
-      // ステップ1
-      let progressBar = screen.getByText('基本設定').parentElement.nextElementSibling.firstChild;
-      expect(progressBar).toHaveStyle({ width: '33.33333333333333%' });
+      // JPYを明示的に選択してプレースホルダーを安定化
+      fireEvent.click(screen.getByText('¥ 日本円').closest('button'));
 
-      // ステップ2に進む
-      fireEvent.click(screen.getByRole('button', { name: '次へ' }));
-      progressBar = screen.getByText('基本設定').parentElement.nextElementSibling.firstChild;
-      expect(progressBar).toHaveStyle({ width: '66.66666666666666%' });
-
-      // ステップ3に進む
+      // 予算を入力
       const input = screen.getByPlaceholderText('300000');
       fireEvent.change(input, { target: { value: '500000' } });
-      fireEvent.click(screen.getByRole('button', { name: '次へ' }));
-      progressBar = screen.getByText('基本設定').parentElement.nextElementSibling.firstChild;
-      expect(progressBar).toHaveStyle({ width: '100%' });
+
+      fireEvent.click(screen.getByRole('button', { name: '設定を完了' }));
+
+      expect(mockContext.setAdditionalBudget).toHaveBeenCalledWith(500000, 'JPY');
+      expect(mockOnComplete).toHaveBeenCalled();
     });
 
-    it('各ステップのラベルが正しくハイライトされる', () => {
+    it('予算未入力でも完了できる（任意フィールド）', () => {
       const mockContext = createMockContext();
-
       usePortfolioContext.mockReturnValue(mockContext);
-      render(
-        <InitialSetupWizard onComplete={mockOnComplete} />
-      );
+      render(<InitialSetupWizard onComplete={mockOnComplete} />);
 
-      // ステップ1
-      expect(screen.getByText('基本設定')).toHaveClass('text-primary-600', 'font-semibold');
-      expect(screen.getByText('投資予算')).toHaveClass('text-secondary-400');
-      expect(screen.getByText('投資対象')).toHaveClass('text-secondary-400');
+      fireEvent.click(screen.getByRole('button', { name: '設定を完了' }));
+
+      expect(mockContext.setAdditionalBudget).not.toHaveBeenCalled();
+      expect(mockOnComplete).toHaveBeenCalled();
+    });
+
+    it('USDを選択して完了するとUSDで設定される', () => {
+      const mockContext = createMockContext();
+      usePortfolioContext.mockReturnValue(mockContext);
+      render(<InitialSetupWizard onComplete={mockOnComplete} />);
+
+      // USDに切り替え
+      fireEvent.click(screen.getByText('$ 米ドル').closest('button'));
+
+      // 予算入力
+      const input = screen.getByPlaceholderText('2000');
+      fireEvent.change(input, { target: { value: '3000' } });
+
+      fireEvent.click(screen.getByRole('button', { name: '設定を完了' }));
+
+      expect(mockContext.setBaseCurrency).toHaveBeenCalledWith('USD');
+      expect(mockContext.setAdditionalBudget).toHaveBeenCalledWith(3000, 'USD');
+    });
+  });
+
+  describe('スキップ機能', () => {
+    it('スキップボタンでデフォルト値で完了する', () => {
+      const mockContext = createMockContext();
+      usePortfolioContext.mockReturnValue(mockContext);
+      render(<InitialSetupWizard onComplete={mockOnComplete} />);
+
+      fireEvent.click(screen.getByText('スキップしてダッシュボードへ'));
+
+      expect(mockContext.setBaseCurrency).toHaveBeenCalled();
+      expect(mockOnComplete).toHaveBeenCalled();
     });
   });
 
   describe('オーバーレイとモーダル', () => {
     it('オーバーレイが正しく表示される', () => {
       const mockContext = createMockContext();
-
       usePortfolioContext.mockReturnValue(mockContext);
-      render(
-        <InitialSetupWizard onComplete={mockOnComplete} />
-      );
+      render(<InitialSetupWizard onComplete={mockOnComplete} />);
 
-      const overlay = screen.getByText('Portfolio Wiseへようこそ！').closest('.fixed');
+      const overlay = screen.getByTestId('initial-setup-wizard');
       expect(overlay).toHaveClass('fixed', 'inset-0', 'bg-black/50', 'backdrop-blur-sm', 'flex', 'items-center', 'justify-center', 'z-50');
     });
 
     it('Cardコンポーネントが正しく使用される', () => {
       const mockContext = createMockContext();
-
       usePortfolioContext.mockReturnValue(mockContext);
-      render(
-        <InitialSetupWizard onComplete={mockOnComplete} />
-      );
+      render(<InitialSetupWizard onComplete={mockOnComplete} />);
 
       const card = screen.getByText('Portfolio Wiseへようこそ！').closest('.max-w-2xl');
       expect(card).toHaveClass('max-w-2xl', 'w-full', 'mx-4', 'max-h-[90vh]', 'overflow-y-auto');
-    });
-  });
-
-  describe('エッジケース', () => {
-    it('0や負の値の予算を入力した場合の処理', () => {
-      const mockContext = createMockContext();
-
-      usePortfolioContext.mockReturnValue(mockContext);
-      render(
-        <InitialSetupWizard onComplete={mockOnComplete} />
-      );
-
-      // ステップ2に進む
-      fireEvent.click(screen.getByRole('button', { name: '次へ' }));
-
-      // 0を入力
-      const input = screen.getByPlaceholderText('300000');
-      fireEvent.change(input, { target: { value: '0' } });
-
-      // 次へ
-      fireEvent.click(screen.getByRole('button', { name: '次へ' }));
-
-      expect(mockContext.addNotification).toHaveBeenCalledWith(
-        '投資予算を入力してください',
-        'warning'
-      );
-    });
-
-    it('市場アイコンが正しく表示される', () => {
-      const mockContext = createMockContext();
-
-      usePortfolioContext.mockReturnValue(mockContext);
-      render(
-        <InitialSetupWizard onComplete={mockOnComplete} />
-      );
-
-      // ステップ3に進む
-      fireEvent.click(screen.getByRole('button', { name: '次へ' }));
-      const input = screen.getByPlaceholderText('300000');
-      fireEvent.change(input, { target: { value: '500000' } });
-      fireEvent.click(screen.getByRole('button', { name: '次へ' }));
-
-      // 市場アイコンが表示される
-      expect(screen.getByText('🇺🇸')).toBeInTheDocument();
-      expect(screen.getByText('🇯🇵')).toBeInTheDocument();
-      expect(screen.getByText('🌐')).toBeInTheDocument();
-      expect(screen.getByText('🏠')).toBeInTheDocument();
     });
   });
 });

@@ -28,7 +28,7 @@ import { getErrorMessage } from '../utils/errorUtils';
 
 interface CreateShareInput {
   displayName: string;
-  ageGroup: string;
+  ageGroup?: string;
   allocationSnapshot: { category: string; percentage: number }[];
   portfolioScore: number;
   assetCount: number;

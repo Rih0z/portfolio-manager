@@ -147,7 +147,7 @@ const PnLTrendChart: React.FC = () => {
 
   // 上昇/下降の色分け
   const isUp = chartData.length >= 2 && chartData[chartData.length - 1].value >= chartData[0].value;
-  const chartColor = isUp ? 'var(--color-success-500, #10b981)' : 'var(--color-danger-500, #ef4444)';
+  const chartColor = isUp ? 'var(--color-success-500)' : 'var(--color-danger-500)';
 
   return (
     <Card elevation="low" padding="medium">
@@ -184,17 +184,17 @@ const PnLTrendChart: React.FC = () => {
                 <stop offset="95%" stopColor={chartColor} stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border, #e5e7eb)" />
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
             <XAxis
               dataKey="displayDate"
-              tick={{ fontSize: 10, fill: 'var(--color-muted-foreground, #9ca3af)' }}
+              tick={{ fontSize: 10, fill: 'var(--color-muted-foreground)' }}
               axisLine={false}
               tickLine={false}
               interval="preserveStartEnd"
             />
             <YAxis
               tickFormatter={formatYAxis}
-              tick={{ fontSize: 10, fill: 'var(--color-muted-foreground, #9ca3af)' }}
+              tick={{ fontSize: 10, fill: 'var(--color-muted-foreground)' }}
               axisLine={false}
               tickLine={false}
               width={55}
@@ -203,8 +203,8 @@ const PnLTrendChart: React.FC = () => {
               formatter={formatTooltipValue}
               labelFormatter={(label) => `日付: ${label}`}
               contentStyle={{
-                backgroundColor: 'var(--color-card, #fff)',
-                border: '1px solid var(--color-border, #e5e7eb)',
+                backgroundColor: 'var(--color-card)',
+                border: '1px solid var(--color-border)',
                 borderRadius: '8px',
                 fontSize: '12px'
               }}
