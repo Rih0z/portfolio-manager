@@ -17,7 +17,7 @@
  * PublicLayout（LP / Pricing / Legal）と AppLayout（Dashboard 等）でルート分離。
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { HelmetProvider } from 'react-helmet-async';
@@ -66,9 +66,10 @@ if (import.meta.env.DEV) {
 }
 
 // API設定の初期化
-const AppInitializer = ({ children }: any) => {
+const AppInitializer = ({ children }: { children: React.ReactNode }) => {
   const [initialized, setInitialized] = useState(false);
   const [googleClientId, setGoogleClientId] = useState('');
+  const [oauthScriptError, setOauthScriptError] = useState(false);
 
   useEffect(() => {
     const init = async () => {
@@ -84,6 +85,11 @@ const AppInitializer = ({ children }: any) => {
       }
     };
     init();
+  }, []);
+
+  const handleOAuthScriptError = useCallback(() => {
+    logger.error('Google OAuth スクリプトの読み込みに失敗しました');
+    setOauthScriptError(true);
   }, []);
 
   if (!initialized) {
@@ -112,8 +118,40 @@ const AppInitializer = ({ children }: any) => {
   return (
     <GoogleOAuthProvider
       clientId={googleClientId || 'dummy-client-id'}
-      onScriptLoadError={(() => logger.error('Google OAuth script load error')) as any}
+      onScriptLoadError={handleOAuthScriptError}
     >
+      {oauthScriptError && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 max-w-md w-full mx-4">
+          <div className="bg-card border border-danger-200 dark:border-danger-800 rounded-lg shadow-lg p-4">
+            <div className="flex items-start gap-3">
+              <svg className="w-5 h-5 text-danger-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground">認証サービスに接続できません</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  ネットワーク接続を確認し、再読み込みしてください。企業ネットワークをご利用の場合、プロキシ設定が原因の可能性があります。
+                </p>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="mt-2 text-xs font-medium text-primary-500 hover:text-primary-600 transition-colors"
+                >
+                  ページを再読み込み
+                </button>
+              </div>
+              <button
+                onClick={() => setOauthScriptError(false)}
+                className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                aria-label="閉じる"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {children}
     </GoogleOAuthProvider>
   );

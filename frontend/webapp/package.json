@@ -11,6 +11,9 @@
     "src/i18n/**/*.json"
   ],
   "dependencies": {
+    "@fontsource/inter": "^5.2.8",
+    "@fontsource/jetbrains-mono": "^5.2.8",
+    "@fontsource/noto-sans-jp": "^5.2.9",
     "@headlessui/react": "^1.7.15",
     "@react-oauth/google": "^0.12.2",
     "@sentry/react": "^10.42.0",
