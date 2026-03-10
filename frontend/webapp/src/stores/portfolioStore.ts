@@ -6,7 +6,7 @@
  * Google Drive sync, and localStorage persistence.
  */
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import type {
   CurrentAsset,
   TargetAllocation,
@@ -50,18 +50,8 @@ import { getIsPremiumFromCache } from '../hooks/queries';
 const MAX_HOLDINGS_FREE = 5;
 const MAX_HOLDINGS_STANDARD = Infinity;
 
-// --- データシリアライズ/デシリアライズ ---
-// v2: プレーンJSON保存（Base64エンコードは不要 — 真の暗号化ではなく難読化に過ぎなかった）
-// 旧フォーマット（Base64）からの後方互換読み取りを維持
-const encryptData = (data: unknown): string | null => {
-  try {
-    return JSON.stringify(data);
-  } catch (error) {
-    logger.error('データのシリアライズに失敗しました', error);
-    return null;
-  }
-};
-
+// --- データデシリアライズ ---
+// 旧フォーマット（Base64/Base64+URI）からの後方互換読み取り（persist migration で使用）
 const decryptData = (storedData: string): PortfolioExport | null => {
   // まずプレーンJSONとしてパースを試行（v2フォーマット）
   try {
@@ -85,6 +75,28 @@ const decryptData = (storedData: string): PortfolioExport | null => {
       return null;
     }
   }
+};
+
+// ─── Zustand persist Storage Adapter ─────────────────────────────────────────
+// 旧 Base64/プレーンJSON フォーマット → Zustand persist フォーマットへのマイグレーション対応
+const portfolioPersistStorage = {
+  getItem: (name: string): string | null => {
+    try {
+      const raw = localStorage.getItem(name);
+      if (!raw) return null;
+      // Zustand persist フォーマット { state: ..., version: ... } かチェック
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object' && 'state' in parsed) return raw;
+      } catch { /* fall through to old format handling */ }
+      // 旧フォーマット（プレーンJSON or Base64）→ persist フォーマットにラップ
+      const oldData = decryptData(raw);
+      if (!oldData) return null;
+      return JSON.stringify({ state: oldData, version: 0 });
+    } catch { return null; }
+  },
+  setItem: (name: string, value: string): void => localStorage.setItem(name, value),
+  removeItem: (name: string): void => localStorage.removeItem(name),
 };
 
 interface PortfolioState {
@@ -148,7 +160,9 @@ interface PortfolioState {
 // Helper: UI notification
 const notify = (message: string, type: string = 'info') => useUIStore.getState().addNotification(message, type);
 
-export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
+export const usePortfolioStore = create<PortfolioState>()(
+  persist(
+  (set, get) => ({
   // --- Initial State ---
   initialized: false,
   baseCurrency: 'JPY',
@@ -252,7 +266,7 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
 
   // --- Notifications helper ---
   addTicker: async (ticker: string) => {
-    const { targetPortfolio, currentAssets, saveToLocalStorage } = get();
+    const { targetPortfolio, currentAssets } = get();
 
     // プラン制限チェック
     const maxHoldings = getIsPremiumFromCache() ? MAX_HOLDINGS_STANDARD : MAX_HOLDINGS_FREE;
@@ -334,7 +348,6 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
       }));
 
       notify(`銘柄「${tickerData.name || ticker}」を追加しました`, 'success');
-      setTimeout(() => get().saveToLocalStorage(), 100);
       return { success: true, message: '銘柄を追加しました' };
     } catch (error: unknown) {
       notify(`銘柄「${ticker}」の追加に失敗しました: ${getErrorMessage(error)}`, 'error');
@@ -349,7 +362,6 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
       targetPortfolio: state.targetPortfolio.filter(item => item.id !== id),
       currentAssets: state.currentAssets.filter(item => item.id !== id)
     }));
-    setTimeout(() => get().saveToLocalStorage(), 100);
   },
 
   updateHoldings: (id: string, holdings: number | string) => {
@@ -358,7 +370,6 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
         item.id === id ? { ...item, holdings: parseFloat(parseFloat(String(holdings)).toFixed(4)) || 0 } : item
       )
     }));
-    setTimeout(() => get().saveToLocalStorage(), 100);
   },
 
   updateTargetAllocation: (id: string, percentage: number | string) => {
@@ -367,7 +378,6 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
         item.id === id ? { ...item, targetPercentage: parseFloat(String(percentage)) } : item
       )
     }));
-    setTimeout(() => get().saveToLocalStorage(), 100);
   },
 
   updateAnnualFee: (id: string, fee: number | string) => {
@@ -380,7 +390,6 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
         return { ...item, annualFee: parseFloat(parseFloat(String(fee)).toFixed(2)) || 0, feeSource: 'ユーザー設定', feeIsEstimated: false };
       })
     }));
-    setTimeout(() => get().saveToLocalStorage(), 100);
   },
 
   updateDividendInfo: (id: string, dividendYield: number | string, hasDividend: boolean = true, frequency: string = 'quarterly') => {
@@ -393,29 +402,24 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
         } : item
       )
     }));
-    setTimeout(() => get().saveToLocalStorage(), 100);
   },
 
   setBaseCurrency: (currency: string) => {
     set({ baseCurrency: currency });
-    setTimeout(() => get().saveToLocalStorage(), 0);
   },
 
   toggleCurrency: () => {
     set(state => ({ baseCurrency: state.baseCurrency === 'JPY' ? 'USD' : 'JPY' }));
-    setTimeout(() => get().saveToLocalStorage(), 0);
   },
 
   setAdditionalBudget: (amount: number | string, currency?: string) => {
     set({ additionalBudget: { amount: parseFloat(String(amount)) || 0, currency: currency || 'JPY' } });
-    setTimeout(() => get().saveToLocalStorage(), 100);
   },
 
   setAiPromptTemplate: (template: string | null) => set({ aiPromptTemplate: template }),
 
   updateAiPromptTemplate: (template: string | null) => {
     set({ aiPromptTemplate: template });
-    setTimeout(() => get().saveToLocalStorage(), 100);
   },
 
   convertCurrency: (amount: number, fromCurrency: string, toCurrency: string, exchangeRateObj?: ExchangeRate): number => {
@@ -483,7 +487,6 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
     set({ exchangeRate: defaultRate });
     notify('為替レートをデフォルト値（150円/ドル）にリセットしました', 'info');
     setTimeout(() => get().updateExchangeRate(true), 1000);
-    setTimeout(() => get().saveToLocalStorage(), 500);
   },
 
   // --- Market Data Refresh ---
@@ -491,7 +494,7 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
     const refreshInternal = async () => {
       useUIStore.getState().setLoading(true);
       try {
-        const { currentAssets, validateAssetTypes, saveToLocalStorage } = get();
+        const { currentAssets, validateAssetTypes } = get();
         let errorCount = 0;
         let fallbackCount = 0;
 
@@ -537,7 +540,6 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
         if (fallbackCount > 0) notify(`${fallbackCount}銘柄はバックアップデータを使用しています`, 'warning');
         notify('市場データを更新しました', 'success');
 
-        saveToLocalStorage();
         // 認証済みの場合、debounced サーバー同期
         if (getAuthToken()) {
           setTimeout(() => get().syncToServer(), 5000);
@@ -610,14 +612,12 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
         a.id === tickerId ? { ...a, holdings: parseFloat((a.holdings + parseFloat(String(units))).toFixed(4)) } : a
       )
     }));
-    setTimeout(() => get().saveToLocalStorage(), 100);
   },
 
   executeBatchPurchase: (simulationResult: SimulationItem[]) => {
     simulationResult.forEach((r: SimulationItem) => {
       if (r.purchaseShares > 0) get().executePurchase(r.id, r.purchaseShares);
     });
-    get().saveToLocalStorage();
   },
 
   // --- Import/Export ---
@@ -685,7 +685,6 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
       if (data.aiPromptTemplate) updates.aiPromptTemplate = data.aiPromptTemplate;
 
       set(updates as any);
-      setTimeout(() => get().saveToLocalStorage(), 100);
       trackEvent(AnalyticsEvents.CSV_IMPORT, { assetCount: (updates as any).currentAssets?.length || 0 });
       return { success: true, message: 'データをインポートしました' };
     } catch (error: unknown) {
@@ -699,42 +698,25 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
     return { baseCurrency, exchangeRate, lastUpdated, currentAssets, targetPortfolio, additionalBudget, aiPromptTemplate };
   },
 
-  // --- Local Storage (legacy Base64) ---
-  saveToLocalStorage: () => {
-    const state = get();
-    if (!state.initialized) return false;
-    try {
-      const data = {
-        baseCurrency: state.baseCurrency, exchangeRate: state.exchangeRate, lastUpdated: state.lastUpdated,
-        currentAssets: state.currentAssets, targetPortfolio: state.targetPortfolio,
-        additionalBudget: state.additionalBudget, aiPromptTemplate: state.aiPromptTemplate,
-        version: '1.0.0', timestamp: new Date().toISOString()
-      };
-      const encrypted = encryptData(data);
-      if (!encrypted) throw new Error('暗号化に失敗');
-      localStorage.setItem('portfolioData', encrypted);
-      return true;
-    } catch (error) {
-      logger.error('ローカルストレージへの保存に失敗しました', error);
-      return false;
-    }
-  },
+  // --- Local Storage (persist middleware が自動管理) ---
+  // saveToLocalStorage: persist middleware が state 変更を自動保存するため no-op
+  saveToLocalStorage: () => true,
 
+  // loadFromLocalStorage: 現在の store state から PortfolioExport 形式で返却
   loadFromLocalStorage: () => {
     try {
-      const encrypted = localStorage.getItem('portfolioData');
-      if (!encrypted) return null;
-      const data = decryptData(encrypted);
-      if (!data) return null;
-
-      const requiredFields = ['baseCurrency', 'currentAssets', 'targetPortfolio'];
-      if (requiredFields.some(f => !(f in data))) return null;
-
-      // 為替レート整合性チェック
-      if (!data.exchangeRate || typeof data.exchangeRate !== 'object' || !data.exchangeRate.rate || typeof data.exchangeRate.rate !== 'number') {
-        data.exchangeRate = { rate: 150.0, lastUpdated: new Date().toISOString(), isDefault: true, source: 'fallback' };
-      }
-      return data;
+      const state = get();
+      const hasData = state.currentAssets.length > 0 || state.targetPortfolio.length > 0;
+      if (!hasData) return null;
+      return {
+        baseCurrency: state.baseCurrency,
+        exchangeRate: state.exchangeRate,
+        lastUpdated: state.lastUpdated,
+        currentAssets: state.currentAssets,
+        targetPortfolio: state.targetPortfolio,
+        additionalBudget: state.additionalBudget,
+        aiPromptTemplate: state.aiPromptTemplate,
+      };
     } catch { return null; }
   },
 
@@ -820,7 +802,6 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
         set(updates);
 
         notify('クラウドからデータを読み込みました', 'success');
-        setTimeout(() => get().saveToLocalStorage(), 100);
         return { success: true, message: 'クラウドからデータを読み込みました' };
       } else {
         const message = result.message || 'クラウドにデータがありません';
@@ -847,41 +828,38 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
     if (state.initialized) return;
 
     try {
-      const localData = state.loadFromLocalStorage();
-      if (localData) {
+      // persist middleware が既に localStorage からデータを復元済み
+      // state.currentAssets / targetPortfolio 等は既に正しい値を持つ
+      const hasData = state.currentAssets.length > 0
+        || state.targetPortfolio.length > 0
+        || state.baseCurrency !== 'JPY'
+        || !!state.aiPromptTemplate;
+
+      if (hasData) {
         const updates: any = {};
-        if (localData.baseCurrency) updates.baseCurrency = localData.baseCurrency;
-        if (localData.exchangeRate) {
-          if (!localData.exchangeRate.rate) localData.exchangeRate.rate = 150.0;
-          updates.exchangeRate = localData.exchangeRate;
-        }
-        if (localData.lastUpdated) updates.lastUpdated = localData.lastUpdated;
-        if (localData.aiPromptTemplate) updates.aiPromptTemplate = localData.aiPromptTemplate;
 
-        if (localData.additionalBudget !== undefined) {
-          if (typeof localData.additionalBudget === 'number') {
-            updates.additionalBudget = { amount: localData.additionalBudget, currency: localData.baseCurrency || 'JPY' };
-          } else if (typeof localData.additionalBudget === 'object') {
-            updates.additionalBudget = localData.additionalBudget;
-          }
+        // exchangeRate 整合性チェック（旧フォーマットからのマイグレーション後の保険）
+        if (!state.exchangeRate?.rate || typeof state.exchangeRate.rate !== 'number') {
+          updates.exchangeRate = { rate: 150.0, lastUpdated: new Date().toISOString(), isDefault: true, source: 'fallback' };
         }
 
-        if (Array.isArray(localData.currentAssets)) {
-          const { updatedAssets, changes } = get().validateAssetTypes(localData.currentAssets);
-          updates.currentAssets = updatedAssets;
-          if (changes.fundType > 0) notify(`${changes.fundType}件の銘柄で種別情報を修正しました`, 'info');
-          if (changes.fees > 0) notify(`${changes.fees}件の銘柄で手数料情報を修正しました`, 'info');
-          if (changes.dividends > 0) notify(`${changes.dividends}件の銘柄で配当情報を修正しました`, 'info');
+        // レガシー additionalBudget フォーマット対応（数値 → オブジェクト）
+        if (typeof (state.additionalBudget as unknown) === 'number') {
+          updates.additionalBudget = { amount: state.additionalBudget as unknown as number, currency: state.baseCurrency || 'JPY' };
+        }
 
+        // アセット種別バリデーション
+        if (state.currentAssets.length > 0) {
+          const { updatedAssets, changes } = get().validateAssetTypes(state.currentAssets);
           if (changes.fundType > 0 || changes.fees > 0 || changes.dividends > 0) {
-            setTimeout(() => get().saveToLocalStorage(), 500);
+            updates.currentAssets = updatedAssets;
+            if (changes.fundType > 0) notify(`${changes.fundType}件の銘柄で種別情報を修正しました`, 'info');
+            if (changes.fees > 0) notify(`${changes.fees}件の銘柄で手数料情報を修正しました`, 'info');
+            if (changes.dividends > 0) notify(`${changes.dividends}件の銘柄で配当情報を修正しました`, 'info');
           }
         }
 
-        if (Array.isArray(localData.targetPortfolio)) updates.targetPortfolio = localData.targetPortfolio;
-
-        updates.initialized = true;
-        set(updates);
+        set({ ...updates, initialized: true });
         notify('前回のデータを読み込みました', 'info');
       } else {
         set({ initialized: true });
@@ -963,7 +941,6 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
         if (serverData.updatedAt) updates.lastUpdated = serverData.updatedAt;
 
         set(updates);
-        get().saveToLocalStorage();
         notify('サーバーからデータを同期しました', 'success');
       } else {
         set({
@@ -987,7 +964,32 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
       await get().syncToServer();
     }
   },
-}));
+  }),
+  {
+    name: 'portfolioData',
+    storage: createJSONStorage(() => portfolioPersistStorage),
+    partialize: (state) => ({
+      baseCurrency: state.baseCurrency,
+      exchangeRate: state.exchangeRate,
+      lastUpdated: state.lastUpdated,
+      currentAssets: state.currentAssets,
+      targetPortfolio: state.targetPortfolio,
+      additionalBudget: state.additionalBudget,
+      aiPromptTemplate: state.aiPromptTemplate,
+    }),
+    version: 1,
+    migrate: (persisted: unknown, version: number): unknown => {
+      const data = (persisted ?? {}) as Partial<PortfolioExport>;
+      if ((version ?? 0) < 1) {
+        // v0 → v1: exchangeRate 整合性チェック（旧フォーマットからのマイグレーション）
+        if (!data.exchangeRate?.rate || typeof data.exchangeRate.rate !== 'number') {
+          data.exchangeRate = { rate: 150.0, lastUpdated: new Date().toISOString(), isDefault: true, source: 'fallback' };
+        }
+      }
+      return data;
+    },
+  }
+));
 
 // --- Computed selectors ---
 export const selectTotalAssets = (state: PortfolioState) => {

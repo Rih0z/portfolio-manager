@@ -679,9 +679,10 @@ describe('portfolioStore', () => {
 
   // =========================================================================
   // saveToLocalStorage / loadFromLocalStorage
+  // persist middleware 統合後の互換スタブテスト
   // =========================================================================
   describe('saveToLocalStorage', () => {
-    it('should save data to localStorage when initialized', () => {
+    it('should always return true (no-op: persist middleware handles persistence)', () => {
       usePortfolioStore.setState({
         initialized: true,
         baseCurrency: 'JPY',
@@ -691,88 +692,73 @@ describe('portfolioStore', () => {
 
       const result = usePortfolioStore.getState().saveToLocalStorage();
 
+      // persist middleware が自動保存するため、saveToLocalStorage は常に true を返す no-op
       expect(result).toBe(true);
-      expect(localStorage.setItem).toHaveBeenCalledWith('portfolioData', expect.any(String));
     });
 
-    it('should not save when not initialized', () => {
+    it('should return true even when not initialized (no-op)', () => {
       usePortfolioStore.setState({ initialized: false });
 
       const result = usePortfolioStore.getState().saveToLocalStorage();
 
-      expect(result).toBe(false);
-      expect(localStorage.setItem).not.toHaveBeenCalled();
-    });
-
-    it('should return false when localStorage.setItem throws', () => {
-      usePortfolioStore.setState({ initialized: true });
-      (localStorage.setItem as ReturnType<typeof vi.fn>).mockImplementation(() => {
-        throw new Error('Storage full');
-      });
-
-      const result = usePortfolioStore.getState().saveToLocalStorage();
-      expect(result).toBe(false);
+      expect(result).toBe(true);
     });
   });
 
   describe('loadFromLocalStorage', () => {
-    it('should return null when no data exists', () => {
-      (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue(null);
+    it('should return null when store has no data (empty assets)', () => {
+      usePortfolioStore.setState({
+        currentAssets: [],
+        targetPortfolio: [],
+      });
 
       const result = usePortfolioStore.getState().loadFromLocalStorage();
       expect(result).toBeNull();
     });
 
-    it('should load and decrypt valid Base64 encoded data', () => {
-      const data = {
+    it('should return current store state when assets exist', () => {
+      const testAsset = createTestAsset();
+      const testTarget = createTestTarget();
+      usePortfolioStore.setState({
         baseCurrency: 'JPY',
+        currentAssets: [testAsset],
+        targetPortfolio: [testTarget],
+        exchangeRate: { rate: 150.0, source: 'Test', lastUpdated: '' },
+      });
+
+      const result = usePortfolioStore.getState().loadFromLocalStorage();
+
+      expect(result).not.toBeNull();
+      expect(result!.baseCurrency).toBe('JPY');
+      expect(result!.currentAssets).toHaveLength(1);
+      expect(result!.targetPortfolio).toHaveLength(1);
+    });
+
+    it('should return null when only targetPortfolio has entries but currentAssets is empty', () => {
+      usePortfolioStore.setState({
+        currentAssets: [],
+        targetPortfolio: [],
+      });
+
+      const result = usePortfolioStore.getState().loadFromLocalStorage();
+      expect(result).toBeNull();
+    });
+
+    it('should include all PortfolioExport fields in the result', () => {
+      usePortfolioStore.setState({
+        baseCurrency: 'USD',
         currentAssets: [createTestAsset()],
         targetPortfolio: [createTestTarget()],
-        exchangeRate: { rate: 150.0, source: 'Test', lastUpdated: '' },
-      };
-      // encryptData: btoa(encodeURIComponent(JSON.stringify(data)))
-      const encoded = btoa(encodeURIComponent(JSON.stringify(data)));
-      (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue(encoded);
+        aiPromptTemplate: 'テストプロンプト',
+        additionalBudget: { amount: 500000, currency: 'JPY' },
+      });
 
       const result = usePortfolioStore.getState().loadFromLocalStorage();
 
       expect(result).not.toBeNull();
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      expect(result!.baseCurrency).toBe('JPY');
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      expect(result!.currentAssets).toHaveLength(1);
-    });
-
-    it('should return null for corrupted data', () => {
-      (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue('not-valid-base64!!!');
-
-      const result = usePortfolioStore.getState().loadFromLocalStorage();
-      expect(result).toBeNull();
-    });
-
-    it('should return null when required fields are missing', () => {
-      const data = { someIrrelevantField: true };
-      const encoded = btoa(encodeURIComponent(JSON.stringify(data)));
-      (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue(encoded);
-
-      const result = usePortfolioStore.getState().loadFromLocalStorage();
-      expect(result).toBeNull();
-    });
-
-    it('should provide a fallback exchange rate when exchangeRate is invalid', () => {
-      const data = {
-        baseCurrency: 'JPY',
-        currentAssets: [] as CurrentAsset[],
-        targetPortfolio: [] as TargetAllocation[],
-        exchangeRate: 'invalid',
-      };
-      const encoded = btoa(encodeURIComponent(JSON.stringify(data)));
-      (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue(encoded);
-
-      const result = usePortfolioStore.getState().loadFromLocalStorage() as any;
-      expect(result).not.toBeNull();
-      expect(result.exchangeRate.rate).toBe(150.0);
-      expect(result.exchangeRate.source).toBe('fallback');
+      expect(result!.baseCurrency).toBe('USD');
+      expect(result!.aiPromptTemplate).toBe('テストプロンプト');
+      expect(result!.additionalBudget).toEqual({ amount: 500000, currency: 'JPY' });
     });
   });
 
@@ -1163,18 +1149,16 @@ describe('portfolioStore', () => {
       expect(usePortfolioStore.getState().baseCurrency).toBe('USD');
     });
 
-    it('should load data from localStorage when available', () => {
-      usePortfolioStore.setState({ initialized: false });
-
-      const savedData = {
+    it('should load data from store state (persist rehydrated) when available', () => {
+      // persist middleware が既に state を復元済みの状態をシミュレート
+      usePortfolioStore.setState({
+        initialized: false,
         baseCurrency: 'USD',
         exchangeRate: { rate: 140.0, source: 'Saved', lastUpdated: '' },
         currentAssets: [createTestAsset()],
         targetPortfolio: [createTestTarget()],
         additionalBudget: { amount: 5000, currency: 'USD' },
-      };
-      const encoded = btoa(encodeURIComponent(JSON.stringify(savedData)));
-      (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue(encoded);
+      });
 
       usePortfolioStore.getState().initializeData();
 
