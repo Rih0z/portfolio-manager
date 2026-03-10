@@ -99,7 +99,7 @@ describe('useSocialStore', () => {
   });
 
   it('fetchUserSharesがsharesを更新する', async () => {
-    mockGetUserShares.mockResolvedValue({ shares: [mockShare] });
+    mockGetUserShares.mockResolvedValue({ shares: [mockShare], limits: { maxShares: 5, currentCount: 1 } });
 
     await useSocialStore.getState().fetchUserShares();
 

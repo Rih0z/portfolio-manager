@@ -42,10 +42,24 @@ const GoogleDriveIntegration = () => {
     saveToLocalStorage
   } = usePortfolioContext();
   
-  const [files, setFiles] = useState([]);
+  interface DriveFile {
+    id: string;
+    name: string;
+    createdAt?: string;
+    webViewLink?: string;
+    [key: string]: unknown;
+  }
+
+  interface OperationResult {
+    success: boolean;
+    message: string;
+    details?: unknown;
+  }
+
+  const [files, setFiles] = useState<DriveFile[]>([]);
   const [syncStatus, setSyncStatus] = useState('idle');
-  const [lastSync, setLastSync] = useState(null);
-  const [operationResult, setOperationResult] = useState(null);
+  const [lastSync, setLastSync] = useState<Date | null>(null);
+  const [operationResult, setOperationResult] = useState<OperationResult | null>(null);
   
   // ファイル一覧を取得
   const fetchFiles = async () => {
@@ -100,7 +114,7 @@ const GoogleDriveIntegration = () => {
   };
   
   // ファイルから読み込み
-  const handleLoadFile = async (fileId) => {
+  const handleLoadFile = async (fileId: string) => {
     setSyncStatus('loading');
     setOperationResult(null);
     
@@ -225,7 +239,7 @@ const GoogleDriveIntegration = () => {
       {operationResult && (
         <div className={`operation-result ${operationResult.success ? 'success' : 'error'}`}>
           <p>{operationResult.message}</p>
-          {operationResult.details && (
+          {operationResult.details !== undefined && (
             <pre>{JSON.stringify(operationResult.details, null, 2)}</pre>
           )}
         </div>
@@ -245,7 +259,7 @@ const GoogleDriveIntegration = () => {
               <li key={file.id} className="file-item">
                 <div className="file-info">
                   <span className="file-name">{file.name}</span>
-                  <span className="file-date">{new Date(file.createdAt).toLocaleString()}</span>
+                  <span className="file-date">{file.createdAt ? new Date(file.createdAt).toLocaleString() : ''}</span>
                 </div>
                 <div className="file-actions">
                   <button

@@ -60,14 +60,15 @@ vi.mock('../../../utils/analytics', () => ({
 import { useNotificationStore } from '../../../stores/notificationStore';
 import { getIsPremiumFromCache } from '../../../hooks/queries';
 import * as notificationService from '../../../services/notificationService';
+import type { AppNotification, AlertRule } from '../../../types/notification.types';
 
 // --- Test helpers ---
 const getInitialState = () => ({
-  notifications: [],
-  alertRules: [],
+  notifications: [] as AppNotification[],
+  alertRules: [] as AlertRule[],
   unreadCount: 0,
   loading: false,
-  lastKey: null,
+  lastKey: null as string | null,
 });
 
 const createMockAlertRule = (overrides: Record<string, any> = {}) => ({
@@ -77,7 +78,7 @@ const createMockAlertRule = (overrides: Record<string, any> = {}) => ({
   ticker: 'AAPL',
   targetValue: 200,
   enabled: true,
-  lastTriggered: null,
+  lastTriggered: null as string | null,
   createdAt: '2026-03-01T00:00:00Z',
   updatedAt: '2026-03-01T00:00:00Z',
   ...overrides,
@@ -491,8 +492,8 @@ describe('notificationStore', () => {
   // =========================================================================
   describe('evaluateAlerts', () => {
     const baseParams = {
-      targetPortfolio: [],
-      goals: [],
+      targetPortfolio: [] as any[],
+      goals: [] as any[],
       totalValue: 100_000,
       exchangeRate: 150,
       baseCurrency: 'USD',
@@ -825,7 +826,7 @@ describe('notificationStore', () => {
           createMockNotification({ notificationId: 'fetched-1', read: false }),
           createMockNotification({ notificationId: 'fetched-2', read: true }),
         ],
-        lastKey: null,
+        lastKey: null as string | null,
       };
       (notificationService.fetchNotifications as ReturnType<typeof vi.fn>).mockResolvedValue(mockResponse);
 

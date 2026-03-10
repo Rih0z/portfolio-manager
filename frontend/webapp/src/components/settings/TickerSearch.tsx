@@ -26,7 +26,7 @@ const TickerSearch = () => {
   const [messageType, setMessageType] = useState('');
 
   // 銘柄追加の処理
-  const handleAddTicker = async (e) => {
+  const handleAddTicker = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
     // 入力チェック
@@ -66,7 +66,7 @@ const TickerSearch = () => {
   };
 
   // メッセージの表示
-  const showMessage = (text, type) => {
+  const showMessage = (text: string, type: string) => {
     setMessage(text);
     setMessageType(type);
     setTimeout(() => {

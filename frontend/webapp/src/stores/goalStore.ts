@@ -48,7 +48,7 @@ interface GoalState {
 export const useGoalStore = create<GoalState>()(
   persist(
     (set, get) => ({
-      goals: [],
+      goals: [] as InvestmentGoal[],
 
       addGoal: (input: GoalInput): AddGoalResult => {
         // Validate input

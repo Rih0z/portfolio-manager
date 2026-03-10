@@ -1,18 +1,12 @@
 import { authFetch } from '../utils/apiUtils';
 import { getErrorStatus } from '../utils/errorUtils';
-import { PortfolioAsset } from '../utils/plCalculation';
-
-export interface TargetAllocation {
-  category: string;
-  targetPercentage: number;
-  currentPercentage?: number;
-}
+import type { CurrentAsset, TargetAllocation, ExchangeRate } from '../types/portfolio.types';
 
 export interface ServerPortfolio {
-  currentAssets: PortfolioAsset[];
+  currentAssets: CurrentAsset[];
   targetPortfolio: TargetAllocation[];
   baseCurrency: string;
-  exchangeRate: { rate: number; source?: string; timestamp?: string } | null;
+  exchangeRate: ExchangeRate | null;
   additionalBudget: { amount: number; currency: string } | null;
   aiPromptTemplate: string | null;
   version: number;
@@ -31,7 +25,7 @@ export const fetchServerPortfolio = async (): Promise<ServerPortfolio | null> =>
   try {
     const result = await authFetch('api/portfolio', 'get');
     if (result?.success && result.data) {
-      return result.data;
+      return result.data as ServerPortfolio;
     }
     return null;
   } catch (error: unknown) {
@@ -48,7 +42,7 @@ export const fetchServerPortfolio = async (): Promise<ServerPortfolio | null> =>
  */
 export const saveServerPortfolio = async (
   data: {
-    currentAssets: PortfolioAsset[];
+    currentAssets: CurrentAsset[];
     targetPortfolio: TargetAllocation[];
     baseCurrency: string;
     exchangeRate?: ServerPortfolio['exchangeRate'];
@@ -63,16 +57,21 @@ export const saveServerPortfolio = async (
   });
 
   if (result?.success && result.data) {
-    return result.data;
+    return result.data as SaveResult;
   }
 
   // 409 Version Conflict
   if (result?.error?.code === 'VERSION_CONFLICT') {
-    const conflictError: any = new Error('VERSION_CONFLICT');
-    conflictError.code = 'VERSION_CONFLICT';
-    conflictError.serverVersion = result.error.details?.serverVersion;
+    interface ConflictError extends Error {
+      code: string;
+      serverVersion?: number;
+    }
+    const conflictError: ConflictError = Object.assign(new Error('VERSION_CONFLICT'), {
+      code: 'VERSION_CONFLICT',
+      serverVersion: result.error.details?.serverVersion as number | undefined,
+    });
     throw conflictError;
   }
 
-  throw new Error(result?.error?.message || 'Failed to save portfolio');
+  throw new Error((result?.error?.message as string | undefined) ?? 'Failed to save portfolio');
 };

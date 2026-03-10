@@ -4,6 +4,7 @@
  * @file src/__tests__/unit/services/portfolioSyncService.test.ts
  */
 
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { fetchServerPortfolio, saveServerPortfolio } from '@/services/portfolioSyncService';
 import * as apiUtils from '@/utils/apiUtils';
 
@@ -20,7 +21,7 @@ const mockPortfolio = {
   baseCurrency: 'USD',
   exchangeRate: { rate: 150, source: 'yahoo', timestamp: '2026-03-01' },
   additionalBudget: { amount: 1000, currency: 'USD' },
-  aiPromptTemplate: null,
+  aiPromptTemplate: null as string | null,
   version: 1,
   updatedAt: '2026-03-01T00:00:00Z',
 };
@@ -71,10 +72,10 @@ describe('portfolioSyncService', () => {
 
       const result = await saveServerPortfolio(
         {
-          currentAssets: mockPortfolio.currentAssets,
-          targetPortfolio: mockPortfolio.targetPortfolio,
+          currentAssets: mockPortfolio.currentAssets as any,
+          targetPortfolio: mockPortfolio.targetPortfolio as any,
           baseCurrency: 'USD',
-          exchangeRate: mockPortfolio.exchangeRate,
+          exchangeRate: mockPortfolio.exchangeRate as any,
           additionalBudget: mockPortfolio.additionalBudget,
           aiPromptTemplate: null,
         },
@@ -95,7 +96,7 @@ describe('portfolioSyncService', () => {
           { currentAssets: [], targetPortfolio: [], baseCurrency: 'USD' },
           1
         );
-        expect.fail('Should have thrown');
+        throw new Error('Should have thrown');
       } catch (e: any) {
         expect(e.message).toBe('VERSION_CONFLICT');
         expect(e.code).toBe('VERSION_CONFLICT');

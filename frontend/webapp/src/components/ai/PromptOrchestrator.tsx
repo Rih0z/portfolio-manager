@@ -15,17 +15,32 @@ import { Target, Lightbulb, Search, MessageSquare, Star } from 'lucide-react';
 import promptOrchestrationService from '../../services/PromptOrchestrationService';
 import logger from '../../utils/logger';
 
+type GeneratedPromptService = ReturnType<typeof promptOrchestrationService.generatePersonalizedPrompt>;
+
+interface PromptRecord {
+  id: string;
+  prompt: GeneratedPromptService & { id?: string };
+  timestamp: string;
+}
+
+interface UserFeedback {
+  rating: number;
+  comments: string;
+  aiUsed: string;
+  timestamp: string;
+}
+
 const PromptOrchestrator = ({
   promptType = 'portfolio_analysis',
   userContext = {},
   onPromptGenerated = () => {},
   className = ''
 }: any) => {
-  const [generatedPrompt, setGeneratedPrompt] = useState(null);
+  const [generatedPrompt, setGeneratedPrompt] = useState<(GeneratedPromptService & { id?: string }) | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [promptHistory, setPromptHistory] = useState([]);
+  const [promptHistory, setPromptHistory] = useState<PromptRecord[]>([]);
   const [selectedAI, setSelectedAI] = useState('claude');
-  const [userFeedback, setUserFeedback] = useState(null);
+  const [userFeedback, setUserFeedback] = useState<UserFeedback | null>(null);
 
   useEffect(() => {
     if (Object.keys(userContext).length > 0) {
@@ -75,8 +90,8 @@ const PromptOrchestrator = ({
     }
   };
 
-  const openAI = (aiType) => {
-    const urls = {
+  const openAI = (aiType: string) => {
+    const urls: Record<string, string> = {
       claude: 'https://claude.ai',
       gemini: 'https://gemini.google.com',
       chatgpt: 'https://chat.openai.com'
@@ -85,7 +100,7 @@ const PromptOrchestrator = ({
     setSelectedAI(aiType);
   };
 
-  const submitFeedback = (rating, comments = '') => {
+  const submitFeedback = (rating: number, comments = '') => {
     if (generatedPrompt && generatedPrompt.id) {
       const feedback = {
         rating,
@@ -104,8 +119,8 @@ const PromptOrchestrator = ({
     }
   };
 
-  const getPromptTypeDisplayName = (type) => {
-    const names = {
+  const getPromptTypeDisplayName = (type: string) => {
+    const names: Record<string, string> = {
       portfolio_analysis: 'ポートフォリオ分析',
       data_import_screenshot: 'データインポート',
       market_analysis: '市場分析',

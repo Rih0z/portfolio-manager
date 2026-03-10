@@ -36,13 +36,13 @@ const BudgetInput = () => {
   }, [currency]);
 
   // 予算入力の変更処理
-  const handleAmountChange = useCallback((e) => {
+  const handleAmountChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseFloat(e.target.value);
     setAmount(isNaN(value) ? 0 : value);
   }, []);
 
   // 通貨選択の変更処理
-  const handleCurrencyChange = useCallback((newCurrency) => {
+  const handleCurrencyChange = useCallback((newCurrency: string) => {
     setCurrency(newCurrency);
     
     // 通貨変更時にデフォルト値を設定
@@ -56,17 +56,17 @@ const BudgetInput = () => {
   // 予算の増加処理
   const handleIncrease = useCallback(() => {
     const step = getStep();
-    setAmount(prevAmount => prevAmount + step);
+    setAmount((prevAmount: number) => prevAmount + step);
   }, [getStep]);
 
   // 予算の減少処理
   const handleDecrease = useCallback(() => {
     const step = getStep();
-    setAmount(prevAmount => Math.max(0, prevAmount - step));
+    setAmount((prevAmount: number) => Math.max(0, prevAmount - step));
   }, [getStep]);
 
   // 予算プリセットを設定
-  const handleSetPreset = useCallback((presetAmount) => {
+  const handleSetPreset = useCallback((presetAmount: number) => {
     setAmount(presetAmount);
   }, []);
 
@@ -83,7 +83,7 @@ const BudgetInput = () => {
   }, [currency]);
 
   // 通貨に応じたプリセット表示
-  const formatPresetLabel = useCallback((presetAmount) => {
+  const formatPresetLabel = useCallback((presetAmount: number) => {
     if (currency === 'JPY') {
       // 10万円、30万円などの表示形式
       const amount = presetAmount / 10000;

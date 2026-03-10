@@ -18,24 +18,31 @@ import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 import { CHART_COLORS } from '../../constants/chartColors';
+import type { CurrentAsset, TargetAllocation } from '../../types/portfolio.types';
+
+interface ChartDataItem {
+  name: string;
+  value: number;
+  ticker: string;
+}
 
 const PortfolioCharts = () => {
   const { currentAssets, targetPortfolio, baseCurrency, totalAssets, exchangeRate } = usePortfolioContext();
 
   // 理想ポートフォリオデータ生成（targetPercentage > 0 のもののみ）
-  const targetData = targetPortfolio
-    .filter(item => item.targetPercentage > 0)
-    .map(item => ({
+  const targetData: ChartDataItem[] = (targetPortfolio as TargetAllocation[])
+    .filter((item: TargetAllocation) => item.targetPercentage > 0)
+    .map((item: TargetAllocation) => ({
       name: item.name,
       value: item.targetPercentage,
       ticker: item.ticker
     }));
 
   // 現在ポートフォリオデータ生成
-  const currentData = [];
-  
+  const currentData: ChartDataItem[] = [];
+
   if (totalAssets > 0) {
-    currentAssets.forEach(asset => {
+    (currentAssets as CurrentAsset[]).forEach((asset: CurrentAsset) => {
       // 資産額の計算（通貨換算を考慮）
       let assetValue = asset.price * asset.holdings;
       
@@ -95,13 +102,13 @@ const PortfolioCharts = () => {
                 outerRadius={80}
                 paddingAngle={1}
                 dataKey="value"
-                label={({ name, value }) => `${name} (${value.toFixed(1)}%)`}
+                label={({ name, value }: { name: string; value: number }) => `${name} (${value.toFixed(1)}%)`}
                 labelLine={false}
               >
-                {targetData.map((entry, index) => (
-                  <Cell 
-                    key={`cell-${index}`} 
-                    fill={COLORS[index % COLORS.length]} 
+                {targetData.map((entry: ChartDataItem, index: number) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={COLORS[index % COLORS.length]}
                   />
                 ))}
               </Pie>
@@ -109,7 +116,7 @@ const PortfolioCharts = () => {
             </PieChart>
           </ResponsiveContainer>
         </div>
-        
+
         <div>
           <h3 className="text-center text-lg font-medium mb-4">現在配分</h3>
           <ResponsiveContainer width="100%" height={300}>
@@ -122,13 +129,13 @@ const PortfolioCharts = () => {
                 outerRadius={80}
                 paddingAngle={1}
                 dataKey="value"
-                label={({ name, value }) => `${name} (${value.toFixed(1)}%)`}
+                label={({ name, value }: { name: string; value: number }) => `${name} (${value.toFixed(1)}%)`}
                 labelLine={false}
               >
-                {currentData.map((entry, index) => (
-                  <Cell 
-                    key={`cell-${index}`} 
-                    fill={COLORS[index % COLORS.length]} 
+                {currentData.map((entry: ChartDataItem, index: number) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={COLORS[index % COLORS.length]}
                   />
                 ))}
               </Pie>

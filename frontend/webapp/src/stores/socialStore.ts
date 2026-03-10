@@ -59,11 +59,11 @@ interface SocialState {
 export const useSocialStore = create<SocialState>()(
   persist(
     (set, get) => ({
-      shares: [],
-      peerComparison: null,
+      shares: [] as SharedPortfolio[],
+      peerComparison: null as PeerComparison | null,
       loading: false,
       peerLoading: false,
-      error: null,
+      error: null as string | null,
 
       createShare: async (input: CreateShareInput): Promise<SharedPortfolio | null> => {
         // プラン制限チェック

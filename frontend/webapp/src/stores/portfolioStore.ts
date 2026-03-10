@@ -7,6 +7,17 @@
  */
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import type {
+  CurrentAsset,
+  TargetAllocation,
+  ExchangeRate,
+  UserData,
+  OperationResult,
+  SyncResult,
+  ValidateResult,
+  SimulationItem,
+  PortfolioExport,
+} from '../types/portfolio.types';
 import {
   fetchTickerData,
   fetchExchangeRate,
@@ -42,7 +53,7 @@ const MAX_HOLDINGS_STANDARD = Infinity;
 // --- データシリアライズ/デシリアライズ ---
 // v2: プレーンJSON保存（Base64エンコードは不要 — 真の暗号化ではなく難読化に過ぎなかった）
 // 旧フォーマット（Base64）からの後方互換読み取りを維持
-const encryptData = (data: any): string | null => {
+const encryptData = (data: unknown): string | null => {
   try {
     return JSON.stringify(data);
   } catch (error) {
@@ -51,7 +62,7 @@ const encryptData = (data: any): string | null => {
   }
 };
 
-const decryptData = (storedData: string): any | null => {
+const decryptData = (storedData: string): PortfolioExport | null => {
   // まずプレーンJSONとしてパースを試行（v2フォーマット）
   try {
     const data = JSON.parse(storedData);
@@ -80,21 +91,21 @@ interface PortfolioState {
   // --- State ---
   initialized: boolean;
   baseCurrency: string;
-  exchangeRate: any;
+  exchangeRate: ExchangeRate;
   lastUpdated: string | null;
-  currentAssets: any[];
-  targetPortfolio: any[];
+  currentAssets: CurrentAsset[];
+  targetPortfolio: TargetAllocation[];
   additionalBudget: { amount: number; currency: string };
-  aiPromptTemplate: any;
+  aiPromptTemplate: string | null;
   dataSource: string;
   lastSyncTime: string | null;
-  currentUser: any;
+  currentUser: UserData | null;
   serverVersion: number | null;
   syncStatus: 'idle' | 'syncing' | 'error' | 'conflict';
   lastServerSync: string | null;
 
   // --- Actions ---
-  addTicker: (ticker: string) => Promise<any>;
+  addTicker: (ticker: string) => Promise<OperationResult>;
   removeTicker: (id: string) => void;
   updateHoldings: (id: string, holdings: number | string) => void;
   updateTargetAllocation: (id: string, percentage: number | string) => void;
@@ -103,28 +114,28 @@ interface PortfolioState {
   setBaseCurrency: (currency: string) => void;
   toggleCurrency: () => void;
   setAdditionalBudget: (amount: number | string, currency?: string) => void;
-  setAiPromptTemplate: (template: any) => void;
-  updateAiPromptTemplate: (template: any) => void;
+  setAiPromptTemplate: (template: string | null) => void;
+  updateAiPromptTemplate: (template: string | null) => void;
   updateExchangeRate: (forceUpdate?: boolean) => Promise<void>;
   resetExchangeRate: () => void;
-  refreshMarketPrices: () => Promise<any>;
-  calculateSimulation: () => any[];
+  refreshMarketPrices: () => Promise<OperationResult>;
+  calculateSimulation: () => SimulationItem[];
   executePurchase: (tickerId: string, units: number | string) => void;
-  executeBatchPurchase: (simulationResult: any[]) => void;
-  importData: (data: any) => any;
-  exportData: () => any;
-  convertCurrency: (amount: number, fromCurrency: string, toCurrency: string, exchangeRateObj?: any) => number;
+  executeBatchPurchase: (simulationResult: SimulationItem[]) => void;
+  importData: (data: unknown) => OperationResult;
+  exportData: () => PortfolioExport;
+  convertCurrency: (amount: number, fromCurrency: string, toCurrency: string, exchangeRateObj?: ExchangeRate) => number;
   calculatePurchaseShares: (purchaseAmount: number, price: number) => number;
-  validateAssetTypes: (assets: any[]) => { updatedAssets: any[]; changes: any };
+  validateAssetTypes: (assets: CurrentAsset[]) => ValidateResult;
 
   // Cloud Sync
-  saveToGoogleDrive: (userData?: any) => Promise<any>;
-  loadFromGoogleDrive: (userData?: any) => Promise<any>;
-  handleAuthStateChange: (isAuthenticated: boolean, user: any) => void;
+  saveToGoogleDrive: (userData?: UserData) => Promise<SyncResult>;
+  loadFromGoogleDrive: (userData?: UserData) => Promise<SyncResult>;
+  handleAuthStateChange: (isAuthenticated: boolean, user: UserData | null) => void;
 
   // Local Storage (legacy Base64 format)
   saveToLocalStorage: () => boolean;
-  loadFromLocalStorage: () => any | null;
+  loadFromLocalStorage: () => PortfolioExport | null;
   clearLocalStorage: () => boolean;
   initializeData: () => void;
 
@@ -584,7 +595,7 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
         };
       }
       return null;
-    }).filter(Boolean);
+    }).filter((r): r is NonNullable<typeof r> => r !== null) as SimulationItem[];
 
     return results.sort((a: any, b: any) => {
       const aBase = a.currency !== baseCurrency ? convertCurrency(a.purchaseAmount, a.currency, baseCurrency) : a.purchaseAmount;
@@ -659,7 +670,7 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
         updates.currentAssets = updatedAssets;
         if (changes.fundType > 0) notify(`${changes.fundType}件の銘柄で種別情報を修正しました`, 'info');
         if (changes.fees > 0) notify(`${changes.fees}件の銘柄で手数料情報を修正しました`, 'info');
-        if (changes.currency > 0) notify(`${changes.currency}件の銘柄で通貨情報を修正しました`, 'info');
+        if ((changes.currency ?? 0) > 0) notify(`${changes.currency}件の銘柄で通貨情報を修正しました`, 'info');
       }
 
       if (Array.isArray(data.targetPortfolio)) updates.targetPortfolio = data.targetPortfolio;
@@ -756,8 +767,8 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
         notify('データをクラウドに保存しました', 'success');
         return { success: true, message: 'データを保存しました' };
       }
-      notify(`クラウド保存に失敗しました: ${result.message}`, 'error');
-      return { success: false, message: result.message };
+      notify(`クラウド保存に失敗しました: ${result.message ?? ''}`, 'error');
+      return { success: false, message: result.message ?? 'クラウド保存に失敗しました' };
     } catch (error: unknown) {
       notify('クラウドへの保存に失敗しました', 'error');
       return { success: false, message: 'クラウド保存に失敗しました' };

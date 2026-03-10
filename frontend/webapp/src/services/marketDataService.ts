@@ -106,11 +106,9 @@ export const fetchExchangeRate = async (fromCurrency: string = 'USD', toCurrency
     logger.error(`Error fetching exchange rate ${fromCurrency}/${toCurrency}:`, error);
 
     // フォールバック値を返す
+    const errorResponse = formatErrorResponse(error as any);
     return {
-      success: false,
-      error: true,
-      message: '為替レートの取得に失敗しました',
-      ...formatErrorResponse(error as any),
+      ...errorResponse,
       // デフォルト値も含める
       rate: fromCurrency === 'USD' && toCurrency === 'JPY' ? 150.0 :
             fromCurrency === 'JPY' && toCurrency === 'USD' ? 1/150.0 : 1.0,
@@ -163,9 +161,9 @@ export const fetchStockData = async (ticker: string, refresh: boolean = false): 
     });
 
     // フォールバック処理
+    const tickerErrorResponse = formatErrorResponse(error as any, ticker);
     return {
-      success: false,
-      ...formatErrorResponse(error as any, ticker),
+      ...tickerErrorResponse,
       // フォールバックデータも含める
       data: {
         [ticker]: generateFallbackData(ticker)

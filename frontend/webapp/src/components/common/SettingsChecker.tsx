@@ -15,7 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 import logger from '../../utils/logger';
 
-const SettingsChecker = ({ children }) => {
+const SettingsChecker = ({ children }: { children: React.ReactNode }) => {
   const [hasChecked, setHasChecked] = useState(false);
   
   const { t } = useTranslation();

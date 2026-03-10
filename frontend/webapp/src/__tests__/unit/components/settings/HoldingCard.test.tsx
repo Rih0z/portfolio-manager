@@ -44,7 +44,7 @@ const createAsset = (overrides: Record<string, any> = {}) => ({
   annualFee: 0,
   hasDividend: false,
   dividendYield: 0,
-  dividendFrequency: null,
+  dividendFrequency: undefined as string | undefined,
   ...overrides,
 });
 

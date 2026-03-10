@@ -62,7 +62,7 @@ describe('notificationService', () => {
             createdAt: '2026-03-01T00:00:00Z',
           },
         ],
-        lastKey: null,
+        lastKey: null as string | null,
       };
       mockedAuthFetch.mockResolvedValue({ success: true, data: mockData });
 
@@ -209,7 +209,7 @@ describe('notificationService', () => {
           ticker: 'AAPL',
           targetValue: 200,
           enabled: true,
-          lastTriggered: null,
+          lastTriggered: null as string | null,
           createdAt: '2026-03-01T00:00:00Z',
           updatedAt: '2026-03-01T00:00:00Z',
         },
@@ -239,7 +239,7 @@ describe('notificationService', () => {
           ticker: 'GOOG',
           targetValue: 100,
           enabled: true,
-          lastTriggered: null,
+          lastTriggered: null as string | null,
           createdAt: '2026-03-01T00:00:00Z',
           updatedAt: '2026-03-01T00:00:00Z',
         },
@@ -272,7 +272,7 @@ describe('notificationService', () => {
         userId: 'u-1',
         ...input,
         enabled: true,
-        lastTriggered: null,
+        lastTriggered: null as string | null,
         createdAt: '2026-03-07T00:00:00Z',
         updatedAt: '2026-03-07T00:00:00Z',
       };
@@ -322,7 +322,7 @@ describe('notificationService', () => {
         ticker: 'AAPL',
         targetValue: 300,
         enabled: true,
-        lastTriggered: null,
+        lastTriggered: null as string | null,
         createdAt: '2026-03-01T00:00:00Z',
         updatedAt: '2026-03-07T00:00:00Z',
       };

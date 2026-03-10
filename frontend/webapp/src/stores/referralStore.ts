@@ -47,12 +47,12 @@ const STATS_CACHE_MS = 5 * 60 * 1000; // 5分間キャッシュ
 export const useReferralStore = create<ReferralState>()(
   persist(
     (set, get) => ({
-      referralCode: null,
-      stats: null,
+      referralCode: null as ReferralCode | null,
+      stats: null as ReferralStats | null,
       loading: false,
       applied: false,
-      capturedCode: null,
-      _statsLastFetched: null,
+      capturedCode: null as string | null,
+      _statsLastFetched: null as number | null,
 
       fetchCode: async () => {
         if (get().loading) return;

@@ -49,7 +49,7 @@ const TabNavigation = () => {
           <NavLink
             key={tab.path}
             to={tab.path}
-            className={({ isActive }) => `
+            className={({ isActive }: { isActive: boolean }) => `
               flex flex-col items-center justify-center transition-all duration-200 group relative min-h-[60px] sm:min-h-[72px]
               ${isActive
                 ? 'text-primary-500'
@@ -57,7 +57,7 @@ const TabNavigation = () => {
               }
             `}
           >
-            {({ isActive }) => (
+            {({ isActive }: { isActive: boolean }) => (
               <>
                 {/* Active indicator */}
                 {isActive && (

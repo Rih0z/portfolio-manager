@@ -18,7 +18,7 @@ import { usePortfolioContext } from '../../../../hooks/usePortfolioContext';
 // react-i18nextのモック
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key) => key,
+    t: (key: string) => key,
     i18n: { language: 'ja' }
   })
 }));
@@ -60,7 +60,7 @@ describe('PortfolioYamlConverter', () => {
   };
 
   const renderWithContext = (contextValue = mockContextValue) => {
-    usePortfolioContext.mockReturnValue(contextValue);
+    vi.mocked(usePortfolioContext).mockReturnValue(contextValue);
     return render(
       <PortfolioYamlConverter />
     );
@@ -101,9 +101,9 @@ describe('PortfolioYamlConverter', () => {
       fireEvent.click(generateButton);
 
       // YAMLが生成されてテキストエリアに表示される
-      const readOnlyTextarea = document.querySelector('textarea[readonly]');
+      const readOnlyTextarea = document.querySelector('textarea[readonly]') as HTMLTextAreaElement | null;
       expect(readOnlyTextarea).toBeInTheDocument();
-      expect(readOnlyTextarea.value).toContain('ポートフォリオデータ');
+      expect(readOnlyTextarea!.value).toContain('ポートフォリオデータ');
     });
 
     test('生成されたYAMLにポートフォリオデータが含まれる', () => {
@@ -112,9 +112,9 @@ describe('PortfolioYamlConverter', () => {
       const generateButton = screen.getByText('YAMLプロンプトを生成');
       fireEvent.click(generateButton);
 
-      const readOnlyTextarea = document.querySelector('textarea[readonly]');
-      expect(readOnlyTextarea.value).toContain('VTI');
-      expect(readOnlyTextarea.value).toContain('1475.T');
+      const readOnlyTextarea = document.querySelector('textarea[readonly]') as HTMLTextAreaElement | null;
+      expect((readOnlyTextarea as HTMLTextAreaElement).value).toContain('VTI');
+      expect((readOnlyTextarea as HTMLTextAreaElement).value).toContain('1475.T');
     });
 
     test('生成されたYAMLに目標配分が含まれる', () => {
@@ -123,9 +123,9 @@ describe('PortfolioYamlConverter', () => {
       const generateButton = screen.getByText('YAMLプロンプトを生成');
       fireEvent.click(generateButton);
 
-      const readOnlyTextarea = document.querySelector('textarea[readonly]');
-      expect(readOnlyTextarea.value).toContain('理想的な配分');
-      expect(readOnlyTextarea.value).toContain('40%');
+      const readOnlyTextarea = document.querySelector('textarea[readonly]') as HTMLTextAreaElement | null;
+      expect((readOnlyTextarea as HTMLTextAreaElement).value).toContain('理想的な配分');
+      expect((readOnlyTextarea as HTMLTextAreaElement).value).toContain('40%');
     });
 
     test('YAML生成時に自動的にクリップボードにコピーされる', async () => {
@@ -156,7 +156,7 @@ describe('PortfolioYamlConverter', () => {
     test('テキストエリアに入力できる', () => {
       renderWithContext();
 
-      const textarea = screen.getByPlaceholderText('AIから返却されたYAMLデータをここに貼り付けてください...');
+      const textarea = screen.getByPlaceholderText('AIから返却されたYAMLデータをここに貼り付けてください...') as HTMLTextAreaElement;
       fireEvent.change(textarea, { target: { value: 'test yaml data' } });
 
       expect(textarea.value).toBe('test yaml data');
@@ -255,7 +255,7 @@ describe('PortfolioYamlConverter', () => {
       保有数: 10
       現在価格: 180`;
 
-      const textarea = screen.getByPlaceholderText('AIから返却されたYAMLデータをここに貼り付けてください...');
+      const textarea = screen.getByPlaceholderText('AIから返却されたYAMLデータをここに貼り付けてください...') as HTMLTextAreaElement;
       fireEvent.change(textarea, { target: { value: yamlData } });
 
       const importButton = screen.getByText('YAMLデータを取り込む');
@@ -268,8 +268,8 @@ describe('PortfolioYamlConverter', () => {
   describe('空ポートフォリオの処理', () => {
     test('空のポートフォリオでもエラーが発生しない', () => {
       const emptyContext = {
-        currentAssets: [],
-        targetPortfolio: [],
+        currentAssets: [] as { ticker: string; name: string; holdings: number; price: number; percentage: number; fundType: string }[],
+        targetPortfolio: [] as { ticker: string; name: string; targetPercentage: number; type: string }[],
         importData: vi.fn(() => ({ success: true, message: 'データをインポートしました' })),
         totalAssets: 0,
         baseCurrency: 'JPY'
@@ -282,8 +282,8 @@ describe('PortfolioYamlConverter', () => {
 
     test('空のポートフォリオでもYAML生成が動作する', () => {
       const emptyContext = {
-        currentAssets: [],
-        targetPortfolio: [],
+        currentAssets: [] as { ticker: string; name: string; holdings: number; price: number; percentage: number; fundType: string }[],
+        targetPortfolio: [] as { ticker: string; name: string; targetPercentage: number; type: string }[],
         importData: vi.fn(() => ({ success: true, message: 'データをインポートしました' })),
         totalAssets: 0,
         baseCurrency: 'JPY'

@@ -18,6 +18,7 @@ import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 import { SEMANTIC_COLORS } from '../../constants/chartColors';
+import type { CurrentAsset, TargetAllocation } from '../../types/portfolio.types';
 
 const DifferenceChart = () => {
   const { currentAssets, targetPortfolio, baseCurrency, totalAssets, exchangeRate } = usePortfolioContext();
@@ -25,9 +26,9 @@ const DifferenceChart = () => {
   // 差分データの計算
   const calculateDifferenceData = () => {
     // 現在割合の計算
-    const currentPercentages = {};
-    
-    currentAssets.forEach(asset => {
+    const currentPercentages: Record<string, number> = {};
+
+    (currentAssets as CurrentAsset[]).forEach((asset: CurrentAsset) => {
       // 資産額の計算（通貨換算を考慮）
       let assetValue = asset.price * asset.holdings;
       
@@ -45,13 +46,13 @@ const DifferenceChart = () => {
     });
     
     // 目標割合を取得
-    const targetPercentages = {};
-    targetPortfolio.forEach(item => {
+    const targetPercentages: Record<string, number> = {};
+    (targetPortfolio as TargetAllocation[]).forEach((item: TargetAllocation) => {
       targetPercentages[item.id] = item.targetPercentage;
     });
-    
+
     // 差分の計算
-    const differenceData = targetPortfolio.map(item => {
+    const differenceData = (targetPortfolio as TargetAllocation[]).map((item: TargetAllocation) => {
       const currentPct = currentPercentages[item.id] || 0;
       const targetPct = targetPercentages[item.id] || 0;
       const difference = targetPct - currentPct;
@@ -64,7 +65,7 @@ const DifferenceChart = () => {
     });
     
     // 差分の絶対値でソート
-    return differenceData.sort((a, b) => Math.abs(b.difference) - Math.abs(a.difference));
+    return differenceData.sort((a: { difference: number }, b: { difference: number }) => Math.abs(b.difference) - Math.abs(a.difference));
   };
 
   const differenceData = calculateDifferenceData();
@@ -122,7 +123,7 @@ const DifferenceChart = () => {
           <Tooltip content={<CustomTooltip />} />
           <Bar
             dataKey="difference"
-            fill={(entry) => entry.difference > 0 ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.danger}
+            fill={(entry: { difference: number }) => entry.difference > 0 ? SEMANTIC_COLORS.success : SEMANTIC_COLORS.danger}
           />
         </BarChart>
       </ResponsiveContainer>

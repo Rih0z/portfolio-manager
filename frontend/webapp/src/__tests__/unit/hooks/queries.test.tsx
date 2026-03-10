@@ -529,14 +529,14 @@ describe('usePriceHistories', () => {
       currency: 'USD',
       period: '3m',
       prices: [{ date: '2026-03-08', close: 178.5, source: 'yahoo' }],
-      change: { dayOverDay: null, yearToDate: null },
+      change: { dayOverDay: null as { amount: number; percent: number } | null, yearToDate: null as { amount: number; percent: number } | null },
     };
     const mockGOOGL = {
       ticker: 'GOOGL',
       currency: 'USD',
       period: '3m',
       prices: [{ date: '2026-03-08', close: 140.2, source: 'yahoo' }],
-      change: { dayOverDay: null, yearToDate: null },
+      change: { dayOverDay: null as { amount: number; percent: number } | null, yearToDate: null as { amount: number; percent: number } | null },
     };
 
     vi.mocked(fetchPriceHistory).mockImplementation(async (ticker: string) => {
@@ -609,7 +609,7 @@ describe('useNotifications', () => {
         createdAt: '2026-03-08T00:00:00Z',
       },
     ],
-    lastKey: null,
+    lastKey: null as string | null,
   };
 
   it('should fetch notifications successfully', async () => {
@@ -660,7 +660,7 @@ describe('useAlertRules', () => {
       ticker: 'AAPL',
       targetValue: 200,
       enabled: true,
-      lastTriggered: null,
+      lastTriggered: null as string | null,
       createdAt: '2026-01-01T00:00:00Z',
       updatedAt: '2026-01-01T00:00:00Z',
     },
@@ -713,7 +713,7 @@ describe('useCreateAlertRule', () => {
       ticker: 'GOOGL',
       targetValue: 130,
       enabled: true,
-      lastTriggered: null,
+      lastTriggered: null as string | null,
       createdAt: '2026-03-08T00:00:00Z',
       updatedAt: '2026-03-08T00:00:00Z',
     };
@@ -751,7 +751,7 @@ describe('useUpdateAlertRule', () => {
       ticker: 'AAPL',
       targetValue: 250,
       enabled: true,
-      lastTriggered: null,
+      lastTriggered: null as string | null,
       createdAt: '2026-01-01T00:00:00Z',
       updatedAt: '2026-03-08T00:00:00Z',
     };

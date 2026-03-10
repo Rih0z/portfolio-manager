@@ -16,6 +16,7 @@
 
 import React from 'react';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
+import type { CurrentAsset, TargetAllocation } from '../../types/portfolio.types';
 import { formatCurrency, formatPercent } from '../../utils/formatters';
 import { getJapaneseStockName } from '../../utils/japaneseStockNames';
 import DataSourceBadge from '../common/DataSourceBadge';
@@ -30,8 +31,8 @@ const AssetsTable = () => {
   } = usePortfolioContext();
 
   // 銘柄データとTarget配分を結合
-  const mergedData = currentAssets.map(asset => {
-    const target = targetPortfolio.find(t => t.id === asset.id);
+  const mergedData = (currentAssets as CurrentAsset[]).map((asset: CurrentAsset) => {
+    const target = (targetPortfolio as TargetAllocation[]).find((t: TargetAllocation) => t.id === asset.id);
     
     // 資産額の計算（通貨換算を考慮）
     let assetValue = asset.price * asset.holdings;
@@ -76,7 +77,7 @@ const AssetsTable = () => {
   }
 
   // 配当頻度の表示変換
-  const formatDividendFrequency = (frequency) => {
+  const formatDividendFrequency = (frequency: string) => {
     switch (frequency) {
       case 'monthly': return '毎月';
       case 'quarterly': return '四半期';
@@ -229,7 +230,7 @@ const AssetsTable = () => {
                         {formatCurrency(asset.annualDividend, baseCurrency)}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        ({formatPercent(asset.dividendYield, 2)})
+                        ({formatPercent(asset.dividendYield ?? 0, 2)})
                       </div>
                       {/* 配当頻度バッジ */}
                       <span className={`text-xs px-1.5 py-0.5 rounded ${
@@ -237,7 +238,7 @@ const AssetsTable = () => {
                           ? 'bg-yellow-100 text-yellow-800'
                           : 'bg-green-100 text-green-800'
                       }`}>
-                        {formatDividendFrequency(asset.dividendFrequency)}
+                        {formatDividendFrequency(asset.dividendFrequency ?? '')}
                         {asset.dividendIsEstimated ? '（推定）' : ''}
                       </span>
                     </div>

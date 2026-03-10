@@ -42,10 +42,10 @@ import { usePortfolioStore } from '../../../stores/portfolioStore';
 
 // --- Helpers ---
 const getInitialState = () => ({
-  user: null,
+  user: null as null,
   isAuthenticated: false,
   loading: true,
-  error: null,
+  error: null as string | null,
   hasDriveAccess: false,
   googleClientId: '',
 });

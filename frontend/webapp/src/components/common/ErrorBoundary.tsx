@@ -35,19 +35,19 @@ class ErrorBoundary extends Component<any, any> {
     };
   }
   
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError(error: Error) {
     // エラー発生時の状態を更新（React 18対応）
     return { hasError: true, error };
   }
   
-  componentDidCatch(error, errorInfo) {
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     // エラー情報をログに記録（非同期で処理）
     this.logErrorAsync(error, errorInfo);
     this.setState({ errorInfo });
   }
 
   // エラーログを非同期で処理
-  logErrorAsync = async (error, errorInfo) => {
+  logErrorAsync = async (error: Error, errorInfo: React.ErrorInfo): Promise<void> => {
     try {
       captureException(error, errorInfo);
       await logErrorToService(error, errorInfo);

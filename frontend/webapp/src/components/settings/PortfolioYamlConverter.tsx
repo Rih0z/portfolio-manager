@@ -13,6 +13,7 @@
 import React, { useState, useCallback } from 'react';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 import logger from '../../utils/logger';
+import type { CurrentAsset, TargetAllocation } from '../../types/portfolio.types';
 
 const PortfolioYamlConverter = () => {
   const {
@@ -23,9 +24,14 @@ const PortfolioYamlConverter = () => {
     baseCurrency
   } = usePortfolioContext();
   
+  interface ImportStatus {
+    type: 'success' | 'error';
+    message: string;
+  }
+
   const [yamlOutput, setYamlOutput] = useState('');
   const [yamlInput, setYamlInput] = useState('');
-  const [importStatus, setImportStatus] = useState(null);
+  const [importStatus, setImportStatus] = useState<ImportStatus | null>(null);
   const [showCopyConfirm, setShowCopyConfirm] = useState(false);
 
   // ポートフォリオデータをYAML形式に変換
@@ -35,20 +41,20 @@ const PortfolioYamlConverter = () => {
         totalAssets: totalAssets || 0,
         currency: baseCurrency || 'JPY',
         timestamp: new Date().toISOString(),
-        currentAllocation: currentAssets.map(item => ({
+        currentAllocation: (currentAssets as CurrentAsset[]).map((item: CurrentAsset) => ({
           ticker: item.ticker,
           name: item.name,
           holdings: item.holdings || 0,
           price: item.price || 0,
           value: (item.holdings || 0) * (item.price || 0),
-          percentage: item.percentage || 0,
+          percentage: 0,
           type: item.fundType || 'stock'
         })),
-        targetAllocation: targetPortfolio.map(item => ({
+        targetAllocation: (targetPortfolio as TargetAllocation[]).map((item: TargetAllocation) => ({
           ticker: item.ticker,
           name: item.name,
           targetPercentage: item.targetPercentage || 0,
-          type: item.type || 'stock'
+          type: 'stock'
         }))
       }
     };
@@ -93,16 +99,24 @@ ${yamlData.portfolio.targetAllocation.map(item => `    - ティッカー: ${item
   }, [currentAssets, targetPortfolio, totalAssets, baseCurrency]);
 
   // YAMLデータをパースしてポートフォリオに取り込む
-  const parseYamlInput = useCallback((yamlText) => {
+  interface ParsedYamlAsset {
+    ticker?: string;
+    name?: string;
+    holdings?: number;
+    price?: number;
+    percentage?: number;
+  }
+
+  const parseYamlInput = useCallback((yamlText: string) => {
     try {
       // 簡易的なYAMLパーサー（基本的な構造のみ対応）
       const lines = yamlText.split('\n');
-      const assets = [];
-      let currentAsset = null;
+      const assets: ParsedYamlAsset[] = [];
+      let currentAsset: ParsedYamlAsset | null = null;
       let inCurrentSection = false;
       let inTargetSection = false;
 
-      lines.forEach(line => {
+      lines.forEach((line: string) => {
         const trimmed = line.trim();
         
         // セクション判定
@@ -140,9 +154,9 @@ ${yamlData.portfolio.targetAllocation.map(item => `    - ティッカー: ${item
       if (currentAsset) assets.push(currentAsset);
       
       return { assets, success: true };
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('YAML parse error:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   }, []);
 
@@ -168,8 +182,8 @@ ${yamlData.portfolio.targetAllocation.map(item => `    - ティッカー: ${item
 
   const handleImportYaml = () => {
     const result = parseYamlInput(yamlInput);
-    
-    if (result.success && result.assets.length > 0) {
+
+    if (result.success && result.assets && result.assets.length > 0) {
       importData({ currentAssets: result.assets, targetPortfolio: result.assets.map(a => ({ id: a.ticker, ticker: a.ticker, name: a.name, targetPercentage: 0 })) });
       setImportStatus({
         type: 'success',

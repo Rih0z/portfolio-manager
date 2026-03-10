@@ -22,7 +22,14 @@ const AIDataImportModal = ({ isOpen, onClose, onImportSuccess }: any) => {
   const { updatePortfolioFromYAML } = usePortfolioContext();
   const [yamlInput, setYamlInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [processingResults, setProcessingResults] = useState(null);
+
+  interface ProcessingResult {
+    success: boolean;
+    message: string;
+    details?: string;
+  }
+
+  const [processingResults, setProcessingResults] = useState<ProcessingResult | null>(null);
 
   if (!isOpen) return null;
 
@@ -34,7 +41,7 @@ const AIDataImportModal = ({ isOpen, onClose, onImportSuccess }: any) => {
       // YAML処理ロジック - 複数戦略でパース
       const processedData = await processYAMLWithStrategies(yamlInput);
       
-      if (processedData.success) {
+      if (processedData.success && processedData.data) {
         await updatePortfolioFromYAML(processedData.data);
         setProcessingResults({
           success: true,
@@ -45,24 +52,34 @@ const AIDataImportModal = ({ isOpen, onClose, onImportSuccess }: any) => {
       } else {
         throw new Error(processedData.error);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       setProcessingResults({
         success: false,
         message: 'YAML取り込み中にエラーが発生しました',
-        details: error.message
+        details: error instanceof Error ? error.message : String(error)
       });
     }
 
     setIsProcessing(false);
   };
 
-  const processYAMLWithStrategies = async (yamlText) => {
+  interface YAMLData {
+    assets: { symbol: string; allocation: number }[];
+    allocation?: Record<string, unknown>;
+  }
+  interface YAMLResult {
+    success: boolean;
+    data?: YAMLData;
+    error?: string;
+  }
+
+  const processYAMLWithStrategies = async (yamlText: string): Promise<YAMLResult> => {
     // 戦略1: 標準YAML解析
     try {
       const data = parseStandardYAML(yamlText);
       return { success: true, data };
-    } catch (e) {
-      logger.debug('標準YAML解析失敗:', e.message);
+    } catch (e: unknown) {
+      logger.debug('標準YAML解析失敗:', e instanceof Error ? e.message : String(e));
     }
 
     // 戦略2: 説明文除去後解析
@@ -70,16 +87,16 @@ const AIDataImportModal = ({ isOpen, onClose, onImportSuccess }: any) => {
       const cleanedText = yamlText.replace(/^[^:]*?(?=\w+:)/gm, '');
       const data = parseStandardYAML(cleanedText);
       return { success: true, data };
-    } catch (e) {
-      logger.debug('説明文除去解析失敗:', e.message);
+    } catch (e: unknown) {
+      logger.debug('説明文除去解析失敗:', e instanceof Error ? e.message : String(e));
     }
 
     // 戦略3: JSON形式として解析
     try {
       const data = JSON.parse(yamlText);
       return { success: true, data: convertJSONToYAML(data) };
-    } catch (e) {
-      logger.debug('JSON解析失敗:', e.message);
+    } catch (e: unknown) {
+      logger.debug('JSON解析失敗:', e instanceof Error ? e.message : String(e));
     }
 
     // 戦略4: カスタム解析
@@ -94,10 +111,10 @@ const AIDataImportModal = ({ isOpen, onClose, onImportSuccess }: any) => {
     }
   };
 
-  const parseStandardYAML = (text) => {
+  const parseStandardYAML = (text: string): YAMLData => {
     // 簡易YAML解析（実装はjs-yamlライブラリを想定）
     const lines = text.split('\n');
-    const result = { assets: [], allocation: {} };
+    const result: YAMLData = { assets: [], allocation: {} };
     
     let currentSection = null;
     
@@ -124,14 +141,14 @@ const AIDataImportModal = ({ isOpen, onClose, onImportSuccess }: any) => {
     return result;
   };
 
-  const parseCustomFormat = (text) => {
+  const parseCustomFormat = (text: string): YAMLData => {
     // AI出力の多様な形式に対応したカスタム解析
-    const result = { assets: [] };
-    
+    const result: YAMLData = { assets: [] };
+
     // ティッカーシンボル: 割合 の形式を検索
     const matches = text.match(/([A-Z]{1,5}):\s*([\d.]+)%?/g);
     if (matches) {
-      matches.forEach(match => {
+      matches.forEach((match: string) => {
         const [symbol, percentage] = match.split(':');
         result.assets.push({
           symbol: symbol.trim(),
@@ -143,11 +160,11 @@ const AIDataImportModal = ({ isOpen, onClose, onImportSuccess }: any) => {
     return result;
   };
 
-  const convertJSONToYAML = (jsonData) => {
+  const convertJSONToYAML = (jsonData: Record<string, unknown>): YAMLData => {
     // JSON形式をYAML相当の構造に変換
     return {
-      assets: jsonData.assets || jsonData.portfolio || [],
-      allocation: jsonData.allocation || {}
+      assets: (jsonData.assets || jsonData.portfolio || []) as { symbol: string; allocation: number }[],
+      allocation: (jsonData.allocation || {}) as Record<string, unknown>
     };
   };
 

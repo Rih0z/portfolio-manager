@@ -17,6 +17,7 @@ import React, { useState } from 'react';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 import { formatCurrency, formatPercent, formatDate } from '../../utils/formatters';
 import logger from '../../utils/logger';
+import type { CurrentAsset, TargetAllocation } from '../../types/portfolio.types';
 
 const AiAnalysisPrompt = () => {
   const {
@@ -38,7 +39,7 @@ const AiAnalysisPrompt = () => {
       return [];
     }
     
-    const total = currentAssets.reduce((sum, asset) => {
+    const total = (currentAssets as CurrentAsset[]).reduce((sum: number, asset: CurrentAsset) => {
       if (!asset.price || !asset.holdings) return sum;
       
       let assetValue = asset.price * asset.holdings;
@@ -58,7 +59,7 @@ const AiAnalysisPrompt = () => {
     // 合計が0の場合は空配列を返す
     if (total <= 0) return [];
     
-    return currentAssets.map(asset => {
+    return (currentAssets as CurrentAsset[]).map((asset: CurrentAsset) => {
       if (!asset.price || !asset.holdings) {
         return {
           ticker: asset.ticker,
@@ -85,7 +86,7 @@ const AiAnalysisPrompt = () => {
         name: asset.name || asset.ticker,
         percentage: percentage
       };
-    }).sort((a, b) => b.percentage - a.percentage); // 割合が大きい順にソート
+    }).sort((a: { percentage: number }, b: { percentage: number }) => b.percentage - a.percentage); // 割合が大きい順にソート
   };
 
   // 目標ポートフォリオの配分取得
@@ -95,21 +96,21 @@ const AiAnalysisPrompt = () => {
       return [];
     }
     
-    return targetPortfolio
-      .map(target => {
-        const asset = currentAssets?.find(a => a.ticker === target.ticker);
+    return (targetPortfolio as TargetAllocation[])
+      .map((target: TargetAllocation) => {
+        const asset = (currentAssets as CurrentAsset[])?.find((a: CurrentAsset) => a.ticker === target.ticker);
         return {
           ticker: target.ticker,
           name: asset ? (asset.name || target.ticker) : target.ticker,
           percentage: target.targetPercentage || 0
         };
       })
-      .filter(target => target.percentage > 0)
-      .sort((a, b) => b.percentage - a.percentage); // 割合が大きい順にソート
+      .filter((target: { percentage: number }) => target.percentage > 0)
+      .sort((a: { percentage: number }, b: { percentage: number }) => b.percentage - a.percentage); // 割合が大きい順にソート
   };
-  
+
   // 通貨に応じた金額フォーマット
-  const formatBudget = (budget, currency) => {
+  const formatBudget = (budget: number, currency: string) => {
     if (!budget || !currency) return '0';
     
     if (currency === 'JPY') {

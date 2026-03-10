@@ -106,6 +106,7 @@
     "@playwright/test": "^1.58.2",
     "@sentry/vite-plugin": "^5.1.1",
     "@types/node": "^25.3.3",
+    "@types/papaparse": "^5.5.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.4",

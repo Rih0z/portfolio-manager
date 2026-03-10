@@ -103,7 +103,7 @@ const ImportOptions = () => {
 
   // CSV文字列からパース（形式判定含む）
   const processCSVContent = useCallback(
-    (content: string) => {
+    (content: string): Record<string, unknown> => {
       if (importFormat === 'csv') {
         // PfWise独自CSVフォーマット
         return parsePfWiseCSV(content);

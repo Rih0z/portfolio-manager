@@ -20,8 +20,21 @@ const ScreenshotAnalyzer = ({
   onDataExtracted = () => {},
   className = ''
 }: any) => {
+  interface ExtractedPortfolioData {
+    portfolioData?: {
+      assets: unknown[];
+      totalValue: number;
+      extractedAt: string;
+      source: string;
+    };
+    rawText?: string;
+    extractedAt?: string;
+    source?: string;
+    [key: string]: unknown;
+  }
+
   const [aiResponse, setAiResponse] = useState('');
-  const [extractedData, setExtractedData] = useState(null);
+  const [extractedData, setExtractedData] = useState<ExtractedPortfolioData | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
   const processAIResponse = () => {
@@ -50,13 +63,13 @@ const ScreenshotAnalyzer = ({
     }
   };
 
-  const parseTextResponse = (text) => {
+  const parseTextResponse = (text: string) => {
     // 基本的なテキスト解析（JSON形式でない場合のフォールバック）
-    const lines = text.split('\n').filter(line => line.trim());
-    
+    const lines = text.split('\n').filter((line: string) => line.trim());
+
     return {
       portfolioData: {
-        assets: [], // テキスト解析ロジックを実装
+        assets: [] as unknown[], // テキスト解析ロジックを実装
         totalValue: 0,
         extractedAt: new Date().toISOString(),
         source: 'text_analysis'

@@ -85,11 +85,11 @@ const notify = (message: string, type: string = 'info') =>
 export const useNotificationStore = create<NotificationState>()(
   persist(
     (set, get) => ({
-      notifications: [],
-      alertRules: [],
+      notifications: [] as AppNotification[],
+      alertRules: [] as AlertRule[],
       unreadCount: 0,
       loading: false,
-      lastKey: null,
+      lastKey: null as string | null,
 
       // ─── Notifications ──────────────────────────────
 

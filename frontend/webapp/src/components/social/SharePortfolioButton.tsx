@@ -17,7 +17,8 @@ const SharePortfolioButton: React.FC = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [showLinks, setShowLinks] = useState(false);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const { data: shares = [], isPending: loading } = useUserShares({ enabled: isAuthenticated });
+  const { data: sharesData, isPending: loading } = useUserShares({ enabled: isAuthenticated });
+  const shares = sharesData?.shares ?? [];
 
   if (!isAuthenticated) {
     return null;

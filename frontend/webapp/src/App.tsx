@@ -158,7 +158,7 @@ const AppInitializer = ({ children }: { children: React.ReactNode }) => {
 };
 
 // Store初期化コンポーネント（AuthStore + PortfolioStore + UIStore のサイドエフェクトを管理）
-const StoreInitializer = () => {
+const StoreInitializer = (): null => {
   const initializeAuth = useAuthStore(s => s.initializeAuth);
   const setupSessionInterval = useAuthStore(s => s.setupSessionInterval);
   const setupVisibilityHandler = useAuthStore(s => s.setupVisibilityHandler);
@@ -233,7 +233,7 @@ const NotificationDisplay = () => {
 
   return (
     <div className="fixed bottom-0 right-0 p-4 space-y-2 z-50" aria-live="assertive" aria-atomic="false">
-      {notifications.map((notification: any) => (
+      {notifications.map((notification) => (
         <div
           key={notification.id}
           role="alert"
@@ -261,7 +261,7 @@ const NotificationDisplay = () => {
 };
 
 // ページビュー自動追跡
-const PageViewTracker = () => {
+const PageViewTracker = (): null => {
   const location = useLocation();
   useEffect(() => {
     trackPageView(location.pathname);
@@ -270,7 +270,7 @@ const PageViewTracker = () => {
 };
 
 // ログイン時にサーバー同期をトリガー
-const ServerSyncInitializer = () => {
+const ServerSyncInitializer = (): null => {
   const isAuthenticated = useAuthStore(s => s.isAuthenticated);
   const syncFromServer = usePortfolioStore(s => s.syncFromServer);
 
@@ -284,7 +284,7 @@ const ServerSyncInitializer = () => {
 };
 
 // アラート評価（認証後に市場データ更新を監視）
-const AlertEvaluationInitializer = () => {
+const AlertEvaluationInitializer = (): null => {
   useAlertEvaluation();
   return null;
 };

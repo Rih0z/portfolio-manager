@@ -27,9 +27,10 @@ const sampleShare = {
   portfolioScore: 85,
   assetCount: 10,
   ageGroup: '30代',
+  allocationSnapshot: [] as { category: string; percentage: number }[],
   expiresAt: '2026-12-31T00:00:00.000Z',
   userId: 'user-1',
-  assets: [],
+  assets: [] as unknown[],
   createdAt: '2026-01-01T00:00:00.000Z',
 };
 
@@ -183,7 +184,7 @@ describe('ShareLinkDisplay', () => {
     });
 
     it('有効期限がない場合は期限表示がない', () => {
-      const shareWithoutExpiry = { ...sampleShare, expiresAt: undefined };
+      const shareWithoutExpiry = { ...sampleShare, expiresAt: undefined as string | undefined };
       render(<ShareLinkDisplay share={shareWithoutExpiry as any} compact />);
       expect(screen.queryByText(/期限:/)).not.toBeInTheDocument();
     });

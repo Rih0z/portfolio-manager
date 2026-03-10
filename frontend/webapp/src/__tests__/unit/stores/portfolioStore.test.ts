@@ -82,6 +82,7 @@ import {
   selectAnnualFees,
   selectAnnualDividends,
 } from '../../../stores/portfolioStore';
+import type { CurrentAsset, TargetAllocation } from '../../../types/portfolio.types';
 import { useUIStore } from '../../../stores/uiStore';
 import { fetchTickerData, fetchFundInfo, fetchDividendData, fetchExchangeRate } from '../../../services/api';
 import { fetchMultipleStocks } from '../../../services/marketDataService';
@@ -121,14 +122,14 @@ const getInitialState = () => ({
   initialized: false,
   baseCurrency: 'JPY',
   exchangeRate: { rate: 150.0, source: 'Default', lastUpdated: new Date().toISOString() },
-  lastUpdated: null,
-  currentAssets: [],
-  targetPortfolio: [],
+  lastUpdated: null as string | null,
+  currentAssets: [] as CurrentAsset[],
+  targetPortfolio: [] as TargetAllocation[],
   additionalBudget: { amount: 300000, currency: 'JPY' },
-  aiPromptTemplate: null,
+  aiPromptTemplate: null as string | null,
   dataSource: 'local',
-  lastSyncTime: null,
-  currentUser: null,
+  lastSyncTime: null as string | null,
+  currentUser: null as null,
 });
 
 describe('portfolioStore', () => {
@@ -222,7 +223,7 @@ describe('portfolioStore', () => {
       vi.mocked(fetchTickerData).mockResolvedValue({
         success: false,
         message: 'API error',
-        data: null,
+        data: undefined,
       });
 
       const result = await usePortfolioStore.getState().addTicker('INVALID');
@@ -647,7 +648,7 @@ describe('portfolioStore', () => {
         currentAssets: [createTestAsset()],
         targetPortfolio: [createTestTarget()],
         additionalBudget: { amount: 3000, currency: 'USD' },
-        aiPromptTemplate: { template: 'test' },
+        aiPromptTemplate: { template: 'test' } as any,
       });
 
       const exported = usePortfolioStore.getState().exportData();
@@ -721,8 +722,10 @@ describe('portfolioStore', () => {
       const result = usePortfolioStore.getState().loadFromLocalStorage();
 
       expect(result).not.toBeNull();
-      expect(result.baseCurrency).toBe('JPY');
-      expect(result.currentAssets).toHaveLength(1);
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      expect(result!.baseCurrency).toBe('JPY');
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      expect(result!.currentAssets).toHaveLength(1);
     });
 
     it('should return null for corrupted data', () => {
@@ -744,14 +747,14 @@ describe('portfolioStore', () => {
     it('should provide a fallback exchange rate when exchangeRate is invalid', () => {
       const data = {
         baseCurrency: 'JPY',
-        currentAssets: [],
-        targetPortfolio: [],
+        currentAssets: [] as CurrentAsset[],
+        targetPortfolio: [] as TargetAllocation[],
         exchangeRate: 'invalid',
       };
       const encoded = btoa(encodeURIComponent(JSON.stringify(data)));
       (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue(encoded);
 
-      const result = usePortfolioStore.getState().loadFromLocalStorage();
+      const result = usePortfolioStore.getState().loadFromLocalStorage() as any;
       expect(result).not.toBeNull();
       expect(result.exchangeRate.rate).toBe(150.0);
       expect(result.exchangeRate.source).toBe('fallback');
@@ -806,7 +809,7 @@ describe('portfolioStore', () => {
       const simulationResults = [
         { id: 'a1', purchaseShares: 3 },
         { id: 'a2', purchaseShares: 2 },
-      ];
+      ] as any[];
 
       usePortfolioStore.getState().executeBatchPurchase(simulationResults);
 
@@ -820,7 +823,7 @@ describe('portfolioStore', () => {
         currentAssets: [createTestAsset({ id: 'a1', holdings: 10 })],
       });
 
-      usePortfolioStore.getState().executeBatchPurchase([{ id: 'a1', purchaseShares: 0 }]);
+      usePortfolioStore.getState().executeBatchPurchase([{ id: 'a1', purchaseShares: 0 }] as any[]);
 
       expect(usePortfolioStore.getState().currentAssets[0].holdings).toBe(10);
     });
@@ -883,14 +886,14 @@ describe('portfolioStore', () => {
   // =========================================================================
   describe('setAiPromptTemplate', () => {
     it('should set the AI prompt template', () => {
-      usePortfolioStore.getState().setAiPromptTemplate({ template: 'Hello {ticker}' });
+      usePortfolioStore.getState().setAiPromptTemplate({ template: 'Hello {ticker}' } as any);
       expect(usePortfolioStore.getState().aiPromptTemplate).toEqual({ template: 'Hello {ticker}' });
     });
   });
 
   describe('updateAiPromptTemplate', () => {
     it('should update the AI prompt template', () => {
-      usePortfolioStore.getState().updateAiPromptTemplate({ template: 'Updated' });
+      usePortfolioStore.getState().updateAiPromptTemplate({ template: 'Updated' } as any);
       expect(usePortfolioStore.getState().aiPromptTemplate).toEqual({ template: 'Updated' });
     });
   });
@@ -908,7 +911,7 @@ describe('portfolioStore', () => {
     });
 
     it('should reset to local when not authenticated', () => {
-      usePortfolioStore.setState({ dataSource: 'cloud', currentUser: { id: 'u1' } });
+      usePortfolioStore.setState({ dataSource: 'cloud', currentUser: { id: 'u1' } as any });
       usePortfolioStore.getState().handleAuthStateChange(false, null);
 
       expect(usePortfolioStore.getState().dataSource).toBe('local');
@@ -929,7 +932,7 @@ describe('portfolioStore', () => {
     });
 
     it('should skip assets without a ticker', () => {
-      const result = usePortfolioStore.getState().validateAssetTypes([{ name: 'No ticker' }]);
+      const result = usePortfolioStore.getState().validateAssetTypes([{ name: 'No ticker' }] as any[]);
       expect(result.updatedAssets).toHaveLength(1);
       expect(result.updatedAssets[0].name).toBe('No ticker');
     });

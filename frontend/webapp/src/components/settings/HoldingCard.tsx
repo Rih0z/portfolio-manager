@@ -7,13 +7,43 @@ import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 
+interface AssetItem {
+  id: string;
+  symbol?: string;
+  ticker?: string;
+  name: string;
+  holdings: number;
+  price: number;
+  currency: string;
+  fundType?: string;
+  isStock?: boolean;
+  annualFee?: number;
+  dividendYield?: number;
+  hasDividend?: boolean;
+  dividendFrequency?: string;
+}
+
+interface ExchangeRate {
+  rate: number;
+  source?: string;
+  lastUpdated?: string;
+}
+
+interface HoldingCardProps {
+  asset: AssetItem;
+  baseCurrency: string;
+  exchangeRate: ExchangeRate;
+  onUpdateHoldings: (id: string, value: number) => void;
+  onRemove: (id: string, name: string) => void;
+}
+
 const HoldingCard = React.memo(({
   asset,
   baseCurrency,
   exchangeRate,
   onUpdateHoldings,
   onRemove
-}) => {
+}: HoldingCardProps) => {
   const { t } = useTranslation();
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(asset.holdings.toString());
@@ -73,7 +103,7 @@ const HoldingCard = React.memo(({
     setIsEditing(false);
   };
 
-  const handleIncrement = (amount) => {
+  const handleIncrement = (amount: number) => {
     const newValue = Math.max(0, asset.holdings + amount);
     onUpdateHoldings(asset.id, parseFloat(newValue.toFixed(4)));
   };
@@ -84,15 +114,17 @@ const HoldingCard = React.memo(({
 
   // 日本の投資信託や株式の場合、わかりやすい名前を取得
   const displayName = React.useMemo(() => {
+    const symbol = asset.symbol;
+    if (!symbol) return asset.name;
     // 投資信託の場合（複数のパターンに対応）
-    if (/^(\d{8}|\d{7}[A-Z]|[A-Z0-9]{8})$/i.test(asset.symbol)) {
-      const japaneseName = getJapaneseStockName(asset.symbol);
-      return japaneseName !== asset.symbol ? japaneseName : asset.name;
+    if (/^(\d{8}|\d{7}[A-Z]|[A-Z0-9]{8})$/i.test(symbol)) {
+      const japaneseName = getJapaneseStockName(symbol);
+      return japaneseName !== symbol ? japaneseName : asset.name;
     }
     // 日本株の場合
-    if (/^\d{4}(\.T)?$/.test(asset.symbol)) {
-      const japaneseName = getJapaneseStockName(asset.symbol);
-      return japaneseName !== asset.symbol ? japaneseName : asset.name;
+    if (/^\d{4}(\.T)?$/.test(symbol)) {
+      const japaneseName = getJapaneseStockName(symbol);
+      return japaneseName !== symbol ? japaneseName : asset.name;
     }
     return asset.name;
   }, [asset.symbol, asset.name]);

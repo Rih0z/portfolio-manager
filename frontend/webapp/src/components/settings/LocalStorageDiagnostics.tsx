@@ -20,7 +20,18 @@ import { FaExclamationTriangle, FaCheckCircle, FaTools, FaTrash, FaSync } from '
 const LocalStorageDiagnostics = () => {
   const { debugLocalStorage, clearLocalStorage, loadFromLocalStorage, initializeData } = usePortfolioContext();
   const addNotification = useUIStore(s => s.addNotification);
-  const [diagnosticsResult, setDiagnosticsResult] = useState(null);
+  interface DiagnosticsResult {
+    error?: string;
+    hasData?: boolean;
+    canDecrypt?: boolean;
+    currentState?: {
+      initialized?: boolean;
+      baseCurrency?: string;
+      currentAssetsLength?: number;
+    };
+  }
+
+  const [diagnosticsResult, setDiagnosticsResult] = useState<DiagnosticsResult | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
@@ -29,8 +40,8 @@ const LocalStorageDiagnostics = () => {
     try {
       const result = debugLocalStorage();
       setDiagnosticsResult(result);
-    } catch (error) {
-      setDiagnosticsResult({ error: error.message });
+    } catch (error: unknown) {
+      setDiagnosticsResult({ error: error instanceof Error ? error.message : String(error) });
     } finally {
       setIsRunning(false);
     }

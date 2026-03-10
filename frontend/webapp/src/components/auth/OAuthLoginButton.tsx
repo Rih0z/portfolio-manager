@@ -36,7 +36,7 @@ const ERROR_MESSAGES = {
 const OAuthLoginButton = ({ compact = false }: { compact?: boolean }) => {
   const { loginWithGoogle, loading, error, isAuthenticated, googleClientId } = useAuth();
   const { addNotification } = usePortfolioContext();
-  const [loginError, setLoginError] = useState(null);
+  const [loginError, setLoginError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [codeProcessed, setCodeProcessed] = useState(false); // 認証コードの処理済みフラグ
 
@@ -112,7 +112,7 @@ const OAuthLoginButton = ({ compact = false }: { compact?: boolean }) => {
   }, [loginWithGoogle, addNotification, codeProcessed, getRedirectUri]);
 
   // エラーハンドリング
-  const handleLoginError = (result) => {
+  const handleLoginError = (result: { error?: { code?: string; message?: string } } | null) => {
     if (result?.error?.code === 'MISSING_DRIVE_SCOPE') {
       setLoginError(ERROR_MESSAGES.MISSING_DRIVE_SCOPE);
       // 3秒後に再度認証画面へ

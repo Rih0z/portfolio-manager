@@ -52,7 +52,7 @@ const applyTheme = (resolved: 'light' | 'dark') => {
 export const useUIStore = create<UIState>()(
   persist(
     (set, get) => ({
-      notifications: [],
+      notifications: [] as Notification[],
       isLoading: false,
       theme: 'light',
       resolvedTheme: 'light',

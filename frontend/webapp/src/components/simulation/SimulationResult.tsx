@@ -19,6 +19,7 @@ import React, { useState } from 'react';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 import { formatCurrency, formatPercent, formatDate } from '../../utils/formatters';
 import ConfirmDialog from '../ui/confirm-dialog';
+import type { SimulationItem } from '../../types/portfolio.types';
 
 const SimulationResult = (_props?: any) => {
   const {
@@ -28,7 +29,7 @@ const SimulationResult = (_props?: any) => {
     executePurchase
   } = usePortfolioContext();
 
-  const [editingId, setEditingId] = useState(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [editUnits, setEditUnits] = useState(0);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState('');
@@ -43,7 +44,7 @@ const SimulationResult = (_props?: any) => {
   const simulationResults = calculateSimulation();
 
   // データソースバッジのコンポーネント
-  const DataSourceBadge = ({ source }) => {
+  const DataSourceBadge = ({ source }: { source: string }) => {
     let badgeClass = "text-xs px-1.5 py-0.5 rounded ";
 
     switch(source) {
@@ -75,24 +76,24 @@ const SimulationResult = (_props?: any) => {
   };
 
   // 株数編集開始（小数点以下4桁まで対応）
-  const startEditing = (id, units) => {
+  const startEditing = (id: string, units: number) => {
     setEditingId(id);
     setEditUnits(parseFloat((units || 0).toFixed(4)));
   };
 
   // 株数による金額計算
-  const calculateAmount = (result, units) => {
+  const calculateAmount = (result: SimulationItem, units: number) => {
     return units * result.price;
   };
 
   // 編集中の株数が変更された時の処理（小数点以下4桁まで対応）
-  const handleUnitsChange = (e, result) => {
+  const handleUnitsChange = (e: React.ChangeEvent<HTMLInputElement>, result: SimulationItem) => {
     const value = parseFloat(e.target.value) || 0;
     setEditUnits(parseFloat(Math.max(0, value).toFixed(4)));
   };
 
   // 個別銘柄の購入処理（小数点以下4桁まで対応）
-  const handlePurchase = (result) => {
+  const handlePurchase = (result: SimulationItem) => {
     const units = (result.purchaseShares || 0).toFixed(4);
     const unitLabel = result.isMutualFund ? '口' : '株';
     setConfirmDialog({
@@ -108,7 +109,7 @@ const SimulationResult = (_props?: any) => {
   };
 
   // 編集内容を適用して購入（小数点以下4桁まで対応）
-  const handleEditedPurchase = (result) => {
+  const handleEditedPurchase = (result: SimulationItem) => {
     if (editUnits <= 0) {
       showMessage('購入株数は0より大きい値を指定してください', 'error');
       return;
@@ -130,7 +131,7 @@ const SimulationResult = (_props?: any) => {
   };
 
   // メッセージの表示
-  const showMessage = (text, type) => {
+  const showMessage = (text: string, type: string) => {
     setMessage(text);
     setMessageType(type);
     setTimeout(() => {
@@ -198,7 +199,7 @@ const SimulationResult = (_props?: any) => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {simulationResults.map((result) => (
+            {(simulationResults as SimulationItem[]).map((result: SimulationItem) => (
               <tr key={result.id || result.ticker} className={result.purchaseAmount <= 0 ? 'bg-gray-50' : ''}>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">

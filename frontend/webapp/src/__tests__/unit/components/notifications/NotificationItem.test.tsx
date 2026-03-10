@@ -24,10 +24,12 @@ import NotificationItem from '../../../../components/notifications/NotificationI
 
 const createNotification = (overrides: Record<string, any> = {}) => ({
   notificationId: 'notif-1',
+  userId: '',
   title: 'AAPL 価格アラート',
   message: '目標価格 $200 に到達しました',
   type: 'price_alert' as const,
   read: false,
+  metadata: {} as Record<string, unknown>,
   createdAt: new Date().toISOString(),
   ...overrides,
 });

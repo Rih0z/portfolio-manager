@@ -19,6 +19,7 @@ import { useTranslation } from 'react-i18next';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 import { formatCurrency, formatPercent } from '../../utils/formatters';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
+import type { CurrentAsset } from '../../types/portfolio.types';
 
 const PortfolioSummary = () => {
   const { t } = useTranslation();
@@ -42,36 +43,36 @@ const PortfolioSummary = () => {
   const dividendYieldPercentage = totalAssets > 0 ? (annualDividends / totalAssets) * 100 : 0;
 
   // 最高手数料率と最低手数料率の銘柄を取得
-  const assetsWithFees = currentAssets.filter(asset => asset.holdings > 0);
-  
-  let highestFeeAsset = null;
-  let lowestFeeAsset = null;
-  
+  const assetsWithFees = (currentAssets as CurrentAsset[]).filter((asset: CurrentAsset) => asset.holdings > 0);
+
+  let highestFeeAsset: CurrentAsset | null = null;
+  let lowestFeeAsset: CurrentAsset | null = null;
+
   if (assetsWithFees.length > 0) {
-    highestFeeAsset = assetsWithFees.reduce((max, asset) => 
+    highestFeeAsset = assetsWithFees.reduce((max: CurrentAsset, asset: CurrentAsset) =>
       (asset.annualFee || 0) > (max.annualFee || 0) ? asset : max, assetsWithFees[0]);
-      
-    lowestFeeAsset = assetsWithFees.reduce((min, asset) => 
+
+    lowestFeeAsset = assetsWithFees.reduce((min: CurrentAsset, asset: CurrentAsset) =>
       (asset.annualFee || 0) < (min.annualFee || 0) ? asset : min, assetsWithFees[0]);
   }
-  
+
   // 高配当銘柄を取得
-  let highestDividendAsset = null;
-  
+  let highestDividendAsset: CurrentAsset | null = null;
+
   if (assetsWithFees.length > 0) {
     // 配当がある銘柄のみをフィルタリング
-    const assetsWithDividends = assetsWithFees.filter(asset => 
-      asset.hasDividend && asset.dividendYield > 0);
-      
+    const assetsWithDividends = assetsWithFees.filter((asset: CurrentAsset) =>
+      asset.hasDividend && (asset.dividendYield ?? 0) > 0);
+
     if (assetsWithDividends.length > 0) {
-      highestDividendAsset = assetsWithDividends.reduce((max, asset) => 
-        (asset.dividendYield || 0) > (max.dividendYield || 0) ? asset : max, 
+      highestDividendAsset = assetsWithDividends.reduce((max: CurrentAsset, asset: CurrentAsset) =>
+        (asset.dividendYield || 0) > (max.dividendYield || 0) ? asset : max,
         assetsWithDividends[0]);
     }
   }
 
   // ファンドタイプごとの集計
-  const fundTypeSummary = assetsWithFees.reduce((acc, asset) => {
+  const fundTypeSummary = assetsWithFees.reduce((acc: Record<string, { totalValue: number; totalFee: number; totalDividend: number; count: number }>, asset: CurrentAsset) => {
     const fundType = asset.fundType || '不明';
     if (!acc[fundType]) {
       acc[fundType] = {

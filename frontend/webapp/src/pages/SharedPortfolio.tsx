@@ -214,7 +214,7 @@ const SharedPortfolio: React.FC = () => {
                     paddingAngle={2}
                     dataKey="value"
                     nameKey="category"
-                    label={({ category, percentage }) =>
+                    label={({ category, percentage }: { category: string; percentage: number }) =>
                       `${category} ${percentage.toFixed(1)}%`
                     }
                     labelLine={{ strokeWidth: 1 }}

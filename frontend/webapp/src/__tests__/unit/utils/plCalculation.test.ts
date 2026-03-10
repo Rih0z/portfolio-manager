@@ -6,6 +6,7 @@
 
 import { calculatePortfolioPnL } from '@/utils/plCalculation';
 import type { PortfolioAsset, PortfolioPnL } from '@/utils/plCalculation';
+import type { PriceHistoryResponse } from '@/services/priceHistoryService';
 
 // ─── Helpers ─────────────────────────────────────────────────
 
@@ -21,10 +22,12 @@ function makeAsset(overrides: Partial<PortfolioAsset> = {}): PortfolioAsset {
   };
 }
 
-function makePriceHistory(ticker: string, dayAmount = 0, dayPercent = 0, ytdAmount = 0, ytdPercent = 0) {
+function makePriceHistory(ticker: string, dayAmount = 0, dayPercent = 0, ytdAmount = 0, ytdPercent = 0): Record<string, PriceHistoryResponse> {
   return {
     [ticker]: {
       ticker,
+      currency: null as string | null,
+      period: '1m',
       prices: [],
       change: {
         dayOverDay: { amount: dayAmount, percent: dayPercent },

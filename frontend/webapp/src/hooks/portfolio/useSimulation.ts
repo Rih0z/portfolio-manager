@@ -2,6 +2,7 @@
  * 投資シミュレーション用カスタムフック — PortfolioStore セレクタ
  */
 import { usePortfolioStore } from '../../stores/portfolioStore';
+import type { SimulationItem } from '../../types/portfolio.types';
 
 export const useSimulation = () => {
   const store = usePortfolioStore();
@@ -9,7 +10,7 @@ export const useSimulation = () => {
   return {
     runSimulation: store.calculateSimulation,
     executePurchase: store.executePurchase,
-    simulationResult: null,
+    simulationResult: null as SimulationItem[] | null,
     includeCurrentHoldings: true,
     setIncludeCurrentHoldings: () => {},
   };

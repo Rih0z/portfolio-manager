@@ -117,10 +117,10 @@ import {
 // Helper: get the interceptor callbacks registered by the LAST createApiClient call
 function getLatestInterceptors() {
   return {
-    requestFulfilled: interceptorCallbacks.request[interceptorCallbacks.request.length - 1]?.fulfilled,
-    requestRejected: interceptorCallbacks.request[interceptorCallbacks.request.length - 1]?.rejected,
-    responseFulfilled: interceptorCallbacks.response[interceptorCallbacks.response.length - 1]?.fulfilled,
-    responseRejected: interceptorCallbacks.response[interceptorCallbacks.response.length - 1]?.rejected,
+    requestFulfilled: interceptorCallbacks.request[interceptorCallbacks.request.length - 1]?.fulfilled!,
+    requestRejected: interceptorCallbacks.request[interceptorCallbacks.request.length - 1]?.rejected!,
+    responseFulfilled: interceptorCallbacks.response[interceptorCallbacks.response.length - 1]?.fulfilled!,
+    responseRejected: interceptorCallbacks.response[interceptorCallbacks.response.length - 1]?.rejected!,
   };
 }
 

@@ -76,7 +76,7 @@ const PnLTrendChart: React.FC = () => {
         }
 
         if (price === null) price = asset.price || 0;
-        let val = price * (asset.holdings || 0);
+        let val = (price ?? 0) * (asset.holdings || 0);
 
         // 通貨変換
         if (asset.currency !== baseCurrency) {
@@ -201,7 +201,7 @@ const PnLTrendChart: React.FC = () => {
             />
             <Tooltip
               formatter={formatTooltipValue}
-              labelFormatter={(label) => `日付: ${label}`}
+              labelFormatter={(label: string) => `日付: ${label}`}
               contentStyle={{
                 backgroundColor: 'var(--color-card)',
                 border: '1px solid var(--color-border)',

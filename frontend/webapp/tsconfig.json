@@ -5,7 +5,7 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
-    "strict": false,
+    "strict": true,
     "allowJs": true,
     "checkJs": false,
     "noEmit": true,
@@ -21,7 +21,7 @@
     "paths": {
       "@/*": ["./src/*"]
     },
-    "types": ["vite/client", "node"]
+    "types": ["vite/client", "node", "vitest/globals"]
   },
   "include": ["src/**/*", "src/vite-env.d.ts"],
   "exclude": ["node_modules", "build", "dist", "coverage", "scripts"]

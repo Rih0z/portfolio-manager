@@ -34,7 +34,7 @@
 | ハードコード色値 | 35+ | 4 | ≤4 | ✅ |
 | テスト品質 | 脆弱 | 堅牢 | 堅牢 | ✅ |
 | ユニットテスト | 2254 PASS | 2251 PASS | 全PASS | ✅ |
-| テストカバレッジ | 77.85% | 未計測 | 80%+ | 未確認 |
+| テストカバレッジ | 77.85% | 81.39% | 80%+ | ✅ |
 | E2Eテスト | 17 | 19 | 25+ | ⚠️ |
 
 ---
@@ -137,9 +137,13 @@
 - 不足分のテスト追加
 
 ### 8-B: TanStack Query カスタムフック導入
-- サーバー状態（為替レート、株価、サブスク）をZustandからTanStack Queryに移行
-- カスタムフック9本 + Mutation 4本作成
-- staleTime/cacheTimeで自動再取得（手動更新ボタン依存を軽減）
+- ~~カスタムフック作成~~ → 13 Query + 7 Mutation 完備 ✅
+- **残タスク**: コンポーネント統合（Zustandストアからの段階的移行）
+  - subscriptionStore → useSubscriptionStatus（17ファイル参照）
+  - socialStore → useUserShares / usePeerComparison
+  - referralStore → useReferralCode / useReferralStats
+  - notificationStore → useNotifications / useAlertRules
+  - portfolioStore → useExchangeRate / useStockPrices / useServerPortfolio
 
 ### 8-C: Zustand persist 統一
 - 手動localStorage → persist middleware統一

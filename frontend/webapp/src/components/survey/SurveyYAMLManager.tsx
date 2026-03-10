@@ -59,11 +59,11 @@ const SurveyYAMLManager = ({ onSurveyComplete, initialData }: any) => {
     { value: '10_years', label: '10年以上' }
   ];
 
-  const handleInputChange = (section, field, value) => {
-    setSurveyData(prev => ({
+  const handleInputChange = (section: string, field: string, value: string) => {
+    setSurveyData((prev: Record<string, Record<string, unknown>>) => ({
       ...prev,
       [section]: {
-        ...prev[section],
+        ...(prev[section] as Record<string, unknown>),
         [field]: value
       }
     }));

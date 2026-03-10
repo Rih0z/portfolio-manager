@@ -17,19 +17,29 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 
+type ToastType = 'info' | 'success' | 'warning' | 'error';
+
+interface ToastNotificationProps {
+  message: string;
+  type?: ToastType;
+  duration?: number;
+  onClose?: () => void;
+  position?: 'top' | 'bottom';
+}
+
 /**
  * トースト通知コンポーネント
  * エラーやメッセージを画面上部または下部に表示する
  */
-const ToastNotification = ({ 
-  message, 
-  type = 'info', 
+const ToastNotification = ({
+  message,
+  type = 'info',
   duration = 5000,
   onClose,
   position = 'bottom'
-}) => {
+}: ToastNotificationProps) => {
   const [visible, setVisible] = useState(true);
-  const timerRef = useRef(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   // 時間経過後に閉じる
   useEffect(() => {
@@ -54,7 +64,7 @@ const ToastNotification = ({
     : 'bottom-4';
   
   // タイプに応じたスタイルを決定
-  const typeStyles = {
+  const typeStyles: Record<ToastType, string> = {
     info: 'bg-blue-100 border-blue-500 text-blue-700',
     success: 'bg-green-100 border-green-500 text-green-700',
     warning: 'bg-yellow-100 border-yellow-500 text-yellow-700',

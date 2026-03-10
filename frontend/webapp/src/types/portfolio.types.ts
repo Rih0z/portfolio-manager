@@ -9,8 +9,8 @@ export interface BaseAsset {
   price: number;
   holdings: number;
   currency: string;
-  lastUpdated: string;
-  source: string;
+  lastUpdated?: string;
+  source?: string;
 }
 
 export interface Asset extends BaseAsset {
@@ -26,13 +26,46 @@ export interface Asset extends BaseAsset {
   dividendIsEstimated?: boolean;
   purchasePrice?: number;
   purchaseDate?: string;
+  /** 表示シンボル (tickerと同じ場合が多い) */
+  symbol?: string;
+  region?: string;
 }
+
+/** portfolioStore で管理する保有銘柄 */
+export type CurrentAsset = Asset;
 
 export interface TargetAllocation {
   id: string;
   ticker: string;
+  name: string;
   targetPercentage: number;
 }
+
+/** 認証済みユーザー情報 */
+export interface UserData {
+  id: string;
+  email: string;
+  name: string;
+  picture?: string;
+}
+
+/** 操作結果の共通型 */
+export interface OperationResult {
+  success: boolean;
+  message: string;
+  limitReached?: boolean;
+}
+
+/** クラウド同期結果 */
+export interface SyncResult extends OperationResult {
+  suggestSaving?: boolean;
+}
+
+/** addTicker の戻り値 */
+export type AddTickerResult = OperationResult;
+
+/** importData の戻り値 */
+export type ImportDataResult = OperationResult;
 
 export interface ExchangeRate {
   rate: number;
@@ -85,6 +118,44 @@ export interface ValidationChanges {
   fundType: number;
   fees: number;
   dividends: number;
+  currency?: number;
+  fundTypeDetails?: { ticker: string; name: string; oldType: string; newType: string }[];
+  feeDetails?: { ticker: string; name: string; oldFee: number; newFee: number }[];
+}
+
+export interface ValidateResult {
+  updatedAssets: CurrentAsset[];
+  changes: ValidationChanges;
+}
+
+/** calculateSimulation の各行結果 */
+export interface SimulationItem {
+  id: string;
+  ticker: string;
+  name: string;
+  currentAllocation: number;
+  targetAllocation: number;
+  diff: number;
+  currentValue: number;
+  purchaseAmount: number;
+  price: number;
+  purchaseShares: number;
+  currency: string;
+  isMutualFund?: boolean;
+  source?: string;
+}
+
+/** ポートフォリオエクスポートデータ */
+export interface PortfolioExport {
+  baseCurrency: string;
+  exchangeRate: ExchangeRate;
+  lastUpdated: string | null;
+  currentAssets: CurrentAsset[];
+  targetPortfolio: TargetAllocation[];
+  additionalBudget: AdditionalBudget;
+  aiPromptTemplate: string | null;
+  version?: string;
+  timestamp?: string;
 }
 
 export interface ApiConfig {

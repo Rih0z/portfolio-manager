@@ -22,6 +22,7 @@ import { FUND_TYPES } from '../../utils/fundUtils';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import HoldingCard from './HoldingCard';
 import ConfirmDialog from '../ui/confirm-dialog';
+import type { CurrentAsset } from '../../types/portfolio.types';
 
 const HoldingsEditor = () => {
   const { t } = useTranslation();
@@ -53,7 +54,7 @@ const HoldingsEditor = () => {
   }, [deleteConfirm, removeTicker]);
 
   // メッセージの表示
-  const showMessage = (text, type) => {
+  const showMessage = (text: string, type: string) => {
     setMessage(text);
     setMessageType(type);
     setTimeout(() => {
@@ -84,7 +85,7 @@ const HoldingsEditor = () => {
     <div className="space-y-6" data-testid="holdings-editor">
       {/* Holdings Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-        {currentAssets.map((asset) => (
+        {(currentAssets as CurrentAsset[]).map((asset: CurrentAsset) => (
           <HoldingCard
             key={asset.id}
             asset={asset}

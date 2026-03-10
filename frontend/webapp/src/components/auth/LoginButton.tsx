@@ -20,7 +20,7 @@
  */
 
 import React, { useState } from 'react';
-import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
+import { GoogleOAuthProvider, GoogleLogin, CredentialResponse } from '@react-oauth/google';
 import { useAuth } from '../../hooks/useAuth';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 import logger from '../../utils/logger';
@@ -28,15 +28,15 @@ import logger from '../../utils/logger';
 const LoginButtonContent = () => {
   const { loginWithGoogle, loading, error, initiateDriveAuth } = useAuth();
   const { addNotification } = usePortfolioContext();
-  const [loginError, setLoginError] = useState(null);
+  const [loginError, setLoginError] = useState<string | null>(null);
   
-  const handleGoogleLogin = async (credentialResponse) => {
+  const handleGoogleLogin = async (credentialResponse: CredentialResponse) => {
     if (process.env.NODE_ENV === 'development') {
       logger.debug('Google認証レスポンス受信');
     }
     
     // 認証情報の確認
-    if (!credentialResponse.credential && !credentialResponse.code) {
+    if (!credentialResponse.credential && !(credentialResponse as Record<string, unknown>).code) {
       logger.error('認証情報がレスポンスに含まれていません', credentialResponse);
       setLoginError('認証情報が取得できませんでした');
       return;
@@ -96,9 +96,9 @@ const LoginButtonContent = () => {
           }, 1500); // 1.5秒待ってからDrive連携を開始（ログイン処理の完了を確実にするため）
         }
       }
-    } catch (err) {
+    } catch (err: unknown) {
       logger.error('ログイン処理中にエラーが発生しました:', err);
-      const message = err?.message || '不明なエラー';
+      const message = err instanceof Error ? err.message : '不明なエラー';
       setLoginError(`ログインエラー: ${message}`);
     }
   };

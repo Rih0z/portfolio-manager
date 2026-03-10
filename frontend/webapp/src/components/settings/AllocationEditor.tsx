@@ -15,6 +15,7 @@
  */
 import React, { useState, useEffect } from 'react';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
+import type { TargetAllocation } from '../../types/portfolio.types';
 
 const AllocationEditor = () => {
   const { targetPortfolio, updateTargetAllocation } = usePortfolioContext();
@@ -37,7 +38,7 @@ const AllocationEditor = () => {
   }, [targetPortfolio]);
 
   // 配分値の変更処理
-  const handleAllocationChange = (id, value) => {
+  const handleAllocationChange = (id: string, value: string) => {
     // 入力値のバリデーション
     const numValue = parseFloat(value) || 0;
     const clampedValue = Math.max(0, Math.min(100, numValue));
@@ -108,7 +109,7 @@ const AllocationEditor = () => {
   };
 
   // メッセージの表示
-  const showMessage = (text, type) => {
+  const showMessage = (text: string, type: string) => {
     setMessage(text);
     setMessageType(type);
     setTimeout(() => {
@@ -146,7 +147,7 @@ const AllocationEditor = () => {
       </div>
 
       <div className="bg-white rounded border overflow-hidden">
-        {targetPortfolio.map((item) => (
+        {(targetPortfolio as TargetAllocation[]).map((item: TargetAllocation) => (
           <div
             key={item.id}
             className="flex items-center p-3 border-b last:border-b-0 hover:bg-gray-50"

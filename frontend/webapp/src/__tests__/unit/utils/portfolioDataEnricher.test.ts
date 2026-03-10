@@ -6,6 +6,7 @@
 
 import { enrichPortfolioData } from '@/utils/portfolioDataEnricher';
 import type { EnrichedPortfolioData } from '@/utils/portfolioDataEnricher';
+import type { PriceHistoryResponse } from '@/services/priceHistoryService';
 
 // ─── Helpers ─────────────────────────────────────────────────
 
@@ -28,10 +29,12 @@ function makeTarget(ticker: string, targetPercentage: number) {
   return { id: ticker, ticker, targetPercentage };
 }
 
-function makePriceHistory(ticker: string, dayAmount = 2, dayPercent = 1, ytdAmount = 10, ytdPercent = 5) {
+function makePriceHistory(ticker: string, dayAmount = 2, dayPercent = 1, ytdAmount = 10, ytdPercent = 5): Record<string, PriceHistoryResponse> {
   return {
     [ticker]: {
       ticker,
+      currency: null as string | null,
+      period: '1m',
       prices: [],
       change: {
         dayOverDay: { amount: dayAmount, percent: dayPercent },

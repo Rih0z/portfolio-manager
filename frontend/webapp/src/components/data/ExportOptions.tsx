@@ -17,11 +17,17 @@
 import React, { useState, useCallback } from 'react';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 import logger from '../../utils/logger';
+import type { CurrentAsset, TargetAllocation } from '../../types/portfolio.types';
 
 const ExportOptions = () => {
   const { currentAssets, targetPortfolio, baseCurrency, exchangeRate } = usePortfolioContext();
+  interface ExportStatus {
+    type: 'success' | 'error';
+    message: string;
+  }
+
   const [exportFormat, setExportFormat] = useState('json');
-  const [exportStatus, setExportStatus] = useState(null);
+  const [exportStatus, setExportStatus] = useState<ExportStatus | null>(null);
 
   // JSONへの変換
   const convertToJson = useCallback(() => {
@@ -40,13 +46,13 @@ const ExportOptions = () => {
   const convertToCsv = useCallback(() => {
     // 保有資産のCSV
     const assetsHeader = 'id,name,ticker,exchangeMarket,price,currency,holdings,annualFee,lastUpdated,source';
-    const assetsRows = currentAssets.map(asset => {
-      return `${asset.id},"${asset.name}",${asset.ticker},${asset.exchangeMarket},${asset.price},${asset.currency},${asset.holdings},${asset.annualFee || 0},"${asset.lastUpdated || ''}","${asset.source || ''}"`;
+    const assetsRows = (currentAssets as CurrentAsset[]).map((asset: CurrentAsset) => {
+      return `${asset.id},"${asset.name}",${asset.ticker},${'exchangeMarket' in asset ? (asset as Record<string, unknown>)['exchangeMarket'] : ''},${asset.price},${asset.currency},${asset.holdings},${asset.annualFee || 0},"${asset.lastUpdated || ''}","${asset.source || ''}"`;
     });
-    
+
     // 目標配分のCSV
     const targetHeader = 'id,name,ticker,targetPercentage';
-    const targetRows = targetPortfolio.map(target => {
+    const targetRows = (targetPortfolio as TargetAllocation[]).map((target: TargetAllocation) => {
       return `${target.id},"${target.name}",${target.ticker},${target.targetPercentage}`;
     });
     
@@ -64,7 +70,7 @@ const ExportOptions = () => {
 
   // ファイルダウンロード
   // 現代的なファイルダウンロード関数（手動DOM操作を排除）
-  const downloadFile = useCallback(async (data, filename, mimeType) => {
+  const downloadFile = useCallback(async (data: string, filename: string, mimeType: string) => {
     try {
       // File System Access APIが利用可能かチェック
       if ('showSaveFilePicker' in window) {

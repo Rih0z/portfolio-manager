@@ -32,10 +32,11 @@ vi.mock('../../../utils/analytics', () => ({
 // --- Import store after mocks ---
 import { useGoalStore } from '../../../stores/goalStore';
 import { getIsPremiumFromCache } from '../../../hooks/queries';
+import type { InvestmentGoal } from '../../../utils/goalCalculations';
 
 // --- Test helpers ---
 const getInitialState = () => ({
-  goals: [],
+  goals: [] as InvestmentGoal[],
 });
 
 describe('goalStore', () => {

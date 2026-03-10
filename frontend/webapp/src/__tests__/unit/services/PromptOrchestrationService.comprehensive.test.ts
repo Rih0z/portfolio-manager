@@ -105,7 +105,7 @@ describe('PromptOrchestrationService（包括テスト）', () => {
 
   describe('loadPromptHistory', () => {
     it('保存済みデータがある場合、パースして返す', () => {
-      const stored = [{ id: '1', prompt: {}, result: null, timestamp: '2025-01-01', userContext: {} }];
+      const stored = [{ id: '1', prompt: {}, result: null as any, timestamp: '2025-01-01', userContext: {} }];
       (localStorage.getItem as ReturnType<typeof vi.fn>).mockReturnValue(JSON.stringify(stored));
 
       const history = service.loadPromptHistory();
@@ -561,7 +561,7 @@ describe('PromptOrchestrationService（包括テスト）', () => {
         version: '1.0' as const,
         userContext: { age: 45 },
         aiPreferences: { preferredAI: 'chatgpt' as const },
-        successPatterns: [],
+        successPatterns: [] as any[],
         timestamp: new Date().toISOString(),
       };
 

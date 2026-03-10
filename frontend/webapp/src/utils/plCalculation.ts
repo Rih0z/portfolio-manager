@@ -89,7 +89,7 @@ export const calculatePortfolioPnL = (
     let pnl: number | null = null;
     let pnlPercent: number | null = null;
 
-    if (hasPurchasePrice) {
+    if (hasPurchasePrice && asset.purchasePrice !== undefined) {
       const investmentRaw = asset.purchasePrice * holdings;
       investmentBase = convertToBase(investmentRaw, currency, baseCurrency, exchangeRate);
       pnl = currentValueBase - investmentBase;
@@ -127,7 +127,7 @@ export const calculatePortfolioPnL = (
       ticker: asset.ticker,
       name: asset.name || asset.ticker,
       currency,
-      purchasePrice: hasPurchasePrice ? asset.purchasePrice : null,
+      purchasePrice: hasPurchasePrice && asset.purchasePrice !== undefined ? asset.purchasePrice : null,
       currentPrice,
       holdings,
       investment: investmentBase,

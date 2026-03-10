@@ -67,12 +67,12 @@ const PopularTickers = () => {
   const { addTicker } = usePortfolioContext();
   const [category, setCategory] = useState('jp-mutual-funds'); // 'jp-mutual-funds', 'funds', 'stocks', 'jp-stocks'
   const [isLoading, setIsLoading] = useState(false);
-  const [addedTickers, setAddedTickers] = useState({});
+  const [addedTickers, setAddedTickers] = useState<Record<string, boolean>>({});
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState('');
 
   // 銘柄追加の処理
-  const handleAddTicker = async (ticker) => {
+  const handleAddTicker = async (ticker: string) => {
     if (addedTickers[ticker]) {
       showMessage(`${ticker}は既に追加されています`, 'info');
       return;
@@ -100,7 +100,7 @@ const PopularTickers = () => {
   };
 
   // メッセージの表示
-  const showMessage = (text, type) => {
+  const showMessage = (text: string, type: string) => {
     setMessage(text);
     setMessageType(type);
     setTimeout(() => {

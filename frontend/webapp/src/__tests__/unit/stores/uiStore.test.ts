@@ -5,10 +5,11 @@
  */
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { useUIStore } from '../../../stores/uiStore';
+import type { Notification } from '../../../types/portfolio.types';
 
 // Capture initial state for reset between tests
 const initialState = {
-  notifications: [],
+  notifications: [] as Notification[],
   isLoading: false,
 };
 

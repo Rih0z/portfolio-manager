@@ -34,7 +34,7 @@ const ShareDialog: React.FC<ShareDialogProps> = ({ isOpen, onClose }) => {
   const loading = createShareMutation.isPending;
   const maxShares = isPremium ? SOCIAL_LIMITS.STANDARD.maxShares : SOCIAL_LIMITS.FREE.maxShares;
   const ttlDays = isPremium ? SOCIAL_LIMITS.STANDARD.ttlDays : SOCIAL_LIMITS.FREE.ttlDays;
-  const shareCount = sharesData?.length ?? 0;
+  const shareCount = sharesData?.shares?.length ?? 0;
   const canCreateShare = () => shareCount < maxShares;
 
   // ポートフォリオ情報の取得

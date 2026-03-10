@@ -124,7 +124,7 @@ const MarketSelectionWizard = ({
     setLocalSelectedMarkets(selectedMarkets);
   }, [selectedMarkets]);
 
-  const handleMarketToggle = (marketId) => {
+  const handleMarketToggle = (marketId: string) => {
     setAnimatingCards(prev => new Set(prev).add(marketId));
     
     setTimeout(() => {
@@ -136,19 +136,19 @@ const MarketSelectionWizard = ({
     }, 200);
 
     const newSelectedMarkets = localSelectedMarkets.includes(marketId)
-      ? localSelectedMarkets.filter(id => id !== marketId)
+      ? localSelectedMarkets.filter((id: string) => id !== marketId)
       : [...localSelectedMarkets, marketId];
     
     setLocalSelectedMarkets(newSelectedMarkets);
     onMarketsChange(newSelectedMarkets);
   };
 
-  const handlePopularCombinationSelect = (combination) => {
+  const handlePopularCombinationSelect = (combination: { markets: string[] }) => {
     setLocalSelectedMarkets(combination.markets);
     onMarketsChange(combination.markets);
   };
 
-  const isMarketSelected = (marketId) => localSelectedMarkets.includes(marketId);
+  const isMarketSelected = (marketId: string) => localSelectedMarkets.includes(marketId);
 
   return (
     <div className={`space-y-6 ${className}`}>
@@ -257,8 +257,8 @@ const MarketSelectionWizard = ({
             選択された市場:
           </h4>
           <div className="flex flex-wrap gap-2">
-            {localSelectedMarkets.map((marketId) => {
-              const market = INVESTMENT_MARKETS[marketId];
+            {localSelectedMarkets.map((marketId: string) => {
+              const market = (INVESTMENT_MARKETS as Record<string, typeof INVESTMENT_MARKETS[keyof typeof INVESTMENT_MARKETS]>)[marketId];
               return (
                 <span
                   key={marketId}
