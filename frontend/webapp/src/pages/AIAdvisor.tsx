@@ -16,7 +16,7 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { usePortfolioContext } from '../hooks/usePortfolioContext';
-import { useSubscriptionStore } from '../stores/subscriptionStore';
+import { useIsPremium } from '../hooks/queries';
 import MarketSelectionWizard, { INVESTMENT_MARKETS } from '../components/settings/MarketSelectionWizard';
 import PromptOrchestrator from '../components/ai/PromptOrchestrator';
 import StrengthsWeaknessCard from '../components/ai/StrengthsWeaknessCard';
@@ -42,7 +42,7 @@ const AIAdvisor = () => {
     baseCurrency,
     exchangeRate,
   } = usePortfolioContext();
-  const isPremium = useSubscriptionStore((s) => s.isPremium());
+  const isPremium = useIsPremium();
 
   // 設定がない場合の判定
   const hasNoSettings =

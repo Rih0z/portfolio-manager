@@ -6,12 +6,12 @@
  *
  * @file src/components/referral/ReferralStatsCard.tsx
  */
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Progress } from '../ui/progress';
-import { useReferralStore } from '../../stores/referralStore';
+import { useReferralStats } from '../../hooks/queries';
 import { useAuthStore } from '../../stores/authStore';
 
 // ─── アイコン SVG ────────────────────────────────
@@ -37,13 +37,7 @@ const CheckCircleIcon: React.FC<{ className?: string }> = ({ className }) => (
 const ReferralStatsCard: React.FC = () => {
   const { t } = useTranslation();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const { stats, loading, fetchStats } = useReferralStore();
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchStats();
-    }
-  }, [isAuthenticated, fetchStats]);
+  const { data: stats, isPending: loading } = useReferralStats({ enabled: isAuthenticated });
 
   if (!isAuthenticated) return null;
 

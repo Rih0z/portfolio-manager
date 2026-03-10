@@ -13,7 +13,7 @@ import {
   type InvestmentGoal,
   type GoalInput,
 } from '../utils/goalCalculations';
-import { useSubscriptionStore } from './subscriptionStore';
+import { getIsPremiumFromCache } from '../hooks/queries';
 import { useUIStore } from './uiStore';
 import { trackEvent, AnalyticsEvents } from '../utils/analytics';
 
@@ -106,8 +106,7 @@ export const useGoalStore = create<GoalState>()(
       getGoalCount: () => get().goals.length,
 
       getMaxGoals: () => {
-        const sub = useSubscriptionStore.getState();
-        return sub.isPremium() ? MAX_GOALS_STANDARD : MAX_GOALS_FREE;
+        return getIsPremiumFromCache() ? MAX_GOALS_STANDARD : MAX_GOALS_FREE;
       },
     }),
     {

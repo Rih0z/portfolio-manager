@@ -21,11 +21,9 @@ vi.mock('../../../hooks/usePortfolioContext', () => ({
   usePortfolioContext: vi.fn()
 }));
 
-// useSubscriptionStoreのモック
-vi.mock('../../../stores/subscriptionStore', () => ({
-  useSubscriptionStore: (selector) => selector({
-    isPremium: () => false
-  })
+// useIsPremiumのモック
+vi.mock('../../../hooks/queries', () => ({
+  useIsPremium: vi.fn(() => false),
 }));
 
 // useNavigateのモック

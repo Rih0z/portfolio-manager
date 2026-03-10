@@ -10,36 +10,100 @@
  *
  * @file src/hooks/useReferralCapture.ts
  */
-import { useEffect } from 'react';
-import { useReferralStore } from '../stores/referralStore';
+import { useEffect, useRef } from 'react';
+import { useApplyReferral } from './queries';
 import { useAuthStore } from '../stores/authStore';
+import { trackEvent, AnalyticsEvents } from '../utils/analytics';
+
+const REFERRAL_STORAGE_KEY = 'pfwise-referral-code';
+const REFERRAL_APPLIED_KEY = 'pfwise-referral-applied';
+
+/** sessionStorage からキャプチャ済みコードを取得 */
+function getCapturedCode(): string | null {
+  try {
+    return sessionStorage.getItem(REFERRAL_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/** sessionStorage にコードを保存 */
+function setCapturedCode(code: string): void {
+  try {
+    sessionStorage.setItem(REFERRAL_STORAGE_KEY, code);
+  } catch {
+    // sessionStorage が使用不可の場合は無視
+  }
+}
+
+/** sessionStorage からコードを削除 */
+function clearCapturedCode(): void {
+  try {
+    sessionStorage.removeItem(REFERRAL_STORAGE_KEY);
+  } catch {
+    // 無視
+  }
+}
+
+/** 適用済みフラグの取得 */
+function isAlreadyApplied(): boolean {
+  try {
+    return sessionStorage.getItem(REFERRAL_APPLIED_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+/** 適用済みフラグの設定 */
+function markAsApplied(): void {
+  try {
+    sessionStorage.setItem(REFERRAL_APPLIED_KEY, 'true');
+  } catch {
+    // 無視
+  }
+}
 
 /**
  * リファラルコードをURLから自動キャプチャし、
  * ログイン後に自動適用するフック
  */
 export const useReferralCapture = (): void => {
-  const captureFromUrl = useReferralStore((s) => s.captureFromUrl);
-  const getCapturedCode = useReferralStore((s) => s.getCapturedCode);
-  const applyCode = useReferralStore((s) => s.applyCode);
-  const applied = useReferralStore((s) => s.applied);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const applyReferralMutation = useApplyReferral();
+  const appliedRef = useRef(false);
 
   // URL から ?ref= パラメータをキャプチャ
   useEffect(() => {
-    captureFromUrl();
-  }, [captureFromUrl]);
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const refCode = params.get('ref');
+
+      if (refCode && refCode.trim().length > 0) {
+        const normalizedCode = refCode.trim().toUpperCase();
+        setCapturedCode(normalizedCode);
+        trackEvent(AnalyticsEvents.REFERRAL_SIGNUP, { code: normalizedCode });
+      }
+    } catch {
+      // URL解析失敗時は無視
+    }
+  }, []);
 
   // ログイン後に自動適用
   useEffect(() => {
-    if (!isAuthenticated || applied) return;
+    if (!isAuthenticated || appliedRef.current || isAlreadyApplied()) return;
 
     const code = getCapturedCode();
     if (!code) return;
 
-    // 非同期で適用（結果はストアで管理）
-    applyCode(code);
-  }, [isAuthenticated, applied, getCapturedCode, applyCode]);
+    appliedRef.current = true;
+    applyReferralMutation.mutate(code, {
+      onSuccess: () => {
+        clearCapturedCode();
+        markAsApplied();
+        trackEvent(AnalyticsEvents.REFERRAL_CODE_APPLY, { code });
+      },
+    });
+  }, [isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
 };
 
 export default useReferralCapture;

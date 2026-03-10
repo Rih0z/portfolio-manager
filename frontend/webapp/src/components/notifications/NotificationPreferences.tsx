@@ -9,7 +9,7 @@
  */
 import React, { useState, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useSubscriptionStore } from '../../stores/subscriptionStore';
+import { useIsPremium } from '../../hooks/queries';
 import { NOTIFICATION_LIMITS } from '../../types/notification.types';
 import { Switch } from '../ui/switch';
 import { Input } from '../ui/input';
@@ -61,8 +61,7 @@ function savePrefs(prefs: NotificationPrefs): void {
 
 const NotificationPreferences: React.FC = () => {
   const { t } = useTranslation();
-  const isPremium = useSubscriptionStore((s) => s.isPremium);
-  const premium = isPremium();
+  const premium = useIsPremium();
 
   const [prefs, setPrefs] = useState<NotificationPrefs>(loadPrefs);
 

@@ -55,6 +55,13 @@ vi.mock('../../../components/auth/UserProfile', () => ({
   },
 }));
 
+// Mock the NotificationBell component
+vi.mock('../../../components/notifications/NotificationBell', () => ({
+  default: function NotificationBell() {
+    return <div data-testid="notification-bell">Bell</div>;
+  },
+}));
+
 describe('Header', () => {
   const mockAuthContext = {
     user: null,

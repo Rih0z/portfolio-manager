@@ -75,23 +75,18 @@ vi.mock('../../../stores/portfolioStore', () => ({
   })
 }));
 
-vi.mock('../../../stores/subscriptionStore', () => ({
-  useSubscriptionStore: vi.fn((selector) => {
-    const state = {
-      planType: 'free',
-      subscription: null,
-      limits: {},
-      loading: false,
-      error: null,
-      isPremium: () => false,
-      canUseFeature: () => true,
-      fetchStatus: vi.fn(),
-      startCheckout: vi.fn(),
-      openPortal: vi.fn(),
-      setPlanType: vi.fn()
-    };
-    return typeof selector === 'function' ? selector(state) : state;
-  })
+vi.mock('../../../hooks/queries', () => ({
+  useSubscriptionStatus: vi.fn(() => ({
+    data: { planType: 'free', limits: {}, subscription: null, hasStripeCustomer: false },
+    isLoading: false,
+    error: null,
+  })),
+  useIsPremium: vi.fn(() => false),
+  useCanUseFeature: vi.fn(() => true),
+  useCreateCheckout: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
+  useCreatePortal: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
+  getIsPremiumFromCache: vi.fn(() => false),
+  subscriptionKeys: { all: ['subscription'], status: () => ['subscription', 'status'] },
 }));
 
 vi.mock('../../../stores/uiStore', () => ({

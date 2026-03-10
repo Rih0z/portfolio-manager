@@ -17,18 +17,20 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-// Mutable store state
-const mockAddAlertRule = vi.fn();
+// TQ hooks mock
+const mockMutateAsync = vi.fn();
 
-const mockStoreState: Record<string, any> = {
-  addAlertRule: mockAddAlertRule,
-};
-
-vi.mock('../../../../stores/notificationStore', () => ({
-  useNotificationStore: vi.fn((selector: (state: any) => any) => selector(mockStoreState)),
+vi.mock('../../../../hooks/queries', () => ({
+  useCreateAlertRule: vi.fn(() => ({
+    mutateAsync: mockMutateAsync,
+    isPending: false,
+  })),
+  useAlertRules: vi.fn(() => ({ data: [], isPending: false })),
+  useIsPremium: vi.fn(() => false),
 }));
 
 import PriceAlertDialog from '../../../../components/notifications/PriceAlertDialog';
+import { useAlertRules, useIsPremium } from '../../../../hooks/queries';
 
 describe('PriceAlertDialog', () => {
   const defaultProps = {
@@ -38,8 +40,10 @@ describe('PriceAlertDialog', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockAddAlertRule.mockResolvedValue({ success: true });
-    mockStoreState.addAlertRule = mockAddAlertRule;
+    mockMutateAsync.mockResolvedValue({ ruleId: 'r-1', type: 'price_above', ticker: 'AAPL', targetValue: 200, enabled: true });
+    // Reset hooks to defaults (clearAllMocks doesn't reset implementations)
+    vi.mocked(useAlertRules).mockReturnValue({ data: [], isPending: false } as any);
+    vi.mocked(useIsPremium).mockReturnValue(false);
   });
 
   // =========================================================================
@@ -105,7 +109,7 @@ describe('PriceAlertDialog', () => {
       await waitFor(() => {
         expect(screen.getByRole('alert')).toBeInTheDocument();
       });
-      expect(mockAddAlertRule).not.toHaveBeenCalled();
+      expect(mockMutateAsync).not.toHaveBeenCalled();
     });
 
     it('should show error when target value is empty', async () => {
@@ -119,7 +123,7 @@ describe('PriceAlertDialog', () => {
       await waitFor(() => {
         expect(screen.getByRole('alert')).toBeInTheDocument();
       });
-      expect(mockAddAlertRule).not.toHaveBeenCalled();
+      expect(mockMutateAsync).not.toHaveBeenCalled();
     });
 
     it('should show error when target value is 0', async () => {
@@ -136,7 +140,7 @@ describe('PriceAlertDialog', () => {
       await waitFor(() => {
         expect(screen.getByRole('alert')).toBeInTheDocument();
       });
-      expect(mockAddAlertRule).not.toHaveBeenCalled();
+      expect(mockMutateAsync).not.toHaveBeenCalled();
     });
 
     it('should show error when target value is negative', async () => {
@@ -153,7 +157,7 @@ describe('PriceAlertDialog', () => {
       await waitFor(() => {
         expect(screen.getByRole('alert')).toBeInTheDocument();
       });
-      expect(mockAddAlertRule).not.toHaveBeenCalled();
+      expect(mockMutateAsync).not.toHaveBeenCalled();
     });
   });
 
@@ -162,7 +166,7 @@ describe('PriceAlertDialog', () => {
   // =========================================================================
   describe('submit', () => {
     it('should call addAlertRule with correct data on valid submit', async () => {
-      mockAddAlertRule.mockResolvedValue({ success: true });
+      mockMutateAsync.mockResolvedValue({ success: true });
       const onClose = vi.fn();
 
       render(<PriceAlertDialog isOpen={true} onClose={onClose} />);
@@ -176,7 +180,7 @@ describe('PriceAlertDialog', () => {
       fireEvent.click(screen.getByTestId('alert-submit-button'));
 
       await waitFor(() => {
-        expect(mockAddAlertRule).toHaveBeenCalledWith({
+        expect(mockMutateAsync).toHaveBeenCalledWith({
           type: 'price_above',
           ticker: 'AAPL', // trimmed and uppercased
           targetValue: 200,
@@ -186,7 +190,7 @@ describe('PriceAlertDialog', () => {
     });
 
     it('should close dialog on successful submit', async () => {
-      mockAddAlertRule.mockResolvedValue({ success: true });
+      mockMutateAsync.mockResolvedValue({ success: true });
       const onClose = vi.fn();
 
       render(<PriceAlertDialog isOpen={true} onClose={onClose} />);
@@ -204,11 +208,13 @@ describe('PriceAlertDialog', () => {
       });
     });
 
-    it('should show limit reached error', async () => {
-      mockAddAlertRule.mockResolvedValue({
-        success: false,
-        limitReached: true,
-      });
+    it('should show limit reached error when at plan limit (free)', async () => {
+      // Free plan has 2 max rules — mock 2 existing rules
+      vi.mocked(useAlertRules).mockReturnValue({
+        data: [{ ruleId: 'r1' }, { ruleId: 'r2' }],
+        isPending: false,
+      } as any);
+      vi.mocked(useIsPremium).mockReturnValue(false);
 
       render(<PriceAlertDialog {...defaultProps} />);
 
@@ -226,31 +232,11 @@ describe('PriceAlertDialog', () => {
           screen.getByText('アラートルール数の上限に達しています')
         ).toBeInTheDocument();
       });
-    });
-
-    it('should show errors array from addAlertRule result', async () => {
-      mockAddAlertRule.mockResolvedValue({
-        success: false,
-        errors: ['カスタムエラーメッセージ'],
-      });
-
-      render(<PriceAlertDialog {...defaultProps} />);
-
-      fireEvent.change(screen.getByTestId('alert-ticker-input'), {
-        target: { value: 'AAPL' },
-      });
-      fireEvent.change(screen.getByTestId('alert-target-value-input'), {
-        target: { value: '200' },
-      });
-      fireEvent.click(screen.getByTestId('alert-submit-button'));
-
-      await waitFor(() => {
-        expect(screen.getByText('カスタムエラーメッセージ')).toBeInTheDocument();
-      });
+      expect(mockMutateAsync).not.toHaveBeenCalled();
     });
 
     it('should show generic error when addAlertRule throws', async () => {
-      mockAddAlertRule.mockRejectedValue(new Error('Unexpected error'));
+      mockMutateAsync.mockRejectedValue(new Error('Unexpected error'));
 
       render(<PriceAlertDialog {...defaultProps} />);
 
@@ -295,7 +281,7 @@ describe('PriceAlertDialog', () => {
       });
       fireEvent.click(screen.getByTestId('alert-cancel-button'));
 
-      expect(mockAddAlertRule).not.toHaveBeenCalled();
+      expect(mockMutateAsync).not.toHaveBeenCalled();
     });
   });
 

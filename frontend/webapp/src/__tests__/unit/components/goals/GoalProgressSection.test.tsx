@@ -30,14 +30,6 @@ vi.mock('../../../../stores/goalStore', () => ({
   }),
 }));
 
-vi.mock('../../../../stores/subscriptionStore', () => ({
-  useSubscriptionStore: vi.fn((selector: any) => {
-    const state = { isPremium: () => false, planType: 'free' };
-    if (typeof selector === 'function') return selector(state);
-    return state;
-  }),
-}));
-
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string) => key,

@@ -9,7 +9,7 @@
 import React, { useState } from 'react';
 import { Button } from '../ui/button';
 import ConfirmDialog from '../ui/confirm-dialog';
-import { useSocialStore } from '../../stores/socialStore';
+import { useDeleteShare } from '../../hooks/queries';
 import type { SharedPortfolio } from '../../types/social.types';
 
 interface ShareLinkDisplayProps {
@@ -20,8 +20,8 @@ interface ShareLinkDisplayProps {
 const ShareLinkDisplay: React.FC<ShareLinkDisplayProps> = ({ share, compact = false }) => {
   const [copied, setCopied] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const deleteShare = useSocialStore((s) => s.deleteShare);
-  const loading = useSocialStore((s) => s.loading);
+  const deleteShareMutation = useDeleteShare();
+  const loading = deleteShareMutation.isPending;
 
   const shareUrl = `${window.location.origin}/share/${share.shareId}`;
 
@@ -49,7 +49,7 @@ const ShareLinkDisplay: React.FC<ShareLinkDisplayProps> = ({ share, compact = fa
 
   const confirmDelete = async () => {
     setShowDeleteConfirm(false);
-    await deleteShare(share.shareId);
+    deleteShareMutation.mutate(share.shareId);
   };
 
   if (compact) {

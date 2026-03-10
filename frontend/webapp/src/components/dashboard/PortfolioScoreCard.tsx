@@ -8,7 +8,7 @@
  */
 import React, { useMemo } from 'react';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
-import { useSubscriptionStore } from '../../stores/subscriptionStore';
+import { useIsPremium } from '../../hooks/queries';
 import { calculatePortfolioScore, type ScoreMetric, type PortfolioScoreResult } from '../../utils/portfolioScore';
 import { CircularProgress } from '../ui/progress';
 import { Card } from '../ui/card';
@@ -86,7 +86,7 @@ function MetricBar({ metric, locked }: MetricBarProps) {
 
 function PortfolioScoreCard() {
   const { currentAssets, targetPortfolio } = usePortfolioContext();
-  const isPremium = useSubscriptionStore((s) => s.isPremium());
+  const isPremium = useIsPremium();
 
   const scoreResult: PortfolioScoreResult = useMemo(() => {
     return calculatePortfolioScore(currentAssets, targetPortfolio, isPremium);

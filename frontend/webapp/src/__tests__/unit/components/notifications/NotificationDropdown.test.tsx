@@ -16,18 +16,20 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-const mockNotificationState: Record<string, any> = {
-  notifications: [],
-  markRead: vi.fn(),
-  markAllRead: vi.fn(),
-  removeNotification: vi.fn(),
-  loading: false,
-  unreadCount: 0,
-};
+const mockMarkReadMutate = vi.fn();
+const mockMarkAllReadMutate = vi.fn();
+const mockDeleteNotificationMutate = vi.fn();
 
-vi.mock('../../../../stores/notificationStore', () => ({
-  useNotificationStore: vi.fn((selector: (state: any) => any) =>
-    selector(mockNotificationState)
+vi.mock('../../../../hooks/queries', () => ({
+  useNotifications: vi.fn(() => ({ data: null, isPending: false })),
+  useMarkNotificationRead: vi.fn(() => ({ mutate: mockMarkReadMutate, isPending: false })),
+  useMarkAllNotificationsRead: vi.fn(() => ({ mutate: mockMarkAllReadMutate, isPending: false })),
+  useDeleteNotification: vi.fn(() => ({ mutate: mockDeleteNotificationMutate, isPending: false })),
+}));
+
+vi.mock('../../../../stores/authStore', () => ({
+  useAuthStore: vi.fn((selector: (state: any) => any) =>
+    selector({ isAuthenticated: true })
   ),
 }));
 
@@ -44,13 +46,19 @@ vi.mock('../../../../components/notifications/NotificationItem', () => ({
 }));
 
 import NotificationDropdown from '../../../../components/notifications/NotificationDropdown';
+import { useNotifications } from '../../../../hooks/queries';
+
+const setupMocks = (notifications: any[] = [], loading = false) => {
+  vi.mocked(useNotifications).mockReturnValue({
+    data: { notifications, lastKey: null },
+    isPending: loading,
+  } as any);
+};
 
 describe('NotificationDropdown', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockNotificationState.notifications = [];
-    mockNotificationState.loading = false;
-    mockNotificationState.unreadCount = 0;
+    setupMocks([]);
   });
 
   it('should render the dropdown panel', () => {
@@ -69,7 +77,7 @@ describe('NotificationDropdown', () => {
   });
 
   it('should display notification items when present', () => {
-    mockNotificationState.notifications = [
+    setupMocks([
       {
         notificationId: 'n1',
         title: 'テスト通知',
@@ -78,15 +86,14 @@ describe('NotificationDropdown', () => {
         read: false,
         createdAt: new Date().toISOString(),
       },
-    ];
+    ]);
 
     render(<NotificationDropdown />);
     expect(screen.getByText('テスト通知')).toBeInTheDocument();
   });
 
   it('should show mark-all-read button when unread > 0', () => {
-    mockNotificationState.unreadCount = 3;
-    mockNotificationState.notifications = [
+    setupMocks([
       {
         notificationId: 'n1',
         title: 'Test',
@@ -95,7 +102,7 @@ describe('NotificationDropdown', () => {
         read: false,
         createdAt: new Date().toISOString(),
       },
-    ];
+    ]);
 
     render(<NotificationDropdown />);
     expect(screen.getByTestId('mark-all-read')).toBeInTheDocument();

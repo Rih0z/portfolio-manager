@@ -16,8 +16,9 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-vi.mock('../../../../stores/referralStore', () => ({
-  useReferralStore: vi.fn(),
+vi.mock('../../../../hooks/queries', () => ({
+  useReferralCode: vi.fn(() => ({ data: null, isPending: false })),
+  useReferralStats: vi.fn(() => ({ data: null, isPending: false })),
 }));
 
 vi.mock('../../../../stores/authStore', () => ({
@@ -51,14 +52,11 @@ vi.mock('../../../../components/ui/badge', () => ({
 
 // --- Import after mocks ---
 import ReferralSection from '../../../../components/referral/ReferralSection';
-import { useReferralStore } from '../../../../stores/referralStore';
+import { useReferralCode, useReferralStats } from '../../../../hooks/queries';
 import { useAuthStore } from '../../../../stores/authStore';
 import { trackEvent } from '../../../../utils/analytics';
 
 // --- Test setup ---
-const mockFetchCode = vi.fn();
-const mockFetchStats = vi.fn();
-
 const setupMocks = (overrides: {
   isAuthenticated?: boolean;
   referralCode?: any;
@@ -76,17 +74,15 @@ const setupMocks = (overrides: {
     selector({ isAuthenticated })
   );
 
-  const storeState = {
-    referralCode,
-    stats,
-    loading,
-    fetchCode: mockFetchCode,
-    fetchStats: mockFetchStats,
-  };
+  vi.mocked(useReferralCode).mockReturnValue({
+    data: referralCode,
+    isPending: loading,
+  } as any);
 
-  vi.mocked(useReferralStore).mockImplementation((selector?: any) =>
-    selector ? selector(storeState) : storeState
-  );
+  vi.mocked(useReferralStats).mockReturnValue({
+    data: stats,
+    isPending: false,
+  } as any);
 };
 
 describe('ReferralSection', () => {
@@ -117,12 +113,13 @@ describe('ReferralSection', () => {
     expect(container.innerHTML).toBe('');
   });
 
-  it('should fetch code and stats on mount when authenticated', () => {
+  it('should call hooks with enabled flag when authenticated', () => {
     setupMocks();
     render(<ReferralSection />);
 
-    expect(mockFetchCode).toHaveBeenCalled();
-    expect(mockFetchStats).toHaveBeenCalled();
+    // TanStack Query hooks are called automatically — verify they were invoked
+    expect(useReferralCode).toHaveBeenCalled();
+    expect(useReferralStats).toHaveBeenCalled();
   });
 
   it('should show loading skeleton when loading without code', () => {

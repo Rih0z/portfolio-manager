@@ -9,7 +9,7 @@
  */
 import React, { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNotificationStore } from '../../stores/notificationStore';
+import { useCreateAlertRule, useAlertRules, useIsPremium } from '../../hooks/queries';
 import {
   Dialog,
   DialogHeader,
@@ -20,6 +20,7 @@ import {
 import { Button } from '../ui/button';
 import { Input, Select } from '../ui/input';
 import type { AlertRuleType } from '../../types/notification.types';
+import { NOTIFICATION_LIMITS } from '../../types/notification.types';
 
 // ─── Props ────────────────────────────────────────────
 
@@ -43,7 +44,9 @@ const PriceAlertDialog: React.FC<PriceAlertDialogProps> = ({
   onClose,
 }) => {
   const { t } = useTranslation();
-  const addAlertRule = useNotificationStore((s) => s.addAlertRule);
+  const createAlertRuleMutation = useCreateAlertRule();
+  const { data: alertRules = [] } = useAlertRules();
+  const isPremium = useIsPremium();
 
   // Form state
   const [type, setType] = useState<AlertRuleType>('price_above');
@@ -51,6 +54,10 @@ const PriceAlertDialog: React.FC<PriceAlertDialogProps> = ({
   const [targetValue, setTargetValue] = useState('');
   const [errors, setErrors] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
+
+  const maxRules = isPremium
+    ? NOTIFICATION_LIMITS.STANDARD.maxAlertRules
+    : NOTIFICATION_LIMITS.FREE.maxAlertRules;
 
   // ─── Validation ─────────────────────────────────────
 
@@ -92,33 +99,31 @@ const PriceAlertDialog: React.FC<PriceAlertDialogProps> = ({
         return;
       }
 
+      // Plan limit check
+      if (alertRules.length >= maxRules) {
+        setErrors([
+          t('notifications.errors.limitReached', 'アラートルール数の上限に達しています'),
+        ]);
+        return;
+      }
+
       setSubmitting(true);
       setErrors([]);
 
       try {
-        const result = await addAlertRule({
+        await createAlertRuleMutation.mutateAsync({
           type,
           ticker: ticker.trim().toUpperCase(),
           targetValue: Number(targetValue),
           enabled: true,
         });
 
-        if (result.success) {
-          // Reset form and close
-          setType('price_above');
-          setTicker('');
-          setTargetValue('');
-          setErrors([]);
-          onClose();
-        } else {
-          setErrors(
-            result.errors || [
-              result.limitReached
-                ? t('notifications.errors.limitReached', 'アラートルール数の上限に達しています')
-                : t('notifications.errors.createFailed', 'アラートルールの作成に失敗しました'),
-            ]
-          );
-        }
+        // Reset form and close
+        setType('price_above');
+        setTicker('');
+        setTargetValue('');
+        setErrors([]);
+        onClose();
       } catch {
         setErrors([
           t('notifications.errors.createFailed', 'アラートルールの作成に失敗しました'),
@@ -127,7 +132,7 @@ const PriceAlertDialog: React.FC<PriceAlertDialogProps> = ({
         setSubmitting(false);
       }
     },
-    [type, ticker, targetValue, validate, addAlertRule, onClose, t]
+    [type, ticker, targetValue, validate, alertRules.length, maxRules, createAlertRuleMutation, onClose, t]
   );
 
   // ─── Close handler (reset form state) ───────────────

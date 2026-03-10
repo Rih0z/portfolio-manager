@@ -29,7 +29,7 @@ import StrengthsWeaknessCard from '../components/ai/StrengthsWeaknessCard';
 import GoalProgressSection from '../components/goals/GoalProgressSection';
 import DataStatusBar from '../components/layout/DataStatusBar';
 import { usePortfolioContext } from '../hooks/usePortfolioContext';
-import { useSubscriptionStore } from '../stores/subscriptionStore';
+import { useIsPremium } from '../hooks/queries';
 import { enrichPortfolioData } from '../utils/portfolioDataEnricher';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -40,7 +40,7 @@ import NPSSurvey from '../components/survey/NPSSurvey';
 const Dashboard = () => {
   const navigate = useNavigate();
   const { currentAssets, targetPortfolio, baseCurrency, exchangeRate } = usePortfolioContext();
-  const isPremium = useSubscriptionStore((s) => s.isPremium());
+  const isPremium = useIsPremium();
 
   React.useEffect(() => {
     trackEvent(AnalyticsEvents.DASHBOARD_VIEW);

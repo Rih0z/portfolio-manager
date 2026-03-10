@@ -9,7 +9,8 @@
  */
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNotificationStore } from '../../stores/notificationStore';
+import { useNotifications } from '../../hooks/queries';
+import { useAuthStore } from '../../stores/authStore';
 import NotificationDropdown from './NotificationDropdown';
 
 // ─── Component ────────────────────────────────────────
@@ -19,7 +20,9 @@ const NotificationBell: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const unreadCount = useNotificationStore((s) => s.unreadCount);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const { data: notificationsData } = useNotifications(20, { enabled: isAuthenticated });
+  const unreadCount = notificationsData?.notifications?.filter((n) => !n.read).length ?? 0;
 
   // ─── Click outside to close ──────────────────────────
 

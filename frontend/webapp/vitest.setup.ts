@@ -177,23 +177,35 @@ global.console = {
 };
 
 // 全テストを Standard（有料）ユーザー前提で実行
-// subscriptionStore の初期状態を standard に設定
+// TanStack Query キャッシュにサブスクリプション状態を設定
 beforeAll(async () => {
   try {
-    const { useSubscriptionStore } = await import('./src/stores/subscriptionStore');
-    useSubscriptionStore.setState({ planType: 'standard' });
+    const { queryClient } = await import('./src/providers/QueryProvider');
+    const { subscriptionKeys } = await import('./src/hooks/queries');
+    queryClient.setQueryData(subscriptionKeys.status(), {
+      planType: 'standard',
+      limits: {},
+      subscription: null,
+      hasStripeCustomer: false,
+    });
   } catch {
-    // subscriptionStore が読み込めない場合はスキップ
+    // QueryClient が読み込めない場合はスキップ
   }
 });
 
 afterEach(async () => {
   try {
-    const { useSubscriptionStore } = await import('./src/stores/subscriptionStore');
-    // 各テスト後も standard を維持（テスト間でリセットされた場合に備える）
-    useSubscriptionStore.setState({ planType: 'standard' });
+    const { queryClient } = await import('./src/providers/QueryProvider');
+    const { subscriptionKeys } = await import('./src/hooks/queries');
+    // 各テスト後も standard を維持
+    queryClient.setQueryData(subscriptionKeys.status(), {
+      planType: 'standard',
+      limits: {},
+      subscription: null,
+      hasStripeCustomer: false,
+    });
   } catch {
-    // subscriptionStore が読み込めない場合はスキップ
+    // QueryClient が読み込めない場合はスキップ
   }
 });
 

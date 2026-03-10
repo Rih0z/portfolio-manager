@@ -6,13 +6,13 @@
  *
  * @file src/components/social/PeerComparisonPanel.tsx
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Select } from '../ui/input';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import PeerRankBadge from './PeerRankBadge';
-import { useSocialStore } from '../../stores/socialStore';
+import { usePeerComparison } from '../../hooks/queries';
 import { useAuthStore } from '../../stores/authStore';
 import { AGE_GROUPS } from '../../types/social.types';
 import { CHART_COLORS } from '../../constants/chartColors';
@@ -22,22 +22,13 @@ const COLORS = CHART_COLORS;
 const PeerComparisonPanel: React.FC = () => {
   const [selectedAgeGroup, setSelectedAgeGroup] = useState('');
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const peerComparison = useSocialStore((s) => s.peerComparison);
-  const peerLoading = useSocialStore((s) => s.peerLoading);
-  const fetchPeerComparison = useSocialStore((s) => s.fetchPeerComparison);
+  const { data: peerComparison, isPending: peerLoading, refetch } = usePeerComparison(selectedAgeGroup);
 
   const handleFetch = () => {
     if (selectedAgeGroup) {
-      fetchPeerComparison(selectedAgeGroup);
+      refetch();
     }
   };
-
-  // 年代変更時に自動取得
-  useEffect(() => {
-    if (selectedAgeGroup) {
-      fetchPeerComparison(selectedAgeGroup);
-    }
-  }, [selectedAgeGroup]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <Card elevation="low">

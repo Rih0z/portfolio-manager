@@ -27,7 +27,7 @@ import AppLayout from './components/layout/AppLayout';
 import { useAuthStore } from './stores/authStore';
 import { usePortfolioStore } from './stores/portfolioStore';
 import { useUIStore } from './stores/uiStore';
-import { useSubscriptionStore } from './stores/subscriptionStore';
+import { useSubscriptionStatus } from './hooks/queries';
 import { initializeApiConfig, getGoogleClientId } from './utils/envUtils';
 import { initGA, trackPageView } from './utils/analytics';
 import { lazyWithRetry } from './utils/lazyWithRetry';
@@ -208,12 +208,8 @@ const StoreInitializer = () => {
   }, [baseCurrency, initialized]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Subscription status fetch (when authenticated)
-  const fetchSubscriptionStatus = useSubscriptionStore(s => s.fetchStatus);
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchSubscriptionStatus();
-    }
-  }, [isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
+  // TanStack Query が enabled 条件に基づき自動的に fetch/refetch する
+  useSubscriptionStatus({ enabled: isAuthenticated });
 
   // Sentry ユーザー情報の設定
   const user = useAuthStore(s => s.user);

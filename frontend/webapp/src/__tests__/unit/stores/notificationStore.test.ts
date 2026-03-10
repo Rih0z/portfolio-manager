@@ -8,12 +8,21 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 
 // --- Mock external dependencies BEFORE imports ---
-vi.mock('../../../stores/subscriptionStore', () => ({
-  useSubscriptionStore: {
-    getState: vi.fn(() => ({
-      planType: 'free',
-      isPremium: () => false,
-    })),
+vi.mock('../../../hooks/queries', () => ({
+  getIsPremiumFromCache: vi.fn(() => false),
+  notificationKeys: {
+    all: ['notifications'],
+    list: (limit?: number) => ['notifications', 'list', limit],
+    alertRules: () => ['notifications', 'alertRules'],
+  },
+}));
+
+vi.mock('../../../providers/QueryProvider', () => ({
+  queryClient: {
+    setQueryData: vi.fn(),
+    getQueryData: vi.fn(),
+    invalidateQueries: vi.fn(),
+    removeQueries: vi.fn(),
   },
 }));
 
@@ -49,7 +58,7 @@ vi.mock('../../../utils/analytics', () => ({
 
 // --- Import store after mocks ---
 import { useNotificationStore } from '../../../stores/notificationStore';
-import { useSubscriptionStore } from '../../../stores/subscriptionStore';
+import { getIsPremiumFromCache } from '../../../hooks/queries';
 import * as notificationService from '../../../services/notificationService';
 
 // --- Test helpers ---
@@ -370,10 +379,7 @@ describe('notificationStore', () => {
 
     it('should enforce free plan limit (max 2 rules)', async () => {
       // Ensure free plan mock
-      (useSubscriptionStore.getState as ReturnType<typeof vi.fn>).mockReturnValue({
-        planType: 'free',
-        isPremium: () => false,
-      });
+      vi.mocked(getIsPremiumFromCache).mockReturnValue(false);
 
       // Pre-populate with 2 existing rules
       useNotificationStore.setState({
@@ -395,10 +401,7 @@ describe('notificationStore', () => {
     });
 
     it('should allow up to 20 rules on premium plan', async () => {
-      (useSubscriptionStore.getState as ReturnType<typeof vi.fn>).mockReturnValue({
-        planType: 'standard',
-        isPremium: () => true,
-      });
+      vi.mocked(getIsPremiumFromCache).mockReturnValue(true);
 
       const mockRule = createMockAlertRule();
       (notificationService.createAlertRule as ReturnType<typeof vi.fn>).mockResolvedValue(mockRule);
@@ -599,10 +602,7 @@ describe('notificationStore', () => {
     describe('rebalance_drift', () => {
       it('should trigger notification when drift >= threshold', () => {
         // Free plan threshold = 10%
-        (useSubscriptionStore.getState as ReturnType<typeof vi.fn>).mockReturnValue({
-          planType: 'free',
-          isPremium: () => false,
-        });
+        vi.mocked(getIsPremiumFromCache).mockReturnValue(false);
 
         useNotificationStore.setState({
           alertRules: [
@@ -635,10 +635,7 @@ describe('notificationStore', () => {
       });
 
       it('should NOT trigger when drift < threshold', () => {
-        (useSubscriptionStore.getState as ReturnType<typeof vi.fn>).mockReturnValue({
-          planType: 'free',
-          isPremium: () => false,
-        });
+        vi.mocked(getIsPremiumFromCache).mockReturnValue(false);
 
         useNotificationStore.setState({
           alertRules: [
@@ -793,18 +790,12 @@ describe('notificationStore', () => {
   // =========================================================================
   describe('getMaxAlertRules', () => {
     it('should return 2 for free plan', () => {
-      (useSubscriptionStore.getState as ReturnType<typeof vi.fn>).mockReturnValue({
-        planType: 'free',
-        isPremium: () => false,
-      });
+      vi.mocked(getIsPremiumFromCache).mockReturnValue(false);
       expect(useNotificationStore.getState().getMaxAlertRules()).toBe(2);
     });
 
     it('should return 20 for premium plan', () => {
-      (useSubscriptionStore.getState as ReturnType<typeof vi.fn>).mockReturnValue({
-        planType: 'standard',
-        isPremium: () => true,
-      });
+      vi.mocked(getIsPremiumFromCache).mockReturnValue(true);
       expect(useNotificationStore.getState().getMaxAlertRules()).toBe(20);
     });
   });
@@ -814,18 +805,12 @@ describe('notificationStore', () => {
   // =========================================================================
   describe('getMaxHistory', () => {
     it('should return 10 for free plan', () => {
-      (useSubscriptionStore.getState as ReturnType<typeof vi.fn>).mockReturnValue({
-        planType: 'free',
-        isPremium: () => false,
-      });
+      vi.mocked(getIsPremiumFromCache).mockReturnValue(false);
       expect(useNotificationStore.getState().getMaxHistory()).toBe(10);
     });
 
     it('should return 100 for premium plan', () => {
-      (useSubscriptionStore.getState as ReturnType<typeof vi.fn>).mockReturnValue({
-        planType: 'standard',
-        isPremium: () => true,
-      });
+      vi.mocked(getIsPremiumFromCache).mockReturnValue(true);
       expect(useNotificationStore.getState().getMaxHistory()).toBe(100);
     });
   });

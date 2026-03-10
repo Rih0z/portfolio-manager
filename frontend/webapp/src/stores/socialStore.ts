@@ -19,7 +19,7 @@ import type {
   PeerComparison,
 } from '../types/social.types';
 import { SOCIAL_LIMITS } from '../types/social.types';
-import { useSubscriptionStore } from './subscriptionStore';
+import { getIsPremiumFromCache } from '../hooks/queries';
 import { useUIStore } from './uiStore';
 import { trackEvent, AnalyticsEvents } from '../utils/analytics';
 import { getErrorMessage } from '../utils/errorUtils';
@@ -152,8 +152,7 @@ export const useSocialStore = create<SocialState>()(
       getShareCount: () => get().shares.length,
 
       getMaxShares: () => {
-        const sub = useSubscriptionStore.getState();
-        return sub.isPremium()
+        return getIsPremiumFromCache()
           ? SOCIAL_LIMITS.STANDARD.maxShares
           : SOCIAL_LIMITS.FREE.maxShares;
       },
@@ -163,8 +162,7 @@ export const useSocialStore = create<SocialState>()(
       },
 
       getTtlDays: () => {
-        const sub = useSubscriptionStore.getState();
-        return sub.isPremium()
+        return getIsPremiumFromCache()
           ? SOCIAL_LIMITS.STANDARD.ttlDays
           : SOCIAL_LIMITS.FREE.ttlDays;
       },

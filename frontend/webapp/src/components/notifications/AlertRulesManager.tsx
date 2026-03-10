@@ -7,10 +7,9 @@
  *
  * @file src/components/notifications/AlertRulesManager.tsx
  */
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNotificationStore } from '../../stores/notificationStore';
-import { useSubscriptionStore } from '../../stores/subscriptionStore';
+import { useAlertRules, useDeleteAlertRule, useUpdateAlertRule, useIsPremium } from '../../hooks/queries';
 import { Switch } from '../ui/switch';
 import { Button } from '../ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
@@ -18,6 +17,7 @@ import { Badge } from '../ui/badge';
 import UpgradePrompt from '../common/UpgradePrompt';
 import PriceAlertDialog from './PriceAlertDialog';
 import type { AlertRule, AlertRuleType } from '../../types/notification.types';
+import { NOTIFICATION_LIMITS } from '../../types/notification.types';
 import { cn } from '../../lib/utils';
 
 // ─── Helpers ──────────────────────────────────────────
@@ -58,38 +58,32 @@ const AlertRulesManager: React.FC = () => {
   const { t } = useTranslation();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const alertRules = useNotificationStore((s) => s.alertRules);
-  const removeAlertRule = useNotificationStore((s) => s.removeAlertRule);
-  const updateAlertRule = useNotificationStore((s) => s.updateAlertRule);
-  const fetchAlertRules = useNotificationStore((s) => s.fetchAlertRules);
-  const getMaxAlertRules = useNotificationStore((s) => s.getMaxAlertRules);
-  const loading = useNotificationStore((s) => s.loading);
+  const { data: alertRules = [], isPending: loading } = useAlertRules();
+  const deleteAlertRuleMutation = useDeleteAlertRule();
+  const updateAlertRuleMutation = useUpdateAlertRule();
 
-  const isPremium = useSubscriptionStore((s) => s.isPremium);
+  const isPremium = useIsPremium();
 
-  const maxRules = getMaxAlertRules();
+  const maxRules = isPremium
+    ? NOTIFICATION_LIMITS.STANDARD.maxAlertRules
+    : NOTIFICATION_LIMITS.FREE.maxAlertRules;
   const currentCount = alertRules.length;
   const limitReached = currentCount >= maxRules;
-
-  // Fetch alert rules on mount
-  useEffect(() => {
-    fetchAlertRules();
-  }, [fetchAlertRules]);
 
   // ─── Handlers ─────────────────────────────────────
 
   const handleToggleEnabled = useCallback(
     (rule: AlertRule) => {
-      updateAlertRule(rule.ruleId, { enabled: !rule.enabled });
+      updateAlertRuleMutation.mutate({ ruleId: rule.ruleId, updates: { enabled: !rule.enabled } });
     },
-    [updateAlertRule]
+    [updateAlertRuleMutation]
   );
 
   const handleDelete = useCallback(
     (ruleId: string) => {
-      removeAlertRule(ruleId);
+      deleteAlertRuleMutation.mutate(ruleId);
     },
-    [removeAlertRule]
+    [deleteAlertRuleMutation]
   );
 
   const handleOpenDialog = useCallback(() => {
@@ -116,7 +110,7 @@ const AlertRulesManager: React.FC = () => {
 
       <CardContent className="px-5 py-4 space-y-3">
         {/* Upgrade prompt when limit reached on Free plan */}
-        {limitReached && !isPremium() && (
+        {limitReached && !isPremium && (
           <UpgradePrompt
             feature={t('notifications.alertRules', 'アラートルール')}
             current={currentCount}
@@ -235,7 +229,7 @@ const AlertRulesManager: React.FC = () => {
           size="sm"
           fullWidth
           onClick={handleOpenDialog}
-          disabled={limitReached && !isPremium()}
+          disabled={limitReached && !isPremium}
           data-testid="add-alert-rule-button"
           icon={
             <svg

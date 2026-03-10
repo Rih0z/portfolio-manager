@@ -9,19 +9,17 @@ import { render, screen, fireEvent, waitFor, within } from '@testing-library/rea
 import React from 'react';
 
 // --- Mocks ---
-const mockDeleteShare = vi.fn();
-vi.mock('../../../../stores/socialStore', () => ({
-  useSocialStore: vi.fn((selector: any) => {
-    const state = {
-      deleteShare: mockDeleteShare,
-      loading: false,
-    };
-    return selector(state);
-  }),
+const mockMutate = vi.fn();
+let mockIsPending = false;
+vi.mock('../../../../hooks/queries', () => ({
+  useDeleteShare: vi.fn(() => ({
+    mutate: mockMutate,
+    isPending: mockIsPending,
+  })),
 }));
 
 import ShareLinkDisplay from '../../../../components/social/ShareLinkDisplay';
-import { useSocialStore } from '../../../../stores/socialStore';
+import { useDeleteShare } from '../../../../hooks/queries';
 
 const sampleShare = {
   shareId: 'share-123',
@@ -38,13 +36,11 @@ const sampleShare = {
 describe('ShareLinkDisplay', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (useSocialStore as any).mockImplementation((selector: any) => {
-      const state = {
-        deleteShare: mockDeleteShare,
-        loading: false,
-      };
-      return selector(state);
-    });
+    mockIsPending = false;
+    vi.mocked(useDeleteShare).mockReturnValue({
+      mutate: mockMutate,
+      isPending: false,
+    } as any);
   });
 
   describe('フルバリアント（デフォルト）', () => {
@@ -102,7 +98,6 @@ describe('ShareLinkDisplay', () => {
     });
 
     it('確認ダイアログで「削除」をクリックするとdeleteShareが呼ばれる', async () => {
-      mockDeleteShare.mockResolvedValue(undefined);
       render(<ShareLinkDisplay share={sampleShare} />);
 
       // ダイアログを開く
@@ -113,7 +108,7 @@ describe('ShareLinkDisplay', () => {
       fireEvent.click(within(dialog).getByText('削除'));
 
       await waitFor(() => {
-        expect(mockDeleteShare).toHaveBeenCalledWith('share-123');
+        expect(mockMutate).toHaveBeenCalledWith('share-123');
       });
     });
 
@@ -126,18 +121,15 @@ describe('ShareLinkDisplay', () => {
       // 「キャンセル」ボタンをクリック
       fireEvent.click(screen.getByText('キャンセル'));
 
-      expect(mockDeleteShare).not.toHaveBeenCalled();
+      expect(mockMutate).not.toHaveBeenCalled();
       expect(screen.queryByText('共有リンクの削除')).not.toBeInTheDocument();
     });
 
     it('loading中は削除ボタンがdisabledになる', () => {
-      (useSocialStore as any).mockImplementation((selector: any) => {
-        const state = {
-          deleteShare: mockDeleteShare,
-          loading: true,
-        };
-        return selector(state);
-      });
+      vi.mocked(useDeleteShare).mockReturnValue({
+        mutate: mockMutate,
+        isPending: true,
+      } as any);
 
       render(<ShareLinkDisplay share={sampleShare} />);
       const deleteButton = screen.getByText('削除').closest('button');
@@ -180,13 +172,10 @@ describe('ShareLinkDisplay', () => {
     });
 
     it('loading中はDelボタンがdisabledになる', () => {
-      (useSocialStore as any).mockImplementation((selector: any) => {
-        const state = {
-          deleteShare: mockDeleteShare,
-          loading: true,
-        };
-        return selector(state);
-      });
+      vi.mocked(useDeleteShare).mockReturnValue({
+        mutate: mockMutate,
+        isPending: true,
+      } as any);
 
       render(<ShareLinkDisplay share={sampleShare} compact />);
       const delButton = screen.getByText('Del').closest('button');

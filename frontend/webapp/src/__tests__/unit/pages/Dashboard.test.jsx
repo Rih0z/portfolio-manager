@@ -88,13 +88,8 @@ vi.mock('../../../components/goals/GoalProgressSection', () => ({
   },
 }));
 
-vi.mock('../../../stores/subscriptionStore', () => ({
-  useSubscriptionStore: vi.fn((selector) => {
-    if (typeof selector === 'function') {
-      return selector({ isPremium: () => false });
-    }
-    return false;
-  }),
+vi.mock('../../../hooks/queries', () => ({
+  useIsPremium: vi.fn(() => false),
 }));
 
 vi.mock('../../../utils/portfolioDataEnricher', () => ({

@@ -16,13 +16,8 @@ vi.mock('../../../stores/uiStore', () => ({
   },
 }));
 
-vi.mock('../../../stores/subscriptionStore', () => ({
-  useSubscriptionStore: {
-    getState: vi.fn(() => ({
-      planType: 'free',
-      isPremium: () => false,
-    })),
-  },
+vi.mock('../../../hooks/queries', () => ({
+  getIsPremiumFromCache: vi.fn(() => false),
 }));
 
 vi.mock('../../../utils/analytics', () => ({
@@ -36,7 +31,7 @@ vi.mock('../../../utils/analytics', () => ({
 
 // --- Import store after mocks ---
 import { useGoalStore } from '../../../stores/goalStore';
-import { useSubscriptionStore } from '../../../stores/subscriptionStore';
+import { getIsPremiumFromCache } from '../../../hooks/queries';
 
 // --- Test helpers ---
 const getInitialState = () => ({
@@ -117,10 +112,7 @@ describe('goalStore', () => {
 
     it('should allow up to 5 goals on standard plan', () => {
       // Override subscription mock to standard
-      (useSubscriptionStore.getState as ReturnType<typeof vi.fn>).mockReturnValue({
-        planType: 'standard',
-        isPremium: () => true,
-      });
+      vi.mocked(getIsPremiumFromCache).mockReturnValue(true);
 
       const { addGoal } = useGoalStore.getState();
       for (let i = 1; i <= 5; i++) {
@@ -166,10 +158,7 @@ describe('goalStore', () => {
 
     it('should not modify other goals', () => {
       // Use standard plan for multiple goals
-      (useSubscriptionStore.getState as ReturnType<typeof vi.fn>).mockReturnValue({
-        planType: 'standard',
-        isPremium: () => true,
-      });
+      vi.mocked(getIsPremiumFromCache).mockReturnValue(true);
 
       const { addGoal, updateGoal } = useGoalStore.getState();
       addGoal({ name: '目標A', type: 'amount', targetAmount: 1_000_000 });
@@ -214,10 +203,7 @@ describe('goalStore', () => {
     });
 
     it('should only remove the specified goal', () => {
-      (useSubscriptionStore.getState as ReturnType<typeof vi.fn>).mockReturnValue({
-        planType: 'standard',
-        isPremium: () => true,
-      });
+      vi.mocked(getIsPremiumFromCache).mockReturnValue(true);
 
       const { addGoal, removeGoal } = useGoalStore.getState();
       addGoal({ name: '目標A', type: 'amount', targetAmount: 1_000_000 });
@@ -246,18 +232,12 @@ describe('goalStore', () => {
 
     it('should return 1 for free plan max goals', () => {
       // Ensure free plan mock is active
-      (useSubscriptionStore.getState as ReturnType<typeof vi.fn>).mockReturnValue({
-        planType: 'free',
-        isPremium: () => false,
-      });
+      vi.mocked(getIsPremiumFromCache).mockReturnValue(false);
       expect(useGoalStore.getState().getMaxGoals()).toBe(1);
     });
 
     it('should return 5 for standard plan max goals', () => {
-      (useSubscriptionStore.getState as ReturnType<typeof vi.fn>).mockReturnValue({
-        planType: 'standard',
-        isPremium: () => true,
-      });
+      vi.mocked(getIsPremiumFromCache).mockReturnValue(true);
       expect(useGoalStore.getState().getMaxGoals()).toBe(5);
     });
   });

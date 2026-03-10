@@ -6,26 +6,18 @@
  *
  * @file src/components/social/SharePortfolioButton.tsx
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from '../ui/button';
 import ShareDialog from './ShareDialog';
 import ShareLinkDisplay from './ShareLinkDisplay';
-import { useSocialStore } from '../../stores/socialStore';
+import { useUserShares } from '../../hooks/queries';
 import { useAuthStore } from '../../stores/authStore';
 
 const SharePortfolioButton: React.FC = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [showLinks, setShowLinks] = useState(false);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const shares = useSocialStore((s) => s.shares);
-  const fetchUserShares = useSocialStore((s) => s.fetchUserShares);
-  const loading = useSocialStore((s) => s.loading);
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchUserShares();
-    }
-  }, [isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps
+  const { data: shares = [], isPending: loading } = useUserShares({ enabled: isAuthenticated });
 
   if (!isAuthenticated) {
     return null;

@@ -8,7 +8,8 @@
  */
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { useSubscriptionStore } from './subscriptionStore';
+import { getIsPremiumFromCache, notificationKeys } from '../hooks/queries';
+import { queryClient } from '../providers/QueryProvider';
 import { useUIStore } from './uiStore';
 import { trackEvent, AnalyticsEvents } from '../utils/analytics';
 import type {
@@ -139,6 +140,16 @@ export const useNotificationStore = create<NotificationState>()(
             unreadCount: updated.filter((n) => !n.read).length,
           };
         });
+
+        // TQ キャッシュにも反映（ドロップダウン表示用）
+        queryClient.setQueryData(
+          notificationKeys.list(20),
+          (old: { notifications: AppNotification[]; lastKey?: string | null } | undefined) => {
+            if (!old) return { notifications: [newNotification], lastKey: null };
+            const updated = [newNotification, ...old.notifications].slice(0, maxHistory);
+            return { ...old, notifications: updated };
+          }
+        );
 
         trackEvent(AnalyticsEvents.NOTIFICATION_READ, { type, action: 'created' });
       },
@@ -368,22 +379,19 @@ export const useNotificationStore = create<NotificationState>()(
       // ─── Computed ───────────────────────────────────
 
       getMaxAlertRules: () => {
-        const sub = useSubscriptionStore.getState();
-        return sub.isPremium()
+        return getIsPremiumFromCache()
           ? NOTIFICATION_LIMITS.STANDARD.maxAlertRules
           : NOTIFICATION_LIMITS.FREE.maxAlertRules;
       },
 
       getMaxHistory: () => {
-        const sub = useSubscriptionStore.getState();
-        return sub.isPremium()
+        return getIsPremiumFromCache()
           ? NOTIFICATION_LIMITS.STANDARD.maxHistory
           : NOTIFICATION_LIMITS.FREE.maxHistory;
       },
 
       getRebalanceThreshold: () => {
-        const sub = useSubscriptionStore.getState();
-        return sub.isPremium()
+        return getIsPremiumFromCache()
           ? NOTIFICATION_LIMITS.STANDARD.rebalanceThresholdMin
           : NOTIFICATION_LIMITS.FREE.rebalanceThreshold;
       },

@@ -16,18 +16,14 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-// Mutable state object for the store mock
-const mockStoreState: Record<string, any> = {
-  unreadCount: 0,
-  notifications: [],
-  loading: false,
-  markRead: vi.fn(),
-  markAllRead: vi.fn(),
-  removeNotification: vi.fn(),
-};
+vi.mock('../../../../hooks/queries', () => ({
+  useNotifications: vi.fn(() => ({ data: null, isPending: false })),
+}));
 
-vi.mock('../../../../stores/notificationStore', () => ({
-  useNotificationStore: vi.fn((selector: (state: any) => any) => selector(mockStoreState)),
+vi.mock('../../../../stores/authStore', () => ({
+  useAuthStore: vi.fn((selector: (state: any) => any) =>
+    selector({ isAuthenticated: true })
+  ),
 }));
 
 // Mock NotificationDropdown as a simple div to isolate tests
@@ -45,13 +41,19 @@ vi.mock('react-router-dom', () => ({
 }));
 
 import NotificationBell from '../../../../components/notifications/NotificationBell';
+import { useNotifications } from '../../../../hooks/queries';
+
+const setupMocks = (notifications: any[] = []) => {
+  vi.mocked(useNotifications).mockReturnValue({
+    data: { notifications, lastKey: null },
+    isPending: false,
+  } as any);
+};
 
 describe('NotificationBell', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockStoreState.unreadCount = 0;
-    mockStoreState.notifications = [];
-    mockStoreState.loading = false;
+    setupMocks([]);
   });
 
   // =========================================================================
@@ -84,7 +86,11 @@ describe('NotificationBell', () => {
   // =========================================================================
   describe('unread badge', () => {
     it('should show unread count badge when unreadCount > 0', () => {
-      mockStoreState.unreadCount = 3;
+      setupMocks([
+        { notificationId: '1', read: false },
+        { notificationId: '2', read: false },
+        { notificationId: '3', read: false },
+      ]);
       render(<NotificationBell />);
 
       const badge = screen.getByText('3');
@@ -92,28 +98,42 @@ describe('NotificationBell', () => {
     });
 
     it('should hide badge when unreadCount is 0', () => {
-      mockStoreState.unreadCount = 0;
+      setupMocks([]);
       render(<NotificationBell />);
 
       expect(screen.queryByText('0')).not.toBeInTheDocument();
     });
 
     it('should cap badge at 99+', () => {
-      mockStoreState.unreadCount = 150;
+      const manyUnread = Array.from({ length: 150 }, (_, i) => ({
+        notificationId: `n${i}`,
+        read: false,
+      }));
+      setupMocks(manyUnread);
       render(<NotificationBell />);
 
       expect(screen.getByText('99+')).toBeInTheDocument();
     });
 
     it('should show exact count for 99', () => {
-      mockStoreState.unreadCount = 99;
+      const unread99 = Array.from({ length: 99 }, (_, i) => ({
+        notificationId: `n${i}`,
+        read: false,
+      }));
+      setupMocks(unread99);
       render(<NotificationBell />);
 
       expect(screen.getByText('99')).toBeInTheDocument();
     });
 
     it('should use aria-label with count when unread > 0', () => {
-      mockStoreState.unreadCount = 5;
+      setupMocks([
+        { notificationId: '1', read: false },
+        { notificationId: '2', read: false },
+        { notificationId: '3', read: false },
+        { notificationId: '4', read: false },
+        { notificationId: '5', read: false },
+      ]);
       render(<NotificationBell />);
 
       const button = screen.getByRole('button');

@@ -14,6 +14,9 @@ export {
   useSubscriptionStatus,
   useCreateCheckout,
   useCreatePortal,
+  useIsPremium,
+  useCanUseFeature,
+  getIsPremiumFromCache,
   subscriptionKeys,
 } from './useSubscription';
 

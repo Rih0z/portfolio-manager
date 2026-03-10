@@ -6,12 +6,12 @@
  *
  * @file src/components/referral/ReferralSection.tsx
  */
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { useReferralStore } from '../../stores/referralStore';
+import { useReferralCode, useReferralStats } from '../../hooks/queries';
 import { useAuthStore } from '../../stores/authStore';
 import { trackEvent, AnalyticsEvents } from '../../utils/analytics';
 
@@ -38,16 +38,10 @@ const CheckIcon: React.FC<{ className?: string }> = ({ className }) => (
 const ReferralSection: React.FC = () => {
   const { t } = useTranslation();
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
-  const { referralCode, stats, loading, fetchCode, fetchStats } = useReferralStore();
+  const { data: referralCode, isPending: codeLoading } = useReferralCode({ enabled: isAuthenticated });
+  const { data: stats } = useReferralStats({ enabled: isAuthenticated });
+  const loading = codeLoading;
   const [copied, setCopied] = useState(false);
-
-  // 認証済みの場合のみデータ取得
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchCode();
-      fetchStats();
-    }
-  }, [isAuthenticated, fetchCode, fetchStats]);
 
   const referralUrl = referralCode
     ? `${window.location.origin}/?ref=${referralCode.referralCode}`

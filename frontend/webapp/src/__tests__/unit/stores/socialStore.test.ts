@@ -6,9 +6,12 @@
 
 import { useSocialStore } from '@/stores/socialStore';
 import * as socialService from '@/services/socialService';
-import { useSubscriptionStore } from '@/stores/subscriptionStore';
+import { getIsPremiumFromCache } from '@/hooks/queries';
 
 vi.mock('@/services/socialService');
+vi.mock('@/hooks/queries', () => ({
+  getIsPremiumFromCache: vi.fn(() => false),
+}));
 vi.mock('@/utils/analytics', () => ({
   trackEvent: vi.fn(),
   AnalyticsEvents: {},
@@ -125,7 +128,7 @@ describe('useSocialStore', () => {
   });
 
   it('canCreateShareがプラン制限を反映する', () => {
-    useSubscriptionStore.setState({ planType: 'free' });
+    vi.mocked(getIsPremiumFromCache).mockReturnValue(false);
     useSocialStore.setState({ shares: [] });
     expect(useSocialStore.getState().canCreateShare()).toBe(true);
 

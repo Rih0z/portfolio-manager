@@ -9,7 +9,13 @@
 import React, { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import { useNotificationStore } from '../../stores/notificationStore';
+import {
+  useNotifications,
+  useMarkNotificationRead,
+  useMarkAllNotificationsRead,
+  useDeleteNotification,
+} from '../../hooks/queries';
+import { useAuthStore } from '../../stores/authStore';
 import NotificationItem from './NotificationItem';
 import { Button } from '../ui/button';
 
@@ -18,30 +24,32 @@ import { Button } from '../ui/button';
 const NotificationDropdown: React.FC = () => {
   const { t } = useTranslation();
 
-  const notifications = useNotificationStore((s) => s.notifications);
-  const markRead = useNotificationStore((s) => s.markRead);
-  const markAllRead = useNotificationStore((s) => s.markAllRead);
-  const removeNotification = useNotificationStore((s) => s.removeNotification);
-  const loading = useNotificationStore((s) => s.loading);
-  const unreadCount = useNotificationStore((s) => s.unreadCount);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const { data: notificationsData, isPending: loading } = useNotifications(20, { enabled: isAuthenticated });
+  const notifications = notificationsData?.notifications ?? [];
+  const unreadCount = notifications.filter((n) => !n.read).length;
+
+  const markReadMutation = useMarkNotificationRead();
+  const markAllReadMutation = useMarkAllNotificationsRead();
+  const deleteNotificationMutation = useDeleteNotification();
 
   const handleMarkRead = useCallback(
     (id: string) => {
-      markRead(id);
+      markReadMutation.mutate(id);
     },
-    [markRead]
+    [markReadMutation]
   );
 
   const handleDelete = useCallback(
     (id: string) => {
-      removeNotification(id);
+      deleteNotificationMutation.mutate(id);
     },
-    [removeNotification]
+    [deleteNotificationMutation]
   );
 
   const handleMarkAllRead = useCallback(() => {
-    markAllRead();
-  }, [markAllRead]);
+    markAllReadMutation.mutate();
+  }, [markAllReadMutation]);
 
   return (
     <div

@@ -26,34 +26,43 @@ vi.mock('../../../../stores/authStore', () => ({
   ),
 }));
 
-const mockReferralState: Record<string, any> = {
-  stats: {
-    totalReferrals: 5,
-    successfulConversions: 2,
-    rewardMonths: 2,
-    maxRewardMonths: 12,
-  },
-  loading: false,
-  fetchStats: vi.fn(),
-};
-
-vi.mock('../../../../stores/referralStore', () => ({
-  useReferralStore: vi.fn((selector?: (state: any) => any) => {
-    if (typeof selector === 'function') return selector(mockReferralState);
-    return mockReferralState;
-  }),
+vi.mock('../../../../hooks/queries', () => ({
+  useReferralStats: vi.fn(() => ({ data: null, isPending: false })),
 }));
 
 import ReferralStatsCard from '../../../../components/referral/ReferralStatsCard';
+import { useReferralStats } from '../../../../hooks/queries';
+
+const defaultStats = {
+  totalReferrals: 5,
+  successfulConversions: 2,
+  rewardMonths: 2,
+  maxRewardMonths: 12,
+};
+
+const setupMocks = (overrides: {
+  isAuthenticated?: boolean;
+  stats?: any;
+  loading?: boolean;
+} = {}) => {
+  const { isAuthenticated = true, stats = defaultStats, loading = false } = overrides;
+  mockAuthState.isAuthenticated = isAuthenticated;
+
+  vi.mocked(useReferralStats).mockReturnValue({
+    data: stats,
+    isPending: loading,
+  } as any);
+};
 
 describe('ReferralStatsCard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockAuthState.isAuthenticated = true;
+    setupMocks();
   });
 
   it('should render nothing when not authenticated', () => {
-    mockAuthState.isAuthenticated = false;
+    setupMocks({ isAuthenticated: false });
     const { container } = render(<ReferralStatsCard />);
     expect(container.firstChild).toBeNull();
   });

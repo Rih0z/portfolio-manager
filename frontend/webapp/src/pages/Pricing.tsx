@@ -10,7 +10,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { trackEvent, AnalyticsEvents } from '../utils/analytics';
-import { useSubscriptionStore } from '../stores/subscriptionStore';
+import { useSubscriptionStatus, useCreateCheckout, useCreatePortal } from '../hooks/queries';
 import SEOHead from '../components/seo/SEOHead';
 
 const CheckIcon = () => (
@@ -48,7 +48,12 @@ const Pricing: React.FC = () => {
   useEffect(() => { trackEvent(AnalyticsEvents.PRICING_VIEW); }, []);
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('monthly');
   const isAuthenticated = useAuthStore(s => s.isAuthenticated);
-  const { planType, startCheckout, openPortal, loading } = useSubscriptionStore();
+  const { data: subscriptionData } = useSubscriptionStatus();
+  const checkoutMutation = useCreateCheckout();
+  const portalMutation = useCreatePortal();
+
+  const planType = subscriptionData?.planType ?? 'free';
+  const loading = checkoutMutation.isPending || portalMutation.isPending;
 
   const isCurrentPlan = (plan: string) => planType === plan;
   const monthlyPrice = 700;
@@ -63,7 +68,20 @@ const Pricing: React.FC = () => {
       navigate('/dashboard');
       return;
     }
-    startCheckout(billingPeriod);
+    trackEvent(AnalyticsEvents.CHECKOUT_START, { plan: billingPeriod });
+    checkoutMutation.mutate(billingPeriod, {
+      onSuccess: (data) => {
+        window.location.href = data.checkoutUrl;
+      },
+    });
+  };
+
+  const handleManagePlan = () => {
+    portalMutation.mutate(undefined, {
+      onSuccess: (data) => {
+        window.location.href = data.portalUrl;
+      },
+    });
   };
 
   return (
@@ -159,7 +177,7 @@ const Pricing: React.FC = () => {
           </div>
           {isCurrentPlan('standard') ? (
             <button
-              onClick={() => openPortal()}
+              onClick={handleManagePlan}
               disabled={loading}
               className="w-full py-3 rounded-xl bg-accent text-foreground font-medium text-sm hover:bg-muted transition-colors disabled:opacity-50"
             >

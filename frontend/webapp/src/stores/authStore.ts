@@ -10,7 +10,8 @@ import { getApiEndpoint, getGoogleClientId } from '../utils/envUtils';
 import { authFetch, setAuthToken, getAuthToken, clearAuthToken, refreshAccessToken } from '../utils/apiUtils';
 import { trackEvent, AnalyticsEvents } from '../utils/analytics';
 import { usePortfolioStore } from './portfolioStore';
-import { useSubscriptionStore } from './subscriptionStore';
+import { queryClient } from '../providers/QueryProvider';
+import { subscriptionKeys } from '../hooks/queries';
 import logger from '../utils/logger';
 import { getErrorMessage, getErrorStatus } from '../utils/errorUtils';
 
@@ -120,17 +121,20 @@ const setAuthState = (userData: UserData | null, authenticated: boolean, driveAc
   if (authenticated && userData) {
     if (token) {
       setAuthToken(token);
-      // JWT から planType を抽出して subscriptionStore に反映
+      // JWT から planType を抽出して TanStack Query キャッシュに楽観的更新
       const { payload } = checkTokenLocally(token);
       if (payload?.planType) {
-        useSubscriptionStore.getState().setPlanType(payload.planType);
+        queryClient.setQueryData(subscriptionKeys.status(), (old: any) => ({
+          ...old,
+          planType: payload.planType,
+        }));
       }
     }
     saveSession(userData, driveAccess);
   } else {
     clearAuthToken();
     clearSession();
-    useSubscriptionStore.getState().setPlanType('free');
+    queryClient.removeQueries({ queryKey: subscriptionKeys.all });
   }
 };
 

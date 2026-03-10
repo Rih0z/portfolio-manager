@@ -11,9 +11,9 @@ import { Dialog, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '../
 import { Button } from '../ui/button';
 import { Input, Select } from '../ui/input';
 import ShareLinkDisplay from './ShareLinkDisplay';
-import { useSocialStore } from '../../stores/socialStore';
+import { useCreateShare, useUserShares, useIsPremium } from '../../hooks/queries';
 import { usePortfolioStore } from '../../stores/portfolioStore';
-import { AGE_GROUPS } from '../../types/social.types';
+import { AGE_GROUPS, SOCIAL_LIMITS } from '../../types/social.types';
 
 interface ShareDialogProps {
   isOpen: boolean;
@@ -27,10 +27,15 @@ const ShareDialog: React.FC<ShareDialogProps> = ({ isOpen, onClose }) => {
   const [createdShare, setCreatedShare] = useState<any>(null);
   const [error, setError] = useState('');
 
-  const createShare = useSocialStore((s) => s.createShare);
-  const loading = useSocialStore((s) => s.loading);
-  const canCreateShare = useSocialStore((s) => s.canCreateShare);
-  const getTtlDays = useSocialStore((s) => s.getTtlDays);
+  const createShareMutation = useCreateShare();
+  const { data: sharesData } = useUserShares();
+  const isPremium = useIsPremium();
+
+  const loading = createShareMutation.isPending;
+  const maxShares = isPremium ? SOCIAL_LIMITS.STANDARD.maxShares : SOCIAL_LIMITS.FREE.maxShares;
+  const ttlDays = isPremium ? SOCIAL_LIMITS.STANDARD.ttlDays : SOCIAL_LIMITS.FREE.ttlDays;
+  const shareCount = sharesData?.length ?? 0;
+  const canCreateShare = () => shareCount < maxShares;
 
   // ポートフォリオ情報の取得
   const targetPortfolio = usePortfolioStore((s) => s.targetPortfolio);
@@ -83,17 +88,20 @@ const ShareDialog: React.FC<ShareDialogProps> = ({ isOpen, onClose }) => {
       return;
     }
 
-    const share = await createShare({
-      displayName: displayName.trim(),
-      ageGroup: showAgeGroup && ageGroup ? ageGroup : undefined,
-      allocationSnapshot,
-      portfolioScore: calculateSimpleScore(),
-      assetCount: currentAssets?.length || 0,
-    });
-
-    if (share) {
-      setCreatedShare(share);
-    }
+    createShareMutation.mutate(
+      {
+        displayName: displayName.trim(),
+        ageGroup: showAgeGroup && ageGroup ? ageGroup : undefined,
+        allocationSnapshot,
+        portfolioScore: calculateSimpleScore(),
+        assetCount: currentAssets?.length || 0,
+      },
+      {
+        onSuccess: (share) => {
+          setCreatedShare(share);
+        },
+      },
+    );
   };
 
   const handleClose = () => {
@@ -105,7 +113,6 @@ const ShareDialog: React.FC<ShareDialogProps> = ({ isOpen, onClose }) => {
     onClose();
   };
 
-  const ttlDays = getTtlDays();
 
   return (
     <Dialog isOpen={isOpen} onClose={handleClose} size="md">
