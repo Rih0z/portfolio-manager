@@ -34,3 +34,28 @@ export {
   useDeleteNotification,
   notificationKeys,
 } from './useNotifications';
+
+export {
+  useUserShares,
+  useCreateShare,
+  useDeleteShare,
+  userShareKeys,
+} from './useUserShares';
+
+export {
+  usePeerComparison,
+  peerComparisonKeys,
+} from './usePeerComparison';
+
+export {
+  useReferralCode,
+  useReferralStats,
+  useApplyReferral,
+  referralKeys,
+} from './useReferral';
+
+export {
+  useServerPortfolio,
+  useSavePortfolio,
+  serverPortfolioKeys,
+} from './useServerPortfolio';
