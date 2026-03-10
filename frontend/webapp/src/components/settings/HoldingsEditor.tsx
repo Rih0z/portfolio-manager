@@ -29,6 +29,7 @@ const HoldingsEditor = () => {
   const {
     currentAssets,
     updateHoldings,
+    updatePurchasePrice,
     removeTicker,
     baseCurrency,
     exchangeRate
@@ -92,6 +93,7 @@ const HoldingsEditor = () => {
             baseCurrency={baseCurrency}
             exchangeRate={exchangeRate}
             onUpdateHoldings={updateHoldings}
+            onUpdatePurchasePrice={updatePurchasePrice}
             onRemove={handleRemoveTicker}
           />
         ))}

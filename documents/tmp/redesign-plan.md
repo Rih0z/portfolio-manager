@@ -24,6 +24,7 @@
 | 8-B | TanStack Query 26フック実装 + 全7ストアのコンポーネント統合完了 | 2026-03-10 |
 | 8-D | TypeScript strict: true 完全対応（0 errors, usePortfolioContext 完全型付け） | 2026-03-10 |
 | 8-D-fix | Phase 8-D レビュー修正（残存 portfolio/updatePortfolio 参照 + ExchangeRate 型修正） | 2026-03-10 |
+| 8-C | Zustand persist 統一（手動 localStorage 18箇所全廃・カスタムアダプターで旧フォーマット自動マイグレーション） | 2026-03-10 |
 | 8-E | 機能基盤構築（損益管理・SBI/楽天CSV・アラート・目標管理）※計画外実装の正式記録 | 〜2026-03-10 |
 
 ---
@@ -37,7 +38,7 @@
 | EN/JP混在箇所 | 50+ | 0 | 0 | ✅ |
 | ハードコード色値 | 35+ | 4 | ≤4 | ✅ |
 | テスト品質 | 脆弱 | 堅牢 | 堅牢 | ✅ |
-| ユニットテスト | 2254 PASS | 2236 PASS / 15 skip | 全PASS | ✅ |
+| ユニットテスト | 2254 PASS | 2248 PASS / 15 skip | 全PASS | ✅ |
 | テストカバレッジ（statements） | 77.85% | 81.45% | ≥80% | ✅ |
 | テストカバレッジ（branches） | — | 72.47% | ≥70% | ✅ |
 | テストカバレッジ（functions） | — | 79.68% | ≥75% | ✅ |
@@ -189,17 +190,11 @@ Phase R〜8-D と並行して実装された機能基盤。Phase 9 の UI 改善
 
 ---
 
-### 8-C: Zustand persist 統一（⚠️ 未着手 — 次回実行）
-- **目的**: 手動 localStorage 操作を Zustand persist middleware に統一
-- **対象ストア**: portfolioStore（`saveToLocalStorage` / `loadFromLocalStorage`）
-- **実装方針**:
-  - `persist` middleware + カスタム暗号化ストレージアダプタ
-  - 既存の暗号化ロジック（`CryptoUtils`）を adapter に組み込む
-  - マイグレーション関数で既存データを無停止で移行
-- **受け入れ基準**:
-  - `saveToLocalStorage` / `loadFromLocalStorage` 呼び出し箇所がゼロ
-  - テスト全件通過、ビルド成功
-  - ローカルストレージのデータが自動マイグレーションされる
+### 8-C: Zustand persist 統一 ✅ **完了** (2026-03-10)
+- **実装**: persist middleware 導入、内部 saveToLocalStorage() 18箇所全廃
+- **カスタムアダプター**: 旧 Base64/JSON フォーマットからの無停止マイグレーション
+- **スタブ維持**: 公開 API の saveToLocalStorage/loadFromLocalStorage はスタブとして後方互換維持
+- **テスト**: 2234件全通過・TypeScript 0 errors・ビルド成功
 
 ### 8-D: TypeScript 型安全性強化 ✅ **完了** (2026-03-10)
 - portfolio.types.ts 共有型定義・stores/services 完全型付け ✅
@@ -223,9 +218,9 @@ Phase R〜8-D と並行して実装された機能基盤。Phase 9 の UI 改善
   8-E（損益管理・SBI/楽天CSV・アラート・Goals 実装）  ✅
 
 次フェーズ:
-  8-C: Zustand persist 統一  ← 次回実行（技術負債）
+  8-C: Zustand persist 統一  ✅ 完了
   ↓ （8-C 完了が必須前提: purchasePrice を persist に含めるため）
-  9-A: 取得単価入力 UI（HoldingCard 拡張）[2026-04]
+  9-A: 取得単価入力 UI（HoldingCard 拡張）[2026-04]  ← 次回実行
   9-B: マネックス証券 CSV パーサー追加      [2026-04, 8-C と並行可]
   ↓
   9-C: PDF エクスポート（Standard 機能）    [2026-05]
@@ -245,7 +240,7 @@ Phase R〜8-D と並行して実装された機能基盤。Phase 9 の UI 改善
 > Phase 8-E で機能基盤（型・計算ロジック・ストア・UIコンポーネント骨格）は完成済み。
 > Phase 9 は「接続・入力 UI 完成」と「Standard 差別化強化」が中心。
 
-### 9-A: 取得単価入力 UI — HoldingCard 拡張（2026-04）
+### 9-A: 取得単価入力 UI — HoldingCard 拡張 ✅ **完了** (2026-03-10)
 
 **ターゲット**: ペイン③「投資判断の不安」→ 含み益/損が見えるようにする
 **Standard 機能**: 取得単価入力可 + 損益表示 | **Free**: ロック + UpgradePrompt
@@ -319,7 +314,7 @@ Phase R〜8-D と並行して実装された機能基盤。Phase 9 の UI 改善
 - [ ] テスト: PDF 生成の smoke test（エラーなし確認）
 - [ ] テスト全件通過・ビルド成功
 
-### 9-D: E2E テスト拡充（101 → 130+ テストケース）（各フェーズ完了後に追加）
+### 9-D: E2E テスト拡充（89 → 130+ テストケース）（各フェーズ完了後に追加）
 
 **目的**: 新機能フローの回帰テスト + 重要フローの網羅率向上
 
@@ -402,12 +397,12 @@ Phase R〜8-D と並行して実装された機能基盤。Phase 9 の UI 改善
 ### Phase 8 完了基準（2026-03-10 確認済み）
 - [x] テストカバレッジ: statements 81.45% / branches 72.47% / functions 79.68% / lines 82.71% ✅
 - [x] TanStack Query: 26フック + 全7ストアのコンポーネント統合完了 ✅
-- [ ] Zustand persist: 全ストア統一（**8-C 未着手 — 次回実行**）
+- [x] Zustand persist: 全ストア統一（8-C 完了、commit 15476ee4）✅
 - [x] TypeScript: strict: true + 0 errors ✅
 - [x] 機能基盤（PnL・CSV・アラート・Goals）: 実装済み（Phase 8-E）✅
 
 ### Phase 9 受け入れ基準（目標: 2026-05 完了）
-- [ ] 取得単価入力 UI: HoldingCard に purchasePrice フィールド、Standard/Free 分岐
+- [x] 取得単価入力 UI: HoldingCard に purchasePrice フィールド、Standard/Free 分岐 ✅
 - [ ] マネックス証券 CSV: `parseMonexCSV()` 実装 + テスト
 - [ ] PDF エクスポート: Standard のみ、バンドル +100KB 以内
 - [ ] E2E テストケース: 89 → 130+ 件

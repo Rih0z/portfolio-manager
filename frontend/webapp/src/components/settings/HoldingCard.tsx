@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { formatCurrency, formatPercent } from '../../utils/formatters';
 import { FUND_TYPES } from '../../utils/fundUtils';
 import { getJapaneseStockName } from '../../utils/japaneseStockNames';
+import { useIsPremium } from '../../hooks/queries/useSubscription';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -13,6 +15,7 @@ interface HoldingCardProps {
   baseCurrency: string;
   exchangeRate: ExchangeRate;
   onUpdateHoldings: (id: string, value: number) => void;
+  onUpdatePurchasePrice: (id: string, price: number) => void;
   onRemove: (id: string, name: string) => void;
 }
 
@@ -21,12 +24,24 @@ const HoldingCard = React.memo(({
   baseCurrency,
   exchangeRate,
   onUpdateHoldings,
+  onUpdatePurchasePrice,
   onRemove
 }: HoldingCardProps) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const isPremium = useIsPremium();
+
+  // 保有数量編集
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(asset.holdings.toString());
   const [validationError, setValidationError] = useState('');
+
+  // 取得単価編集
+  const [isPurchasePriceEditing, setIsPurchasePriceEditing] = useState(false);
+  const [purchasePriceEditValue, setPurchasePriceEditValue] = useState(
+    asset.purchasePrice?.toString() ?? ''
+  );
+  const [purchasePriceError, setPurchasePriceError] = useState('');
 
   // 資産の評価額を計算
   const calculateAssetValue = () => {
@@ -80,6 +95,23 @@ const HoldingCard = React.memo(({
     setEditValue(asset.holdings.toString());
     setValidationError('');
     setIsEditing(false);
+  };
+
+  const handleSavePurchasePrice = () => {
+    const value = parseFloat(purchasePriceEditValue);
+    if (isNaN(value) || value <= 0) {
+      setPurchasePriceError('0より大きい有効な数値を入力してください');
+      return;
+    }
+    setPurchasePriceError('');
+    onUpdatePurchasePrice(asset.id, value);
+    setIsPurchasePriceEditing(false);
+  };
+
+  const handleCancelPurchasePrice = () => {
+    setPurchasePriceEditValue(asset.purchasePrice?.toString() ?? '');
+    setPurchasePriceError('');
+    setIsPurchasePriceEditing(false);
   };
 
   const handleIncrement = (amount: number) => {
@@ -228,6 +260,82 @@ const HoldingCard = React.memo(({
                 +10
               </Button>
             </div>
+          </div>
+        )}
+      </div>
+
+      {/* 取得単価 */}
+      <div className="mb-4 pt-4 border-t border-secondary-200">
+        <label className="block text-sm font-semibold text-secondary-900 mb-2">
+          取得単価
+          <span className="ml-1 text-xs text-secondary-400 font-normal">（Standard）</span>
+        </label>
+
+        {isPremium ? (
+          isPurchasePriceEditing ? (
+            <div>
+              <div className="flex items-center space-x-2">
+                <Input
+                  type="number"
+                  value={purchasePriceEditValue}
+                  onChange={(e) => { setPurchasePriceEditValue(e.target.value); setPurchasePriceError(''); }}
+                  step="0.01"
+                  min="0.01"
+                  placeholder="取得単価を入力"
+                  className="flex-1 font-mono tabular-nums"
+                  aria-label={`${asset.symbol}の取得単価`}
+                  aria-invalid={purchasePriceError ? true : undefined}
+                  aria-describedby={purchasePriceError ? `purchase-price-error-${asset.id}` : undefined}
+                />
+                <Button size="sm" onClick={handleSavePurchasePrice} variant="success">
+                  保存
+                </Button>
+                <Button size="sm" onClick={handleCancelPurchasePrice} variant="secondary">
+                  キャンセル
+                </Button>
+              </div>
+              {purchasePriceError && (
+                <p id={`purchase-price-error-${asset.id}`} role="alert" className="text-xs text-danger-600 mt-1">
+                  {purchasePriceError}
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center justify-between">
+              <span className="text-lg font-bold text-secondary-900 font-mono tabular-nums">
+                {asset.purchasePrice
+                  ? formatCurrency(asset.purchasePrice, asset.currency)
+                  : <span className="text-secondary-400 text-sm font-normal">未設定</span>}
+              </span>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setPurchasePriceEditValue(asset.purchasePrice?.toString() ?? '');
+                  setIsPurchasePriceEditing(true);
+                }}
+                aria-label={`${asset.symbol}の取得単価を編集`}
+                icon={
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                }
+              />
+            </div>
+          )
+        ) : (
+          <div className="flex items-center gap-2 px-3 py-2 bg-secondary-50 rounded-lg border border-secondary-200">
+            <svg className="w-4 h-4 text-secondary-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            <span className="text-sm text-secondary-500 flex-1">Standard プランで利用可能</span>
+            <button
+              onClick={() => navigate('/pricing')}
+              className="text-xs text-primary-600 hover:text-primary-700 font-medium whitespace-nowrap"
+              data-testid="purchase-price-upgrade-btn"
+            >
+              アップグレード
+            </button>
           </div>
         )}
       </div>

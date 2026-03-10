@@ -41,6 +41,7 @@ export interface PortfolioContextValue {
   addTicker: (ticker: string) => Promise<OperationResult>;
   updateTargetAllocation: (id: string, percentage: number | string) => void;
   updateHoldings: (id: string, holdings: number | string) => void;
+  updatePurchasePrice: (id: string, price: number) => void;
   updateAnnualFee: (id: string, fee: number | string) => void;
   updateDividendInfo: (id: string, dividendYield: number | string, hasDividend?: boolean, frequency?: string) => void;
   removeTicker: (id: string) => void;
@@ -126,6 +127,7 @@ export const usePortfolioContext = (): PortfolioContextValue => {
     addTicker: portfolio.addTicker,
     updateTargetAllocation: portfolio.updateTargetAllocation,
     updateHoldings: portfolio.updateHoldings,
+    updatePurchasePrice: portfolio.updatePurchasePrice,
     updateAnnualFee: portfolio.updateAnnualFee,
     updateDividendInfo: portfolio.updateDividendInfo,
     removeTicker: portfolio.removeTicker,

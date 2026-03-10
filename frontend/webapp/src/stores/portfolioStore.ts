@@ -120,6 +120,7 @@ interface PortfolioState {
   addTicker: (ticker: string) => Promise<OperationResult>;
   removeTicker: (id: string) => void;
   updateHoldings: (id: string, holdings: number | string) => void;
+  updatePurchasePrice: (id: string, price: number) => void;
   updateTargetAllocation: (id: string, percentage: number | string) => void;
   updateAnnualFee: (id: string, fee: number | string) => void;
   updateDividendInfo: (id: string, dividendYield: number | string, hasDividend?: boolean, frequency?: string) => void;
@@ -368,6 +369,14 @@ export const usePortfolioStore = create<PortfolioState>()(
     set(state => ({
       currentAssets: state.currentAssets.map(item =>
         item.id === id ? { ...item, holdings: parseFloat(parseFloat(String(holdings)).toFixed(4)) || 0 } : item
+      )
+    }));
+  },
+
+  updatePurchasePrice: (id: string, price: number) => {
+    set(state => ({
+      currentAssets: state.currentAssets.map(item =>
+        item.id === id ? { ...item, purchasePrice: price } : item
       )
     }));
   },
