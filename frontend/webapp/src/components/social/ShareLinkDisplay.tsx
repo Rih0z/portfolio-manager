@@ -47,9 +47,17 @@ const ShareLinkDisplay: React.FC<ShareLinkDisplayProps> = ({ share, compact = fa
     setShowDeleteConfirm(true);
   };
 
+  const [deleteError, setDeleteError] = useState(false);
+
   const confirmDelete = async () => {
     setShowDeleteConfirm(false);
-    deleteShareMutation.mutate(share.shareId);
+    setDeleteError(false);
+    deleteShareMutation.mutate(share.shareId, {
+      onError: () => {
+        setDeleteError(true);
+        setTimeout(() => setDeleteError(false), 3000);
+      },
+    });
   };
 
   if (compact) {
@@ -189,6 +197,12 @@ const ShareLinkDisplay: React.FC<ShareLinkDisplayProps> = ({ share, compact = fa
           削除
         </Button>
       </div>
+
+      {deleteError && (
+        <p className="text-xs text-danger-500" role="alert">
+          削除に失敗しました。しばらく経ってから再度お試しください。
+        </p>
+      )}
 
       <ConfirmDialog
         isOpen={showDeleteConfirm}

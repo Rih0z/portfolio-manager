@@ -33,6 +33,11 @@ import { shouldUpdateExchangeRate, clearExchangeRateCache } from '../utils/excha
 import { getJapaneseStockName } from '../utils/japaneseStockNames';
 import { getErrorMessage } from '../utils/errorUtils';
 import { useUIStore } from './uiStore';
+import { getIsPremiumFromCache } from '../hooks/queries';
+
+// ─── Holdings Plan Limits ─────────────────────────────
+const MAX_HOLDINGS_FREE = 5;
+const MAX_HOLDINGS_STANDARD = Infinity;
 
 // --- データシリアライズ/デシリアライズ ---
 // v2: プレーンJSON保存（Base64エンコードは不要 — 真の暗号化ではなく難読化に過ぎなかった）
@@ -237,6 +242,21 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
   // --- Notifications helper ---
   addTicker: async (ticker: string) => {
     const { targetPortfolio, currentAssets, saveToLocalStorage } = get();
+
+    // プラン制限チェック
+    const maxHoldings = getIsPremiumFromCache() ? MAX_HOLDINGS_STANDARD : MAX_HOLDINGS_FREE;
+    const currentCount = new Set(
+      [...targetPortfolio, ...currentAssets]
+        .map((item: any) => item.ticker?.toLowerCase())
+        .filter(Boolean)
+    ).size;
+    if (currentCount >= maxHoldings) {
+      notify(
+        `Freeプランでは最大${MAX_HOLDINGS_FREE}銘柄まで登録できます。Standardプランにアップグレードすると無制限に追加できます。`,
+        'warning'
+      );
+      return { success: false, message: '銘柄数の上限に達しています', limitReached: true };
+    }
 
     const exists = [...targetPortfolio, ...currentAssets].some(
       (item: any) => item.ticker?.toLowerCase() === ticker.toLowerCase()
@@ -619,6 +639,22 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
       if (data.exchangeRate) updates.exchangeRate = data.exchangeRate;
 
       if (Array.isArray(data.currentAssets)) {
+        // プラン制限チェック
+        const maxHoldings = getIsPremiumFromCache() ? MAX_HOLDINGS_STANDARD : MAX_HOLDINGS_FREE;
+        if (data.currentAssets.length > maxHoldings) {
+          notify(
+            `Freeプランでは最大${MAX_HOLDINGS_FREE}銘柄まで登録できます。インポートデータの先頭${MAX_HOLDINGS_FREE}銘柄のみ取り込みます。`,
+            'warning'
+          );
+          data.currentAssets = data.currentAssets.slice(0, maxHoldings);
+          if (Array.isArray(data.targetPortfolio)) {
+            const importedTickers = new Set(data.currentAssets.map((a: any) => a.ticker?.toLowerCase()));
+            data.targetPortfolio = data.targetPortfolio.filter(
+              (t: any) => importedTickers.has(t.ticker?.toLowerCase())
+            );
+          }
+        }
+
         const { updatedAssets, changes } = get().validateAssetTypes(data.currentAssets);
         updates.currentAssets = updatedAssets;
         if (changes.fundType > 0) notify(`${changes.fundType}件の銘柄で種別情報を修正しました`, 'info');

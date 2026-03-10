@@ -95,12 +95,15 @@ export const useReferralCapture = (): void => {
     const code = getCapturedCode();
     if (!code) return;
 
-    appliedRef.current = true;
     applyReferralMutation.mutate(code, {
       onSuccess: () => {
+        appliedRef.current = true;
         clearCapturedCode();
         markAsApplied();
         trackEvent(AnalyticsEvents.REFERRAL_CODE_APPLY, { code });
+      },
+      onError: () => {
+        appliedRef.current = false;
       },
     });
   }, [isAuthenticated]); // eslint-disable-line react-hooks/exhaustive-deps

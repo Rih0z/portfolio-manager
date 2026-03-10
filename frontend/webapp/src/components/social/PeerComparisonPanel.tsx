@@ -78,6 +78,26 @@ const PeerComparisonPanel: React.FC = () => {
             </Button>
           </div>
 
+          {peerLoading && !peerComparison && (
+            <div className="space-y-3 animate-pulse">
+              <div className="flex items-center gap-2">
+                <div className="h-5 w-24 bg-muted rounded" />
+                <div className="h-5 w-16 bg-muted rounded" />
+              </div>
+              <div className="space-y-2">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="space-y-1">
+                    <div className="flex justify-between">
+                      <div className="h-3 w-20 bg-muted rounded" />
+                      <div className="h-3 w-10 bg-muted rounded" />
+                    </div>
+                    <div className="h-2 bg-muted rounded-full" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {peerComparison && (
             <div className="space-y-4">
               {/* 統計情報 */}

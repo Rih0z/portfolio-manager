@@ -100,6 +100,9 @@ const ShareDialog: React.FC<ShareDialogProps> = ({ isOpen, onClose }) => {
         onSuccess: (share) => {
           setCreatedShare(share);
         },
+        onError: () => {
+          setError('共有リンクの作成に失敗しました。しばらく経ってから再度お試しください。');
+        },
       },
     );
   };

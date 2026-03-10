@@ -108,7 +108,7 @@ describe('ShareLinkDisplay', () => {
       fireEvent.click(within(dialog).getByText('削除'));
 
       await waitFor(() => {
-        expect(mockMutate).toHaveBeenCalledWith('share-123');
+        expect(mockMutate).toHaveBeenCalledWith('share-123', expect.objectContaining({ onError: expect.any(Function) }));
       });
     });
 
