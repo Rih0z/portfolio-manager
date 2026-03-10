@@ -1,6 +1,6 @@
 # PortfolioWise 統合改善計画書
 
-**作成日**: 2026-03-08 → **最終更新**: 2026-03-09 (R2-F + P2 完了・レビュー済み)
+**作成日**: 2026-03-08 → **最終更新**: 2026-03-10 (Phase 8-D レビュー修正完了・計画更新)
 **ペルソナ**: テック系長期投資家 タケシ（28-42歳, IT企業勤務, 日米分散投資）
 **目標**: ペルソナに完全適合するプロダクト品質 + 収益化基盤
 
@@ -21,6 +21,9 @@
 | 8-A | テストカバレッジ閾値引き上げ（80/70/75/80 達成済み） | 2026-03-09 |
 | 8-A2 | フォントセルフホスト化（Google Fonts CDN依存排除、fontsource導入） | 2026-03-10 |
 | 8-A3 | OAuthエラーUI追加（スクリプト障害時のユーザー通知・リトライ） | 2026-03-10 |
+| 8-B | TanStack Query 13 Query + 7 Mutation 実装 + コンポーネント統合（4ストア） | 2026-03-10 |
+| 8-D | TypeScript strict: true 完全対応（0 errors, usePortfolioContext 完全型付け） | 2026-03-10 |
+| 8-D-fix | Phase 8-D レビュー修正（残存 portfolio/updatePortfolio 参照 + ExchangeRate 型修正） | 2026-03-10 |
 
 ---
 
@@ -33,8 +36,13 @@
 | EN/JP混在箇所 | 50+ | 0 | 0 | ✅ |
 | ハードコード色値 | 35+ | 4 | ≤4 | ✅ |
 | テスト品質 | 脆弱 | 堅牢 | 堅牢 | ✅ |
-| ユニットテスト | 2254 PASS | 2251 PASS | 全PASS | ✅ |
-| テストカバレッジ | 77.85% | 81.39% | 80%+ | ✅ |
+| ユニットテスト | 2254 PASS | 2236 PASS / 15 skip | 全PASS | ✅ |
+| テストカバレッジ（statements） | 77.85% | 81.45% | ≥80% | ✅ |
+| テストカバレッジ（branches） | — | 72.47% | ≥70% | ✅ |
+| テストカバレッジ（functions） | — | 79.68% | ≥75% | ✅ |
+| テストカバレッジ（lines） | — | 82.71% | ≥80% | ✅ |
+| TypeScript エラー数 | — | 0 | 0 | ✅ |
+| any 残存数（本番コード） | 304 | 195 | ≤100 | ⚠️ |
 | E2Eテスト | 17 | 19 | 25+ | ⚠️ |
 
 ---
@@ -136,41 +144,141 @@
 - vitest.config.ts: statements 75→80, branches 65→70, functions 70→75, lines 75→80
 - 不足分のテスト追加
 
-### 8-B: TanStack Query カスタムフック導入
-- ~~カスタムフック作成~~ → 13 Query + 7 Mutation 完備 ✅
-- **残タスク**: コンポーネント統合（Zustandストアからの段階的移行）
-  - subscriptionStore → useSubscriptionStatus（17ファイル参照）
+### 8-B: TanStack Query カスタムフック導入 ✅ **完了** (2026-03-10)
+- 13 Query + 7 Mutation 完備 ✅
+- コンポーネント統合 4ストア（portfolio/ui/auth/subscription）完了 ✅
+- **残タスク（8-C後に対応）**: 追加ストアのコンポーネント統合
   - socialStore → useUserShares / usePeerComparison
   - referralStore → useReferralCode / useReferralStats
   - notificationStore → useNotifications / useAlertRules
-  - portfolioStore → useExchangeRate / useStockPrices / useServerPortfolio
 
-### 8-C: Zustand persist 統一
-- 手動localStorage → persist middleware統一
-- 暗号化が必要な場合はカスタムストレージアダプタ
+### 8-C: Zustand persist 統一（⚠️ 未着手 — 次回実行）
+- **目的**: 手動 localStorage 操作を Zustand persist middleware に統一
+- **対象ストア**: portfolioStore（`saveToLocalStorage` / `loadFromLocalStorage`）
+- **実装方針**:
+  - `persist` middleware + カスタム暗号化ストレージアダプタ
+  - 既存の暗号化ロジック（`CryptoUtils`）を adapter に組み込む
+  - マイグレーション関数で既存データを無停止で移行
+- **受け入れ基準**:
+  - `saveToLocalStorage` / `loadFromLocalStorage` 呼び出し箇所がゼロ
+  - テスト全件通過、ビルド成功
+  - ローカルストレージのデータが自動マイグレーションされる
 
-### 8-D: TypeScript 型安全性強化 ✅ **完了** (2026-03-09)
-- ~~any 304箇所 → 段階的削減~~ → portfolio.types.ts 共有型定義・stores/services 完全型付け ✅
-- ~~最終目標: strict: true~~ → tsconfig.json `strict: true` 有効化・TypeScript エラー 0件 ✅
-- テスト 2236件全通過・ビルド成功・本番デプロイ済み ✅
+### 8-D: TypeScript 型安全性強化 ✅ **完了** (2026-03-10)
+- portfolio.types.ts 共有型定義・stores/services 完全型付け ✅
+- tsconfig.json `strict: true` 有効化・TypeScript エラー 0件 ✅
+- `usePortfolioContext` に完全型付き `PortfolioContextValue` インターフェース追加 ✅
+- 隠れていた型エラー（AIAdvisor/DataImport/HoldingCard）を発見・修正 ✅
+- テスト 2236件全通過・ビルド成功（commit 834449cb） ✅
 
 ---
 
 ## 実行順序と依存関係
 
 ```
-完了済み:
-  R1 → R3 → R4 → R5 → R6 → R7 → R2-F → P2  ✅ 全完了・レビュー済み
-  8-A（カバレッジ達成済み） → 8-A2（フォントセルフホスト） → 8-A3（OAuthエラーUI） ✅
+完了済み（Phase R: UI品質・ペルソナ UX）:
+  R1 → R3 → R4 → R5 → R6 → R7 → R2-F → P2  ✅
 
 完了済み（Phase 8: 技術基盤強化）:
-  8-B: TanStack Query カスタムフック導入 ✅
-  ↓
-  8-D: TypeScript 型安全性強化（strict: true） ✅
+  8-A（カバレッジ 81.45% 達成）
+  → 8-A2（フォントセルフホスト）
+  → 8-A3（OAuthエラーUI）
+  → 8-B（TanStack Query 20本 + コンポーネント統合）
+  → 8-D（TypeScript strict: true + 0 errors）
+  → 8-D-fix（レビュー修正・型エラー全解消）  ✅
 
-次回実行:
-  8-C: Zustand persist 統一（手動localStorage → persist middleware）
+次フェーズ:
+  8-C: Zustand persist 統一  ← 次回実行（技術負債）[必須: 9-A の前提]
+  ↓
+  Phase 9: 機能拡張（収益化強化・タケシのペイン直接解消）[8-C 完了後に着手]
+    9-A: 損益管理（コスト基準価格・含み益/損トラッキング）[2026-04 着手予定]
+    9-B: 日本証券会社 CSV インポート（SBI・楽天・マネックス）[2026-05 着手予定]
+    9-C: アラート機能（価格アラート・リバランス乖離通知）[2026-06 着手予定]
+    9-D: E2E テスト拡充（19 → 30本 目標）[各フェーズ完了時に追加]
+
+⚠️ 注意: 8-C（persist統一）完了前に 9-A（costBasis フィールド追加）を実施すると
+localStorage / persist の混在期が発生しデータ移行が複雑化する。
 ```
+
+---
+
+## Phase 9: 機能拡張 — Standard 収益化強化（2026-04〜06 予定）
+
+> **前提**: Phase 8-C（Zustand persist 統一）完了後に着手すること。
+
+**目的**: タケシの3大ペインを機能で直接解消し、Standard プラン ¥700/月 の価値を高める。
+
+### 9-A: 損益管理（コスト基準価格・含み益/損トラッキング）
+
+**ターゲット**: ペイン③「投資判断の不安」を解消
+**Standard 機能**: コスト基準入力 + 損益グラフ履歴 + 税金計算
+**Free**: 現在価格表示のみ（コスト基準入力不可）
+
+**実装内容:**
+1. `CurrentAsset` に `costBasis: number | null`（取得単価）フィールド追加
+2. PnL 計算ユーティリティ `utils/plCalculation.ts` 実装
+   - `(現在価格 - 取得単価) × 保有数` → 含み益/損（JPY/USD）
+   - 為替適用後の JPY 換算損益
+3. ダッシュボードに含み益/損カラム追加（Standard のみ）
+4. `UpgradePrompt` をコスト基準入力フォームに配置
+
+**受け入れ基準:**
+- [ ] 取得単価入力 UI が Holdings 設定画面に追加
+- [ ] 含み益/損が全銘柄合計・個別表示される（Standard）
+- [ ] Free ユーザーはロック表示 + UpgradePrompt
+- [ ] テスト: PnL 計算ロジックの正常系・異常系・境界値
+- [ ] テスト全件通過・ビルド成功
+
+### 9-B: 日本証券会社 CSV インポート改善
+
+**ターゲット**: ペイン①「複数口座の統合管理」
+**Standard 機能**: SBI・楽天・マネックス専用パーサー
+**Free**: 汎用 CSV のみ
+
+**実装内容:**
+1. `services/csvParsers/` に証券会社別パーサー追加
+   - `sbiParser.ts`: SBI 証券の保有株式一覧 CSV
+   - `rakutenParser.ts`: 楽天証券の保有資産一覧 CSV
+   - `monexParser.ts`: マネックス証券の口座サマリー CSV
+2. ファイル選択時に証券会社自動判別（ヘッダー文字列で識別）
+3. 取得単価もインポートデータから自動入力（9-A との連携）
+4. インポート結果プレビュー → 確認 → 実行 の 3 ステップ
+
+**受け入れ基準:**
+- [ ] SBI / 楽天 / マネックス CSV が正しくパースされる
+- [ ] 証券会社の自動判別率 ≥ 95%（主要フォーマット）
+- [ ] Free ユーザーは汎用 CSV のみ（専用パーサーはロック）
+- [ ] テスト: 各パーサーの正常系・異常系・空ファイル・文字化け
+- [ ] テスト全件通過・ビルド成功
+
+### 9-C: アラート機能（価格アラート・リバランス乖離通知）
+
+**ターゲット**: ペイン②③「リバランス計算」「投資判断の不安」
+**Standard 機能のみ**
+
+**実装内容:**
+1. `stores/alertStore.ts` 新規作成（Zustand + persist）
+2. アラートルール設定 UI（価格 ±X% / 配分乖離 ±Y%）
+3. `useAlertRules` TanStack Query フック（9-A の8-B残タスクと連携）
+4. ブラウザ通知 API または in-app Toast 通知
+
+**受け入れ基準:**
+- [ ] 価格アラート（上限/下限）を設定・解除できる
+- [ ] 配分乖離アラートが目標配分±5%超で発火
+- [ ] Free ユーザーは設定画面自体に UpgradePrompt
+- [ ] テスト全件通過・ビルド成功
+
+### 9-D: E2E テスト拡充
+
+**目的**: 重要ユーザーフローの回帰を自動検証
+**目標**: 19 → 30 本
+
+**追加対象フロー:**
+1. 初回セットアップ → 銘柄追加 → ダッシュボード表示
+2. CSV インポート → 保有数反映確認
+3. リバランスシミュレーション → 一括購入実行
+4. Free 制限到達 → UpgradePrompt → Stripe チェックアウト
+5. ログアウト → ログイン → データ復元確認
 
 ---
 
@@ -208,8 +316,15 @@
 - [x] 全テスト合格: 111ファイル / 2251 PASS / 0 failures
 - [x] ビルド成功 + デプロイ: https://portfolio-wise.com/ (commit 6e07650f)
 
-### Phase 8 完了基準（長期）
-- [ ] テストカバレッジ: statements ≥ 80%
-- [ ] TanStack Query: サーバー状態フック9本稼働
-- [ ] Zustand persist: 全ストア統一
-- [ ] TypeScript: any < 100箇所、strict: true
+### Phase 8 完了基準（2026-03-10 時点）
+- [x] テストカバレッジ: statements 81.45% / branches 72.47% / functions 79.68% / lines 82.71% ✅
+- [x] TanStack Query: 13 Query + 7 Mutation 実装 + コンポーネント統合 4ストア ✅
+- [ ] Zustand persist: 全ストア統一（8-C 未着手）
+- [x] TypeScript: strict: true + 0 errors（any 195箇所残存 → Phase 9 で継続削減） ✅
+
+### Phase 9 受け入れ基準（目標）
+- [ ] 損益管理: 取得単価入力 + 含み益/損計算が正確
+- [ ] CSVインポート: SBI/楽天/マネックス 3社対応
+- [ ] アラート機能: 価格・配分乖離アラートが動作
+- [ ] E2Eテスト: 30本以上
+- [ ] any 残存数: ≤ 100箇所（strict 強化継続）
