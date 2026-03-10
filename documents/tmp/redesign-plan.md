@@ -1,6 +1,6 @@
 # PortfolioWise 統合改善計画書
 
-**作成日**: 2026-03-08 → **最終更新**: 2026-03-10 (Phase 8-D レビュー修正完了・計画更新)
+**作成日**: 2026-03-08 → **最終更新**: 2026-03-10 (計画全面改訂: 実装済み機能調査・Phase 9 再設計)
 **ペルソナ**: テック系長期投資家 タケシ（28-42歳, IT企業勤務, 日米分散投資）
 **目標**: ペルソナに完全適合するプロダクト品質 + 収益化基盤
 
@@ -21,9 +21,10 @@
 | 8-A | テストカバレッジ閾値引き上げ（80/70/75/80 達成済み） | 2026-03-09 |
 | 8-A2 | フォントセルフホスト化（Google Fonts CDN依存排除、fontsource導入） | 2026-03-10 |
 | 8-A3 | OAuthエラーUI追加（スクリプト障害時のユーザー通知・リトライ） | 2026-03-10 |
-| 8-B | TanStack Query 13 Query + 7 Mutation 実装 + コンポーネント統合（4ストア） | 2026-03-10 |
+| 8-B | TanStack Query 26フック実装 + 全7ストアのコンポーネント統合完了 | 2026-03-10 |
 | 8-D | TypeScript strict: true 完全対応（0 errors, usePortfolioContext 完全型付け） | 2026-03-10 |
 | 8-D-fix | Phase 8-D レビュー修正（残存 portfolio/updatePortfolio 参照 + ExchangeRate 型修正） | 2026-03-10 |
+| 8-E | 機能基盤構築（損益管理・SBI/楽天CSV・アラート・目標管理）※計画外実装の正式記録 | 〜2026-03-10 |
 
 ---
 
@@ -43,7 +44,9 @@
 | テストカバレッジ（lines） | — | 82.71% | ≥80% | ✅ |
 | TypeScript エラー数 | — | 0 | 0 | ✅ |
 | any 残存数（本番コード） | 304 | 195 | ≤100 | ⚠️ |
-| E2Eテスト | 17 | 19 | 25+ | ⚠️ |
+| E2E spec ファイル数 | 2 | 19 | 25 | ✅ |
+| E2E テストケース数 | 17 | 101 | 130+ | ✅ |
+| TanStack Query フック数 | 0 | 26 | — | ✅ |
 
 ---
 
@@ -144,13 +147,47 @@
 - vitest.config.ts: statements 75→80, branches 65→70, functions 70→75, lines 75→80
 - 不足分のテスト追加
 
-### 8-B: TanStack Query カスタムフック導入 ✅ **完了** (2026-03-10)
-- 13 Query + 7 Mutation 完備 ✅
-- コンポーネント統合 4ストア（portfolio/ui/auth/subscription）完了 ✅
-- **残タスク（8-C後に対応）**: 追加ストアのコンポーネント統合
-  - socialStore → useUserShares / usePeerComparison
-  - referralStore → useReferralCode / useReferralStats
-  - notificationStore → useNotifications / useAlertRules
+### 8-B: TanStack Query カスタムフック導入 ✅ **完全完了** (2026-03-10)
+- **26フック** 実装（`hooks/queries/` に9ファイル）✅
+- **全7ストアのコンポーネント統合完了** ✅:
+  - portfolioStore → `useExchangeRate` / `useStockPrices` / `useServerPortfolio` / `usePriceHistory`
+  - subscriptionStore → `useSubscriptionStatus` / `useIsPremium` / `useCanUseFeature` / `useCreateCheckout` / `useCreatePortal`
+  - socialStore → `useUserShares` / `useCreateShare` / `useDeleteShare` / `usePeerComparison`
+  - referralStore → `useReferralCode` / `useReferralStats` / `useApplyReferral`
+  - notificationStore → `useNotifications` / `useAlertRules` / `useCreateAlertRule` / `useUpdateAlertRule` / `useDeleteAlertRule` / `useMarkNotificationRead` / `useMarkAllNotificationsRead` / `useDeleteNotification`
+  - goalStore / authStore: 直接 Zustand（TanStack Query 不要）✅
+
+### 8-E: 機能基盤構築 ✅ **実装済み**（計画外実装を正式記録）
+
+Phase R〜8-D と並行して実装された機能基盤。Phase 9 の UI 改善の前提。
+
+**損益管理基盤:**
+- `utils/plCalculation.ts`: `calculatePortfolioPnL()` — 通貨混在対応の含み益/損計算 ✅
+- `types/portfolio.types.ts`: `purchasePrice?: number` フィールド ✅
+- `components/dashboard/PnLSummary.tsx`: 全銘柄損益サマリーカード ✅
+- `components/dashboard/PnLTrendChart.tsx`: 損益推移グラフ（1W/1M/3M/6M/1Y/YTD）✅
+
+**日本証券会社 CSV インポート:**
+- `utils/csvParsers.ts`: SBI証券・楽天証券対応パーサー + ブローカー自動判別 ✅
+- `components/data/ImportOptions.tsx`: CSV インポート UI（ブローカー選択付き）✅
+- ※マネックス証券は **未対応**（Phase 9-B で追加予定）
+
+**アラート・通知機能:**
+- `stores/notificationStore.ts`: アラートルール CRUD + `evaluateAlerts()`（price_above/below, rebalance_drift, goal_achieved）✅
+- `components/notifications/AlertRulesManager.tsx`: アラートルール管理 UI ✅
+- `components/notifications/PriceAlertDialog.tsx`: 価格アラート設定ダイアログ ✅
+- `hooks/useAlertEvaluation.ts`: 市場データ更新時の自動評価フック ✅
+
+**目標管理:**
+- `stores/goalStore.ts`: CRUD + Free(1目標)/Standard(5目標) 制限 ✅
+- `components/goals/GoalCard.tsx` / `GoalDialog.tsx` / `GoalProgressSection.tsx` ✅
+
+**残課題（Phase 9 で解消）:**
+- `purchasePrice` の入力 UI が HoldingCard に未実装（型・計算ロジックは存在）
+- マネックス証券 CSV パーサーが未実装
+- PDF エクスポート（Standard 機能）が未実装
+
+---
 
 ### 8-C: Zustand persist 統一（⚠️ 未着手 — 次回実行）
 - **目的**: 手動 localStorage 操作を Zustand persist middleware に統一
@@ -179,106 +216,152 @@
 完了済み（Phase R: UI品質・ペルソナ UX）:
   R1 → R3 → R4 → R5 → R6 → R7 → R2-F → P2  ✅
 
-完了済み（Phase 8: 技術基盤強化）:
-  8-A（カバレッジ 81.45% 達成）
-  → 8-A2（フォントセルフホスト）
-  → 8-A3（OAuthエラーUI）
-  → 8-B（TanStack Query 20本 + コンポーネント統合）
-  → 8-D（TypeScript strict: true + 0 errors）
-  → 8-D-fix（レビュー修正・型エラー全解消）  ✅
+完了済み（Phase 8: 技術基盤強化 + 機能基盤）:
+  8-A（カバレッジ 81.45%）→ 8-A2（フォントセルフホスト）→ 8-A3（OAuthエラーUI）
+  → 8-B（TanStack Query 26フック + 全7ストア統合）
+  → 8-D（TypeScript strict: true + 0 errors）→ 8-D-fix
+  8-E（損益管理・SBI/楽天CSV・アラート・Goals 実装）  ✅
 
 次フェーズ:
-  8-C: Zustand persist 統一  ← 次回実行（技術負債）[必須: 9-A の前提]
+  8-C: Zustand persist 統一  ← 次回実行（技術負債）
+  ↓ （8-C 完了が必須前提: purchasePrice を persist に含めるため）
+  9-A: 取得単価入力 UI（HoldingCard 拡張）[2026-04]
+  9-B: マネックス証券 CSV パーサー追加      [2026-04, 8-C と並行可]
   ↓
-  Phase 9: 機能拡張（収益化強化・タケシのペイン直接解消）[8-C 完了後に着手]
-    9-A: 損益管理（コスト基準価格・含み益/損トラッキング）[2026-04 着手予定]
-    9-B: 日本証券会社 CSV インポート（SBI・楽天・マネックス）[2026-05 着手予定]
-    9-C: アラート機能（価格アラート・リバランス乖離通知）[2026-06 着手予定]
-    9-D: E2E テスト拡充（19 → 30本 目標）[各フェーズ完了時に追加]
+  9-C: PDF エクスポート（Standard 機能）    [2026-05]
+  ↓
+  9-D: E2E テスト拡充（101 → 130+）        [各フェーズ完了後に追加]
 
-⚠️ 注意: 8-C（persist統一）完了前に 9-A（costBasis フィールド追加）を実施すると
-localStorage / persist の混在期が発生しデータ移行が複雑化する。
+⚠️ 8-C 完了前に 9-A（purchasePrice UI）を実装すると
+   localStorage / persist 混在期にデータロスが発生する。
+   9-B（Monex CSV）は localStorage 変更なしのため 8-C 前でも可。
 ```
 
 ---
 
-## Phase 9: 機能拡張 — Standard 収益化強化（2026-04〜06 予定）
+## Phase 9: 機能 UI 完成 + 品質強化（2026-04〜05 予定）
 
-> **前提**: Phase 8-C（Zustand persist 統一）完了後に着手すること。
+> **前提**: Phase 8-C（Zustand persist 統一）完了後に 9-A/9-C 着手。9-B は 8-C 前でも可。
+> Phase 8-E で機能基盤（型・計算ロジック・ストア・UIコンポーネント骨格）は完成済み。
+> Phase 9 は「接続・入力 UI 完成」と「Standard 差別化強化」が中心。
 
-**目的**: タケシの3大ペインを機能で直接解消し、Standard プラン ¥700/月 の価値を高める。
+### 9-A: 取得単価入力 UI — HoldingCard 拡張（2026-04）
 
-### 9-A: 損益管理（コスト基準価格・含み益/損トラッキング）
+**ターゲット**: ペイン③「投資判断の不安」→ 含み益/損が見えるようにする
+**Standard 機能**: 取得単価入力可 + 損益表示 | **Free**: ロック + UpgradePrompt
 
-**ターゲット**: ペイン③「投資判断の不安」を解消
-**Standard 機能**: コスト基準入力 + 損益グラフ履歴 + 税金計算
-**Free**: 現在価格表示のみ（コスト基準入力不可）
+**現状**: `purchasePrice?: number` 型・`calculatePortfolioPnL()` は実装済み。HoldingCard に入力 UI のみ未実装。
 
-**実装内容:**
-1. `CurrentAsset` に `costBasis: number | null`（取得単価）フィールド追加
-2. PnL 計算ユーティリティ `utils/plCalculation.ts` 実装
-   - `(現在価格 - 取得単価) × 保有数` → 含み益/損（JPY/USD）
-   - 為替適用後の JPY 換算損益
-3. ダッシュボードに含み益/損カラム追加（Standard のみ）
-4. `UpgradePrompt` をコスト基準入力フォームに配置
-
-**受け入れ基準:**
-- [ ] 取得単価入力 UI が Holdings 設定画面に追加
-- [ ] 含み益/損が全銘柄合計・個別表示される（Standard）
-- [ ] Free ユーザーはロック表示 + UpgradePrompt
-- [ ] テスト: PnL 計算ロジックの正常系・異常系・境界値
-- [ ] テスト全件通過・ビルド成功
-
-### 9-B: 日本証券会社 CSV インポート改善
-
-**ターゲット**: ペイン①「複数口座の統合管理」
-**Standard 機能**: SBI・楽天・マネックス専用パーサー
-**Free**: 汎用 CSV のみ
-
-**実装内容:**
-1. `services/csvParsers/` に証券会社別パーサー追加
-   - `sbiParser.ts`: SBI 証券の保有株式一覧 CSV
-   - `rakutenParser.ts`: 楽天証券の保有資産一覧 CSV
-   - `monexParser.ts`: マネックス証券の口座サマリー CSV
-2. ファイル選択時に証券会社自動判別（ヘッダー文字列で識別）
-3. 取得単価もインポートデータから自動入力（9-A との連携）
-4. インポート結果プレビュー → 確認 → 実行 の 3 ステップ
+**変更ファイル:**
+- `src/components/settings/HoldingCard.tsx`: 取得単価入力フィールド追加
+  ```tsx
+  // 追加するシグネチャ
+  onUpdatePurchasePrice: (id: string, price: number) => void
+  ```
+- `src/stores/portfolioStore.ts`: `updatePurchasePrice(id: string, price: number)` アクション追加
+- `src/hooks/usePortfolioContext.ts`: `updatePurchasePrice` を `PortfolioContextValue` に追加
 
 **受け入れ基準:**
-- [ ] SBI / 楽天 / マネックス CSV が正しくパースされる
-- [ ] 証券会社の自動判別率 ≥ 95%（主要フォーマット）
-- [ ] Free ユーザーは汎用 CSV のみ（専用パーサーはロック）
-- [ ] テスト: 各パーサーの正常系・異常系・空ファイル・文字化け
-- [ ] テスト全件通過・ビルド成功
+- [ ] HoldingCard に「取得単価（円/株）」入力フィールドが表示される（Standard のみ編集可）
+- [ ] Free ユーザーは入力欄がロック表示 + UpgradePrompt コンポーネント
+- [ ] 入力後に PnLSummary の含み益/損が即座に更新される（Zustand リアクティブ）
+- [ ] 0・負値入力時はバリデーションエラー表示
+- [ ] テスト: `updatePurchasePrice` の正常系（10, 1000, 99999）・境界値（0, -1, NaN）
+- [ ] テスト全件通過・ビルド成功（tsc --noEmit 0 errors 維持）
 
-### 9-C: アラート機能（価格アラート・リバランス乖離通知）
+### 9-B: マネックス証券 CSV パーサー追加（2026-04、8-C 前でも可）
 
-**ターゲット**: ペイン②③「リバランス計算」「投資判断の不安」
-**Standard 機能のみ**
+**ターゲット**: ペイン①「複数口座の統合管理」→ 3大証券会社を完全カバー
+**フリープレミアム共通機能**（SBI・楽天と同等のスコープ）
 
-**実装内容:**
-1. `stores/alertStore.ts` 新規作成（Zustand + persist）
-2. アラートルール設定 UI（価格 ±X% / 配分乖離 ±Y%）
-3. `useAlertRules` TanStack Query フック（9-A の8-B残タスクと連携）
-4. ブラウザ通知 API または in-app Toast 通知
+**現状**: `csvParsers.ts` に SBI・楽天は実装済み。マネックスのみ未対応。
+
+**変更ファイル:**
+- `src/utils/csvParsers.ts`: `parseMonexCSV(content: string): CSVParseResult` 追加（約80行）
+  - マネックス固有ヘッダー検出: `'銘柄コード'` + `'評価損益'` の組み合わせ
+  - 自動判別ロジック（`detectBroker()`）にマネックスのケースを追加
+  - `purchasePrice` を「平均取得単価」列から読み込む
 
 **受け入れ基準:**
-- [ ] 価格アラート（上限/下限）を設定・解除できる
-- [ ] 配分乖離アラートが目標配分±5%超で発火
-- [ ] Free ユーザーは設定画面自体に UpgradePrompt
+- [ ] `parseMonexCSV()` がマネックス証券の標準 CSV フォーマットを正しくパースする
+- [ ] `detectBroker()` がマネックス CSV を自動識別する
+- [ ] 取得単価（purchasePrice）が CSV から正しく読み込まれる
+- [ ] テスト: 正常系（複数銘柄）・空ファイル・文字化け・列不足・マネックス固有列なし
 - [ ] テスト全件通過・ビルド成功
 
-### 9-D: E2E テスト拡充
+### 9-C: PDF エクスポート（Standard 専用機能）（2026-05）
 
-**目的**: 重要ユーザーフローの回帰を自動検証
-**目標**: 19 → 30 本
+**ターゲット**: Standard プラン ¥700/月 の追加価値 → タケシが投資記録を PDF で保存・共有
+**Standard**: CSV + PDF | **Free**: CSV のみ
 
-**追加対象フロー:**
-1. 初回セットアップ → 銘柄追加 → ダッシュボード表示
-2. CSV インポート → 保有数反映確認
-3. リバランスシミュレーション → 一括購入実行
-4. Free 制限到達 → UpgradePrompt → Stripe チェックアウト
-5. ログアウト → ログイン → データ復元確認
+**現状**: `useSubscription.ts` に PDF エクスポートの機能フラグ定義あり。実装は未着手。
+
+**変更ファイル:**
+- `src/utils/pdfExport.ts`（NEW）: PDF 生成ロジック
+  ```typescript
+  export async function generatePortfolioPDF(
+    assets: CurrentAsset[],
+    pnl: PortfolioPnL,
+    score: PortfolioScore,
+    baseCurrency: string
+  ): Promise<Blob>
+  ```
+  - `@react-pdf/renderer` または `jsPDF` を使用（バンドルサイズ要検討）
+  - PDF 内容: 保有資産一覧・含み益/損サマリー・ポートフォリオスコア・生成日時
+- `src/components/data/ExportOptions.tsx`: PDF ダウンロードボタン追加（Standard のみ）
+- `package.json`: PDF ライブラリ依存追加
+
+**受け入れ基準:**
+- [ ] Standard ユーザーが「PDF でエクスポート」ボタンをクリックするとダウンロードが始まる
+- [ ] Free ユーザーはボタンに UpgradePrompt が重なる
+- [ ] PDF に保有資産・損益・スコアが正確に記載される
+- [ ] バンドルサイズ増加: +100KB 以内（lazy import で分割）
+- [ ] テスト: PDF 生成の smoke test（エラーなし確認）
+- [ ] テスト全件通過・ビルド成功
+
+### 9-D: E2E テスト拡充（101 → 130+ テストケース）（各フェーズ完了後に追加）
+
+**目的**: 新機能フローの回帰テスト + 重要フローの網羅率向上
+
+**追加対象フロー（各フェーズ実装後に対応）:**
+1. 取得単価入力 → PnLSummary の損益更新確認（9-A 後）
+2. マネックス CSV インポート → 保有数・取得単価の反映確認（9-B 後）
+3. PDF エクスポート → ファイルダウンロード確認（9-C 後）
+4. アラートルール設定 → 価格変化 → 通知発火フロー（既存実装のテスト追加）
+5. Free 制限到達（5銘柄・1目標）→ UpgradePrompt → `/pricing` への遷移確認
+
+**受け入れ基準:**
+- [ ] E2E テストケース数 ≥ 130
+- [ ] 追加テストが既存テストの実行時間を 20% 以内の増加で収まる
+
+---
+
+## ビジネス KPI（収益化目標）
+
+| KPI | 現在（2026-03） | 3ヶ月目標（2026-06） | 6ヶ月目標（2026-09） |
+|-----|----------------|---------------------|---------------------|
+| MAU（月間アクティブユーザー） | 測定中 | 500 | 2,000 |
+| Free→Standard 転換率（CVR） | 測定中 | 3% | 5% |
+| Standard 月間課金ユーザー | 測定中 | 15 | 100 |
+| 月次収益（MRR） | 測定中 | ¥10,500 | ¥70,000 |
+| ユーザー継続率（D30） | 測定中 | 40% | 60% |
+
+### Free→Standard 転換トリガー（UI 実装済み・計画対象）
+
+| # | トリガー | 実装状況 | 配置コンポーネント |
+|---|---------|---------|-----------------|
+| 1 | 5銘柄制限到達 | ✅ 実装済み | `UpgradePrompt`（Holdings設定画面）|
+| 2 | シミュレーション月3回使用 | ✅ 実装済み | `UpgradePrompt`（シミュレーション画面）|
+| 3 | 取得単価入力ロック | ⚠️ 9-A で実装 | `UpgradePrompt`（HoldingCard）|
+| 4 | PDF エクスポートロック | ⚠️ 9-C で実装 | `UpgradePrompt`（ExportOptions）|
+| 5 | アラートルール制限（Free: 設定不可）| ✅ 実装済み | `UpgradePrompt`（AlertRulesManager）|
+| 6 | 目標管理（Free: 1目標, Standard: 5目標）| ✅ 実装済み | `UpgradePrompt`（GoalDialog）|
+| 7 | 詳細スコア 8指標（Free: 3指標）| ✅ 実装済み | `UpgradePrompt`（PortfolioScoreCard）|
+
+**タケシが Standard を選ぶ主な理由（価値の言語化）:**
+> 「¥700/月で5銘柄制限がなくなり、SBI・楽天のCSVをそのまま取り込め、
+> 含み益/損がリアルタイムで確認でき、リバランスの乖離アラートも受け取れる。
+> 投資額に対して十分に安い。」
 
 ---
 
@@ -316,15 +399,16 @@ localStorage / persist の混在期が発生しデータ移行が複雑化する
 - [x] 全テスト合格: 111ファイル / 2251 PASS / 0 failures
 - [x] ビルド成功 + デプロイ: https://portfolio-wise.com/ (commit 6e07650f)
 
-### Phase 8 完了基準（2026-03-10 時点）
+### Phase 8 完了基準（2026-03-10 確認済み）
 - [x] テストカバレッジ: statements 81.45% / branches 72.47% / functions 79.68% / lines 82.71% ✅
-- [x] TanStack Query: 13 Query + 7 Mutation 実装 + コンポーネント統合 4ストア ✅
-- [ ] Zustand persist: 全ストア統一（8-C 未着手）
-- [x] TypeScript: strict: true + 0 errors（any 195箇所残存 → Phase 9 で継続削減） ✅
+- [x] TanStack Query: 26フック + 全7ストアのコンポーネント統合完了 ✅
+- [ ] Zustand persist: 全ストア統一（**8-C 未着手 — 次回実行**）
+- [x] TypeScript: strict: true + 0 errors ✅
+- [x] 機能基盤（PnL・CSV・アラート・Goals）: 実装済み（Phase 8-E）✅
 
-### Phase 9 受け入れ基準（目標）
-- [ ] 損益管理: 取得単価入力 + 含み益/損計算が正確
-- [ ] CSVインポート: SBI/楽天/マネックス 3社対応
-- [ ] アラート機能: 価格・配分乖離アラートが動作
-- [ ] E2Eテスト: 30本以上
-- [ ] any 残存数: ≤ 100箇所（strict 強化継続）
+### Phase 9 受け入れ基準（目標: 2026-05 完了）
+- [ ] 取得単価入力 UI: HoldingCard に purchasePrice フィールド、Standard/Free 分岐
+- [ ] マネックス証券 CSV: `parseMonexCSV()` 実装 + テスト
+- [ ] PDF エクスポート: Standard のみ、バンドル +100KB 以内
+- [ ] E2E テストケース: 101 → 130+ 件
+- [ ] any 残存数: 195 → ≤ 100 箇所（strict 強化継続）
