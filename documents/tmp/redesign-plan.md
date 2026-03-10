@@ -149,9 +149,10 @@
 - 手動localStorage → persist middleware統一
 - 暗号化が必要な場合はカスタムストレージアダプタ
 
-### 8-D: TypeScript 型安全性強化
-- any 304箇所 → 段階的削減（catch(e: any)→unknown、APIレスポンス型定義）
-- 最終目標: strict: true
+### 8-D: TypeScript 型安全性強化 ✅ **完了** (2026-03-09)
+- ~~any 304箇所 → 段階的削減~~ → portfolio.types.ts 共有型定義・stores/services 完全型付け ✅
+- ~~最終目標: strict: true~~ → tsconfig.json `strict: true` 有効化・TypeScript エラー 0件 ✅
+- テスト 2236件全通過・ビルド成功・本番デプロイ済み ✅
 
 ---
 
@@ -162,12 +163,13 @@
   R1 → R3 → R4 → R5 → R6 → R7 → R2-F → P2  ✅ 全完了・レビュー済み
   8-A（カバレッジ達成済み） → 8-A2（フォントセルフホスト） → 8-A3（OAuthエラーUI） ✅
 
-次回実行（Phase 8: 技術基盤強化）:
-  8-B: TanStack Query カスタムフック導入
+完了済み（Phase 8: 技術基盤強化）:
+  8-B: TanStack Query カスタムフック導入 ✅
   ↓
-  8-C: Zustand persist 統一
-  ↓
-  8-D: TypeScript 型安全性強化（strict: true）
+  8-D: TypeScript 型安全性強化（strict: true） ✅
+
+次回実行:
+  8-C: Zustand persist 統一（手動localStorage → persist middleware）
 ```
 
 ---
