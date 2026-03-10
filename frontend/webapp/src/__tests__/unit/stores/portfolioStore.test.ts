@@ -82,14 +82,29 @@ import {
   selectAnnualFees,
   selectAnnualDividends,
 } from '../../../stores/portfolioStore';
-import type { CurrentAsset, TargetAllocation } from '../../../types/portfolio.types';
+import type { CurrentAsset, TargetAllocation, SimulationItem, UserData } from '../../../types/portfolio.types';
 import { useUIStore } from '../../../stores/uiStore';
 import { fetchTickerData, fetchFundInfo, fetchDividendData, fetchExchangeRate } from '../../../services/api';
 import { fetchMultipleStocks } from '../../../services/marketDataService';
 import { saveToDrive, loadFromDrive } from '../../../services/googleDriveService';
 
 // --- Test helpers ---
-const createTestAsset = (overrides: Record<string, any> = {}) => ({
+const createTestSimulationItem = (overrides: Partial<SimulationItem> = {}): SimulationItem => ({
+  id: 'a1',
+  ticker: 'VOO',
+  name: 'Vanguard S&P 500 ETF',
+  currentAllocation: 0,
+  targetAllocation: 50,
+  diff: 50,
+  currentValue: 0,
+  purchaseAmount: 300,
+  price: 100,
+  purchaseShares: 3,
+  currency: 'USD',
+  ...overrides,
+});
+
+const createTestAsset = (overrides: Partial<CurrentAsset> = {}): CurrentAsset => ({
   id: 'test-id-1',
   ticker: 'VOO',
   name: 'Vanguard S&P 500 ETF',
@@ -110,7 +125,7 @@ const createTestAsset = (overrides: Record<string, any> = {}) => ({
   ...overrides,
 });
 
-const createTestTarget = (overrides: Record<string, any> = {}) => ({
+const createTestTarget = (overrides: Partial<TargetAllocation> = {}): TargetAllocation => ({
   id: 'test-id-1',
   ticker: 'VOO',
   name: 'Vanguard S&P 500 ETF',
@@ -129,7 +144,7 @@ const getInitialState = () => ({
   aiPromptTemplate: null as string | null,
   dataSource: 'local',
   lastSyncTime: null as string | null,
-  currentUser: null as null,
+  currentUser: null as UserData | null,
 });
 
 describe('portfolioStore', () => {
@@ -648,7 +663,7 @@ describe('portfolioStore', () => {
         currentAssets: [createTestAsset()],
         targetPortfolio: [createTestTarget()],
         additionalBudget: { amount: 3000, currency: 'USD' },
-        aiPromptTemplate: { template: 'test' } as any,
+        aiPromptTemplate: 'test template string',
       });
 
       const exported = usePortfolioStore.getState().exportData();
@@ -658,7 +673,7 @@ describe('portfolioStore', () => {
       expect(exported.currentAssets).toHaveLength(1);
       expect(exported.targetPortfolio).toHaveLength(1);
       expect(exported.additionalBudget.amount).toBe(3000);
-      expect(exported.aiPromptTemplate).toEqual({ template: 'test' });
+      expect(exported.aiPromptTemplate).toBe('test template string');
     });
   });
 
@@ -806,10 +821,10 @@ describe('portfolioStore', () => {
         ],
       });
 
-      const simulationResults = [
-        { id: 'a1', purchaseShares: 3 },
-        { id: 'a2', purchaseShares: 2 },
-      ] as any[];
+      const simulationResults: SimulationItem[] = [
+        createTestSimulationItem({ id: 'a1', purchaseShares: 3 }),
+        createTestSimulationItem({ id: 'a2', ticker: 'VTI', purchaseShares: 2 }),
+      ];
 
       usePortfolioStore.getState().executeBatchPurchase(simulationResults);
 
@@ -823,7 +838,7 @@ describe('portfolioStore', () => {
         currentAssets: [createTestAsset({ id: 'a1', holdings: 10 })],
       });
 
-      usePortfolioStore.getState().executeBatchPurchase([{ id: 'a1', purchaseShares: 0 }] as any[]);
+      usePortfolioStore.getState().executeBatchPurchase([createTestSimulationItem({ id: 'a1', purchaseShares: 0 })]);
 
       expect(usePortfolioStore.getState().currentAssets[0].holdings).toBe(10);
     });

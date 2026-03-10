@@ -52,8 +52,12 @@ describe('DataImport', () => {
     vi.clearAllMocks();
 
     usePortfolioContext.mockReturnValue({
-      portfolio: { assets: [], totalValue: 0 },
-      updatePortfolio: vi.fn()
+      currentAssets: [],
+      importData: vi.fn(),
+      exportData: vi.fn(() => ({})),
+      totalAssets: 0,
+      baseCurrency: 'JPY',
+      lastUpdated: null,
     });
   });
 
@@ -106,11 +110,15 @@ describe('DataImport', () => {
   });
 
   test('handles data extraction from screenshot analyzer', () => {
-    const mockUpdatePortfolio = vi.fn();
+    const mockImportData = vi.fn();
 
     usePortfolioContext.mockReturnValue({
-      portfolio: { assets: [], totalValue: 0 },
-      updatePortfolio: mockUpdatePortfolio
+      currentAssets: [],
+      importData: mockImportData,
+      exportData: vi.fn(() => ({})),
+      totalAssets: 0,
+      baseCurrency: 'JPY',
+      lastUpdated: null,
     });
 
     render(<DataImport />);
@@ -118,10 +126,10 @@ describe('DataImport', () => {
     const extractButton = screen.getByText('Mock Extract Data');
     fireEvent.click(extractButton);
 
-    // portfolio should be updated
-    expect(mockUpdatePortfolio).toHaveBeenCalledWith(
+    // importData should be called with updated currentAssets
+    expect(mockImportData).toHaveBeenCalledWith(
       expect.objectContaining({
-        assets: expect.arrayContaining([
+        currentAssets: expect.arrayContaining([
           expect.objectContaining({
             name: 'Test Asset',
             ticker: 'TEST',
@@ -162,22 +170,23 @@ describe('DataImport', () => {
   });
 
   test('updates portfolio with existing assets correctly', () => {
-    const existingPortfolio = {
-      assets: [{
-        id: 'existing-1',
-        ticker: 'TEST',
-        name: 'Existing Test Asset',
-        quantity: 50,
-        currentPrice: 800
-      }],
-      totalValue: 40000
-    };
+    const existingAssets = [{
+      id: 'existing-1',
+      ticker: 'TEST',
+      name: 'Existing Test Asset',
+      holdings: 50,
+      price: 800,
+    }];
 
-    const mockUpdatePortfolio = vi.fn();
+    const mockImportData = vi.fn();
 
     usePortfolioContext.mockReturnValue({
-      portfolio: existingPortfolio,
-      updatePortfolio: mockUpdatePortfolio
+      currentAssets: existingAssets,
+      importData: mockImportData,
+      exportData: vi.fn(() => ({})),
+      totalAssets: 40000,
+      baseCurrency: 'JPY',
+      lastUpdated: null,
     });
 
     render(<DataImport />);
@@ -186,14 +195,12 @@ describe('DataImport', () => {
     fireEvent.click(extractButton);
 
     // Should update existing asset instead of adding new one
-    expect(mockUpdatePortfolio).toHaveBeenCalledWith(
+    expect(mockImportData).toHaveBeenCalledWith(
       expect.objectContaining({
-        assets: expect.arrayContaining([
+        currentAssets: expect.arrayContaining([
           expect.objectContaining({
             ticker: 'TEST',
             name: 'Test Asset',
-            quantity: 100,
-            currentPrice: 1000
           })
         ])
       })

@@ -49,6 +49,7 @@ interface MultipleStocksResponse {
   sources: Record<string, number>;
   sourcesSummary?: string;
   message?: string;
+  degraded?: boolean;
 }
 
 interface ApiStatusResponse {

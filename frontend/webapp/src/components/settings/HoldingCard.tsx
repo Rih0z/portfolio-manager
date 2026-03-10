@@ -6,31 +6,10 @@ import { getJapaneseStockName } from '../../utils/japaneseStockNames';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
-
-interface AssetItem {
-  id: string;
-  symbol?: string;
-  ticker?: string;
-  name: string;
-  holdings: number;
-  price: number;
-  currency: string;
-  fundType?: string;
-  isStock?: boolean;
-  annualFee?: number;
-  dividendYield?: number;
-  hasDividend?: boolean;
-  dividendFrequency?: string;
-}
-
-interface ExchangeRate {
-  rate: number;
-  source?: string;
-  lastUpdated?: string;
-}
+import type { Asset, ExchangeRate } from '../../types/portfolio.types';
 
 interface HoldingCardProps {
-  asset: AssetItem;
+  asset: Asset;
   baseCurrency: string;
   exchangeRate: ExchangeRate;
   onUpdateHoldings: (id: string, value: number) => void;

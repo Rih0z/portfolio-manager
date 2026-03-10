@@ -35,12 +35,13 @@ import logger from '../utils/logger';
 const AIAdvisor = () => {
   const navigate = useNavigate();
   const {
-    portfolio,
     currentAssets,
     targetPortfolio,
     additionalBudget,
     baseCurrency,
     exchangeRate,
+    totalAssets,
+    exportData,
   } = usePortfolioContext();
   const isPremium = useIsPremium();
 
@@ -183,13 +184,13 @@ const AIAdvisor = () => {
                       data.age < 50 ? '教育費準備期' :
                       data.age < 60 ? '退職準備期' : '退職後';
 
-    const portfolioSummary = (portfolio as any)?.assets?.length > 0
-      ? (portfolio as any).assets.map((asset: any) =>
-          `- ${asset.name}: ${asset.quantity}口（評価額: ${asset.totalValue?.toLocaleString() || 'N/A'}円）`
+    const portfolioSummary = currentAssets.length > 0
+      ? currentAssets.map(asset =>
+          `- ${asset.name}: ${asset.holdings.toLocaleString()}口（評価額: ${(asset.price * asset.holdings).toLocaleString() || 'N/A'}円）`
         ).join('\n')
       : '- まだ投資を始めていません';
 
-    const totalValue = (portfolio as any)?.totalValue || 0;
+    const totalValue = totalAssets || 0;
 
     return `私は${data.age}歳の${data.occupation || '会社員'}です。
 ${data.dream || '経済的自由を手に入れたい'}を実現したいと考えています。
@@ -697,7 +698,7 @@ ${portfolioSummary}
                       monthlyBudget: parseInt(userData.monthlyInvestment) || 0,
                       values: userData.values,
                       concerns: userData.concerns,
-                      portfolio: portfolio
+                      portfolio: exportData()
                     }}
                     onPromptGenerated={(prompt: any) => {
                       setGeneratedPrompt(prompt.content);

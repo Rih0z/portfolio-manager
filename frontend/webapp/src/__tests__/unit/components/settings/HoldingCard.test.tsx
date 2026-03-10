@@ -32,16 +32,17 @@ vi.mock('../../../../utils/japaneseStockNames', () => ({
 
 import HoldingCard from '../../../../components/settings/HoldingCard';
 
-const createAsset = (overrides: Record<string, any> = {}) => ({
+const createAsset = (overrides: Record<string, unknown> = {}) => ({
   id: 'asset-1',
+  ticker: 'AAPL',
   symbol: 'AAPL',
   name: 'Apple Inc.',
   holdings: 10,
   price: 150,
   currency: 'USD',
   fundType: 'stock',
-  isStock: true,
   annualFee: 0,
+  isStock: true,
   hasDividend: false,
   dividendYield: 0,
   dividendFrequency: undefined as string | undefined,
@@ -52,7 +53,7 @@ describe('HoldingCard', () => {
   const defaultProps = {
     asset: createAsset(),
     baseCurrency: 'USD',
-    exchangeRate: { rate: 150 },
+    exchangeRate: { rate: 150, source: 'Default', lastUpdated: new Date().toISOString() },
     onUpdateHoldings: vi.fn(),
     onRemove: vi.fn(),
   };

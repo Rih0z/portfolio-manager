@@ -48,11 +48,12 @@ const TestWrapper = ({ children, portfolioValue = {} }) => {
     totalAssets: portfolioValue.totalValue || 0,
     baseCurrency: 'JPY',
     exchangeRate: { rate: 150 },
-    portfolio: {
-      assets: defaultAssets,
-      totalValue: portfolioValue.totalValue || 0,
+    exportData: vi.fn(() => ({
+      currentAssets: defaultAssets,
+      targetPortfolio: [],
+      baseCurrency: 'JPY',
       ...portfolioValue
-    }
+    })),
   };
 
   usePortfolioContext.mockReturnValue(mockPortfolioContext);

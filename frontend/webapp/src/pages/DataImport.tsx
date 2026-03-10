@@ -19,7 +19,7 @@ import ScreenshotAnalyzer from '../components/ai/ScreenshotAnalyzer';
 import logger from '../utils/logger';
 
 const DataImport = () => {
-  const { portfolio, updatePortfolio } = usePortfolioContext();
+  const { currentAssets, importData, exportData, totalAssets, baseCurrency, lastUpdated } = usePortfolioContext();
   const [activeTab, setActiveTab] = useState('ai-result');
   const [importHistory, setImportHistory] = useState<any[]>([]);
   const [importStats, setImportStats] = useState({
@@ -77,13 +77,13 @@ const DataImport = () => {
     if (analysisType === 'screenshot_portfolio' && extractedData.portfolioData) {
       const newAssets = extractedData.portfolioData.assets || [];
 
-      // 既存のポートフォリオに新しい資産を追加
-      const updatedAssets = [...((portfolio as any).assets || [])];
+      // 既存のポートフォリオに新しい資産をマージして取り込み
+      const updatedAssets = [...currentAssets];
 
       newAssets.forEach((newAsset: any) => {
         // 重複チェック（ティッカーシンボルで判定）
         const existingIndex = updatedAssets.findIndex(
-          (asset: any) => asset.ticker === newAsset.ticker
+          asset => asset.ticker === newAsset.ticker
         );
 
         if (existingIndex >= 0) {
@@ -98,18 +98,13 @@ const DataImport = () => {
           updatedAssets.push({
             ...newAsset,
             id: Date.now().toString() + Math.random(),
-            addedAt: new Date().toISOString(),
             source: 'ai_import'
           });
         }
       });
 
-      // ポートフォリオを更新
-      updatePortfolio({
-        ...portfolio,
-        assets: updatedAssets,
-        lastImportAt: new Date().toISOString()
-      });
+      // importData でポートフォリオを更新
+      importData({ currentAssets: updatedAssets });
     }
   };
 
@@ -126,14 +121,7 @@ const DataImport = () => {
 
       // ポートフォリオデータの構造を検証
       if (importedData.assets && Array.isArray(importedData.assets)) {
-        // 既存のポートフォリオと統合
-        const updatedPortfolio = {
-          ...portfolio,
-          ...importedData,
-          lastImportAt: new Date().toISOString()
-        };
-
-        updatePortfolio(updatedPortfolio);
+        importData(importedData);
 
         // 統計を更新
         setImportStats(prev => ({
@@ -168,13 +156,13 @@ const DataImport = () => {
   };
 
   const handleExportJson = () => {
-    const exportData = {
-      ...portfolio,
+    const exportPayload = {
+      ...exportData(),
       exportedAt: new Date().toISOString(),
       version: '1.0'
     };
 
-    const dataStr = JSON.stringify(exportData, null, 2);
+    const dataStr = JSON.stringify(exportPayload, null, 2);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(dataBlob);
     const link = document.createElement('a');
@@ -291,24 +279,24 @@ const DataImport = () => {
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-muted-foreground">資産数：</span>
-                    <span className="text-white ml-2">{(portfolio as any)?.assets?.length || 0}</span>
+                    <span className="text-white ml-2">{currentAssets.length}</span>
                   </div>
                   <div>
                     <span className="text-muted-foreground">総資産額：</span>
-                    <span className="text-white ml-2">¥{(portfolio as any)?.totalValue?.toLocaleString() || '0'}</span>
+                    <span className="text-white ml-2">¥{totalAssets.toLocaleString()}</span>
                   </div>
                   <div>
                     <span className="text-muted-foreground">最終更新：</span>
                     <span className="text-white ml-2">
-                      {(portfolio as any)?.lastUpdated
-                        ? new Date((portfolio as any).lastUpdated).toLocaleDateString()
+                      {lastUpdated
+                        ? new Date(lastUpdated).toLocaleDateString()
                         : '未設定'
                       }
                     </span>
                   </div>
                   <div>
                     <span className="text-muted-foreground">通貨：</span>
-                    <span className="text-white ml-2">{(portfolio as any)?.baseCurrency || 'JPY'}</span>
+                    <span className="text-white ml-2">{baseCurrency}</span>
                   </div>
                 </div>
               </div>

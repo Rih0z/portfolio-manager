@@ -166,7 +166,7 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
   lastServerSync: null,
 
   // --- Validate Asset Types ---
-  validateAssetTypes: (assets: any[]) => {
+  validateAssetTypes: (assets: CurrentAsset[]) => {
     if (!Array.isArray(assets) || assets.length === 0) {
       return { updatedAssets: [], changes: { fundType: 0, fees: 0, dividends: 0, currency: 0 } };
     }
@@ -175,8 +175,8 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
     let feeChanges = 0;
     let dividendChanges = 0;
     let currencyChanges = 0;
-    const fundTypeChangeDetails: any[] = [];
-    const feeChangeDetails: any[] = [];
+    const fundTypeChangeDetails: Array<{ ticker: string; name: string; oldType: string; newType: string }> = [];
+    const feeChangeDetails: Array<{ ticker: string; name: string; oldFee: number; newFee: number }> = [];
 
     // ティッカーパターンから通貨を推定するヘルパー関数
     const guessCurrencyFromTicker = (t: string): string => {
@@ -189,7 +189,7 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
       return 'JPY';
     };
 
-    const validatedAssets = assets.map((asset: any) => {
+    const validatedAssets = assets.map((asset: CurrentAsset) => {
       if (!asset.ticker) return asset;
       const ticker = asset.ticker.toUpperCase();
       let name = asset.name || '';
@@ -218,7 +218,7 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
         asset.feeSource !== feeSource || asset.feeIsEstimated !== feeIsEstimated;
 
       const dividendInfo = estimateDividendYield(ticker, name);
-      const dividendIsWrong = Math.abs(asset.dividendYield - dividendInfo.yield) > 0.001 ||
+      const dividendIsWrong = Math.abs((asset.dividendYield ?? 0) - dividendInfo.yield) > 0.001 ||
         asset.hasDividend !== dividendInfo.hasDividend ||
         asset.dividendFrequency !== dividendInfo.dividendFrequency;
 
@@ -258,7 +258,7 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
     const maxHoldings = getIsPremiumFromCache() ? MAX_HOLDINGS_STANDARD : MAX_HOLDINGS_FREE;
     const currentCount = new Set(
       [...targetPortfolio, ...currentAssets]
-        .map((item: any) => item.ticker?.toLowerCase())
+        .map(item => item.ticker?.toLowerCase())
         .filter(Boolean)
     ).size;
     if (currentCount >= maxHoldings) {
@@ -270,7 +270,7 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
     }
 
     const exists = [...targetPortfolio, ...currentAssets].some(
-      (item: any) => item.ticker?.toLowerCase() === ticker.toLowerCase()
+      item => item.ticker?.toLowerCase() === ticker.toLowerCase()
     );
     if (exists) {
       notify('既に追加されている銘柄です', 'warning');
@@ -346,15 +346,15 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
 
   removeTicker: (id: string) => {
     set(state => ({
-      targetPortfolio: state.targetPortfolio.filter((item: any) => item.id !== id),
-      currentAssets: state.currentAssets.filter((item: any) => item.id !== id)
+      targetPortfolio: state.targetPortfolio.filter(item => item.id !== id),
+      currentAssets: state.currentAssets.filter(item => item.id !== id)
     }));
     setTimeout(() => get().saveToLocalStorage(), 100);
   },
 
   updateHoldings: (id: string, holdings: number | string) => {
     set(state => ({
-      currentAssets: state.currentAssets.map((item: any) =>
+      currentAssets: state.currentAssets.map(item =>
         item.id === id ? { ...item, holdings: parseFloat(parseFloat(String(holdings)).toFixed(4)) || 0 } : item
       )
     }));
@@ -363,7 +363,7 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
 
   updateTargetAllocation: (id: string, percentage: number | string) => {
     set(state => ({
-      targetPortfolio: state.targetPortfolio.map((item: any) =>
+      targetPortfolio: state.targetPortfolio.map(item =>
         item.id === id ? { ...item, targetPercentage: parseFloat(String(percentage)) } : item
       )
     }));
@@ -372,7 +372,7 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
 
   updateAnnualFee: (id: string, fee: number | string) => {
     set(state => ({
-      currentAssets: state.currentAssets.map((item: any) => {
+      currentAssets: state.currentAssets.map(item => {
         if (item.id !== id) return item;
         if (item.isStock || item.fundType === FUND_TYPES.STOCK) {
           return { ...item, annualFee: 0, feeSource: '個別株', feeIsEstimated: false };
@@ -385,7 +385,7 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
 
   updateDividendInfo: (id: string, dividendYield: number | string, hasDividend: boolean = true, frequency: string = 'quarterly') => {
     set(state => ({
-      currentAssets: state.currentAssets.map((item: any) =>
+      currentAssets: state.currentAssets.map(item =>
         item.id === id ? {
           ...item,
           dividendYield: parseFloat(parseFloat(String(dividendYield)).toFixed(2)) || 0,
@@ -411,14 +411,14 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
     setTimeout(() => get().saveToLocalStorage(), 100);
   },
 
-  setAiPromptTemplate: (template: any) => set({ aiPromptTemplate: template }),
+  setAiPromptTemplate: (template: string | null) => set({ aiPromptTemplate: template }),
 
-  updateAiPromptTemplate: (template: any) => {
+  updateAiPromptTemplate: (template: string | null) => {
     set({ aiPromptTemplate: template });
     setTimeout(() => get().saveToLocalStorage(), 100);
   },
 
-  convertCurrency: (amount: number, fromCurrency: string, toCurrency: string, exchangeRateObj?: any): number => {
+  convertCurrency: (amount: number, fromCurrency: string, toCurrency: string, exchangeRateObj?: ExchangeRate): number => {
     if (fromCurrency === toCurrency) return amount;
     const rate = (exchangeRateObj || get().exchangeRate).rate;
     if (fromCurrency === 'JPY' && toCurrency === 'USD') return amount / rate;
@@ -495,8 +495,8 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
         let errorCount = 0;
         let fallbackCount = 0;
 
-        const tickers = currentAssets.map((a: any) => a.ticker);
-        const batchData: any = await fetchMultipleStocks(tickers);
+        const tickers = currentAssets.map(a => a.ticker);
+        const batchData = await fetchMultipleStocks(tickers);
 
         // degraded フラグの検出（予算超過時のキャッシュデータ）
         if (batchData?.degraded) {
@@ -504,7 +504,7 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
         }
 
         const updatedAssets = await Promise.all(
-          currentAssets.map(async (asset: any) => {
+          currentAssets.map(async (asset: CurrentAsset) => {
             try {
               const stockData = batchData.data?.[asset.ticker];
               if (!stockData) { errorCount++; return asset; }
@@ -558,7 +558,7 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
   calculateSimulation: () => {
     const { currentAssets, targetPortfolio, additionalBudget, baseCurrency, exchangeRate, convertCurrency, calculatePurchaseShares } = get();
 
-    const totalCurrentAssets = currentAssets.reduce((sum: number, asset: any) => {
+    const totalCurrentAssets = currentAssets.reduce((sum: number, asset: CurrentAsset) => {
       let val = asset.price * asset.holdings;
       if (asset.currency !== baseCurrency) val = convertCurrency(val, asset.currency, baseCurrency);
       return sum + (isNaN(val) ? 0 : val);
@@ -570,8 +570,8 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
     }
     const totalWithBudget = totalCurrentAssets + budgetInBase;
 
-    const results = targetPortfolio.map((target: any) => {
-      const asset = currentAssets.find((a: any) => a.ticker === target.ticker);
+    const results = targetPortfolio.map((target: TargetAllocation) => {
+      const asset = currentAssets.find(a => a.ticker === target.ticker);
       if (!asset) return null;
 
       let currentValue = asset.price * asset.holdings;
@@ -597,7 +597,7 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
       return null;
     }).filter((r): r is NonNullable<typeof r> => r !== null) as SimulationItem[];
 
-    return results.sort((a: any, b: any) => {
+    return results.sort((a: SimulationItem, b: SimulationItem) => {
       const aBase = a.currency !== baseCurrency ? convertCurrency(a.purchaseAmount, a.currency, baseCurrency) : a.purchaseAmount;
       const bBase = b.currency !== baseCurrency ? convertCurrency(b.purchaseAmount, b.currency, baseCurrency) : b.purchaseAmount;
       return bBase - aBase;
@@ -606,15 +606,15 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
 
   executePurchase: (tickerId: string, units: number | string) => {
     set(state => ({
-      currentAssets: state.currentAssets.map((a: any) =>
+      currentAssets: state.currentAssets.map(a =>
         a.id === tickerId ? { ...a, holdings: parseFloat((a.holdings + parseFloat(String(units))).toFixed(4)) } : a
       )
     }));
     setTimeout(() => get().saveToLocalStorage(), 100);
   },
 
-  executeBatchPurchase: (simulationResult: any[]) => {
-    simulationResult.forEach((r: any) => {
+  executeBatchPurchase: (simulationResult: SimulationItem[]) => {
+    simulationResult.forEach((r: SimulationItem) => {
       if (r.purchaseShares > 0) get().executePurchase(r.id, r.purchaseShares);
     });
     get().saveToLocalStorage();
@@ -991,7 +991,7 @@ export const usePortfolioStore = create<PortfolioState>()((set, get) => ({
 
 // --- Computed selectors ---
 export const selectTotalAssets = (state: PortfolioState) => {
-  return state.currentAssets.reduce((sum: number, asset: any) => {
+  return state.currentAssets.reduce((sum: number, asset: CurrentAsset) => {
     let val = asset.price * asset.holdings;
     if (asset.currency !== state.baseCurrency) {
       if (state.baseCurrency === 'JPY' && asset.currency === 'USD') val *= state.exchangeRate.rate;
@@ -1002,7 +1002,7 @@ export const selectTotalAssets = (state: PortfolioState) => {
 };
 
 export const selectAnnualFees = (state: PortfolioState) => {
-  return state.currentAssets.reduce((sum: number, asset: any) => {
+  return state.currentAssets.reduce((sum: number, asset: CurrentAsset) => {
     if (asset.isStock || asset.fundType === FUND_TYPES.STOCK) return sum;
     let val = asset.price * asset.holdings;
     if (asset.currency !== state.baseCurrency) {
@@ -1014,7 +1014,7 @@ export const selectAnnualFees = (state: PortfolioState) => {
 };
 
 export const selectAnnualDividends = (state: PortfolioState) => {
-  return state.currentAssets.reduce((sum: number, asset: any) => {
+  return state.currentAssets.reduce((sum: number, asset: CurrentAsset) => {
     if (!asset.hasDividend) return sum;
     let val = asset.price * asset.holdings;
     if (asset.currency !== state.baseCurrency) {

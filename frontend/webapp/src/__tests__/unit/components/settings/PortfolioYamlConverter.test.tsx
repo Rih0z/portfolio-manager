@@ -13,7 +13,7 @@ vi.mock('../../../../hooks/usePortfolioContext', () => ({
   usePortfolioContext: vi.fn()
 }));
 
-import { usePortfolioContext } from '../../../../hooks/usePortfolioContext';
+import { usePortfolioContext, type PortfolioContextValue } from '../../../../hooks/usePortfolioContext';
 
 // react-i18nextのモック
 vi.mock('react-i18next', () => ({
@@ -60,7 +60,7 @@ describe('PortfolioYamlConverter', () => {
   };
 
   const renderWithContext = (contextValue = mockContextValue) => {
-    vi.mocked(usePortfolioContext).mockReturnValue(contextValue);
+    vi.mocked(usePortfolioContext).mockReturnValue(contextValue as unknown as PortfolioContextValue);
     return render(
       <PortfolioYamlConverter />
     );

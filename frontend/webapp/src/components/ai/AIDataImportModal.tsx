@@ -19,7 +19,7 @@ import logger from '../../utils/logger';
 
 const AIDataImportModal = ({ isOpen, onClose, onImportSuccess }: any) => {
   const { t } = useTranslation();
-  const { updatePortfolioFromYAML } = usePortfolioContext();
+  const { importData } = usePortfolioContext();
   const [yamlInput, setYamlInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -42,7 +42,7 @@ const AIDataImportModal = ({ isOpen, onClose, onImportSuccess }: any) => {
       const processedData = await processYAMLWithStrategies(yamlInput);
       
       if (processedData.success && processedData.data) {
-        await updatePortfolioFromYAML(processedData.data);
+        importData(processedData.data);
         setProcessingResults({
           success: true,
           message: 'YAMLデータの取り込みが完了しました',

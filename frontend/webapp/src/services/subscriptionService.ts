@@ -12,7 +12,7 @@ import { authFetch } from '../utils/apiUtils';
 
 export interface SubscriptionStatus {
   planType: 'free' | 'standard';
-  limits: Record<string, any>;
+  limits: Record<string, unknown>;
   subscription: {
     id: string;
     status: string;
