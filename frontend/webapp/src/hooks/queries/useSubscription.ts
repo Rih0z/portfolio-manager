@@ -73,6 +73,7 @@ const FREE_FEATURE_LIMITS: Record<string, boolean> = {
   autoBackup: false,
   adFree: false,
   goalTracking: true, // Free: 1ゴールまで（制限はgoalStoreで管理）
+  purchasePrice: false, // Free: 取得単価入力不可（Standard 専用）
 };
 
 export function useCanUseFeature(feature: string): boolean {

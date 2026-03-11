@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { formatCurrency, formatPercent } from '../../utils/formatters';
 import { FUND_TYPES } from '../../utils/fundUtils';
 import { getJapaneseStockName } from '../../utils/japaneseStockNames';
-import { useIsPremium } from '../../hooks/queries/useSubscription';
+import { useCanUseFeature } from '../../hooks/queries/useSubscription';
+import { useUIStore } from '../../stores/uiStore';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -29,7 +30,8 @@ const HoldingCard = React.memo(({
 }: HoldingCardProps) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const isPremium = useIsPremium();
+  const canUsePurchasePrice = useCanUseFeature('purchasePrice');
+  const addNotification = useUIStore(s => s.addNotification);
 
   // 保有数量編集
   const [isEditing, setIsEditing] = useState(false);
@@ -104,8 +106,14 @@ const HoldingCard = React.memo(({
       return;
     }
     setPurchasePriceError('');
-    onUpdatePurchasePrice(asset.id, value);
+    onUpdatePurchasePrice(asset.id, parseFloat(value.toFixed(2)));
     setIsPurchasePriceEditing(false);
+    addNotification('取得単価を保存しました', 'success');
+  };
+
+  const handlePurchasePriceKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') handleSavePurchasePrice();
+    if (e.key === 'Escape') handleCancelPurchasePrice();
   };
 
   const handleCancelPurchasePrice = () => {
@@ -271,7 +279,7 @@ const HoldingCard = React.memo(({
           <span className="ml-1 text-xs text-secondary-400 font-normal">（Standard）</span>
         </label>
 
-        {isPremium ? (
+        {canUsePurchasePrice ? (
           isPurchasePriceEditing ? (
             <div>
               <div className="flex items-center space-x-2">
@@ -279,7 +287,8 @@ const HoldingCard = React.memo(({
                   type="number"
                   value={purchasePriceEditValue}
                   onChange={(e) => { setPurchasePriceEditValue(e.target.value); setPurchasePriceError(''); }}
-                  step="0.01"
+                  onKeyDown={handlePurchasePriceKeyDown}
+                  step={asset.currency === 'JPY' ? '1' : '0.01'}
                   min="0.01"
                   placeholder="取得単価を入力"
                   className="flex-1 font-mono tabular-nums"

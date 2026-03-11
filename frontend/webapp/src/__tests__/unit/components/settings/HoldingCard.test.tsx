@@ -34,9 +34,15 @@ vi.mock('../../../../utils/japaneseStockNames', () => ({
   getJapaneseStockName: (code: string) => code,
 }));
 
-const mockUseIsPremium = vi.fn().mockReturnValue(true);
+const mockUseCanUseFeature = vi.fn().mockReturnValue(true);
 vi.mock('../../../../hooks/queries/useSubscription', () => ({
-  useIsPremium: () => mockUseIsPremium(),
+  useCanUseFeature: () => mockUseCanUseFeature(),
+}));
+
+const mockAddNotification = vi.fn();
+vi.mock('../../../../stores/uiStore', () => ({
+  useUIStore: (selector: (s: { addNotification: typeof mockAddNotification }) => unknown) =>
+    selector({ addNotification: mockAddNotification }),
 }));
 
 import HoldingCard from '../../../../components/settings/HoldingCard';
@@ -71,7 +77,7 @@ describe('HoldingCard', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseIsPremium.mockReturnValue(true);
+    mockUseCanUseFeature.mockReturnValue(true);
   });
 
   // --- 基本レンダリング ---
@@ -174,6 +180,42 @@ describe('HoldingCard', () => {
       expect(defaultProps.onUpdatePurchasePrice).toHaveBeenCalledWith('asset-1', 99999);
     });
 
+    it('should call onUpdatePurchasePrice with decimal value rounded to 2dp', () => {
+      render(<HoldingCard {...defaultProps} />);
+      fireEvent.click(screen.getByLabelText('AAPLの取得単価を編集'));
+      const input = screen.getByLabelText('AAPLの取得単価');
+      fireEvent.change(input, { target: { value: '150.567' } });
+      fireEvent.click(screen.getByText('保存'));
+      expect(defaultProps.onUpdatePurchasePrice).toHaveBeenCalledWith('asset-1', 150.57);
+    });
+
+    it('should call onUpdatePurchasePrice when Enter key is pressed', () => {
+      render(<HoldingCard {...defaultProps} />);
+      fireEvent.click(screen.getByLabelText('AAPLの取得単価を編集'));
+      const input = screen.getByLabelText('AAPLの取得単価');
+      fireEvent.change(input, { target: { value: '200' } });
+      fireEvent.keyDown(input, { key: 'Enter' });
+      expect(defaultProps.onUpdatePurchasePrice).toHaveBeenCalledWith('asset-1', 200);
+    });
+
+    it('should cancel edit when Escape key is pressed', () => {
+      render(<HoldingCard {...defaultProps} />);
+      fireEvent.click(screen.getByLabelText('AAPLの取得単価を編集'));
+      const input = screen.getByLabelText('AAPLの取得単価');
+      fireEvent.keyDown(input, { key: 'Escape' });
+      expect(defaultProps.onUpdatePurchasePrice).not.toHaveBeenCalled();
+      expect(screen.queryByLabelText('AAPLの取得単価')).not.toBeInTheDocument();
+    });
+
+    it('should show success notification after saving', () => {
+      render(<HoldingCard {...defaultProps} />);
+      fireEvent.click(screen.getByLabelText('AAPLの取得単価を編集'));
+      const input = screen.getByLabelText('AAPLの取得単価');
+      fireEvent.change(input, { target: { value: '1000' } });
+      fireEvent.click(screen.getByText('保存'));
+      expect(mockAddNotification).toHaveBeenCalledWith('取得単価を保存しました', 'success');
+    });
+
     it('should close edit mode on cancel without calling onUpdatePurchasePrice', () => {
       render(<HoldingCard {...defaultProps} />);
       fireEvent.click(screen.getByLabelText('AAPLの取得単価を編集'));
@@ -219,7 +261,7 @@ describe('HoldingCard', () => {
 
   describe('取得単価 (Free ユーザー)', () => {
     beforeEach(() => {
-      mockUseIsPremium.mockReturnValue(false);
+      mockUseCanUseFeature.mockReturnValue(false);
     });
 
     it('should show lock UI for Free user', () => {
