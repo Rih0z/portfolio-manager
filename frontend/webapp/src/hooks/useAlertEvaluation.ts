@@ -46,9 +46,14 @@ export const useAlertEvaluation = () => {
   useEffect(() => {
     if (!isAuthenticated || !lastUpdated || currentAssets.length === 0) return;
 
-    // 総資産額を計算
+    // 総資産額を計算（baseCurrency に換算）
+    const rate = exchangeRate?.rate || 150;
     const totalValue = currentAssets.reduce((sum: number, asset: any) => {
-      const value = (asset.price || 0) * (asset.holdings || 0);
+      let value = (asset.price || 0) * (asset.holdings || 0);
+      if (asset.currency && asset.currency !== baseCurrency) {
+        if (asset.currency === 'USD' && baseCurrency === 'JPY') value *= rate;
+        else if (asset.currency === 'JPY' && baseCurrency === 'USD') value /= rate;
+      }
       return sum + value;
     }, 0);
 

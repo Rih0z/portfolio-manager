@@ -1166,5 +1166,33 @@ describe('portfolioStore', () => {
       expect(state.initialized).toBe(true);
       expect(state.baseCurrency).toBe('USD');
     });
+
+    // ─── Regression: Bug A ──────────────────────────────────────────────────
+    // Bug A: currency のみ undefined な資産は validateAssetTypes で修正されるが、
+    //        fundType/fees/dividends の変更がない場合 updatedAssets が適用されなかった
+    it('[Bug A regression] currency: undefined の資産は initializeData 後に通貨情報が補完される', () => {
+      const assetWithNoCurrency = createTestAsset({
+        id: 'bug-a',
+        ticker: 'VOO',
+        currency: undefined as any,
+        fundType: 'etf_us',   // 既に正しい → fundType の changes は 0
+        annualFee: 0.03,      // 既に正しい → fees の changes は 0
+      });
+
+      usePortfolioStore.setState({
+        initialized: false,
+        currentAssets: [assetWithNoCurrency],
+      });
+
+      usePortfolioStore.getState().initializeData();
+
+      const state = usePortfolioStore.getState();
+      expect(state.initialized).toBe(true);
+      // currency が undefined → guessCurrencyFromTicker('VOO') → 'USD' に補完される
+      const fixedAsset = state.currentAssets.find(a => a.id === 'bug-a');
+      expect(fixedAsset).toBeDefined();
+      expect(fixedAsset!.currency).toBeDefined();
+      expect(fixedAsset!.currency).not.toBe(undefined);
+    });
   });
 });

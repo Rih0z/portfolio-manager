@@ -61,8 +61,14 @@ const PnLTrendChart: React.FC = () => {
       for (const asset of currentAssets) {
         const history = priceHistories[asset.ticker];
         if (!history) {
-          // 履歴がない銘柄は現在の価格で計算
-          totalValue += (asset.price || 0) * (asset.holdings || 0);
+          // 履歴がない銘柄は現在の価格で計算（通貨変換を適用）
+          let rawVal = (asset.price || 0) * (asset.holdings || 0);
+          if (asset.currency !== baseCurrency) {
+            const rate = exchangeRate?.rate || 150;
+            if (asset.currency === 'USD' && baseCurrency === 'JPY') rawVal *= rate;
+            else if (asset.currency === 'JPY' && baseCurrency === 'USD') rawVal /= rate;
+          }
+          totalValue += rawVal;
           continue;
         }
 

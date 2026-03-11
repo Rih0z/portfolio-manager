@@ -89,6 +89,7 @@ interface LineContext {
   totalValue: number;
   targets: TargetAllocation[];
   baseCurrency: string;
+  assetValues: number[];
 }
 
 const STRENGTH_TEMPLATES: Record<string, LineTemplate> = {
@@ -103,7 +104,7 @@ const STRENGTH_TEMPLATES: Record<string, LineTemplate> = {
   },
   cost_efficiency: {
     generate: (ctx) => {
-      const fee = calcWeightedFee(ctx.assets, ctx.totalValue);
+      const fee = calcWeightedFee(ctx.assets, ctx.totalValue, ctx.assetValues);
       return `低コスト運用（加重信託報酬 ${fee.toFixed(2)}%）`;
     },
   },
@@ -118,7 +119,7 @@ const STRENGTH_TEMPLATES: Record<string, LineTemplate> = {
   },
   dividend_health: {
     generate: (ctx) => {
-      const yld = calcWeightedDividendYield(ctx.assets, ctx.totalValue);
+      const yld = calcWeightedDividendYield(ctx.assets, ctx.totalValue, ctx.assetValues);
       return `配当効率が良好（加重利回り ${yld.toFixed(1)}%）`;
     },
   },
@@ -146,7 +147,7 @@ const WEAKNESS_TEMPLATES: Record<string, LineTemplate> = {
   },
   cost_efficiency: {
     generate: (ctx) => {
-      const fee = calcWeightedFee(ctx.assets, ctx.totalValue);
+      const fee = calcWeightedFee(ctx.assets, ctx.totalValue, ctx.assetValues);
       return `コスト改善余地あり（加重信託報酬 ${fee.toFixed(2)}%）`;
     },
   },
@@ -155,7 +156,7 @@ const WEAKNESS_TEMPLATES: Record<string, LineTemplate> = {
   },
   currency_diversification: {
     generate: (ctx) => {
-      const breakdown = currencyBreakdownPct(ctx.assets, ctx.totalValue);
+      const breakdown = currencyBreakdownPct(ctx.assets, ctx.totalValue, ctx.assetValues);
       const dominant = Object.entries(breakdown).sort((a, b) => b[1] - a[1])[0];
       if (dominant) return `通貨分散不足（${dominant[0]} ${Math.round(dominant[1])}%）`;
       return '通貨分散が不十分です';
@@ -177,20 +178,18 @@ const WEAKNESS_TEMPLATES: Record<string, LineTemplate> = {
 
 // ─── Helpers ────────────────────────────────────────────
 
-function calcWeightedFee(assets: EnricherAsset[], totalValue: number): number {
+function calcWeightedFee(assets: EnricherAsset[], totalValue: number, assetValues: number[]): number {
   if (totalValue === 0) return 0;
-  return assets.reduce((sum, a) => {
-    const value = (a.price || 0) * (a.holdings || 0);
-    return sum + (a.annualFee || 0) * (value / totalValue);
+  return assets.reduce((sum, a, i) => {
+    return sum + (a.annualFee || 0) * (assetValues[i] / totalValue);
   }, 0);
 }
 
-function calcWeightedDividendYield(assets: EnricherAsset[], totalValue: number): number {
+function calcWeightedDividendYield(assets: EnricherAsset[], totalValue: number, assetValues: number[]): number {
   if (totalValue === 0) return 0;
-  return assets.reduce((sum, a) => {
+  return assets.reduce((sum, a, i) => {
     if (!a.hasDividend || !a.dividendYield) return sum;
-    const value = (a.price || 0) * (a.holdings || 0);
-    return sum + a.dividendYield * (value / totalValue);
+    return sum + a.dividendYield * (assetValues[i] / totalValue);
   }, 0);
 }
 
@@ -204,13 +203,13 @@ function uniqueAssetTypes(assets: EnricherAsset[]): string[] {
 
 function currencyBreakdownPct(
   assets: EnricherAsset[],
-  totalValue: number
+  totalValue: number,
+  assetValues: number[]
 ): Record<string, number> {
   const map: Record<string, number> = {};
-  for (const a of assets) {
-    const cur = a.currency || 'USD';
-    const val = (a.price || 0) * (a.holdings || 0);
-    const pct = totalValue > 0 ? (val / totalValue) * 100 : 0;
+  for (let i = 0; i < assets.length; i++) {
+    const cur = assets[i].currency || 'USD';
+    const pct = totalValue > 0 ? (assetValues[i] / totalValue) * 100 : 0;
     map[cur] = (map[cur] || 0) + pct;
   }
   return map;
@@ -218,13 +217,13 @@ function currencyBreakdownPct(
 
 function assetTypeBreakdownPct(
   assets: EnricherAsset[],
-  totalValue: number
+  totalValue: number,
+  assetValues: number[]
 ): Record<string, number> {
   const map: Record<string, number> = {};
-  for (const a of assets) {
-    const t = a.fundType || 'unknown';
-    const val = (a.price || 0) * (a.holdings || 0);
-    const pct = totalValue > 0 ? (val / totalValue) * 100 : 0;
+  for (let i = 0; i < assets.length; i++) {
+    const t = assets[i].fundType || 'unknown';
+    const pct = totalValue > 0 ? (assetValues[i] / totalValue) * 100 : 0;
     map[t] = (map[t] || 0) + pct;
   }
   return map;
@@ -249,7 +248,9 @@ export function enrichPortfolioData(
   const scoreResult: PortfolioScoreResult = calculatePortfolioScore(
     safeAssets as any,
     safeTargets as any,
-    isPremium
+    isPremium,
+    baseCurrency,
+    exchangeRate
   );
 
   const availableMetrics = isPremium
@@ -300,33 +301,34 @@ export function enrichPortfolioData(
       pnlPercent: a.pnlPercent || 0,
     }));
 
+  // ─ Pre-compute per-asset converted values (in baseCurrency)
+  const assetConvertedValues: number[] = safeAssets.map((a) => {
+    const raw = (a.price || 0) * (a.holdings || 0);
+    const c = a.currency || 'USD';
+    if (c === baseCurrency) return raw;
+    if (baseCurrency === 'JPY' && c === 'USD') return raw * exchangeRate;
+    if (baseCurrency === 'USD' && c === 'JPY') return raw / exchangeRate;
+    return raw;
+  });
+
   // ─ Holdings
-  const totalValue = safeAssets.reduce(
-    (sum, a) => sum + (a.price || 0) * (a.holdings || 0),
-    0
-  );
+  const totalValue = assetConvertedValues.reduce((sum, v) => sum + v, 0);
 
   const holdingsSorted = [...safeAssets]
-    .map((a) => ({
+    .map((a, i) => ({
       ticker: a.ticker,
       name: a.name || a.ticker,
-      percentage:
-        totalValue > 0
-          ? ((a.price || 0) * (a.holdings || 0) / totalValue) * 100
-          : 0,
+      percentage: totalValue > 0 ? (assetConvertedValues[i] / totalValue) * 100 : 0,
     }))
     .sort((a, b) => b.percentage - a.percentage);
 
   // ─ Targets
   const deviations = safeTargets.map((t) => {
-    const asset = safeAssets.find(
+    const idx = safeAssets.findIndex(
       (a) => a.id === t.id || a.ticker === t.ticker
     );
-    const currentPct = asset
-      ? totalValue > 0
-        ? ((asset.price || 0) * (asset.holdings || 0) / totalValue) * 100
-        : 0
-      : 0;
+    const convertedValue = idx >= 0 ? assetConvertedValues[idx] : 0;
+    const currentPct = totalValue > 0 ? (convertedValue / totalValue) * 100 : 0;
     return {
       ticker: t.ticker,
       currentPct,
@@ -346,6 +348,7 @@ export function enrichPortfolioData(
     totalValue,
     targets: safeTargets,
     baseCurrency,
+    assetValues: assetConvertedValues,
   };
 
   const strengthLine =
@@ -390,8 +393,8 @@ export function enrichPortfolioData(
       totalValue,
       baseCurrency,
       topHoldings: holdingsSorted.slice(0, 5),
-      currencyBreakdown: currencyBreakdownPct(safeAssets, totalValue),
-      assetTypeBreakdown: assetTypeBreakdownPct(safeAssets, totalValue),
+      currencyBreakdown: currencyBreakdownPct(safeAssets, totalValue, assetConvertedValues),
+      assetTypeBreakdown: assetTypeBreakdownPct(safeAssets, totalValue, assetConvertedValues),
     },
     targets: {
       hasTargets: safeTargets.length > 0,

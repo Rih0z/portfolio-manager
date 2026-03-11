@@ -75,18 +75,15 @@ function clamp(value: number, min: number, max: number): number {
  * - 1銘柄 = 0点, 5銘柄 = 60点, 10+ = 80点
  * - 最大保有比率が50%以上でペナルティ
  */
-function calcDiversification(assets: Asset[], totalValue: number): number {
+function calcDiversification(assets: Asset[], convertedValues: number[], totalValue: number): number {
   if (assets.length === 0) return 0;
   if (assets.length === 1) return 15;
 
   // 銘柄数スコア (最大60点)
   const countScore = clamp(assets.length * 8, 0, 60);
 
-  // HHI (Herfindahl-Hirschman Index) で集中度測定
-  const weights = assets.map(a => {
-    const val = a.price * a.holdings;
-    return totalValue > 0 ? val / totalValue : 0;
-  });
+  // HHI (Herfindahl-Hirschman Index) で集中度測定（通貨換算済み値を使用）
+  const weights = convertedValues.map(v => totalValue > 0 ? v / totalValue : 0);
   const hhi = weights.reduce((sum, w) => sum + w * w, 0);
   // 完全均等 = 1/N, 完全集中 = 1
   const idealHHI = 1 / assets.length;
@@ -103,6 +100,7 @@ function calcDiversification(assets: Asset[], totalValue: number): number {
 function calcTargetAlignment(
   assets: Asset[],
   targets: TargetAllocation[],
+  convertedValues: number[],
   totalValue: number
 ): number {
   if (targets.length === 0 || totalValue === 0) return 50; // 目標未設定は中間評価
@@ -111,8 +109,8 @@ function calcTargetAlignment(
   let matched = 0;
 
   for (const target of targets) {
-    const asset = assets.find(a => a.id === target.id || a.ticker === target.ticker);
-    const currentPct = asset ? (asset.price * asset.holdings / totalValue) * 100 : 0;
+    const idx = assets.findIndex(a => a.id === target.id || a.ticker === target.ticker);
+    const currentPct = idx >= 0 ? (convertedValues[idx] / totalValue) * 100 : 0;
     const deviation = Math.abs(currentPct - target.targetPercentage);
     totalDeviation += deviation;
     matched++;
@@ -128,13 +126,13 @@ function calcTargetAlignment(
  * 3. コスト効率スコア: 加重平均信託報酬
  * - 0.1%以下 = 100点, 1%+ = 20点
  */
-function calcCostEfficiency(assets: Asset[], totalValue: number): number {
+function calcCostEfficiency(assets: Asset[], convertedValues: number[], totalValue: number): number {
   if (assets.length === 0 || totalValue === 0) return 50;
 
   let weightedFee = 0;
-  for (const asset of assets) {
-    const value = asset.price * asset.holdings;
-    const weight = value / totalValue;
+  for (let i = 0; i < assets.length; i++) {
+    const asset = assets[i];
+    const weight = convertedValues[i] / totalValue;
     weightedFee += (asset.annualFee || 0) * weight;
   }
 
@@ -148,14 +146,15 @@ function calcCostEfficiency(assets: Asset[], totalValue: number): number {
 function calcRebalanceHealth(
   assets: Asset[],
   targets: TargetAllocation[],
+  convertedValues: number[],
   totalValue: number
 ): number {
   if (targets.length === 0) return 70; // 目標未設定
 
   let maxDeviation = 0;
   for (const target of targets) {
-    const asset = assets.find(a => a.id === target.id || a.ticker === target.ticker);
-    const currentPct = asset ? (asset.price * asset.holdings / totalValue) * 100 : 0;
+    const idx = assets.findIndex(a => a.id === target.id || a.ticker === target.ticker);
+    const currentPct = idx >= 0 ? (convertedValues[idx] / totalValue) * 100 : 0;
     const deviation = Math.abs(currentPct - target.targetPercentage);
     maxDeviation = Math.max(maxDeviation, deviation);
   }
@@ -167,13 +166,13 @@ function calcRebalanceHealth(
 /**
  * 5. 通貨分散スコア: 複数通貨保有
  */
-function calcCurrencyDiversification(assets: Asset[], totalValue: number): number {
+function calcCurrencyDiversification(assets: Asset[], convertedValues: number[], totalValue: number): number {
   if (assets.length === 0) return 0;
 
   const currencyWeights: Record<string, number> = {};
-  for (const asset of assets) {
-    const value = asset.price * asset.holdings;
-    const weight = totalValue > 0 ? value / totalValue : 0;
+  for (let i = 0; i < assets.length; i++) {
+    const asset = assets[i];
+    const weight = totalValue > 0 ? convertedValues[i] / totalValue : 0;
     currencyWeights[asset.currency] = (currencyWeights[asset.currency] || 0) + weight;
   }
 
@@ -189,15 +188,15 @@ function calcCurrencyDiversification(assets: Asset[], totalValue: number): numbe
 /**
  * 6. 配当効率スコア: 配当利回りの分布
  */
-function calcDividendHealth(assets: Asset[], totalValue: number): number {
+function calcDividendHealth(assets: Asset[], convertedValues: number[], totalValue: number): number {
   if (assets.length === 0) return 50;
 
   let weightedYield = 0;
   let dividendAssets = 0;
-  for (const asset of assets) {
+  for (let i = 0; i < assets.length; i++) {
+    const asset = assets[i];
     if (asset.hasDividend && asset.dividendYield) {
-      const value = asset.price * asset.holdings;
-      const weight = totalValue > 0 ? value / totalValue : 0;
+      const weight = totalValue > 0 ? convertedValues[i] / totalValue : 0;
       weightedYield += asset.dividendYield * weight;
       dividendAssets++;
     }
@@ -258,18 +257,31 @@ function calcDataFreshness(assets: Asset[]): number {
 /**
  * ポートフォリオスコアを計算する
  *
- * @param assets    現在の保有資産
- * @param targets   目標配分
- * @param isPremium Standard プランか
+ * @param assets        現在の保有資産
+ * @param targets       目標配分
+ * @param isPremium     Standard プランか
+ * @param baseCurrency  基準通貨 (デフォルト: 'USD')
+ * @param exchangeRate  USD/JPY レート (デフォルト: 150)
  */
 export function calculatePortfolioScore(
   assets: Asset[],
   targets: TargetAllocation[] | undefined | null,
-  isPremium: boolean = false
+  isPremium: boolean = false,
+  baseCurrency: string = 'USD',
+  exchangeRate: number = 150
 ): PortfolioScoreResult {
   const safeAssets = assets || [];
   const safeTargets = targets || [];
-  const totalValue = safeAssets.reduce((sum, a) => sum + a.price * a.holdings, 0);
+
+  // 通貨換算済みの各資産価値を事前計算
+  const convertedValues: number[] = safeAssets.map(a => {
+    const raw = a.price * a.holdings;
+    if (!a.currency || a.currency === baseCurrency) return raw;
+    if (baseCurrency === 'JPY' && a.currency === 'USD') return raw * exchangeRate;
+    if (baseCurrency === 'USD' && a.currency === 'JPY') return raw / exchangeRate;
+    return raw;
+  });
+  const totalValue = convertedValues.reduce((sum, v) => sum + v, 0);
 
   // Free = 基本3指標, Standard = 全8指標
   const allMetrics: ScoreMetric[] = [
@@ -277,7 +289,7 @@ export function calculatePortfolioScore(
     {
       id: 'diversification',
       label: '分散度',
-      score: calcDiversification(safeAssets, totalValue),
+      score: calcDiversification(safeAssets, convertedValues, totalValue),
       weight: 0.2,
       grade: 'A',
       description: '保有銘柄数と集中度',
@@ -286,7 +298,7 @@ export function calculatePortfolioScore(
     {
       id: 'target_alignment',
       label: '目標適合度',
-      score: calcTargetAlignment(safeAssets, safeTargets, totalValue),
+      score: calcTargetAlignment(safeAssets, safeTargets, convertedValues, totalValue),
       weight: 0.2,
       grade: 'A',
       description: '目標配分との乖離',
@@ -295,7 +307,7 @@ export function calculatePortfolioScore(
     {
       id: 'cost_efficiency',
       label: 'コスト効率',
-      score: calcCostEfficiency(safeAssets, totalValue),
+      score: calcCostEfficiency(safeAssets, convertedValues, totalValue),
       weight: 0.15,
       grade: 'A',
       description: '加重平均信託報酬',
@@ -305,7 +317,7 @@ export function calculatePortfolioScore(
     {
       id: 'rebalance_health',
       label: 'リバランス健全度',
-      score: calcRebalanceHealth(safeAssets, safeTargets, totalValue),
+      score: calcRebalanceHealth(safeAssets, safeTargets, convertedValues, totalValue),
       weight: 0.1,
       grade: 'A',
       description: 'リバランスの必要性',
@@ -314,7 +326,7 @@ export function calculatePortfolioScore(
     {
       id: 'currency_diversification',
       label: '通貨分散',
-      score: calcCurrencyDiversification(safeAssets, totalValue),
+      score: calcCurrencyDiversification(safeAssets, convertedValues, totalValue),
       weight: 0.1,
       grade: 'A',
       description: '複数通貨での保有',
@@ -323,7 +335,7 @@ export function calculatePortfolioScore(
     {
       id: 'dividend_health',
       label: '配当効率',
-      score: calcDividendHealth(safeAssets, totalValue),
+      score: calcDividendHealth(safeAssets, convertedValues, totalValue),
       weight: 0.1,
       grade: 'A',
       description: '配当利回りの質',

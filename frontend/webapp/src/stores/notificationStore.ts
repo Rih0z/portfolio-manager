@@ -332,7 +332,11 @@ export const useNotificationStore = create<NotificationState>()(
               );
               if (!asset || totalValue === 0) continue;
 
-              const assetValue = (asset.price || 0) * (asset.holdings || 0);
+              let assetValue = (asset.price || 0) * (asset.holdings || 0);
+              if ((asset as any).currency && (asset as any).currency !== baseCurrency) {
+                if ((asset as any).currency === 'USD' && baseCurrency === 'JPY') assetValue *= exchangeRate;
+                else if ((asset as any).currency === 'JPY' && baseCurrency === 'USD') assetValue /= exchangeRate;
+              }
               const currentPct = (assetValue / totalValue) * 100;
               const targetPct = target.targetPercentage || 0;
               const drift = Math.abs(currentPct - targetPct);

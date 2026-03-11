@@ -85,9 +85,11 @@ describe('monthlyReport', () => {
 
     it('should calculate closing value from current assets', () => {
       const report = generateMonthlyReport(baseInput);
-      // VOO: 450*10=4500, VTI: 250*20=5000, BND: 80*50=4000 → total 13500 USD * 150 = 2,025,000 JPY
-      // But since these are USD assets with exchangeRate 150
-      expect(report.closingValue).toBeGreaterThan(0);
+      // VOO: $450*10=$4500 → ¥675,000
+      // VTI: $250*20=$5000 → ¥750,000
+      // BND: $80*50=$4000  → ¥600,000
+      // Total: ¥2,025,000 (baseCurrency=JPY, exchangeRate=150)
+      expect(report.closingValue).toBe(2025000);
     });
 
     it('should calculate monthly return', () => {

@@ -142,12 +142,37 @@ describe('enrichPortfolioData', () => {
     ];
     const result = enrichPortfolioData(assets, [], false, 'USD', 150);
 
+    // AAPL: $100*10 = $1000 USD (same currency)
+    // 7203: ¥2500*100 = ¥250000 → ÷150 = $1666.67 USD
+    // Total: $2666.67
     expect(result.holdings.count).toBe(2);
-    expect(result.holdings.totalValue).toBeGreaterThan(0);
+    expect(result.holdings.totalValue).toBeCloseTo(1000 + 250000 / 150, 1);
     expect(result.holdings.baseCurrency).toBe('USD');
     expect(result.holdings.topHoldings.length).toBe(2);
     expect(result.holdings.currencyBreakdown).toHaveProperty('USD');
     expect(result.holdings.currencyBreakdown).toHaveProperty('JPY');
+  });
+
+  it('通貨換算: JPY基準ではUSD資産がレートで換算される', () => {
+    const assets = [
+      makeAsset({ id: 'A', ticker: 'AAPL', price: 100, holdings: 10, currency: 'USD' }),
+      makeAsset({ id: 'B', ticker: '7203', price: 5000, holdings: 100, currency: 'JPY' }),
+    ];
+    const result = enrichPortfolioData(assets, [], false, 'JPY', 150);
+
+    // AAPL: $100*10 = $1000 → ×150 = ¥150,000
+    // 7203: ¥5000*100 = ¥500,000 (same currency)
+    // Total: ¥650,000
+    expect(result.holdings.totalValue).toBeCloseTo(1000 * 150 + 5000 * 100, 0);
+  });
+
+  it('currency: undefined の資産は変換されずに加算される（防御ケース）', () => {
+    const assets = [
+      makeAsset({ id: 'A', ticker: 'AAPL', price: 100, holdings: 10, currency: undefined }),
+    ];
+    // currency未定義はデフォルトUSDとして扱われる
+    const result = enrichPortfolioData(assets, [], false, 'USD', 150);
+    expect(result.holdings.totalValue).toBeCloseTo(1000, 0);
   });
 
   it('topHoldingsは保有割合でソートされる', () => {
@@ -794,15 +819,25 @@ describe('enrichPortfolioData', () => {
       expect(Object.keys(result.holdings.assetTypeBreakdown)).toHaveLength(3);
     });
 
-    it('currencyBreakdownPct: totalValue > 0の場合パーセンテージを正しく計算', () => {
+    it('currencyBreakdownPct: totalValue > 0の場合パーセンテージを正しく計算（通貨換算込み）', () => {
+      // baseCurrency=JPY、exchangeRate=150 で計算
+      // Asset A: USD, price=100, holdings=7 → 700 USD → 105000 JPY
+      // Asset B: JPY, price=100, holdings=3 → 300 JPY
+      // total = 105300 JPY
+      // USD%: 105000/105300*100 ≈ 99.7%
+      // JPY%: 300/105300*100 ≈ 0.3%
       const assets = [
         makeAsset({ id: 'A', ticker: 'A', currency: 'USD', price: 100, holdings: 7 }),
         makeAsset({ id: 'B', ticker: 'B', currency: 'JPY', price: 100, holdings: 3 }),
       ];
-      const result = enrichPortfolioData(assets, [], false, 'USD', 150);
+      const result = enrichPortfolioData(assets, [], false, 'JPY', 150);
 
-      expect(result.holdings.currencyBreakdown['USD']).toBeCloseTo(70, 0);
-      expect(result.holdings.currencyBreakdown['JPY']).toBeCloseTo(30, 0);
+      // USD資産は円換算で大半を占める
+      expect(result.holdings.currencyBreakdown['USD']).toBeGreaterThan(99);
+      expect(result.holdings.currencyBreakdown['JPY']).toBeLessThan(1);
+      // 合計は100%
+      const total = (result.holdings.currencyBreakdown['USD'] ?? 0) + (result.holdings.currencyBreakdown['JPY'] ?? 0);
+      expect(total).toBeCloseTo(100, 0);
     });
 
     it('assetTypeBreakdownPct: totalValue > 0の場合パーセンテージを正しく計算', () => {

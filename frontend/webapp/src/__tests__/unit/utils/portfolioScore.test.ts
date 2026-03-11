@@ -258,11 +258,12 @@ describe('calculatePortfolioScore', () => {
   });
 
   it('高スコアのポートフォリオはSまたはAグレード', () => {
+    // USD price=100 ($1000/asset), JPY price=15000 (¥150000÷150=$1000/asset) → 等価配分
     const assets = Array.from({ length: 10 }, (_, i) =>
       makeAsset({
         id: `S${i}`,
         ticker: `S${i}`,
-        price: 100,
+        price: i < 5 ? 100 : 15000, // USD: $100, JPY: ¥15000 (≈$100 at rate 150)
         holdings: 10,
         currency: i < 5 ? 'USD' : 'JPY',
         fundType: ['ETF', '個別株', '投資信託'][i % 3],
@@ -273,7 +274,7 @@ describe('calculatePortfolioScore', () => {
       })
     );
     const targets = assets.map(a => makeTarget(a.ticker, 10));
-    const result = calculatePortfolioScore(assets as any, targets, true);
+    const result = calculatePortfolioScore(assets as any, targets, true, 'USD', 150);
 
     expect(['S', 'A']).toContain(result.grade);
     expect(result.totalScore).toBeGreaterThanOrEqual(75);
@@ -282,11 +283,12 @@ describe('calculatePortfolioScore', () => {
   // ─── サマリー ───────────────────────────────────────────
 
   it('高スコア時のサマリーに「優秀」を含む', () => {
+    // USD price=100 ($1000/asset), JPY price=15000 (¥150000÷150=$1000/asset) → 等価配分
     const assets = Array.from({ length: 10 }, (_, i) =>
       makeAsset({
         id: `S${i}`,
         ticker: `S${i}`,
-        price: 100,
+        price: i < 5 ? 100 : 15000, // USD: $100, JPY: ¥15000 (≈$100 at rate 150)
         holdings: 10,
         currency: i < 5 ? 'USD' : 'JPY',
         fundType: ['ETF', '個別株', '投資信託'][i % 3],
@@ -297,7 +299,7 @@ describe('calculatePortfolioScore', () => {
       })
     );
     const targets = assets.map(a => makeTarget(a.ticker, 10));
-    const result = calculatePortfolioScore(assets as any, targets, true);
+    const result = calculatePortfolioScore(assets as any, targets, true, 'USD', 150);
 
     expect(result.summary).toContain('優秀');
   });
@@ -328,5 +330,53 @@ describe('calculatePortfolioScore', () => {
     const result = calculatePortfolioScore(assets, targets, true);
     const rebalance = result.metrics.find(m => m.id === 'rebalance_health');
     expect(rebalance!.score).toBe(100);
+  });
+
+  // ─── Regression: Bug E ──────────────────────────────────────────────────
+  // Bug E: 混在通貨ポートフォリオで totalValue に通貨換算なし → 重み計算が誤り
+
+  it('[Bug E regression] USD/JPY混在の目標適合度が通貨換算を考慮する', () => {
+    // USD asset: $100 * 10 = $1000
+    // JPY asset: ¥15000 * 10 = ¥150000 → ÷150 = $1000 → 各50%の等価配分
+    const assets = [
+      makeAsset({ id: 'USD', ticker: 'USD', price: 100, holdings: 10, currency: 'USD' }),
+      makeAsset({ id: 'JPY', ticker: 'JPY', price: 15000, holdings: 10, currency: 'JPY' }),
+    ];
+    const targets = [makeTarget('USD', 50), makeTarget('JPY', 50)];
+
+    const result = calculatePortfolioScore(assets, targets, true, 'USD', 150);
+
+    // 等価配分なので target_alignment は高スコアのはず
+    const targetMetric = result.metrics.find(m => m.id === 'target_alignment');
+    expect(targetMetric!.score).toBeGreaterThanOrEqual(90);
+  });
+
+  it('[Bug E regression] JPY資産が支配的な場合USDベースで分散度スコアが適切に計算される', () => {
+    // 修正前: ¥15000*100=¥1,500,000 が $100*10=$1000 を圧倒 → HHI≈1 → 分散度スコア低
+    // 修正後: 通貨換算で ¥1,500,000÷150=$10,000 vs $1,000 → HHI=0.17 (2銘柄なら適正)
+    const assets = [
+      makeAsset({ id: 'A', ticker: 'A', price: 100, holdings: 10, currency: 'USD' }),   // $1,000
+      makeAsset({ id: 'B', ticker: 'B', price: 15000, holdings: 100, currency: 'JPY' }), // ¥1,500,000=$10,000
+    ];
+    const result = calculatePortfolioScore(assets, [], true, 'USD', 150);
+
+    // totalValue = $11,000, USDweight=0.0909, JPYweight=0.909 → HHI = 0.00826+0.826 ≈ 0.834
+    // 完全集中ではないが偏りがある → diversification score should not be max, but > 0
+    const diversification = result.metrics.find(m => m.id === 'diversification');
+    expect(diversification!.score).toBeGreaterThan(0);
+    // 2銘柄なのでcountScore=min(2*8=16, 60)=16 だが通貨換算で偏りを適切に反映
+  });
+
+  it('[Bug E regression] 等価配分2通貨の通貨分散スコアは適切な重みで計算される', () => {
+    // USD $1000 + JPY ¥150000(=$1000) → 各50% → 通貨分散は均等
+    const assets = [
+      makeAsset({ id: 'A', ticker: 'A', price: 100, holdings: 10, currency: 'USD' }),
+      makeAsset({ id: 'B', ticker: 'B', price: 15000, holdings: 10, currency: 'JPY' }),
+    ];
+    const result = calculatePortfolioScore(assets, [], true, 'USD', 150);
+
+    const currencyMetric = result.metrics.find(m => m.id === 'currency_diversification');
+    // 各50% → maxWeight=0.5 → 40 + (1-0.5)*120 = 40+60 = 100
+    expect(currencyMetric!.score).toBe(100);
   });
 });

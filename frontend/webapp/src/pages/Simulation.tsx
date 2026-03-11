@@ -29,10 +29,16 @@ const Simulation = () => {
     additionalBudget,
     calculateSimulation,
     executeBatchPurchase,
-    baseCurrency
+    baseCurrency,
+    convertCurrency,
   } = usePortfolioContext();
   const addNotification = useUIStore(s => s.addNotification);
   const [showBatchConfirm, setShowBatchConfirm] = useState(false);
+
+  // 追加予算を baseCurrency に換算
+  const budgetInBase = additionalBudget.currency === baseCurrency
+    ? additionalBudget.amount
+    : convertCurrency(additionalBudget.amount, additionalBudget.currency, baseCurrency);
 
   // シミュレーション結果を計算
   const simulationResults = calculateSimulation();
@@ -84,7 +90,7 @@ const Simulation = () => {
             <div className="text-right">
               <p className="text-sm text-muted-foreground">シミュレーション後の総資産</p>
               <p className="text-lg font-semibold text-foreground">
-                {formatCurrencyValue(totalAssets + additionalBudget.amount, baseCurrency)}
+                {formatCurrencyValue(totalAssets + budgetInBase, baseCurrency)}
               </p>
             </div>
           </div>

@@ -860,11 +860,12 @@ export const usePortfolioStore = create<PortfolioState>()(
         // アセット種別バリデーション
         if (state.currentAssets.length > 0) {
           const { updatedAssets, changes } = get().validateAssetTypes(state.currentAssets);
-          if (changes.fundType > 0 || changes.fees > 0 || changes.dividends > 0) {
+          if (changes.fundType > 0 || changes.fees > 0 || changes.dividends > 0 || (changes.currency ?? 0) > 0) {
             updates.currentAssets = updatedAssets;
             if (changes.fundType > 0) notify(`${changes.fundType}件の銘柄で種別情報を修正しました`, 'info');
             if (changes.fees > 0) notify(`${changes.fees}件の銘柄で手数料情報を修正しました`, 'info');
             if (changes.dividends > 0) notify(`${changes.dividends}件の銘柄で配当情報を修正しました`, 'info');
+            if ((changes.currency ?? 0) > 0) notify(`${changes.currency}件の銘柄で通貨情報を修正しました`, 'info');
           }
         }
 
