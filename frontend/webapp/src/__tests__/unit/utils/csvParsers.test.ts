@@ -8,6 +8,7 @@ import {
   detectBrokerFormat,
   parseSBICSV,
   parseRakutenCSV,
+  parseMonexCSV,
   parseGenericCSV,
   parseBrokerCSV,
   isLikelyShiftJIS,
@@ -89,6 +90,26 @@ describe('detectBrokerFormat', () => {
   it('楽天証券（楽天キーワード）を検出する', () => {
     const csv = '銘柄コード,銘柄名,楽天ポイント,数量\n7203,トヨタ,100,50';
     expect(detectBrokerFormat(csv)).toBe('rakuten');
+  });
+
+  it('マネックス証券フォーマット（評価損益列）を検出する', () => {
+    const csv = '銘柄コード,銘柄名,保有数量,平均取得単価,現在値,評価損益\n7203,トヨタ,100,2000,2500,50000';
+    expect(detectBrokerFormat(csv)).toBe('monex');
+  });
+
+  it('マネックス証券フォーマット（評価損益+市場列）を検出する', () => {
+    const csv = '銘柄コード,銘柄名,市場,保有数量,平均取得単価,現在値,評価額,評価損益,評価損益率\n7203,トヨタ,東証プライム,100,2000,2500,250000,50000,25.00';
+    expect(detectBrokerFormat(csv)).toBe('monex');
+  });
+
+  it('銘柄コード+評価損益だがSBI固有列もある場合はSBIを優先する', () => {
+    const csv = '銘柄コード,銘柄名,預り区分,評価損益,保有数量\n7203,トヨタ,特定,50000,100';
+    expect(detectBrokerFormat(csv)).toBe('sbi');
+  });
+
+  it('銘柄コードなしで評価損益のみはgenericになる', () => {
+    const csv = '銘柄名,保有数量,評価損益\nトヨタ,100,50000';
+    expect(detectBrokerFormat(csv)).toBe('generic');
   });
 });
 
@@ -349,6 +370,21 @@ describe('parseBrokerCSV', () => {
     expect(result.broker).toBe('pfwise');
     expect(result.currentAssets).toHaveLength(0);
   });
+
+  it('マネックス証券フォーマットを自動検出してパースする', () => {
+    const csv = '銘柄コード,銘柄名,保有数量,平均取得単価,現在値,評価損益\n7203,トヨタ自動車,100,2000,2500,50000';
+    const result = parseBrokerCSV(csv);
+
+    expect(result.broker).toBe('monex');
+    expect(result.currentAssets).toHaveLength(1);
+  });
+
+  it('forceFormatでmonexを強制指定できる', () => {
+    const csv = 'ティッカー,銘柄名,保有数量,平均取得単価,現在値\nAAPL,Apple,10,150,175';
+    const result = parseBrokerCSV(csv, 'monex');
+
+    expect(result.broker).toBe('monex');
+  });
 });
 
 // ─── isLikelyShiftJIS ─────────────────────────────────────────
@@ -558,6 +594,128 @@ describe('parseJapaneseNumber edge cases (via parseSBICSV)', () => {
     const result = parseSBICSV(csv);
 
     expect(result.currentAssets[0].holdings).toBe(0);
+  });
+});
+
+// ─── parseMonexCSV ─────────────────────────────────────────────
+
+describe('parseMonexCSV', () => {
+  it('正常なマネックス証券CSVをパースする（国内株）', () => {
+    const csv = '銘柄コード,銘柄名,市場,保有数量,平均取得単価,現在値,評価額,評価損益,評価損益率\n7203,トヨタ自動車,東証プライム,100,2000,2500,250000,50000,25.00\n9984,ソフトバンクG,東証プライム,50,6000,7000,350000,50000,16.67';
+    const result = parseMonexCSV(csv);
+
+    expect(result.broker).toBe('monex');
+    expect(result.baseCurrency).toBe('JPY');
+    expect(result.currentAssets).toHaveLength(2);
+    expect(result.warnings).toHaveLength(0);
+
+    expect(result.currentAssets[0].ticker).toBe('7203');
+    expect(result.currentAssets[0].name).toBe('トヨタ自動車');
+    expect(result.currentAssets[0].price).toBe(2500);
+    expect(result.currentAssets[0].holdings).toBe(100);
+    expect(result.currentAssets[0].purchasePrice).toBe(2000);
+    expect(result.currentAssets[0].currency).toBe('JPY');
+    expect(result.currentAssets[0].source).toBe('マネックス証券CSV');
+    expect(result.currentAssets[0].fundType).toBe('個別株');
+  });
+
+  it('米国株ティッカーのcurrencyがUSDになる', () => {
+    const csv = '銘柄コード,銘柄名,保有数量,平均取得単価,現在値,評価損益\nAAPL,Apple Inc,10,150,175,250';
+    const result = parseMonexCSV(csv);
+
+    expect(result.currentAssets[0].currency).toBe('USD');
+    expect(result.currentAssets[0].fundType).toBe('ETF/個別株');
+  });
+
+  it('投資信託の口数を正規化する（10000口→1口）', () => {
+    const csv = '銘柄コード,銘柄名,保有口数,取得単価,基準価額,評価損益\n12345678,eMAXIS Slim 全世界,50000,15000,16000,5000';
+    const result = parseMonexCSV(csv);
+
+    expect(result.currentAssets[0].holdings).toBe(5); // 50000 / 10000
+    expect(result.currentAssets[0].purchasePrice).toBe(15000);
+    expect(result.currentAssets[0].fundType).toBe('投資信託');
+  });
+
+  it('平均取得単価ヘッダーで purchasePrice を読み込む', () => {
+    const csv = '銘柄コード,銘柄名,保有数量,平均取得単価,現在値,評価損益\n7203,トヨタ,100,2000,2500,50000';
+    const result = parseMonexCSV(csv);
+
+    expect(result.currentAssets[0].purchasePrice).toBe(2000);
+  });
+
+  it('取得単価ヘッダー（平均取得単価なし）でも purchasePrice を読み込む', () => {
+    const csv = '銘柄コード,銘柄名,保有口数,取得単価,基準価額,評価損益\n12345678,eMAXIS,50000,15000,16000,5000';
+    const result = parseMonexCSV(csv);
+
+    expect(result.currentAssets[0].purchasePrice).toBe(15000);
+  });
+
+  it('取得単価が0の場合 purchasePrice を設定しない', () => {
+    const csv = '銘柄コード,銘柄名,保有数量,平均取得単価,現在値,評価損益\n7203,トヨタ,100,0,2500,0';
+    const result = parseMonexCSV(csv);
+
+    expect(result.currentAssets[0].purchasePrice).toBeUndefined();
+  });
+
+  it('空ファイル（ヘッダーのみ）で警告を返す', () => {
+    const csv = '銘柄コード,銘柄名,保有数量,平均取得単価,現在値,評価損益';
+    const result = parseMonexCSV(csv);
+
+    expect(result.currentAssets).toHaveLength(0);
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toContain('マネックス証券');
+  });
+
+  it('空行をスキップする', () => {
+    const csv = '銘柄コード,銘柄名,保有数量,平均取得単価,現在値,評価損益\n,,,,,,\n7203,トヨタ自動車,100,2000,2500,50000';
+    const result = parseMonexCSV(csv);
+
+    expect(result.currentAssets).toHaveLength(1);
+  });
+
+  it('日本語数値表記（カンマ区切り）をパースする', () => {
+    const csv = '銘柄コード,銘柄名,保有数量,平均取得単価,現在値,評価損益\n7203,トヨタ,"1,000","¥2,000","¥2,500","¥500,000"';
+    const result = parseMonexCSV(csv);
+
+    expect(result.currentAssets[0].holdings).toBe(1000);
+    expect(result.currentAssets[0].purchasePrice).toBe(2000);
+    expect(result.currentAssets[0].price).toBe(2500);
+  });
+
+  it('ティッカーにクォートが含まれる場合除去する', () => {
+    const csv = '銘柄コード,銘柄名,保有数量,平均取得単価,現在値,評価損益\n"7203",トヨタ自動車,100,2000,2500,50000';
+    const result = parseMonexCSV(csv);
+
+    expect(result.currentAssets[0].ticker).toBe('7203');
+  });
+
+  it('投資信託で口数が10000未満の場合はそのまま', () => {
+    const csv = '銘柄コード,銘柄名,保有口数,取得単価,基準価額,評価損益\n12345678,eMAXIS,5000,15000,16000,5000';
+    const result = parseMonexCSV(csv);
+
+    // 5000 < 10000 so no normalization
+    expect(result.currentAssets[0].holdings).toBe(5000);
+  });
+
+  it('複数銘柄（国内株・米国株・投資信託）を正しくパースする', () => {
+    const csv = '銘柄コード,銘柄名,保有数量,平均取得単価,現在値,評価損益\n7203,トヨタ自動車,100,2000,2500,50000\nAAPL,Apple Inc,10,150,175,250\n12345678,eMAXIS Slim,50000,15000,16000,5000';
+    const result = parseMonexCSV(csv);
+
+    expect(result.currentAssets).toHaveLength(3);
+    expect(result.currentAssets[0].currency).toBe('JPY');
+    expect(result.currentAssets[0].fundType).toBe('個別株');
+    expect(result.currentAssets[1].currency).toBe('USD');
+    expect(result.currentAssets[2].currency).toBe('JPY');
+    expect(result.currentAssets[2].fundType).toBe('投資信託');
+    expect(result.currentAssets[2].holdings).toBe(5); // normalized
+  });
+
+  it('ティッカーなしの場合は銘柄名からID生成する', () => {
+    const csv = '銘柄コード,銘柄名,保有数量,平均取得単価,現在値,評価損益\n,eMAXIS Slim 全世界株式,50000,15000,16000,5000';
+    const result = parseMonexCSV(csv);
+
+    expect(result.currentAssets).toHaveLength(1);
+    expect(result.currentAssets[0].name).toBe('eMAXIS Slim 全世界株式');
   });
 });
 

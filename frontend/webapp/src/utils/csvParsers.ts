@@ -10,7 +10,7 @@ import Papa from 'papaparse';
 
 // ─── Types ─────────────────────────────────────────────────
 
-export type BrokerFormat = 'sbi' | 'rakuten' | 'generic' | 'pfwise';
+export type BrokerFormat = 'sbi' | 'rakuten' | 'monex' | 'generic' | 'pfwise';
 
 export interface ParsedAsset {
   id: string;
@@ -108,6 +108,14 @@ export function detectBrokerFormat(content: string): BrokerFormat {
     return 'rakuten';
   }
 
+  // マネックス証券: 評価損益列が特徴（SBI/楽天の固有列なし）
+  if (
+    firstLines.includes('銘柄コード') &&
+    firstLines.includes('評価損益')
+  ) {
+    return 'monex';
+  }
+
   // ヘッダーに日本語の証券用語があれば汎用日本語CSVとして扱う
   if (
     firstLines.includes('銘柄') ||
@@ -115,12 +123,13 @@ export function detectBrokerFormat(content: string): BrokerFormat {
     firstLines.includes('数量') ||
     firstLines.includes('口数')
   ) {
-    // SBI/楽天を区別できない場合もgenericで対応
+    // SBI/楽天/マネックスを区別できない場合もgenericで対応
     if (firstLines.includes('銘柄コード')) {
       // ヘッダーパターンで最終判定
       const headers = getFirstRowHeaders(content);
       if (headers.includes('預り区分') || headers.includes('口座区分')) return 'sbi';
       if (headers.includes('トータルリターン')) return 'rakuten';
+      if (headers.includes('評価損益')) return 'monex';
     }
     return 'generic';
   }
@@ -319,6 +328,82 @@ export function parseRakutenCSV(content: string): CSVParseResult {
   };
 }
 
+// ─── マネックス証券 Parser ─────────────────────────────────
+
+/**
+ * マネックス証券の保有商品CSVをパースする
+ *
+ * 想定ヘッダー例（株式）:
+ * 銘柄コード, 銘柄名, 市場, 保有数量, 平均取得単価, 現在値, 評価額, 評価損益, 評価損益率
+ *
+ * 想定ヘッダー例（投資信託）:
+ * 銘柄コード, 銘柄名, 保有口数, 取得単価, 基準価額, 評価額, 評価損益
+ */
+export function parseMonexCSV(content: string): CSVParseResult {
+  const warnings: string[] = [];
+  const result = Papa.parse(content, {
+    header: true,
+    skipEmptyLines: true,
+    transformHeader: (h: string) => h.trim(),
+  });
+
+  const assets: ParsedAsset[] = [];
+  const now = new Date().toISOString();
+
+  for (const row of result.data as Record<string, string>[]) {
+    const ticker = findColumn(row, ['銘柄コード', '銘柄コード（ISINコード）', 'コード']);
+    // '銘柄' は '銘柄コード' にも部分マッチするため、より具体的な候補のみ使用
+    const name = findColumn(row, ['銘柄名', 'ファンド名']);
+
+    if (!ticker && !name) continue;
+
+    const price = parseJapaneseNumber(
+      findColumn(row, ['現在値', '基準価額', '時価'])
+    );
+    const holdings = parseJapaneseNumber(
+      findColumn(row, ['保有数量', '保有口数', '数量', '口数'])
+    );
+    const purchasePrice = parseJapaneseNumber(
+      findColumn(row, ['平均取得単価', '取得単価', '買付単価'])
+    );
+
+    const normalizedTicker = ticker.replace(/"/g, '').trim();
+    let normalizedHoldings = holdings;
+    // 投資信託の口数は通常10000口単位なので口数→数量に変換
+    if (/^\d{7,8}/.test(normalizedTicker) && holdings >= 10000) {
+      normalizedHoldings = holdings / 10000;
+    }
+
+    if (normalizedTicker || name) {
+      const asset: ParsedAsset = {
+        id: normalizedTicker || name.slice(0, 10),
+        ticker: normalizedTicker || name.slice(0, 10),
+        name: name || normalizedTicker,
+        price,
+        holdings: normalizedHoldings,
+        currency: guessCurrency(normalizedTicker),
+        annualFee: 0,
+        lastUpdated: now,
+        source: 'マネックス証券CSV',
+        fundType: guessFundType(normalizedTicker, name),
+      };
+      if (purchasePrice > 0) asset.purchasePrice = purchasePrice;
+      assets.push(asset);
+    }
+  }
+
+  if (assets.length === 0) {
+    warnings.push('マネックス証券フォーマットとして認識しましたが、資産データを抽出できませんでした');
+  }
+
+  return {
+    broker: 'monex',
+    currentAssets: assets,
+    baseCurrency: 'JPY',
+    warnings,
+  };
+}
+
 // ─── Generic CSV Parser ────────────────────────────────────
 
 /**
@@ -411,6 +496,8 @@ export function parseBrokerCSV(content: string, forceFormat?: BrokerFormat): CSV
       return parseSBICSV(content);
     case 'rakuten':
       return parseRakutenCSV(content);
+    case 'monex':
+      return parseMonexCSV(content);
     case 'generic':
       return parseGenericCSV(content);
     case 'pfwise':

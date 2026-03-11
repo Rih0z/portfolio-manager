@@ -22,6 +22,7 @@ type ImportFormat = 'json' | 'csv' | 'broker-csv';
 const BROKER_LABELS: Record<BrokerFormat, string> = {
   sbi: 'SBI証券',
   rakuten: '楽天証券',
+  monex: 'マネックス証券',
   generic: '汎用CSV',
   pfwise: 'PfWise形式',
 };
@@ -303,7 +304,7 @@ const ImportOptions = () => {
             証券会社（自動検出可）
           </label>
           <div className="flex flex-wrap gap-2">
-            {(['auto', 'sbi', 'rakuten', 'generic'] as const).map((fmt) => (
+            {(['auto', 'sbi', 'rakuten', 'monex', 'generic'] as const).map((fmt) => (
               <button
                 key={fmt}
                 type="button"
