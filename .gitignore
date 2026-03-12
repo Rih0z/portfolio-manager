@@ -170,7 +170,8 @@ frontend/webapp/emergency-build/
 frontend/webapp/emergency-deploy/
 
 # IDE and tool files
-.claude/
+.claude/*
+!.claude/commands/
 .mcp.json
 .serena/
 .wrangler/
