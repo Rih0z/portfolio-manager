@@ -1,6 +1,6 @@
 # PortfolioWise 統合改善計画書
 
-**作成日**: 2026-03-08 → **最終更新**: 2026-03-10 (9-A レビュー修正完了・9-B を次フェーズに更新)
+**作成日**: 2026-03-08 → **最終更新**: 2026-03-11 (通貨換算バグ A〜F 全修正・テスト品質強化・9-C を次フェーズに設定)
 **ペルソナ**: テック系長期投資家 タケシ（28-42歳, IT企業勤務, 日米分散投資）
 **目標**: ペルソナに完全適合するプロダクト品質 + 収益化基盤
 
@@ -27,6 +27,8 @@
 | 8-C | Zustand persist 統一（手動 localStorage 18箇所全廃・カスタムアダプターで旧フォーマット自動マイグレーション） | 2026-03-10 |
 | 8-E | 機能基盤構築（損益管理・SBI/楽天CSV・アラート・目標管理）※計画外実装の正式記録 | 〜2026-03-10 |
 | 9-A | 取得単価入力 UI（HoldingCard 拡張）+ レビュー100点対応 | 2026-03-10 |
+| 9-B | マネックス証券 CSV パーサー追加（detectBrokerFormat・parseMonexCSV・UI統合） | 2026-03-10 |
+| 9-BX | 通貨換算バグ A〜F 全修正 + テスト品質強化 + `/test-quality-review` スキル作成 | 2026-03-11 |
 
 ---
 
@@ -39,13 +41,15 @@
 | EN/JP混在箇所 | 50+ | 0 | 0 | ✅ |
 | ハードコード色値 | 35+ | 4 | ≤4 | ✅ |
 | テスト品質 | 脆弱 | 堅牢 | 堅牢 | ✅ |
-| ユニットテスト | 2254 PASS | 2252 PASS / 15 skip | 全PASS | ✅ |
+| ユニットテスト | 2254 PASS | 2277 PASS / 15 skip | 全PASS | ✅ |
 | テストカバレッジ（statements） | 77.85% | 81.45% | ≥80% | ✅ |
 | テストカバレッジ（branches） | — | 72.47% | ≥70% | ✅ |
 | テストカバレッジ（functions） | — | 79.68% | ≥75% | ✅ |
 | テストカバレッジ（lines） | — | 82.71% | ≥80% | ✅ |
 | TypeScript エラー数 | — | 0 | 0 | ✅ |
 | any 残存数（本番コード） | 304 | 195 | ≤100 | ⚠️ |
+| 通貨換算バグ既知数 | — | 0（A〜F 全修正済み） | 0 | ✅ |
+| テスト品質スキル | なし | `/test-quality-review` 作成済み | — | ✅ |
 | E2E spec ファイル数 | 2 | 19 | 25 | ✅ |
 | E2E テストケース数 | 17 | 89 | 130+ | ✅ |
 | TanStack Query フック数 | 0 | 26 | — | ✅ |
@@ -222,12 +226,25 @@ Phase R〜8-D と並行して実装された機能基盤。Phase 9 の UI 改善
   9-A: 取得単価入力 UI（HoldingCard 拡張）  ✅ 完了 (2026-03-10)
       └ レビュー100点対応: 精度丸め・FREE_FEATURE_LIMITS・トースト・Enterキー・JPY step最適化
 
+完了済み:
+  9-B: マネックス証券 CSV パーサー追加      ✅ 完了 (2026-03-10)
+
+完了済み（バグ修正・品質強化）:
+  9-BX: 通貨換算バグ A〜F 全修正 + テスト品質強化  ✅ 完了 (2026-03-11)
+      └ Bug E（portfolioScore.ts）・Bug F（alertEvaluation）を新規発見・修正
+      └ /test-quality-review スキル作成
+      └ 再発防止ルール策定（「通貨換算バグ再発防止ルール」参照）
+
 次フェーズ:
-  9-B: マネックス証券 CSV パーサー追加      [← 次回実行]
-  ↓
-  9-C: PDF エクスポート（Standard 機能）    [9-B 完了後]
+  9-C: PDF エクスポート（Standard 機能）    [← 次回実行]
   ↓
   9-D: E2E テスト拡充（89 → 130+）         [各フェーズ完了後に追加]
+
+9-C 実装前チェックリスト（9-BX から学んだ教訓）:
+  □ PDF生成ライブラリを選定（@react-pdf/renderer vs jsPDF vs pdf-lib）
+  □ pdfExport.ts に baseCurrency + exchangeRate パラメータを必須設計
+  □ PDF内金額表示の通貨換算テスト（USD/JPY混在）を先に書く（TDD）
+  □ /test-quality-review で品質確認後にコミット
 ```
 
 ---
@@ -269,7 +286,7 @@ Phase R〜8-D と並行して実装された機能基盤。Phase 9 の UI 改善
 - [x] Enterキー保存・Escapeキーキャンセル
 - [x] JPY銘柄は `step="1"`、USD は `step="0.01"` に通貨別最適化
 
-### 9-B: マネックス証券 CSV パーサー追加（2026-04、8-C 前でも可）
+### 9-B: マネックス証券 CSV パーサー追加 ✅ **完了** (2026-03-10)
 
 **ターゲット**: ペイン①「複数口座の統合管理」→ 3大証券会社を完全カバー
 **フリープレミアム共通機能**（SBI・楽天と同等のスコープ）
@@ -289,6 +306,86 @@ Phase R〜8-D と並行して実装された機能基盤。Phase 9 の UI 改善
 - [ ] テスト: 正常系（複数銘柄）・空ファイル・文字化け・列不足・マネックス固有列なし
 - [ ] テスト全件通過・ビルド成功
 
+### 9-BX: 通貨換算バグ全修正 + テスト品質強化 ✅ **完了** (2026-03-11)
+
+**経緯**: 2271件のテストが全パスしていたにもかかわらず、通貨切り替え時に金額が変わらない
+重大バグが発見された。根本原因分析により 6件の独立バグを特定・全修正した。
+
+**修正バグ一覧:**
+
+| バグ | ファイル | 問題 |
+|-----|---------|------|
+| A | `portfolioStore.ts` `initializeData` | `currency` のみ変更の場合 `validateAssetTypes` 結果が未適用 |
+| B | `portfolioDataEnricher.ts` `totalValue` | `assetConvertedValues[]` なし → GoalProgressSection 値が誤り |
+| C | `PnLTrendChart.tsx` | 価格履歴なし資産の通貨換算なし |
+| D | `Simulation.tsx` | `additionalBudget` を baseCurrency に換算せず `totalAssets` に加算 |
+| **E** | `portfolioScore.ts` `calculatePortfolioScore` | 全6スコア指標の重み計算に通貨換算なし（新規発見） |
+| **F** | `useAlertEvaluation.ts` + `notificationStore.ts` | リバランスドリフト算出に通貨換算なし（新規発見） |
+
+**テスト改善:**
+- 弱いアサーション（`toBeGreaterThan(0)`）を精確な値検証（`toBe(2025000)`, `toBeCloseTo(2666.67, 1)`）に修正
+- USD/JPY混在・`currency: undefined` シナリオのテスト追加
+- Bug A〜E のリグレッションテスト追加
+- テスト総数: 2254 → 2277（+23件）
+
+**再発防止体制:**
+- `/test-quality-review` スキル作成（`~/.claude/commands/test-quality-review.md`）
+- 下記「通貨換算バグ再発防止ルール」を開発標準として策定
+
+**コミット**: 3c494245 — テスト全通過・ビルド成功・本番デプロイ済み
+
+---
+
+### 通貨換算バグ再発防止ルール（開発標準 — 全フェーズ共通）
+
+> このルールは 9-BX の事後分析から策定した。以降の全フェーズで遵守すること。
+
+#### ルール 1: `price * holdings` を含む全関数に通貨換算チェックを実施する
+
+新規実装・修正時に `price * holdings`（または `price || 0) * (holdings || 0`）を含む
+コードを書いた場合、**直後に通貨換算ロジックがあるか** 確認する。
+
+```typescript
+// ❌ 禁止: 換算なし
+const total = assets.reduce((sum, a) => sum + a.price * a.holdings, 0);
+
+// ✅ 必須: 換算あり
+const total = assets.reduce((sum, a) => {
+  let val = (a.price || 0) * (a.holdings || 0);
+  const c = a.currency || 'USD';
+  if (c !== baseCurrency) {
+    if (c === 'USD' && baseCurrency === 'JPY') val *= exchangeRate;
+    else if (c === 'JPY' && baseCurrency === 'USD') val /= exchangeRate;
+  }
+  return sum + val;
+}, 0);
+```
+
+#### ルール 2: 金融値テストは精確な値でアサートする
+
+```typescript
+// ❌ 禁止
+expect(result.totalValue).toBeGreaterThan(0);
+
+// ✅ 必須（コメントに計算根拠を書く）
+// AAPL: $100*10=$1000, 7203: ¥15000*10÷150=$1000 → total $2000
+expect(result.totalValue).toBeCloseTo(2000, 1);
+```
+
+#### ルール 3: 通貨換算を含む全関数に混在テストを必須とする
+
+新規・修正した計算関数には以下の3シナリオをテストする:
+1. `baseCurrency='JPY'` + USD資産 → 円換算
+2. `baseCurrency='USD'` + JPY資産 → ドル換算
+3. `currency: undefined` → デフォルト動作（クラッシュしない）
+
+#### ルール 4: 新フェーズ開始前に `/test-quality-review` を実行する
+
+各フェーズの実装完了後、`/test-quality-review` を実行してギャップが
+ないことを確認してからコミットする。
+
+---
+
 ### 9-C: PDF エクスポート（Standard 専用機能）（2026-05）
 
 **ターゲット**: Standard プラン ¥700/月 の追加価値 → タケシが投資記録を PDF で保存・共有
@@ -299,15 +396,18 @@ Phase R〜8-D と並行して実装された機能基盤。Phase 9 の UI 改善
 **変更ファイル:**
 - `src/utils/pdfExport.ts`（NEW）: PDF 生成ロジック
   ```typescript
+  // ⚠️ 9-BX 教訓: baseCurrency + exchangeRate を必須引数に設計すること
   export async function generatePortfolioPDF(
     assets: CurrentAsset[],
     pnl: PortfolioPnL,
     score: PortfolioScore,
-    baseCurrency: string
+    baseCurrency: string,   // ← 必須
+    exchangeRate: number    // ← 必須（金額の通貨換算に使用）
   ): Promise<Blob>
   ```
   - `@react-pdf/renderer` または `jsPDF` を使用（バンドルサイズ要検討）
   - PDF 内容: 保有資産一覧・含み益/損サマリー・ポートフォリオスコア・生成日時
+  - **⚠️ 通貨換算ルール**: PDF内の全金額は `baseCurrency` に換算して表示
 - `src/components/data/ExportOptions.tsx`: PDF ダウンロードボタン追加（Standard のみ）
 - `package.json`: PDF ライブラリ依存追加
 
@@ -315,8 +415,12 @@ Phase R〜8-D と並行して実装された機能基盤。Phase 9 の UI 改善
 - [ ] Standard ユーザーが「PDF でエクスポート」ボタンをクリックするとダウンロードが始まる
 - [ ] Free ユーザーはボタンに UpgradePrompt が重なる
 - [ ] PDF に保有資産・損益・スコアが正確に記載される
+- [ ] **通貨換算テスト（9-BX 教訓）**: USD資産 + JPY資産混在で PDF生成 → 各金額が `baseCurrency` に正しく換算されている
+- [ ] `baseCurrency='JPY'` 時: USD資産の金額が `×exchangeRate` で円換算されている
+- [ ] `baseCurrency='USD'` 時: JPY資産の金額が `÷exchangeRate` でドル換算されている
 - [ ] バンドルサイズ増加: +100KB 以内（lazy import で分割）
 - [ ] テスト: PDF 生成の smoke test（エラーなし確認）
+- [ ] `/test-quality-review` 実行済み（弱いアサーション・換算漏れなし）
 - [ ] テスト全件通過・ビルド成功
 
 ### 9-D: E2E テスト拡充（89 → 130+ テストケース）（各フェーズ完了後に追加）
@@ -408,7 +512,10 @@ Phase R〜8-D と並行して実装された機能基盤。Phase 9 の UI 改善
 
 ### Phase 9 受け入れ基準（目標: 2026-05 完了）
 - [x] 取得単価入力 UI: HoldingCard に purchasePrice フィールド、Standard/Free 分岐・100点品質 ✅
-- [ ] マネックス証券 CSV: `parseMonexCSV()` 実装 + テスト ← **次回実行**
+- [x] マネックス証券 CSV: `parseMonexCSV()` 実装 + テスト ✅ (commit f83303ec)
+- [x] 通貨換算バグ A〜F 全修正・テスト品質強化 ✅ (commit 3c494245)
 - [ ] PDF エクスポート: Standard のみ、バンドル +100KB 以内
 - [ ] E2E テストケース: 89 → 130+ 件
 - [ ] any 残存数: 195 → ≤ 100 箇所（strict 強化継続）
+- [ ] **新規**: 全新機能実装前に `/test-quality-review` 実行済み
+- [ ] **新規**: 通貨換算を含む全新規関数に USD/JPY混在テスト追加済み
