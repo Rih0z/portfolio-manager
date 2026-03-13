@@ -88,6 +88,49 @@ vi.mock('../../../components/goals/GoalProgressSection', () => ({
   },
 }));
 
+vi.mock('../../../components/dashboard/DividendForecast', () => ({
+  default: function DividendForecast() {
+    return <div data-testid="dividend-forecast">Dividend Forecast</div>;
+  },
+}));
+
+vi.mock('../../../components/dashboard/WeeklyRebalanceCard', () => ({
+  default: function WeeklyRebalanceCard() {
+    return <div data-testid="weekly-rebalance-card">Weekly Rebalance Card</div>;
+  },
+}));
+
+vi.mock('../../../components/dashboard/StreakBadge', () => ({
+  default: function StreakBadge() {
+    return <div data-testid="streak-badge">Streak Badge</div>;
+  },
+}));
+
+vi.mock('../../../components/dashboard/ScoreChangeIndicator', () => ({
+  default: function ScoreChangeIndicator() {
+    return <div data-testid="score-change-indicator">Score Change Indicator</div>;
+  },
+}));
+
+vi.mock('../../../components/seo/SEOHead', () => ({
+  default: function SEOHead() {
+    return null;
+  },
+}));
+
+vi.mock('../../../components/survey/NPSSurvey', () => ({
+  default: function NPSSurvey() {
+    return null;
+  },
+}));
+
+vi.mock('../../../stores/engagementStore', () => ({
+  useEngagementStore: vi.fn((selector) => {
+    const state = { isInTrialPeriod: () => false, getTrialDaysRemaining: () => 0 };
+    return selector ? selector(state) : state;
+  }),
+}));
+
 vi.mock('../../../hooks/queries', () => ({
   useIsPremium: vi.fn(() => false),
 }));

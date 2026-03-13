@@ -96,7 +96,9 @@ describe('DividendForecast', () => {
     ];
     render(<DividendForecast />);
     // 3000 * 100 = 300,000 JPY, 2% yield = 6,000 JPY
-    expect(screen.getByText(/6,000/)).toBeInTheDocument();
+    // Badge に「年間 ¥6,000」と表示される
+    const badge = screen.getByText(/年間/).closest('[class]')!;
+    expect(badge.textContent).toContain('6,000');
   });
 
   it('should handle USD base currency with JPY assets', () => {
@@ -114,8 +116,10 @@ describe('DividendForecast', () => {
       },
     ];
     render(<DividendForecast />);
-    // 300,000 JPY / 150 = 2,000 USD, 3% = 60 USD
-    expect(screen.getByText(/\$60/)).toBeInTheDocument();
+    // 300,000 JPY / 150 = 2,000 USD, 3% = $60
+    // Badge に「年間 $60」と表示される
+    const badge = screen.getByText(/年間/).closest('[class]')!;
+    expect(badge.textContent).toContain('$60');
   });
 
   it('should show top dividend assets sorted by annual amount', () => {
@@ -201,12 +205,13 @@ describe('DividendForecast', () => {
       },
     ];
     const { container } = render(<DividendForecast />);
-    // 月別バーの title 属性で配当額を検証
+    // baseCurrency=JPY → title は「X月: ¥Y」形式
     // annual = [11] → 12月のみ配当あり
     const bars = container.querySelectorAll('[title]');
     const barsWithAmount = Array.from(bars).filter(el => {
       const title = el.getAttribute('title') || '';
-      return title.includes('$') && !title.includes('$0');
+      // ¥0 でない月（配当がある月）を検出
+      return title.includes('月') && !title.includes('¥0');
     });
     // annual なので配当がある月は12月の1つだけ
     expect(barsWithAmount.length).toBe(1);
@@ -225,7 +230,7 @@ describe('DividendForecast', () => {
     const bars = container.querySelectorAll('[title]');
     const barsWithAmount = Array.from(bars).filter(el => {
       const title = el.getAttribute('title') || '';
-      return title.includes('$') && !title.includes('$0');
+      return title.includes('月') && !title.includes('¥0');
     });
     // semi-annual = [5, 11] → 6月, 12月
     expect(barsWithAmount.length).toBe(2);
@@ -246,7 +251,7 @@ describe('DividendForecast', () => {
     const bars = container.querySelectorAll('[title]');
     const barsWithAmount = Array.from(bars).filter(el => {
       const title = el.getAttribute('title') || '';
-      return title.includes('$') && !title.includes('$0');
+      return title.includes('月') && !title.includes('¥0');
     });
     // monthly = 全12ヶ月
     expect(barsWithAmount.length).toBe(12);

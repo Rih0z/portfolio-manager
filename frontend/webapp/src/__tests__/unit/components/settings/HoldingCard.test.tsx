@@ -279,4 +279,49 @@ describe('HoldingCard', () => {
       expect(screen.queryByLabelText('AAPLの取得単価を編集')).not.toBeInTheDocument();
     });
   });
+
+  // --- 通貨換算テスト（9-BX ルール準拠） ---
+  describe('通貨換算', () => {
+    it('should convert USD asset value to JPY when baseCurrency=JPY', () => {
+      // $150 * 10 = $1,500 → ¥225,000 at rate=150
+      const props = {
+        ...defaultProps,
+        baseCurrency: 'JPY',
+        asset: createAsset({ price: 150, holdings: 10, currency: 'USD' }),
+      };
+      render(<HoldingCard {...props} />);
+      expect(screen.getByText('¥225,000')).toBeInTheDocument();
+    });
+
+    it('should convert JPY asset value to USD when baseCurrency=USD', () => {
+      // ¥3000 * 100 = ¥300,000 → $2,000 at rate=150
+      const props = {
+        ...defaultProps,
+        baseCurrency: 'USD',
+        asset: createAsset({ ticker: '7203', name: 'Toyota', price: 3000, holdings: 100, currency: 'JPY' }),
+      };
+      render(<HoldingCard {...props} />);
+      expect(screen.getByText('$2,000')).toBeInTheDocument();
+    });
+
+    it('should not convert when asset currency matches baseCurrency', () => {
+      // $150 * 10 = $1,500 (no conversion)
+      const props = {
+        ...defaultProps,
+        baseCurrency: 'USD',
+        asset: createAsset({ price: 150, holdings: 10, currency: 'USD' }),
+      };
+      render(<HoldingCard {...props} />);
+      expect(screen.getByText('$1,500')).toBeInTheDocument();
+    });
+
+    it('should handle undefined currency as same-currency (no crash)', () => {
+      const props = {
+        ...defaultProps,
+        baseCurrency: 'USD',
+        asset: createAsset({ currency: undefined }),
+      };
+      expect(() => render(<HoldingCard {...props} />)).not.toThrow();
+    });
+  });
 });
