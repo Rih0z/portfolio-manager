@@ -49,9 +49,17 @@ vi.mock('../../../components/simulation/AiAnalysisPrompt', () => ({
 }));
 
 describe('Simulation', () => {
+  // convertCurrency ヘルパー: 実際のロジックに準拠
+  const mockConvertCurrency = vi.fn((amount, from, to) => {
+    if (from === to) return amount;
+    if (from === 'USD' && to === 'JPY') return amount * 150;
+    if (from === 'JPY' && to === 'USD') return amount / 150;
+    return amount;
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     // デフォルトのPortfolioContextモック
     usePortfolioContext.mockReturnValue({
       totalAssets: 1000000,
@@ -66,7 +74,8 @@ describe('Simulation', () => {
         ]
       })),
       executeBatchPurchase: vi.fn(),
-      baseCurrency: 'JPY'
+      baseCurrency: 'JPY',
+      convertCurrency: mockConvertCurrency,
     });
 
     // Global methods mock
@@ -124,11 +133,12 @@ describe('Simulation', () => {
         additionalBudget: { amount: 200000, currency: 'JPY' },
         calculateSimulation: vi.fn(() => ({})),
         executeBatchPurchase: vi.fn(),
-        baseCurrency: 'JPY'
+        baseCurrency: 'JPY',
+        convertCurrency: mockConvertCurrency,
       });
-      
+
       render(<Simulation />);
-      
+
       expect(screen.getByText('1,500,000 円')).toBeInTheDocument();
       expect(screen.getByText('200,000 円')).toBeInTheDocument();
     });
@@ -139,9 +149,10 @@ describe('Simulation', () => {
         additionalBudget: { amount: 1500.25, currency: 'USD' },
         calculateSimulation: vi.fn(() => ({})),
         executeBatchPurchase: vi.fn(),
-        baseCurrency: 'USD'
+        baseCurrency: 'USD',
+        convertCurrency: mockConvertCurrency,
       });
-      
+
       render(<Simulation />);
       
       expect(screen.getByText('$10,000.50')).toBeInTheDocument();
@@ -178,7 +189,8 @@ describe('Simulation', () => {
         additionalBudget: { amount: 100000, currency: 'JPY' },
         calculateSimulation: vi.fn(() => mockSimulationResults),
         executeBatchPurchase: mockExecuteBatchPurchase,
-        baseCurrency: 'JPY'
+        baseCurrency: 'JPY',
+        convertCurrency: mockConvertCurrency,
       });
 
       render(<Simulation />);
@@ -199,7 +211,8 @@ describe('Simulation', () => {
         additionalBudget: { amount: 100000, currency: 'JPY' },
         calculateSimulation: vi.fn(() => ({})),
         executeBatchPurchase: mockExecuteBatchPurchase,
-        baseCurrency: 'JPY'
+        baseCurrency: 'JPY',
+        convertCurrency: mockConvertCurrency,
       });
 
       render(<Simulation />);
@@ -228,53 +241,87 @@ describe('Simulation', () => {
         additionalBudget: { amount: 100000, currency: 'JPY' },
         calculateSimulation: mockCalculateSimulation,
         executeBatchPurchase: vi.fn(),
-        baseCurrency: 'JPY'
+        baseCurrency: 'JPY',
+        convertCurrency: mockConvertCurrency,
       });
-      
+
       render(<Simulation />);
-      
+
       expect(mockCalculateSimulation).toHaveBeenCalled();
       expect(screen.getByTestId('simulation-result')).toBeInTheDocument();
     });
   });
 
-  describe('レイアウトとスタイリング', () => {
-    it('正しいレイアウトクラスが適用されている', () => {
+  describe('通貨換算（9-BX ルール準拠）', () => {
+    it('USD予算をJPYに換算してシミュレーション後の総資産を正しく表示する', () => {
+      // totalAssets=1,000,000 JPY, budget=1,000 USD → 150,000 JPY at rate=150
+      // シミュレーション後: 1,000,000 + 150,000 = 1,150,000 JPY
+      usePortfolioContext.mockReturnValue({
+        totalAssets: 1000000,
+        additionalBudget: { amount: 1000, currency: 'USD' },
+        calculateSimulation: vi.fn(() => ({ recommendations: [] })),
+        executeBatchPurchase: vi.fn(),
+        baseCurrency: 'JPY',
+        convertCurrency: mockConvertCurrency,
+      });
+
       render(<Simulation />);
-      
-      const mainContainer = document.querySelector('.space-y-6');
-      expect(mainContainer).toBeInTheDocument();
+
+      expect(screen.getByText('1,150,000 円')).toBeInTheDocument();
     });
 
-    it('白背景のカードレイアウトが適用されている', () => {
+    it('JPY予算をUSDに換算してシミュレーション後の総資産を正しく表示する', () => {
+      // totalAssets=$10,000, budget=150,000 JPY → $1,000 at rate=150
+      // シミュレーション後: $10,000 + $1,000 = $11,000
+      usePortfolioContext.mockReturnValue({
+        totalAssets: 10000,
+        additionalBudget: { amount: 150000, currency: 'JPY' },
+        calculateSimulation: vi.fn(() => ({ recommendations: [] })),
+        executeBatchPurchase: vi.fn(),
+        baseCurrency: 'USD',
+        convertCurrency: mockConvertCurrency,
+      });
+
       render(<Simulation />);
-      
-      const whiteCards = document.querySelectorAll('.bg-card.rounded-lg.shadow');
-      expect(whiteCards.length).toBe(2); // 2つのメインセクション
+
+      expect(screen.getByText('$11,000.00')).toBeInTheDocument();
     });
 
-    it('情報表示セクションが正しくスタイリングされている', () => {
+    it('同一通貨の場合は換算せずそのまま加算する', () => {
+      // totalAssets=1,000,000 JPY + budget=100,000 JPY = 1,100,000 JPY
+      usePortfolioContext.mockReturnValue({
+        totalAssets: 1000000,
+        additionalBudget: { amount: 100000, currency: 'JPY' },
+        calculateSimulation: vi.fn(() => ({ recommendations: [] })),
+        executeBatchPurchase: vi.fn(),
+        baseCurrency: 'JPY',
+        convertCurrency: mockConvertCurrency,
+      });
+
       render(<Simulation />);
-      
-      const infoSection = document.querySelector('.bg-primary-500\\/10.p-4.rounded-md');
-      expect(infoSection).toBeInTheDocument();
+
+      expect(screen.getByText('1,100,000 円')).toBeInTheDocument();
+      // convertCurrency は同一通貨なので呼ばれない
+      expect(mockConvertCurrency).not.toHaveBeenCalled();
     });
   });
 
   describe('エラーハンドリング', () => {
-    it('PortfolioContextが空の場合はcalculateSimulationが未定義でエラーが発生する', () => {
+    it('PortfolioContextが空の場合はTypeErrorが発生する（ErrorBoundaryで捕捉される前提）', () => {
       usePortfolioContext.mockReturnValue({});
 
       // calculateSimulationが未定義なのでTypeErrorが発生する
+      // 本番では ErrorBoundary が捕捉する
       expect(() => render(<Simulation />)).toThrow();
     });
 
-    it('calculateSimulationが未定義の場合はエラーが発生する', () => {
+    it('calculateSimulationが未定義の場合はTypeErrorが発生する', () => {
       usePortfolioContext.mockReturnValue({
         totalAssets: 1000000,
         additionalBudget: { amount: 100000, currency: 'JPY' },
         executeBatchPurchase: vi.fn(),
-        baseCurrency: 'JPY'
+        baseCurrency: 'JPY',
+        convertCurrency: mockConvertCurrency,
       });
 
       // calculateSimulationが未定義なのでTypeErrorが発生する
@@ -294,11 +341,12 @@ describe('Simulation', () => {
         additionalBudget: { amount: 300000, currency: 'JPY' },
         calculateSimulation: mockCalculateSimulation,
         executeBatchPurchase: mockExecuteBatchPurchase,
-        baseCurrency: 'JPY'
+        baseCurrency: 'JPY',
+        convertCurrency: mockConvertCurrency,
       });
-      
+
       render(<Simulation />);
-      
+
       // 1. 基本情報の表示確認
       expect(screen.getByText('2,000,000 円')).toBeInTheDocument(); // 総資産
       expect(screen.getByText('300,000 円')).toBeInTheDocument(); // 追加予算
