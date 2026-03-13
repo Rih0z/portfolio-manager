@@ -45,10 +45,22 @@ import { getJapaneseStockName } from '../utils/japaneseStockNames';
 import { getErrorMessage } from '../utils/errorUtils';
 import { useUIStore } from './uiStore';
 import { getIsPremiumFromCache } from '../hooks/queries';
+import { useEngagementStore, TRIAL_MAX_HOLDINGS } from './engagementStore';
 
 // ─── Holdings Plan Limits ─────────────────────────────
 const MAX_HOLDINGS_FREE = 5;
 const MAX_HOLDINGS_STANDARD = Infinity;
+
+/**
+ * トライアル中かどうかを考慮した銘柄上限を取得
+ */
+const getMaxHoldings = (): number => {
+  if (getIsPremiumFromCache()) return MAX_HOLDINGS_STANDARD;
+  // 初回7日間トライアル: 10銘柄まで許可
+  const { isInTrialPeriod } = useEngagementStore.getState();
+  if (isInTrialPeriod()) return TRIAL_MAX_HOLDINGS;
+  return MAX_HOLDINGS_FREE;
+};
 
 // --- データデシリアライズ ---
 // 旧フォーマット（Base64/Base64+URI）からの後方互換読み取り（persist migration で使用）
@@ -269,8 +281,8 @@ export const usePortfolioStore = create<PortfolioState>()(
   addTicker: async (ticker: string) => {
     const { targetPortfolio, currentAssets } = get();
 
-    // プラン制限チェック
-    const maxHoldings = getIsPremiumFromCache() ? MAX_HOLDINGS_STANDARD : MAX_HOLDINGS_FREE;
+    // プラン制限チェック（トライアル期間考慮）
+    const maxHoldings = getMaxHoldings();
     const currentCount = new Set(
       [...targetPortfolio, ...currentAssets]
         .map(item => item.ticker?.toLowerCase())
@@ -278,7 +290,9 @@ export const usePortfolioStore = create<PortfolioState>()(
     ).size;
     if (currentCount >= maxHoldings) {
       notify(
-        `Freeプランでは最大${MAX_HOLDINGS_FREE}銘柄まで登録できます。Standardプランにアップグレードすると無制限に追加できます。`,
+        maxHoldings > MAX_HOLDINGS_FREE
+          ? `トライアル期間中は最大${maxHoldings}銘柄まで登録できます。Standardプランにアップグレードすると無制限に追加できます。`
+          : `Freeプランでは最大${MAX_HOLDINGS_FREE}銘柄まで登録できます。Standardプランにアップグレードすると無制限に追加できます。`,
         'warning'
       );
       return { success: false, message: '銘柄数の上限に達しています', limitReached: true };
@@ -659,11 +673,13 @@ export const usePortfolioStore = create<PortfolioState>()(
       if (data.exchangeRate) updates.exchangeRate = data.exchangeRate;
 
       if (Array.isArray(data.currentAssets)) {
-        // プラン制限チェック
-        const maxHoldings = getIsPremiumFromCache() ? MAX_HOLDINGS_STANDARD : MAX_HOLDINGS_FREE;
+        // プラン制限チェック（トライアル期間考慮）
+        const maxHoldings = getMaxHoldings();
         if (data.currentAssets.length > maxHoldings) {
           notify(
-            `Freeプランでは最大${MAX_HOLDINGS_FREE}銘柄まで登録できます。インポートデータの先頭${MAX_HOLDINGS_FREE}銘柄のみ取り込みます。`,
+            maxHoldings > MAX_HOLDINGS_FREE
+              ? `トライアル期間中は最大${maxHoldings}銘柄まで取り込めます。先頭${maxHoldings}銘柄のみ取り込みます。`
+              : `Freeプランでは最大${MAX_HOLDINGS_FREE}銘柄まで登録できます。インポートデータの先頭${MAX_HOLDINGS_FREE}銘柄のみ取り込みます。`,
             'warning'
           );
           data.currentAssets = data.currentAssets.slice(0, maxHoldings);

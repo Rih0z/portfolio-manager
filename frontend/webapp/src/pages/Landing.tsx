@@ -6,8 +6,8 @@
  *
  * セクション構成:
  *  1. Hero — キャッチコピー + Google Login CTA + スタッツバー
- *  2. Pain — 3つのペインカード（課題共感）
- *  3. Solution — 3つの解決策
+ *  2. Solution — 3つの解決策
+ *  3. Pain — 3つのペインカード（課題共感）
  *  4. Features — PFスコア・AIプロンプト・ゴール管理
  *  5. Trust — Google OAuth + Stripe + AWS
  *  6. Pricing — Free vs Standard 比較（/pricing 誘導）
@@ -91,13 +91,19 @@ const Landing: React.FC = () => {
           <p className="mt-4 text-xs text-muted-foreground">
             クレジットカード不要 — 永久無料プランあり
           </p>
+          <Badge variant="secondary" className="mt-3 text-xs">
+            初回7日間は10銘柄まで無料体験
+          </Badge>
+          <p className="mt-2 text-xs text-muted-foreground/80">
+            43juni をお使いだった方にも — 配当予測・セクター分析・PFスコアで資産管理を再開
+          </p>
 
           {/* スタッツバー */}
           <div className="mt-10 flex flex-wrap justify-center gap-x-8 gap-y-4">
             {[
-              { value: '日米株・投信', label: '対応資産クラス' },
-              { value: 'SBI・楽天', label: 'CSV対応証券口座' },
-              { value: '8指標', label: 'PFスコア採点' },
+              { value: '日米 3,000+銘柄', label: '対応資産' },
+              { value: '3大証券対応', label: 'SBI・楽天・マネックス' },
+              { value: '8指標スコア', label: 'PF採点' },
             ].map((stat) => (
               <div key={stat.label} className="text-center">
                 <div className="text-xl sm:text-2xl font-bold text-foreground font-mono">{stat.value}</div>
@@ -107,45 +113,8 @@ const Landing: React.FC = () => {
           </div>
         </section>
 
-        {/* ───────── 2. Pain（課題共感）───────── */}
+        {/* ───────── 2. Solution ───────── */}
         <section className="py-12 sm:py-16 bg-muted/40 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 rounded-2xl">
-          <h2 className="text-2xl sm:text-3xl font-bold text-foreground text-center mb-4">
-            こんな状況、心当たりはありませんか
-          </h2>
-          <p className="text-muted-foreground text-center mb-10 max-w-xl mx-auto">
-            複数口座で日米分散投資をしている方が抱えがちな課題
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {[
-              {
-                Icon: ClipboardList,
-                title: '口座ごとにバラバラで把握できない',
-                desc: 'SBI・楽天・米国口座と複数に分散していて、全体の評価額と損益を手作業で集計している。',
-              },
-              {
-                Icon: HelpCircle,
-                title: 'リバランスの計算が面倒',
-                desc: '目標配分との乖離は感覚でしかわからず、追加投資のたびにスプレッドシートで試算が必要。',
-              },
-              {
-                Icon: LayoutGrid,
-                title: '既存ツールは使いにくい',
-                desc: 'マネーフォワードは銀行口座連携前提で重い。証券会社のツールは自社口座しか見られない。',
-              },
-            ].map((pain) => (
-              <Card key={pain.title} hoverable padding="large">
-                <div className="w-10 h-10 mb-3 rounded-lg bg-muted flex items-center justify-center text-muted-foreground">
-                  <pain.Icon size={24} strokeWidth={1.5} />
-                </div>
-                <h3 className="text-base font-semibold text-foreground mb-2">{pain.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{pain.desc}</p>
-              </Card>
-            ))}
-          </div>
-        </section>
-
-        {/* ───────── 3. Solution ───────── */}
-        <section className="py-12 sm:py-16">
           <h2 className="text-2xl sm:text-3xl font-bold text-foreground text-center mb-4">
             PortfolioWise が解決します
           </h2>
@@ -180,6 +149,43 @@ const Landing: React.FC = () => {
                 <Badge variant="secondary" className="mb-2">{sol.step}</Badge>
                 <h3 className="text-lg font-semibold text-foreground mb-2">{sol.title}</h3>
                 <p className="text-sm text-muted-foreground">{sol.desc}</p>
+              </Card>
+            ))}
+          </div>
+        </section>
+
+        {/* ───────── 3. Pain（課題共感）───────── */}
+        <section className="py-12 sm:py-16">
+          <h2 className="text-2xl sm:text-3xl font-bold text-foreground text-center mb-4">
+            こんな状況、心当たりはありませんか
+          </h2>
+          <p className="text-muted-foreground text-center mb-10 max-w-xl mx-auto">
+            複数口座で日米分散投資をしている方が抱えがちな課題
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {[
+              {
+                Icon: ClipboardList,
+                title: '口座ごとにバラバラで把握できない',
+                desc: 'SBI・楽天・米国口座と複数に分散していて、全体の評価額と損益を手作業で集計している。',
+              },
+              {
+                Icon: HelpCircle,
+                title: 'リバランスの計算が面倒',
+                desc: '目標配分との乖離は感覚でしかわからず、追加投資のたびにスプレッドシートで試算が必要。',
+              },
+              {
+                Icon: LayoutGrid,
+                title: '既存ツールは使いにくい',
+                desc: 'マネーフォワードは銀行口座連携前提で重い。証券会社のツールは自社口座しか見られない。',
+              },
+            ].map((pain) => (
+              <Card key={pain.title} hoverable padding="large">
+                <div className="w-10 h-10 mb-3 rounded-lg bg-muted flex items-center justify-center text-muted-foreground">
+                  <pain.Icon size={24} strokeWidth={1.5} />
+                </div>
+                <h3 className="text-base font-semibold text-foreground mb-2">{pain.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{pain.desc}</p>
               </Card>
             ))}
           </div>
@@ -287,10 +293,13 @@ const Landing: React.FC = () => {
               </div>
               <ul className="space-y-2 text-sm">
                 {[
-                  '保有銘柄 5件まで',
+                  '保有銘柄 5件まで（初回7日間は10件）',
                   '市場データ 3回/日',
                   'AIプロンプト 1回/月',
                   'PFスコア 基本3指標',
+                  '配当予測（基本）',
+                  'リバランスチェック',
+                  'Google Drive バックアップ',
                 ].map((item) => (
                   <li key={item} className="flex items-start gap-2">
                     <Check size={20} strokeWidth={2} className="text-success-500 flex-shrink-0" />
@@ -317,6 +326,8 @@ const Landing: React.FC = () => {
                   'リアルタイム市場データ',
                   'AIプロンプト 無制限',
                   'PFスコア 詳細8指標',
+                  '配当予測・リバランス乖離チェック',
+                  'ストリーク Freeze（月3回）',
                   '広告非表示',
                 ].map((item) => (
                   <li key={item} className="flex items-start gap-2">
@@ -344,10 +355,6 @@ const Landing: React.FC = () => {
           <div className="space-y-6">
             {[
               {
-                q: 'PortfolioWise は投資助言サービスですか？',
-                a: 'いいえ。PortfolioWise はポートフォリオ可視化ツールであり、投資助言・推奨は一切行いません。投資判断はご自身の責任で行ってください。',
-              },
-              {
                 q: '対応している証券口座は？',
                 a: 'CSV/JSON形式でエクスポートできる証券口座であれば対応可能です。SBI証券・楽天証券・マネックス証券等の主要口座で動作確認済みです。',
               },
@@ -358,6 +365,14 @@ const Landing: React.FC = () => {
               {
                 q: '解約はいつでもできますか？',
                 a: 'はい。Standard プランはいつでもキャンセル可能です。解約後も請求期間終了まで Standard 機能をご利用いただけます。',
+              },
+              {
+                q: '43juniをお使いだった方へ — 移行方法は？',
+                a: 'SBI証券・楽天証券・マネックス証券のCSVをそのままインポートできます。配当予測・PFスコア（8指標）・リバランスチェックで、43juniの主要機能をカバーしています。',
+              },
+              {
+                q: 'PortfolioWise は投資助言サービスですか？',
+                a: 'いいえ。PortfolioWise はポートフォリオ可視化ツールであり、投資助言・推奨は一切行いません。投資判断はご自身の責任で行ってください。',
               },
             ].map((faq) => (
               <Card key={faq.q} padding="medium">

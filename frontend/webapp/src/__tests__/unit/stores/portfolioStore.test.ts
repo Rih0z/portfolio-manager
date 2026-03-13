@@ -75,6 +75,23 @@ vi.mock('../../../stores/uiStore', () => ({
   },
 }));
 
+// Mock engagementStore (portfolioStore imports it for trial period check)
+const mockIsInTrialPeriod = vi.fn(() => false);
+vi.mock('../../../stores/engagementStore', () => ({
+  useEngagementStore: {
+    getState: vi.fn(() => ({
+      isInTrialPeriod: mockIsInTrialPeriod,
+    })),
+  },
+  TRIAL_MAX_HOLDINGS: 10,
+}));
+
+// Mock getIsPremiumFromCache
+const mockGetIsPremiumFromCache = vi.fn(() => false);
+vi.mock('../../../hooks/queries', () => ({
+  getIsPremiumFromCache: (...args: any[]) => mockGetIsPremiumFromCache(...args),
+}));
+
 // Now import the store and dependencies
 import {
   usePortfolioStore,
@@ -1193,6 +1210,90 @@ describe('portfolioStore', () => {
       expect(fixedAsset).toBeDefined();
       expect(fixedAsset!.currency).toBeDefined();
       expect(fixedAsset!.currency).not.toBe(undefined);
+    });
+  });
+
+  // =========================================================================
+  // getMaxHoldings (trial period integration) — 9-BY-S
+  // =========================================================================
+  describe('getMaxHoldings (trial-aware limits)', () => {
+    beforeEach(() => {
+      mockGetIsPremiumFromCache.mockReturnValue(false);
+      mockIsInTrialPeriod.mockReturnValue(false);
+    });
+
+    it('should not hit limit for premium users (Infinity)', async () => {
+      mockGetIsPremiumFromCache.mockReturnValue(true);
+
+      usePortfolioStore.setState({
+        targetPortfolio: [],
+        currentAssets: Array.from({ length: 50 }, (_, i) => ({
+          id: `id-${i}`,
+          ticker: `T${i}`,
+          name: `Stock ${i}`,
+          price: 100,
+          holdings: 1,
+          currency: 'USD',
+        })),
+      });
+
+      // addTicker はAPI呼び出しを伴うが、制限エラーにはならない
+      const result = await usePortfolioStore.getState().addTicker('NEW_TICKER');
+      // Premium は制限なし → limitReached: true にはならない
+      expect(result).toBeDefined();
+      expect(result).not.toEqual(
+        expect.objectContaining({ limitReached: true })
+      );
+    });
+
+    it('should limit to 10 during trial period for free users', async () => {
+      mockGetIsPremiumFromCache.mockReturnValue(false);
+      mockIsInTrialPeriod.mockReturnValue(true);
+
+      const assets = Array.from({ length: 10 }, (_, i) => ({
+        id: `id-${i}`,
+        ticker: `T${i}`,
+        name: `Stock ${i}`,
+        price: 100,
+        holdings: 1,
+        currency: 'USD',
+      }));
+      usePortfolioStore.setState({
+        targetPortfolio: [],
+        currentAssets: assets,
+      });
+
+      // 11個目は制限に引っかかる
+      const result = await usePortfolioStore.getState().addTicker('EXTRA');
+      expect(result).toBeDefined();
+      expect(result).toEqual(
+        expect.objectContaining({ limitReached: true })
+      );
+    });
+
+    it('should limit to 5 for free users after trial expires', async () => {
+      mockGetIsPremiumFromCache.mockReturnValue(false);
+      mockIsInTrialPeriod.mockReturnValue(false);
+
+      const assets = Array.from({ length: 5 }, (_, i) => ({
+        id: `id-${i}`,
+        ticker: `T${i}`,
+        name: `Stock ${i}`,
+        price: 100,
+        holdings: 1,
+        currency: 'USD',
+      }));
+      usePortfolioStore.setState({
+        targetPortfolio: [],
+        currentAssets: assets,
+      });
+
+      // 6個目は制限に引っかかる
+      const result = await usePortfolioStore.getState().addTicker('EXTRA2');
+      expect(result).toBeDefined();
+      expect(result).toEqual(
+        expect.objectContaining({ limitReached: true })
+      );
     });
   });
 });

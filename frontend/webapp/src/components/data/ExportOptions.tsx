@@ -15,19 +15,28 @@
  */
 
 import React, { useState, useCallback } from 'react';
+import { FileDown, FileText, Lock, RotateCw } from 'lucide-react';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
+import { useCanUseFeature, useIsPremium } from '../../hooks/queries/useSubscription';
+import { calculatePortfolioPnL } from '../../utils/plCalculation';
+import { calculatePortfolioScore } from '../../utils/portfolioScore';
+import UpgradePrompt from '../common/UpgradePrompt';
 import logger from '../../utils/logger';
 import type { CurrentAsset, TargetAllocation } from '../../types/portfolio.types';
 
+interface ExportStatus {
+  type: 'success' | 'error';
+  message: string;
+}
+
 const ExportOptions = () => {
   const { currentAssets, targetPortfolio, baseCurrency, exchangeRate } = usePortfolioContext();
-  interface ExportStatus {
-    type: 'success' | 'error';
-    message: string;
-  }
+  const canExportPDF = useCanUseFeature('pdfExport');
+  const isPremium = useIsPremium();
 
   const [exportFormat, setExportFormat] = useState('json');
   const [exportStatus, setExportStatus] = useState<ExportStatus | null>(null);
+  const [isPdfGenerating, setIsPdfGenerating] = useState(false);
 
   // JSONへの変換
   const convertToJson = useCallback(() => {
@@ -117,6 +126,67 @@ const ExportOptions = () => {
       throw error;
     }
   }, []);
+
+  // PDF エクスポート（Standard 専用 — jsPDF lazy import）
+  const handlePdfExport = useCallback(async () => {
+    if (!canExportPDF) return;
+
+    setIsPdfGenerating(true);
+    setExportStatus(null);
+
+    try {
+      const rate = exchangeRate?.rate || 150;
+
+      // PnL 計算
+      const pnl = calculatePortfolioPnL(
+        currentAssets as CurrentAsset[],
+        {}, // priceHistories — PDF では前日比不要
+        baseCurrency,
+        rate
+      );
+
+      // スコア計算
+      const score = calculatePortfolioScore(
+        currentAssets as CurrentAsset[],
+        targetPortfolio as TargetAllocation[],
+        isPremium,
+        baseCurrency,
+        rate
+      );
+
+      // lazy import PDF generator
+      const { generatePortfolioPDF } = await import('../../utils/pdfExport');
+
+      const blob = await generatePortfolioPDF({
+        pnl,
+        score,
+        baseCurrency,
+        exchangeRate: rate,
+      });
+
+      // ダウンロード
+      const url = URL.createObjectURL(blob);
+      const link = Object.assign(document.createElement('a'), {
+        href: url,
+        download: `portfolio_report_${new Date().toISOString().slice(0, 10)}.pdf`,
+        style: 'display: none',
+      });
+      document.body.appendChild(link);
+      link.click();
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+        document.body.removeChild(link);
+      }, 100);
+
+      setExportStatus({ type: 'success', message: 'PDF レポートをダウンロードしました' });
+      setTimeout(() => setExportStatus(null), 3000);
+    } catch (error) {
+      logger.error('PDF エクスポートエラー:', error);
+      setExportStatus({ type: 'error', message: 'PDF の生成に失敗しました' });
+    } finally {
+      setIsPdfGenerating(false);
+    }
+  }, [canExportPDF, currentAssets, targetPortfolio, baseCurrency, exchangeRate, isPremium]);
 
   const handleDownload = useCallback(async () => {
     try {
@@ -208,13 +278,74 @@ const ExportOptions = () => {
         </button>
       </div>
       
+      {/* PDF エクスポート（Standard 専用） */}
+      <div className="mt-6 pt-4 border-t border-gray-200">
+        <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
+          <FileText className="h-4 w-4" />
+          PDF レポート
+        </h3>
+        {canExportPDF ? (
+          <button
+            type="button"
+            className="bg-primary text-white px-4 py-2 rounded-md hover:bg-primary-dark flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={handlePdfExport}
+            disabled={isPdfGenerating}
+            data-testid="pdf-export-button"
+          >
+            <FileDown className="h-4 w-4" />
+            {isPdfGenerating ? 'PDF 生成中...' : 'PDF でエクスポート'}
+          </button>
+        ) : (
+          <div>
+            {/* PDF プレビュー（Curiosity Gap — P3 転換トリガー） */}
+            <div className="mb-3 p-3 rounded-md bg-gray-50 border border-gray-200 relative overflow-hidden" data-testid="pdf-preview">
+              <div className="blur-[2px] select-none pointer-events-none" aria-hidden="true">
+                <p className="text-xs text-gray-500 font-mono">PortfolioWise</p>
+                <p className="text-[10px] text-gray-400">ポートフォリオレポート</p>
+                <div className="mt-1 h-2 bg-gray-200 rounded w-3/4" />
+                <div className="mt-1 h-2 bg-gray-200 rounded w-1/2" />
+                <div className="mt-1 h-2 bg-gray-200 rounded w-2/3" />
+              </div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="bg-white/90 px-3 py-1.5 rounded-md text-xs font-medium text-gray-600 shadow-sm flex items-center gap-1.5">
+                  <Lock className="h-3 w-3" />
+                  Standard プランで利用可能
+                </span>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="bg-gray-200 text-gray-400 px-4 py-2 rounded-md flex items-center gap-2 cursor-not-allowed"
+              disabled
+              data-testid="pdf-export-locked"
+            >
+              <Lock className="h-4 w-4" />
+              PDF でエクスポート
+            </button>
+            <UpgradePrompt feature="PDF エクスポート" variant="inline" />
+          </div>
+        )}
+      </div>
+
       {exportStatus && (
         <div
-          className={`mt-4 p-2 rounded-md ${
+          className={`mt-4 p-2 rounded-md flex items-center justify-between ${
             exportStatus.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
           }`}
+          role="status"
         >
-          {exportStatus.message}
+          <span>{exportStatus.message}</span>
+          {exportStatus.type === 'error' && (
+            <button
+              type="button"
+              className="ml-2 flex items-center gap-1 text-sm underline hover:no-underline"
+              onClick={handlePdfExport}
+              data-testid="pdf-retry-button"
+            >
+              <RotateCw className="h-3 w-3" />
+              再試行
+            </button>
+          )}
         </div>
       )}
     </div>

@@ -6,7 +6,7 @@
  *
  * @file src/components/goals/GoalCard.tsx
  */
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useRef, useState } from 'react';
 import { Card, CardContent } from '../ui/card';
 import { Progress } from '../ui/progress';
 import { Badge } from '../ui/badge';
@@ -15,6 +15,7 @@ import {
   calculateMonthlyRequired,
   type InvestmentGoal,
 } from '../../utils/goalCalculations';
+import { useEngagementStore } from '../../stores/engagementStore';
 
 interface GoalCardProps {
   goal: InvestmentGoal;
@@ -38,6 +39,10 @@ const GoalCard: React.FC<GoalCardProps> = ({
   onEdit,
   onDelete,
 }) => {
+  const addMilestoneEvent = useEngagementStore(s => s.addMilestoneEvent);
+  const prevPercentRef = useRef<number | null>(null);
+  const [showCelebration, setShowCelebration] = useState(false);
+
   const progress = useMemo(
     () => calculateGoalProgress(goal, currentValue),
     [goal, currentValue]
@@ -48,6 +53,36 @@ const GoalCard: React.FC<GoalCardProps> = ({
     const amount = calculateMonthlyRequired(progress.remainingAmount, goal.targetDate);
     return amount === Infinity ? null : amount;
   }, [goal.targetDate, progress.remainingAmount]);
+
+  // マイルストーン到達検知 (25%, 50%, 75%, 100%)
+  useEffect(() => {
+    const prev = prevPercentRef.current;
+    const curr = progress.progressPercent;
+    prevPercentRef.current = curr;
+
+    if (prev === null) return;
+
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    // 最も高い到達マイルストーンのみ通知する（例: 20%→80% は 75% のみ発火）
+    // 低い閾値を個別通知すると大幅上昇時にスパム化するため意図的に最高値のみ
+    const milestones = [100, 75, 50, 25]; // 降順チェック
+    for (const m of milestones) {
+      if (prev < m && curr >= m) {
+        if (m === 100) {
+          addMilestoneEvent('goal_achieved', `「${goal.name}」目標達成おめでとうございます！`);
+          setShowCelebration(true);
+          timer = setTimeout(() => setShowCelebration(false), 3000);
+        } else {
+          addMilestoneEvent('goal_milestone', `「${goal.name}」が${m}%に到達しました`);
+        }
+        break;
+      }
+    }
+
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [progress.progressPercent, goal.name, addMilestoneEvent]);
 
   const progressVariant = progress.isCompleted
     ? 'success'
@@ -62,8 +97,18 @@ const GoalCard: React.FC<GoalCardProps> = ({
       data-testid="goal-card"
       data-completed={progress.isCompleted ? 'true' : 'false'}
       padding="medium"
-      className="relative"
+      className={`relative overflow-hidden ${showCelebration ? 'ring-2 ring-success-400 ring-offset-2' : ''}`}
     >
+      {/* 達成セレブレーション */}
+      {showCelebration && (
+        <div className="absolute inset-0 pointer-events-none z-10" aria-hidden="true">
+          <div className="absolute top-0 left-1/4 w-2 h-2 bg-success-400 rounded-full animate-bounce" style={{ animationDelay: '0ms', animationDuration: '600ms' }} />
+          <div className="absolute top-0 left-1/2 w-2 h-2 bg-primary-400 rounded-full animate-bounce" style={{ animationDelay: '100ms', animationDuration: '700ms' }} />
+          <div className="absolute top-0 left-3/4 w-2 h-2 bg-warning-400 rounded-full animate-bounce" style={{ animationDelay: '200ms', animationDuration: '500ms' }} />
+          <div className="absolute top-2 left-1/3 w-1.5 h-1.5 bg-danger-400 rounded-full animate-bounce" style={{ animationDelay: '150ms', animationDuration: '650ms' }} />
+          <div className="absolute top-2 left-2/3 w-1.5 h-1.5 bg-primary-300 rounded-full animate-bounce" style={{ animationDelay: '250ms', animationDuration: '550ms' }} />
+        </div>
+      )}
       <CardContent className="space-y-3">
         {/* Header */}
         <div className="flex items-center justify-between">

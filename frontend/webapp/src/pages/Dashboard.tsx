@@ -36,11 +36,19 @@ import { Button } from '../components/ui/button';
 import { trackEvent, AnalyticsEvents } from '../utils/analytics';
 import SEOHead from '../components/seo/SEOHead';
 import NPSSurvey from '../components/survey/NPSSurvey';
+import StreakBadge from '../components/dashboard/StreakBadge';
+import ScoreChangeIndicator from '../components/dashboard/ScoreChangeIndicator';
+import DividendForecast from '../components/dashboard/DividendForecast';
+import WeeklyRebalanceCard from '../components/dashboard/WeeklyRebalanceCard';
+import { useEngagementStore } from '../stores/engagementStore';
+import { Badge } from '../components/ui/badge';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { currentAssets, targetPortfolio, baseCurrency, exchangeRate } = usePortfolioContext();
   const isPremium = useIsPremium();
+  const isInTrialPeriod = useEngagementStore(s => s.isInTrialPeriod);
+  const getTrialDaysRemaining = useEngagementStore(s => s.getTrialDaysRemaining);
 
   React.useEffect(() => {
     trackEvent(AnalyticsEvents.DASHBOARD_VIEW);
@@ -112,37 +120,57 @@ const Dashboard = () => {
     <div data-testid="dashboard-page" className="space-y-4 sm:space-y-6 animate-fade-in px-3 sm:px-4 lg:px-6 pb-20 sm:pb-6">
       <DataStatusBar />
 
-      {/* Welcome Section */}
+      {/* Score Change Notifications */}
+      <ScoreChangeIndicator />
+
+      {/* Welcome Section + Streak */}
       <div className="mb-4 sm:mb-8 pt-2">
-        <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-primary-500 to-primary-600 bg-clip-text text-transparent mb-2 leading-tight">
-          ポートフォリオダッシュボード
-        </h1>
-        <p className="text-muted-foreground text-sm sm:text-base">
-          資産配分・損益・スコアの全体概要
-        </p>
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-primary-500 to-primary-600 bg-clip-text text-transparent mb-2 leading-tight">
+              ポートフォリオダッシュボード
+            </h1>
+            <p className="text-muted-foreground text-sm sm:text-base">
+              資産配分・損益・スコアの全体概要
+            </p>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            {!isPremium && isInTrialPeriod() && (
+              <Badge variant="default" data-testid="trial-badge" className="font-mono tabular-nums">
+                トライアル残り {getTrialDaysRemaining()}日
+              </Badge>
+            )}
+            <StreakBadge />
+          </div>
+        </div>
       </div>
 
-      {/* P&L Summary */}
-      <PnLSummary />
+      {/* Main Grid - 2 columns on desktop */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        {/* Left Column: Key Metrics */}
+        <div className="space-y-4 sm:space-y-6">
+          <PnLSummary />
+          {enrichedData && (
+            <StrengthsWeaknessCard enrichedData={enrichedData} />
+          )}
+          <PortfolioScoreCard />
+        </div>
 
-      {/* Strengths & Weakness Insights */}
-      {enrichedData && (
-        <StrengthsWeaknessCard enrichedData={enrichedData} />
-      )}
+        {/* Right Column: Charts & Goals */}
+        <div className="space-y-4 sm:space-y-6">
+          <GoalProgressSection
+            totalValue={enrichedData?.holdings?.totalValue || 0}
+            baseCurrency={baseCurrency}
+          />
+          <DividendForecast />
+          <WeeklyRebalanceCard />
+          <PortfolioSummary />
+          <PortfolioCharts />
+        </div>
+      </div>
 
-      {/* Goal Progress */}
-      <GoalProgressSection
-        totalValue={enrichedData?.holdings?.totalValue || 0}
-        baseCurrency={baseCurrency}
-      />
-
-      {/* Portfolio Score */}
-      <PortfolioScoreCard />
-
-      {/* Dashboard Components with responsive spacing */}
+      {/* Full-width section below grid */}
       <div className="space-y-4 sm:space-y-6">
-        <PortfolioSummary />
-        <PortfolioCharts />
         <PnLTrendChart />
         <DifferenceChart />
         <AssetsTable />

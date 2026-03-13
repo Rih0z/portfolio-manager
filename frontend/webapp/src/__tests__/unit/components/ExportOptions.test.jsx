@@ -6,8 +6,11 @@ import { vi } from "vitest";
 
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import '@testing-library/jest-dom';
 import ExportOptions from '../../../components/data/ExportOptions';
+
+const renderWithRouter = (ui) => render(<MemoryRouter>{ui}</MemoryRouter>);
 
 // PortfolioContextのモック
 const mockPortfolioContext = {
@@ -46,6 +49,49 @@ vi.mock('../../../hooks/usePortfolioContext', () => ({
   usePortfolioContext: () => mockPortfolioContext
 }));
 
+// サブスクリプションフックのモック
+let mockCanExportPDF = false;
+let mockIsPremium = false;
+vi.mock('../../../hooks/queries/useSubscription', () => ({
+  useCanUseFeature: (feature) => {
+    if (feature === 'pdfExport') return mockCanExportPDF;
+    return true;
+  },
+  useIsPremium: () => mockIsPremium,
+}));
+
+// portfolioScore / plCalculation のモック
+vi.mock('../../../utils/plCalculation', () => ({
+  calculatePortfolioPnL: vi.fn().mockReturnValue({
+    totalInvestment: 150000,
+    totalCurrentValue: 160000,
+    totalPnL: 10000,
+    totalPnLPercent: 6.67,
+    totalDayChange: 500,
+    totalDayChangePercent: 0.31,
+    totalYtdChange: 0,
+    totalYtdChangePercent: 0,
+    assets: [],
+    assetsWithPurchasePrice: 1,
+    assetsTotal: 1,
+    isReferenceValue: true,
+  }),
+}));
+
+vi.mock('../../../utils/portfolioScore', () => ({
+  calculatePortfolioScore: vi.fn().mockReturnValue({
+    totalScore: 75,
+    grade: 'A',
+    metrics: [],
+    summary: 'Good',
+  }),
+}));
+
+// PDF エクスポートのモック（lazy import 用）
+vi.mock('../../../utils/pdfExport', () => ({
+  generatePortfolioPDF: vi.fn().mockResolvedValue(new Blob(['pdf'], { type: 'application/pdf' })),
+}));
+
 // クリップボードAPIのモック
 Object.assign(navigator, {
   clipboard: {
@@ -75,7 +121,7 @@ describe('ExportOptions', () => {
   });
 
   it('正常にレンダリングされる', () => {
-    render(<ExportOptions />);
+    renderWithRouter(<ExportOptions />);
     
     expect(screen.getByText('データエクスポート')).toBeInTheDocument();
     expect(screen.getByText('エクスポート形式')).toBeInTheDocument();
@@ -86,7 +132,7 @@ describe('ExportOptions', () => {
   });
 
   it('初期状態でJSONが選択されている', () => {
-    render(<ExportOptions />);
+    renderWithRouter(<ExportOptions />);
     
     const jsonButton = screen.getByRole('radio', { name: 'JSON' });
     const csvButton = screen.getByRole('radio', { name: 'CSV' });
@@ -96,7 +142,7 @@ describe('ExportOptions', () => {
   });
 
   it('CSV形式を選択できる', () => {
-    render(<ExportOptions />);
+    renderWithRouter(<ExportOptions />);
     
     const csvButton = screen.getByRole('radio', { name: 'CSV' });
     fireEvent.click(csvButton);
@@ -106,7 +152,7 @@ describe('ExportOptions', () => {
   });
 
   it.skip('クリップボードコピーが動作する', async () => {
-    render(<ExportOptions />);
+    renderWithRouter(<ExportOptions />);
     
     navigator.clipboard.writeText.mockResolvedValue();
     
@@ -119,7 +165,7 @@ describe('ExportOptions', () => {
   });
 
   it.skip('エラーハンドリングが動作する', async () => {
-    render(<ExportOptions />);
+    renderWithRouter(<ExportOptions />);
     
     navigator.clipboard.writeText.mockRejectedValue(new Error('Clipboard error'));
     
@@ -132,7 +178,7 @@ describe('ExportOptions', () => {
   });
 
   it('JSONデータが正しい構造を持つ', () => {
-    render(<ExportOptions />);
+    renderWithRouter(<ExportOptions />);
     
     navigator.clipboard.writeText.mockResolvedValue();
     
@@ -152,7 +198,7 @@ describe('ExportOptions', () => {
   });
 
   it('CSVデータが正しい形式を持つ', () => {
-    render(<ExportOptions />);
+    renderWithRouter(<ExportOptions />);
     
     // CSV形式を選択
     const csvButton = screen.getByRole('radio', { name: 'CSV' });
@@ -175,7 +221,7 @@ describe('ExportOptions', () => {
   });
 
   it('アクセシビリティ属性が正しく設定されている', () => {
-    render(<ExportOptions />);
+    renderWithRouter(<ExportOptions />);
     
     const radioGroup = screen.getByRole('radiogroup');
     expect(radioGroup).toHaveAttribute('aria-labelledby', 'export-format-label');
@@ -188,7 +234,7 @@ describe('ExportOptions', () => {
   });
 
   it('ボタンが正しいtype属性を持つ', () => {
-    render(<ExportOptions />);
+    renderWithRouter(<ExportOptions />);
     
     const downloadButton = screen.getByText('ダウンロード');
     const copyButton = screen.getByText('クリップボードにコピー');
@@ -198,15 +244,84 @@ describe('ExportOptions', () => {
   });
 
   it('適切なCSSクラスが適用されている', () => {
-    render(<ExportOptions />);
-    
+    renderWithRouter(<ExportOptions />);
+
     const container = screen.getByText('データエクスポート').closest('div');
     expect(container).toHaveClass('bg-white', 'rounded-lg', 'shadow', 'p-4', 'mb-6');
-    
+
     const radioGroup = screen.getByRole('radiogroup');
     expect(radioGroup).toHaveClass('flex', 'space-x-4');
-    
+
     const buttonContainer = screen.getByText('ダウンロード').closest('div');
     expect(buttonContainer).toHaveClass('flex', 'space-x-4');
+  });
+
+  // ── PDF エクスポート テスト ────────────────────────────
+
+  describe('PDF エクスポート', () => {
+    it('Free ユーザーには PDF ボタンがロック表示される', () => {
+      mockCanExportPDF = false;
+      mockIsPremium = false;
+      renderWithRouter(<ExportOptions />);
+
+      expect(screen.getByTestId('pdf-export-locked')).toBeInTheDocument();
+      expect(screen.getByTestId('pdf-export-locked')).toBeDisabled();
+      // UpgradePrompt が表示される
+      expect(screen.getByText('PDF レポート')).toBeInTheDocument();
+    });
+
+    it('Standard ユーザーには PDF ボタンが有効表示される', () => {
+      mockCanExportPDF = true;
+      mockIsPremium = true;
+      renderWithRouter(<ExportOptions />);
+
+      const pdfButton = screen.getByTestId('pdf-export-button');
+      expect(pdfButton).toBeInTheDocument();
+      expect(pdfButton).not.toBeDisabled();
+      expect(pdfButton).toHaveTextContent('PDF でエクスポート');
+    });
+
+    it('Standard ユーザーが PDF ボタンをクリックするとダウンロードが開始される', async () => {
+      mockCanExportPDF = true;
+      mockIsPremium = true;
+      vi.useRealTimers();
+
+      renderWithRouter(<ExportOptions />);
+      const pdfButton = screen.getByTestId('pdf-export-button');
+      fireEvent.click(pdfButton);
+
+      await waitFor(() => {
+        expect(screen.getByText('PDF レポートをダウンロードしました')).toBeInTheDocument();
+      });
+    });
+
+    it('PDF 生成失敗時にエラーメッセージと再試行ボタンが表示される', async () => {
+      mockCanExportPDF = true;
+      mockIsPremium = true;
+      vi.useRealTimers();
+
+      // generatePortfolioPDF を reject させる
+      const { generatePortfolioPDF } = await import('../../../utils/pdfExport');
+      generatePortfolioPDF.mockRejectedValueOnce(new Error('PDF generation failed'));
+
+      renderWithRouter(<ExportOptions />);
+      const pdfButton = screen.getByTestId('pdf-export-button');
+      fireEvent.click(pdfButton);
+
+      await waitFor(() => {
+        expect(screen.getByText('PDF の生成に失敗しました')).toBeInTheDocument();
+        expect(screen.getByTestId('pdf-retry-button')).toBeInTheDocument();
+        expect(screen.getByText('再試行')).toBeInTheDocument();
+      });
+    });
+
+    it('Free ユーザーには PDF プレビュー（blur）が表示される', () => {
+      mockCanExportPDF = false;
+      mockIsPremium = false;
+      renderWithRouter(<ExportOptions />);
+
+      expect(screen.getByTestId('pdf-preview')).toBeInTheDocument();
+      expect(screen.getByText('Standard プランで利用可能')).toBeInTheDocument();
+    });
   });
 });

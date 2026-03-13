@@ -6,7 +6,7 @@
  *
  * @file src/components/dashboard/PortfolioScoreCard.tsx
  */
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 import { useIsPremium } from '../../hooks/queries';
 import { calculatePortfolioScore, type ScoreMetric, type PortfolioScoreResult } from '../../utils/portfolioScore';
@@ -14,6 +14,7 @@ import { CircularProgress } from '../ui/progress';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { cn } from '../../lib/utils';
+import { useEngagementStore } from '../../stores/engagementStore';
 
 // ─── Grade Badge ─────────────────────────────────────────
 
@@ -46,15 +47,27 @@ function MetricBar({ metric, locked }: MetricBarProps) {
 
   if (locked) {
     return (
-      <div className="flex items-center gap-3 py-1.5 opacity-50">
+      <div className="flex items-center gap-3 py-1.5 group relative">
         <div className="w-24 sm:w-28 text-xs text-muted-foreground truncate flex items-center gap-1">
           <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
           </svg>
           <span className="truncate">{metric.label}</span>
         </div>
-        <div className="flex-1 h-2 rounded-full bg-muted" />
-        <span className="w-8 text-right text-xs text-muted-foreground font-mono">—</span>
+        <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+          <div
+            className={cn('h-full rounded-full', barColor(metric.score))}
+            style={{ width: `${metric.score}%`, filter: 'blur(4px)' }}
+          />
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-8 text-right text-xs font-mono font-medium text-foreground select-none" style={{ filter: 'blur(4px)' }}>
+            {metric.score}
+          </span>
+          <Badge variant={gradeBadgeVariant(metric.grade)} className="text-[10px] px-1.5 py-0 select-none" style={{ filter: 'blur(4px)' }}>
+            {metric.grade}
+          </Badge>
+        </div>
       </div>
     );
   }
@@ -87,10 +100,18 @@ function MetricBar({ metric, locked }: MetricBarProps) {
 function PortfolioScoreCard() {
   const { currentAssets, targetPortfolio } = usePortfolioContext();
   const isPremium = useIsPremium();
+  const updateScore = useEngagementStore(s => s.updateScore);
 
   const scoreResult: PortfolioScoreResult = useMemo(() => {
     return calculatePortfolioScore(currentAssets, targetPortfolio, isPremium);
   }, [currentAssets, targetPortfolio, isPremium]);
+
+  // スコア変動をエンゲージメントストアに記録
+  useEffect(() => {
+    if (scoreResult.totalScore > 0) {
+      updateScore(scoreResult.totalScore, scoreResult.grade);
+    }
+  }, [scoreResult.totalScore, scoreResult.grade, updateScore]);
 
   const freeMetrics = scoreResult.metrics.filter((m) => !m.isPremium);
   const premiumMetrics = scoreResult.metrics.filter((m) => m.isPremium);
@@ -139,7 +160,7 @@ function PortfolioScoreCard() {
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
-                Standard プランで全8指標を解放
+                Standard で全指標のスコアを確認する
               </a>
             </div>
           )}
