@@ -669,4 +669,28 @@ describe('DividendForecast', () => {
     expect(detailTab).toHaveAttribute('tabindex', '-1');
     expect(rankingTab).toHaveAttribute('tabindex', '-1');
   });
+
+  it('should have ARIA table roles in monthly detail for screen readers', async () => {
+    const user = userEvent.setup();
+    mockPortfolioContext.currentAssets = [
+      makeAsset({ ticker: 'VYM', name: 'VYM' }),
+      makeAsset({ ticker: 'SCHD', name: 'SCHD', price: 80, holdings: 20, dividendYield: 4.0 }),
+    ];
+    render(<DividendForecast />);
+
+    await user.click(screen.getByRole('tab', { name: '月別詳細' }));
+
+    // 月別カードにtable roleが付与されている
+    const tables = screen.getAllByRole('table');
+    expect(tables.length).toBe(4); // quarterly = 4ヶ月
+
+    // 各テーブルにaria-labelが付与されている
+    expect(tables[0]).toHaveAttribute('aria-label', '3月の配当内訳');
+
+    // 行とセルのロールが存在する
+    const rows = within(tables[0]).getAllByRole('row');
+    expect(rows.length).toBeGreaterThanOrEqual(2); // header + assets
+    const cells = within(tables[0]).getAllByRole('cell');
+    expect(cells.length).toBeGreaterThanOrEqual(3); // ticker + frequency + amount per asset
+  });
 });

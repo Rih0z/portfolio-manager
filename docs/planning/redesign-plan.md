@@ -1,6 +1,6 @@
 # PortfolioWise 統合改善計画書
 
-**作成日**: 2026-03-08 → **最終更新**: 2026-03-13 (9-C 完了・Phase 10-A/B/C 受け入れ基準追加・メトリクス更新)
+**作成日**: 2026-03-08 → **最終更新**: 2026-03-13 (10-A 完了・配当カレンダー詳細ビュー・WAI-ARIA Tabs・メトリクス更新)
 **ペルソナ**: テック系長期投資家 タケシ（28-42歳, IT企業勤務, 日米分散投資）
 **目標**: ペルソナに完全適合するプロダクト品質 + 収益化基盤
 
@@ -32,6 +32,8 @@
 | 9-BY | ペルソナ適合+ドーパミン戦略+競合対策（Landing改善・PCグリッド・blur・配当予測・ストリーク・セレブレーション） | 2026-03-12 |
 | 9-BY-S | S評価対応（ストリーク寛容化+Freeze・7日トライアル・WeeklyRebalanceCard・深掘り競合分析11社・43juni訴求） | 2026-03-12 |
 | 9-BY-100 | UX100点対応（Landing トライアル訴求・Pricing 差別化拡充・43juni FAQ・トライアル残日数バッジ） | 2026-03-12 |
+| 9-C | PDFエクスポート（Standard機能、lazy import、日本語フォント対応、blur preview） | 2026-03-12 |
+| 10-A | 配当カレンダー詳細ビュー（月別詳細+利回りランキング+WAI-ARIA Tabs+40テスト・S評価93点） | 2026-03-13 |
 
 ---
 
@@ -44,7 +46,7 @@
 | EN/JP混在箇所 | 50+ | 0 | 0 | ✅ |
 | ハードコード色値 | 35+ | 4 | ≤4 | ✅ |
 | テスト品質 | 脆弱 | 堅牢 | 堅牢 | ✅ |
-| ユニットテスト | 2254 PASS | 2434 PASS / 15 skip | 全PASS | ✅ |
+| ユニットテスト | 2254 PASS | 2434+ PASS / 15 skip | 全PASS | ✅ |
 | テストカバレッジ（statements） | 77.85% | 81.97% | ≥80% | ✅ |
 | テストカバレッジ（branches） | — | 73.19% | ≥70% | ✅ |
 | テストカバレッジ（functions） | — | 80.41% | ≥75% | ✅ |
@@ -60,11 +62,12 @@
 | PCグリッドレイアウト | なし | 2カラム | — | ✅ |
 | 競合分析 | なし | 11社完了（投資8社+異業種3社） | — | ✅ |
 | ストリーク追跡 | なし | engagementStore（寛容化+Freeze） | — | ✅ |
-| 配当予測カード | なし | DividendForecast（通貨換算対応） | — | ✅ |
+| 配当予測カード | なし | DividendForecast（3タブ・月別詳細・利回りランキング・WAI-ARIA） | — | ✅ |
 | トライアル訴求 | なし | Landing Hero+Pricing+Dashboard バッジ | — | ✅ |
 | 43juni移行導線 | なし | Hero訴求+FAQ+配当予測 | — | ✅ |
 | Landing Pricing差別化 | 5項目 | Free 7項目 / Standard 7項目（均等化） | — | ✅ |
-| 実装品質レビュー評価 | — | S評価（91/100点） | S評価 | ✅ |
+| 実装品質レビュー評価 | — | S評価（93/100点 — 10-A） | S評価 | ✅ |
+| WAI-ARIA Tabs | 未対応 | ←→キー・Home/End・roving tabindex・disabled対応 | — | ✅ |
 
 ---
 
@@ -292,8 +295,18 @@ Phase R〜8-D と並行して実装された機能基盤。Phase 9 の UI 改善
       └ Standard: PDF ダウンロード + エラーリトライ
       └ テスト: 19件（pdfExport） + 15件（ExportOptions）全通過
   ↓
-  10-A: 配当カレンダー（月別詳細ビュー）    [43juni後継ユーザー獲得]  [← 次回実行]
-  10-B: セクター分析（円グラフ）            [43juni後継ユーザー獲得]
+  10-A: 配当カレンダー（月別詳細ビュー）    ✅ 完了 (2026-03-13)
+      └ 既存 DividendForecast を shadcn/ui Tabs で拡張（新ファイル不要）
+      └ タブ1「サマリー」: 既存バーチャート+トップ銘柄（変更なし）
+      └ タブ2「月別詳細」: MonthlyDetail テーブル（ARIA table ロール付き）
+      └ タブ3「利回りランキング」: 利回り%降順、全配当銘柄、Badge表示
+      └ WAI-ARIA Tabs: ←→キー循環・Home/End・roving tabindex・disabled対応
+      └ アクセシビリティ: aria-label（ticker/月）・role="table/row/cell"
+      └ font-mono tabular-nums 全金額・利回りに適用
+      └ テスト: 40件（エッジケース・キーボード・a11y含む）全通過
+      └ 実装品質レビュー: S評価 93/100点
+  ↓
+  10-B: セクター分析（円グラフ）            [43juni後継ユーザー獲得]  [← 次回実行]
   10-C: ユーザー獲得戦略（SEO + SNS）       [MAU 500達成の前提]
   ↓
   9-D: E2E テスト拡充（89 → 130+）         [各フェーズ完了後に追加]
@@ -578,11 +591,11 @@ expect(result.totalValue).toBeCloseTo(2000, 1);
 
 | 競合機能 | 出典 | 取り入れ状況 |
 |---------|------|------------|
-| 月別配当カレンダー | 43juni | ✅ DividendForecast (9-BY) + 10-A で詳細版 |
+| 月別配当カレンダー | 43juni | ✅ DividendForecast (9-BY + 10-A 完了: 3タブ・月別詳細・利回りランキング) |
 | 年間配当予測 | 43juni | ✅ DividendForecast (9-BY) |
 | セクター分析円グラフ | 43juni | ⚠️ Phase 10-B で実装予定 |
 | スノーフレーク銘柄評価 | Simply Wall St | △ PFスコア内で部分対応。独立画面は将来検討 |
-| 税込/税後配当切替 | Sharesight | ⚠️ Phase 10-A で対応予定 |
+| 税込/税後配当切替 | Sharesight | ⚠️ 将来Phase で対応予定（10-A は月別詳細+ランキングに集中） |
 | Fee Analyzer | Empower | △ スコア内に簡易版。独立画面は将来検討 |
 | ストリーク Freeze（有料） | Duolingo | ✅ Standard特典（月3回）— 9-BY-S で実装 |
 | 能動的タスク（「5分だけ」） | Duolingo | ✅ WeeklyRebalanceCard — 9-BY-S で実装 |
@@ -648,22 +661,24 @@ expect(result.totalValue).toBeCloseTo(2000, 1);
 
 ## Phase 10: 競合対策 + ユーザー獲得（2026-06〜07 予定）
 
-### 10-A: 配当カレンダー詳細ビュー
+### 10-A: 配当カレンダー詳細ビュー ✅ 完了 (2026-03-13)
 
 **ターゲット**: 43juniの元ユーザーが最も愛用した配当カレンダー機能を完全再現
-**現状**: DividendForecast（9-BY）で年間予測+月別バーチャートは実装済み
-**詳細計画**: `docs/tmp/phase-10a-plan.md`
-**工数見積もり**: 1〜2日
-**優先度**: 高（43juni移行ユーザーの差別化機能）
+**現状**: DividendForecast（9-BY）で年間予測+月別バーチャートは実装済み → **10-Aで3タブ拡張完了**
+**詳細計画**: `docs/planning/phase-10a-plan.md`
+**工数実績**: 1日（計画1〜2日 → 1日で完了）
+**品質**: S評価（93/100点）
 
 **アプローチ**: 既存 DividendForecast.tsx を shadcn/ui Tabs で拡張（新ファイル不要）
 
-**追加実装:**
+**実装内容:**
 - タブ1「サマリー」: 既存の月別バーチャート+トップ銘柄（変更なし）
-- タブ2「月別詳細」: `MonthlyDetail` テーブル（月→銘柄→金額→頻度、月合計行付き）
-- タブ3「利回りランキング」: 配当利回り%降順で全配当銘柄を表示
+- タブ2「月別詳細」: `MonthlyDetail` テーブル（月→銘柄→金額→頻度、月合計行、ARIA table ロール付き）
+- タブ3「利回りランキング」: 配当利回り%降順で全配当銘柄を表示（Badge + 年間金額）
+- Tabs コンポーネント: WAI-ARIA準拠（←→キー循環・Home/End・roving tabindex・disabled対応）
+- アクセシビリティ: aria-label（abbreviated ticker・月番号）、role="table/row/cell"
 
-**追加する型:**
+**追加した型:**
 ```typescript
 interface MonthlyDetail {
   month: number;
@@ -674,17 +689,19 @@ interface MonthlyDetail {
 ```
 
 **受け入れ基準:**
-- [ ] タブ切り替えで「サマリー」「月別詳細」「ランキング」が表示される
-- [ ] 月別詳細: 各月に配当がある銘柄名・金額・頻度が表示される
-- [ ] 月別詳細: 各月の合計金額が正確（`convertToBaseCurrency` 経由、通貨換算済み）
-- [ ] 利回りランキング: 利回り%降順で全配当銘柄が表示される
-- [ ] 通貨換算: baseCurrency=JPY/USD 両方で正確な金額表示
-- [ ] 配当なし資産のみの場合: コンポーネント非表示（既存動作維持）
-- [ ] モバイル: テーブルが横スクロールせず、カード形式で表示
-- [ ] テスト: 月別詳細・ランキング・タブ切替のテスト追加（USD/JPY混在含む）
-- [ ] フィンテック信頼感デザイン: font-mono tabular-nums で金額表示
-- [ ] ビルド成功 + 全テスト通過
-- [ ] `/test-quality-review` 実行済み
+- [x] タブ切り替えで「サマリー」「月別詳細」「ランキング」が表示される ✅
+- [x] 月別詳細: 各月に配当がある銘柄名・金額・頻度が表示される ✅
+- [x] 月別詳細: 各月の合計金額が正確（`convertToBaseCurrency` 経由、通貨換算済み） ✅
+- [x] 利回りランキング: 利回り%降順で全配当銘柄が表示される ✅
+- [x] 通貨換算: baseCurrency=JPY/USD 両方で正確な金額表示 ✅
+- [x] 配当なし資産のみの場合: コンポーネント非表示（既存動作維持） ✅
+- [x] モバイル: テーブルが横スクロールせず、カード形式で表示 ✅
+- [x] テスト: 40件（月別詳細・ランキング・タブ切替・エッジケース・キーボード・a11y・USD/JPY混在） ✅
+- [x] フィンテック信頼感デザイン: font-mono tabular-nums で全金額・利回り表示 ✅
+- [x] ビルド成功 + 全テスト通過 ✅
+- [x] 実装品質レビュー: S評価（93/100点） ✅
+- [x] WAI-ARIA Tabs: ←→キー・Home/End・roving tabindex 実装 ✅ (bonus)
+- [x] ARIA table ロール: role="table/row/cell" + aria-label 月別詳細 ✅ (bonus)
 
 ### 10-B: セクター分析
 
