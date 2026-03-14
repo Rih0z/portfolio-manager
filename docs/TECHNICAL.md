@@ -1,7 +1,7 @@
 # PortfolioWise Technical Specification
 
-## Version: 3.0.0
-Last Updated: 2026-03-05
+## Version: 3.1.0
+Last Updated: 2026-03-13
 
 ## Table of Contents
 1. [System Overview](#system-overview)
@@ -59,9 +59,9 @@ PortfolioWise is a cloud-native investment portfolio management system designed 
 
 #### Frontend Components
 - **Framework**: React 18 with TypeScript
-- **Build Tool**: Vite 6.x
-- **State Management**: Zustand 5.x (authStore, portfolioStore, uiStore, subscriptionStore)
-- **Server State**: TanStack Query 5.x
+- **Build Tool**: Vite 7.x
+- **State Management**: Zustand 5.x (authStore, portfolioStore, uiStore, engagementStore, goalStore, notificationStore, referralStore, socialStore)
+- **Server State**: TanStack Query 5.x (26 custom hooks)
 - **UI Library**: shadcn/ui + Radix UI + TailwindCSS
 - **Routing**: React Router v6
 - **Data Visualization**: Recharts
@@ -73,7 +73,10 @@ PortfolioWise is a cloud-native investment portfolio management system designed 
 - **Authentication Service**: Google OAuth 2.0 with session management
 - **Portfolio Service**: CRUD operations with validation
 - **Cache Service**: DynamoDB with TTL
-- **Notification Service**: (Planned) SNS integration
+- **Notification Service**: DynamoDB-based notifications with alert rules
+- **Engagement Service**: Streak tracking, score history, trial/freeze management
+- **Referral Service**: Referral code generation and tracking
+- **Social Service**: Portfolio sharing and peer comparison
 
 ## Technology Stack
 
@@ -82,7 +85,7 @@ PortfolioWise is a cloud-native investment portfolio management system designed 
 |-----------|------------|---------|---------|
 | Framework | React | 18.2.0 | UI framework |
 | Language | TypeScript | 5.x | 型安全性 (strict: false, allowJs: true) |
-| Build Tool | Vite | 6.x | ビルド + 開発サーバー |
+| Build Tool | Vite | 7.x | ビルド + 開発サーバー |
 | State (Client) | Zustand | 5.x | クライアント状態管理 |
 | State (Server) | TanStack Query | 5.x | サーバーステートキャッシュ |
 | UI Components | shadcn/ui + Radix UI | Latest | コンポーネントライブラリ |
@@ -333,7 +336,7 @@ CI/CD: GitHub Actions (planned)
 - **Security Tests**: OWASP Top 10
 
 ### Code Quality
-- **Linting**: ESLint with Airbnb config
+- **Linting**: ESLint with jsx-a11y plugin
 - **Formatting**: Prettier
 - **Type Checking**: TypeScript (strict: false, allowJs: true)
 - **Code Review**: PR required for main branch
@@ -341,23 +344,31 @@ CI/CD: GitHub Actions (planned)
 ### Documentation Standards
 - **Code Comments**: JSDoc format
 - **API Docs**: OpenAPI 3.0
-- **User Docs**: Markdown in `/documents`
+- **User Docs**: Markdown in `/docs`
 - **Architecture**: C4 model diagrams
 
 ## Future Enhancements
 
+### Completed Features (through Phase 10-A)
+1. ✅ TypeScript Migration (Phase 0-B)
+2. ✅ Stripe サブスクリプション連携 (Phase 1)
+3. ✅ shadcn/ui + Radix UI 完全移行 (Phase 4-D)
+4. ✅ TanStack Query 導入 (Phase 8-B)
+5. ✅ Zustand persist 統一 (Phase 8-C)
+6. ✅ TypeScript strict 対応 (Phase 8-D)
+7. ✅ 取得単価入力 UI (Phase 9-A)
+8. ✅ マネックス証券 CSV パーサー (Phase 9-B)
+9. ✅ PDFエクスポート + エンゲージメント機能 (Phase 9-C)
+10. ✅ 配当予測カレンダー (Phase 10-A)
+
 ### Planned Features
-1. ~~**TypeScript Migration**~~ ✅ 完了 (Phase 0-B, 2026-03)
-2. **Stripe サブスクリプション連携** (Phase 1, 進行中)
-3. **Real-time WebSocket Updates** (Phase 3 予定)
-4. **Mobile Native Apps** (Phase 4 予定)
-5. **AI-Powered Insights** (Phase 5 予定)
+- **ドーパミンUX設計** — エンゲージメントループの強化
+- **Real-time WebSocket Updates**
+- **Mobile Native Apps**
 
 ### Technical Debt
-1. Modern* コンポーネント → shadcn/ui 統合 (21箇所残存)
-2. Implement comprehensive error boundaries
-3. Add request retry mechanisms
-4. Enhance offline capabilities
+1. Enhance offline capabilities (PWA)
+2. Add comprehensive E2E test coverage
 
 ## Compliance & Standards
 
@@ -380,10 +391,10 @@ CI/CD: GitHub Actions (planned)
 See [Deployment Guide](./DEPLOYMENT.md)
 
 ### B. API Reference
-See [API Specification](./api-specification.md)
+See [OpenAPI Specification](./openapi.yaml)
 
 ### C. Architecture Diagrams
-See [Architecture Documentation](./architecture-docs/)
+See [Architecture Documentation](./architecture/)
 
 ### D. Security Policies
 See [Security Documentation](../SECURITY.md)

@@ -197,7 +197,7 @@ Monitor these KPIs:
 - Adjust `MAX_REQUESTS_PER_MINUTE` if needed
 
 #### 4. Build Failures
-- Vite ビルドはNode.js 22+で動作（`--openssl-legacy-provider` 不要）
+- Vite 7.x はNode.js 18+で動作
 - Clear cache: `rm -rf node_modules && npm install --legacy-peer-deps`
 
 ### Debug Mode
@@ -213,7 +213,9 @@ REACT_APP_DEBUG=true npm start
 
 ## 🔄 CI/CD Pipeline
 
-### GitHub Actions Workflow
+> **Note**: 現在はGitHub Actionsによる自動デプロイは使用していません。Wrangler CLIによる手動デプロイを実施しています。以下は将来の自動化計画の参考です。
+
+### GitHub Actions Workflow (参考)
 
 ```yaml
 # .github/workflows/deploy.yml
@@ -259,9 +261,9 @@ jobs:
 
 ## 📚 Additional Resources
 
-- [API Documentation](./api-specification.md)
-- [Architecture Overview](./architecture-docs/README.md)
-- [Security Guidelines](./architecture-docs/architecture/security-architecture.md)
+- [API Documentation](./openapi.yaml)
+- [Architecture Overview](./architecture/overview.md)
+- [Security Guidelines](./architecture/security-architecture.md)
 - [Contributing Guide](../CONTRIBUTING.md)
 
 ## 🆘 Support
