@@ -36,7 +36,7 @@ export {
   useMarkAllNotificationsRead,
   useDeleteNotification,
   notificationKeys,
-} from './useNotifications';
+} from './useNotificationQueries';
 
 export {
   useUserShares,

@@ -7,15 +7,28 @@
  *
  * @file src/components/dashboard/DividendForecast.tsx
  */
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { usePortfolioContext } from '../../hooks/usePortfolioContext';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
+import { Tabs, TabPanel } from '../ui/tabs';
 
 interface MonthlyDividend {
   month: number;
   label: string;
   amount: number;
+}
+
+interface MonthlyDetail {
+  month: number;
+  label: string;
+  assets: {
+    ticker: string;
+    name: string;
+    amount: number;
+    frequency: string;
+  }[];
+  total: number;
 }
 
 interface AssetDividend {
@@ -51,6 +64,13 @@ const FREQUENCY_MAP: Record<string, number[]> = {
   annual: [11],                   // 12月
 };
 
+const FREQUENCY_LABELS: Record<string, string> = {
+  monthly: '毎月',
+  quarterly: '四半期',
+  'semi-annual': '半年',
+  annual: '年次',
+};
+
 const formatCurrency = (value: number, currency: string): string => {
   if (currency === 'JPY') {
     return `¥${Math.round(value).toLocaleString()}`;
@@ -61,7 +81,7 @@ const formatCurrency = (value: number, currency: string): string => {
 const DividendForecast: React.FC = () => {
   const { currentAssets, baseCurrency, exchangeRate } = usePortfolioContext();
 
-  const { monthlyData, topAssets, annualTotal, weightedYield } = useMemo(() => {
+  const { monthlyData, topAssets, annualTotal, weightedYield, monthlyDetails, yieldRanking } = useMemo(() => {
     const rate = exchangeRate?.rate || 150;
     const dividendAssets: AssetDividend[] = [];
 
@@ -98,6 +118,31 @@ const DividendForecast: React.FC = () => {
       amount,
     }));
 
+    // 月別詳細データ（各月にどの銘柄からいくら）
+    const monthlyDetails: MonthlyDetail[] = MONTH_LABELS.map((label, i) => {
+      const assets: MonthlyDetail['assets'] = [];
+      for (const da of dividendAssets) {
+        const months = FREQUENCY_MAP[da.frequency] || FREQUENCY_MAP.quarterly;
+        if (months.includes(i)) {
+          const perPayment = da.annualAmount / months.length;
+          assets.push({
+            ticker: da.ticker,
+            name: da.name,
+            amount: perPayment,
+            frequency: FREQUENCY_LABELS[da.frequency] || '四半期',
+          });
+        }
+      }
+      // 金額降順ソート
+      assets.sort((a, b) => b.amount - a.amount);
+      return {
+        month: i,
+        label,
+        assets,
+        total: assets.reduce((sum, a) => sum + a.amount, 0),
+      };
+    });
+
     const annualTotal = dividendAssets.reduce((sum, d) => sum + d.annualAmount, 0);
 
     // 加重平均利回り
@@ -112,13 +157,25 @@ const DividendForecast: React.FC = () => {
       .sort((a, b) => b.annualAmount - a.annualAmount)
       .slice(0, 5);
 
-    return { monthlyData, topAssets, annualTotal, weightedYield };
+    // 利回りランキング（利回り%降順）
+    const yieldRanking = [...dividendAssets]
+      .sort((a, b) => b.yield - a.yield);
+
+    return { monthlyData, topAssets, annualTotal, weightedYield, monthlyDetails, yieldRanking };
   }, [currentAssets, baseCurrency, exchangeRate]);
+
+  const [activeTab, setActiveTab] = useState('summary');
 
   // 配当資産がなければ非表示
   if (topAssets.length === 0) return null;
 
   const maxMonthly = Math.max(...monthlyData.map(d => d.amount), 1);
+
+  const tabItems = [
+    { id: 'summary', label: 'サマリー' },
+    { id: 'monthly-detail', label: '月別詳細' },
+    { id: 'yield-ranking', label: '利回りランキング' },
+  ];
 
   return (
     <Card elevation="low" padding="medium" data-testid="dividend-forecast">
@@ -134,51 +191,120 @@ const DividendForecast: React.FC = () => {
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* 月別配当バーチャート */}
-        <div>
-          <h4 className="text-xs font-semibold text-muted-foreground mb-2">月別配当スケジュール</h4>
-          <div className="flex items-end gap-1 h-20">
-            {monthlyData.map(d => {
-              const heightPercent = maxMonthly > 0 ? (d.amount / maxMonthly) * 100 : 0;
-              const hasAmount = d.amount > 0;
-              return (
-                <div key={d.month} className="flex-1 flex flex-col items-center gap-0.5" title={`${d.label}: ${formatCurrency(d.amount, baseCurrency)}`}>
-                  <div
-                    className={`w-full rounded-t transition-all duration-300 ${
-                      hasAmount ? 'bg-success-400 dark:bg-success-500' : 'bg-muted'
-                    }`}
-                    style={{ height: `${Math.max(heightPercent, 4)}%`, minHeight: '2px' }}
-                  />
-                  <span className="text-[9px] text-muted-foreground leading-none">
-                    {d.month + 1}
+        <Tabs
+          tabs={tabItems}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          variant="pills"
+          className="text-xs"
+        />
+
+        {/* サマリータブ */}
+        <TabPanel tabId="summary" activeTab={activeTab}>
+          {/* 月別配当バーチャート */}
+          <div>
+            <h4 className="text-xs font-semibold text-muted-foreground mb-2">月別配当スケジュール</h4>
+            <div className="flex items-end gap-1 h-20">
+              {monthlyData.map(d => {
+                const heightPercent = maxMonthly > 0 ? (d.amount / maxMonthly) * 100 : 0;
+                const hasAmount = d.amount > 0;
+                return (
+                  <div key={d.month} className="flex-1 flex flex-col items-center gap-0.5" title={`${d.label}: ${formatCurrency(d.amount, baseCurrency)}`}>
+                    <div
+                      className={`w-full rounded-t transition-all duration-300 ${
+                        hasAmount ? 'bg-success-400 dark:bg-success-500' : 'bg-muted'
+                      }`}
+                      style={{ height: `${Math.max(heightPercent, 4)}%`, minHeight: '2px' }}
+                    />
+                    <span className="text-[9px] text-muted-foreground leading-none">
+                      {d.month + 1}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* トップ配当銘柄 */}
+          <div className="mt-4">
+            <h4 className="text-xs font-semibold text-muted-foreground mb-2">配当上位銘柄</h4>
+            <div className="space-y-1.5">
+              {topAssets.map(asset => (
+                <div key={asset.ticker} className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="font-mono text-xs font-medium text-foreground w-12 shrink-0">
+                      {asset.ticker.length > 6 ? asset.ticker.slice(0, 6) + '...' : asset.ticker}
+                    </span>
+                    <span className="text-xs text-muted-foreground truncate">
+                      {asset.yield.toFixed(1)}%
+                    </span>
+                  </div>
+                  <span className="font-mono text-xs font-semibold text-success-600 dark:text-success-400 tabular-nums">
+                    {formatCurrency(asset.annualAmount, baseCurrency)}
                   </span>
                 </div>
-              );
-            })}
+              ))}
+            </div>
           </div>
-        </div>
+        </TabPanel>
 
-        {/* トップ配当銘柄 */}
-        <div>
-          <h4 className="text-xs font-semibold text-muted-foreground mb-2">配当上位銘柄</h4>
-          <div className="space-y-1.5">
-            {topAssets.map(asset => (
+        {/* 月別詳細タブ */}
+        <TabPanel tabId="monthly-detail" activeTab={activeTab}>
+          <div className="space-y-3" data-testid="monthly-detail">
+            {monthlyDetails.filter(m => m.assets.length > 0).map(month => (
+              <div key={month.month} className="border border-border rounded-lg p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-sm font-semibold text-foreground">{month.label}</h4>
+                  <span className="font-mono text-sm font-semibold text-success-600 dark:text-success-400 tabular-nums">
+                    {formatCurrency(month.total, baseCurrency)}
+                  </span>
+                </div>
+                <div className="space-y-1">
+                  {month.assets.map(asset => (
+                    <div key={asset.ticker} className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="font-mono font-medium text-foreground w-12 shrink-0">
+                          {asset.ticker.length > 6 ? asset.ticker.slice(0, 6) + '...' : asset.ticker}
+                        </span>
+                        <span className="text-muted-foreground">{asset.frequency}</span>
+                      </div>
+                      <span className="font-mono font-medium tabular-nums">
+                        {formatCurrency(asset.amount, baseCurrency)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+            {monthlyDetails.filter(m => m.assets.length > 0).length === 0 && (
+              <p className="text-xs text-muted-foreground text-center py-4">配当データがありません</p>
+            )}
+          </div>
+        </TabPanel>
+
+        {/* 利回りランキングタブ */}
+        <TabPanel tabId="yield-ranking" activeTab={activeTab}>
+          <div className="space-y-2" data-testid="yield-ranking">
+            {yieldRanking.map((asset, index) => (
               <div key={asset.ticker} className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2 min-w-0">
+                  <span className="font-mono text-xs font-bold text-muted-foreground w-5 shrink-0">
+                    {index + 1}.
+                  </span>
                   <span className="font-mono text-xs font-medium text-foreground w-12 shrink-0">
                     {asset.ticker.length > 6 ? asset.ticker.slice(0, 6) + '...' : asset.ticker}
                   </span>
-                  <span className="text-xs text-muted-foreground truncate">
-                    {asset.yield.toFixed(1)}%
-                  </span>
+                  <Badge variant="outline" className="font-mono text-xs tabular-nums">
+                    {asset.yield.toFixed(2)}%
+                  </Badge>
                 </div>
                 <span className="font-mono text-xs font-semibold text-success-600 dark:text-success-400 tabular-nums">
-                  {formatCurrency(asset.annualAmount, baseCurrency)}
+                  年間 {formatCurrency(asset.annualAmount, baseCurrency)}
                 </span>
               </div>
             ))}
           </div>
-        </div>
+        </TabPanel>
       </CardContent>
     </Card>
   );

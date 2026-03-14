@@ -7,7 +7,7 @@
  */
 'use strict';
 
-const { getOptionsResponse } = require('../../utils/corsHelper');
+const { handleOptionsRequest, getCorsOptionsHeaders } = require('../../utils/corsHeaders');
 
 /**
  * OPTIONSリクエストハンドラー
@@ -15,5 +15,9 @@ const { getOptionsResponse } = require('../../utils/corsHelper');
  * @returns {Object} - API Gatewayレスポンス
  */
 module.exports.handler = async (event) => {
-  return getOptionsResponse();
+  return handleOptionsRequest(event) || {
+    statusCode: 200,
+    headers: getCorsOptionsHeaders(event),
+    body: '',
+  };
 };

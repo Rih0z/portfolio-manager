@@ -7,7 +7,7 @@
 ## 必須: プロジェクトドキュメント読み込み（最初に実行）
 
 1. **`CLAUDE.md`** — コーディング原則・アーキテクチャ・技術スタック
-2. **`documents/tmp/redesign-plan.md`** — ペルソナ定義（タケシ）・収益モデル
+2. **`documents/planning/redesign-plan.md`** — ペルソナ定義（タケシ）・収益モデル
 3. **`documents/tmp/competitor-analysis-dopamine-design.md`** — 競合分析・ドーパミン設計原則
 4. **`documents/tmp/phase-dopamine-ux-plan.md`** — ダッシュボード再設計計画
 5. **`documents/review-guide.md`** — レビュー基準
@@ -24,7 +24,7 @@
 
 ## STEP 1: ペルソナ「タケシ」プロファイル確認
 
-`documents/tmp/redesign-plan.md` から以下を確認：
+`documents/planning/redesign-plan.md` から以下を確認：
 
 - **年齢**: 28〜42歳、IT企業勤務（エンジニアまたはPM）
 - **投資歴**: 2〜7年、運用額500万〜5,000万円

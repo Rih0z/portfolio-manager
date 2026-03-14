@@ -22,6 +22,9 @@ if [ -z "$REACT_APP_API_BASE_URL" ]; then
     export REACT_APP_API_BASE_URL="http://localhost:4000"
 fi
 
+# frontend/webapp に移動（playwright.config.ts がある場所）
+cd "$(dirname "$0")/../frontend/webapp"
+
 # Playwrightのインストール確認
 if ! npx playwright --version > /dev/null 2>&1; then
     echo -e "${YELLOW}Installing Playwright browsers...${NC}"
@@ -32,9 +35,9 @@ fi
 run_tests() {
     local test_type=$1
     local extra_args=$2
-    
+
     echo -e "${GREEN}Running $test_type tests...${NC}"
-    
+
     if [ "$HEADED" = "headed" ]; then
         npx playwright test $extra_args --headed
     else

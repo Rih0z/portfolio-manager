@@ -32,8 +32,5 @@
     "tar": "^6.2.1",
     "word-wrap": "^1.2.5",
     "@grpc/grpc-js": "^1.8.22"
-  },
-  "devDependencies": {
-    "@playwright/test": "^1.52.0"
   }
 }

@@ -194,7 +194,7 @@
 
 ```
 1. redesign-plan.md のプラン定義を確認
-   → documents/tmp/redesign-plan.md の「料金プラン」セクション
+   → documents/planning/redesign-plan.md の「料金プラン」セクション
 
 2. subscriptionStore の機能制限を検証
    → find_symbol で canUseFeature / isPremium を読む
@@ -348,7 +348,7 @@
 
 ```
 1. redesign-plan.md のペルソナ定義を再確認
-   → documents/tmp/redesign-plan.md の「ペルソナ」セクション
+   → documents/planning/redesign-plan.md の「ペルソナ」セクション
 
 2. ユーザージャーニーを実際に追体験
    → Playwright MCP で LP → ログイン → 初回セットアップ → ダッシュボード を操作

@@ -149,7 +149,7 @@ Use standardized error responses via `src/utils/errorHandler.js`:
 ### Code Patterns
 - All Lambda handlers should use `src/utils/responseUtils.js` for consistent responses
 - Use `src/utils/retry.js` for external API calls (default retry count: 1)
-- Record metrics using `src/services/matrics.js` (note: filename uses non-standard spelling)
+- Record metrics using `src/services/metrics.js`
 - Apply rate limiting and blacklist checks for web scraping
 - Use `src/utils/corsHeaders.js` for CORS header management
 - Admin endpoints are protected by AWS API Gateway `private: true` setting

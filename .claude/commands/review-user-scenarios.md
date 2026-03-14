@@ -7,7 +7,7 @@
 ## 必須: プロジェクトドキュメント読み込み（最初に実行）
 
 1. **`CLAUDE.md`（プロジェクトルート）** — アーキテクチャ・テスト構成・技術スタック
-2. **`documents/tmp/redesign-plan.md`** — ペルソナ「タケシ」定義・機能仕様
+2. **`documents/planning/redesign-plan.md`** — ペルソナ「タケシ」定義・機能仕様
 3. **`documents/review-guide.md`** — テスト品質・処理正確性の基準
 4. **`MEMORY.md`（.claude/）** — 通貨変換バグ修正履歴・テスト品質アンチパターン
 

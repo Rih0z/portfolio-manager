@@ -59,7 +59,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - [ ] 完了報告
 
 ## 長期計画
-- **収益化・再設計計画書**: [documents/tmp/redesign-plan.md](documents/tmp/redesign-plan.md) — Phase管理・ロードマップ・収益モデル・アーキテクチャ設計の全体計画。新機能実装や方針判断時に必ず参照すること。
+- **収益化・再設計計画書**: [documents/planning/redesign-plan.md](documents/planning/redesign-plan.md) — Phase管理・ロードマップ・収益モデル・アーキテクチャ設計の全体計画。新機能実装や方針判断時に必ず参照すること。
 
 ## レビューガイド
 - **包括レビューガイド**: [documents/review-guide.md](documents/review-guide.md) — 以下5領域のレビュー手順・チェックリスト。機能実装・修正時に該当領域を必ず実行すること。

@@ -10,7 +10,7 @@
 
 1. **`CLAUDE.md`（プロジェクトルート）** — コーディング原則（第1条〜第10条）・アーキテクチャ概要・技術スタック・デプロイ手順
 2. **`documents/review-guide.md`** — 5領域の詳細チェックリスト（テスト品質・処理正確性・マネタイズ・デザイン・ペルソナ）
-3. **`documents/tmp/redesign-plan.md`** — ペルソナ定義（タケシ）・収益モデル（Free/Standard）・Phase管理・ロードマップ
+3. **`documents/planning/redesign-plan.md`** — ペルソナ定義（タケシ）・収益モデル（Free/Standard）・Phase管理・ロードマップ
 4. **`documents/ui-review-checklist.md`** — shadcn/ui準拠・アクセシビリティ・フィンテック信頼感デザイン詳細チェック
 
 これらのドキュメントがレビューの判断基準となります。読み込み後にレビューを開始してください。
@@ -29,12 +29,12 @@
 以下のファイルから必要な情報を収集してください：
 
 ### ペルソナ定義
-`documents/tmp/redesign-plan.md` の「ペルソナ」セクションを読む。
+`documents/planning/redesign-plan.md` の「ペルソナ」セクションを読む。
 - プライマリ: タケシ（28〜42歳, ITエンジニア, 投資歴2〜7年, 500万〜5,000万円運用）
 - ペイン: ①複数口座統合 ②リバランス計算 ③投資判断の不安
 
 ### 収益モデル
-`documents/tmp/redesign-plan.md` の「料金プラン」セクション：
+`documents/planning/redesign-plan.md` の「料金プラン」セクション：
 - Free: 5銘柄, 3回/日取得, 3回/月シミュレーション, 3指標スコア, 1回/月AI
 - Standard (¥700/月 or ¥7,000/年): 無制限銘柄, リアルタイム, 8指標, 無制限AI
 

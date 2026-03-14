@@ -1,44 +1,38 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# dependencies
+# Dependencies
 node_modules/
 .pnp
 .pnp.js
 
-# testing
+# Testing
 coverage/
+test-results/
+junit.xml
+.jest-cache
+e2e-report/
+e2e-results*.xml
+playwright-report/
 
-# production
+# Production builds
 build/
 dist/
 
-# Security - API Secret file
+# Security - sensitive files
 cloudflare-env.txt
-
-# misc
-.DS_Store
 .env
 .env.*
 !.env.example
 !.env.test.example
 
+# Logs
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
-# Local Netlify folder
-.netlify
-
-# Test results
-test-results/
-junit.xml
-.jest-cache
-
-# Logs
-*.log
-
-# Editor
+# Editor & IDE
 .idea
 .vscode
 *.swp
@@ -52,99 +46,38 @@ Thumbs.db
 *.tmp
 *.temp
 *.backup
+*.bak
 
-# Frontend specific
+# Image files (except public assets)
+*.png
+*.jpg
+*.jpeg
+*.gif
+!frontend/webapp/public/*.png
+!frontend/webapp/public/*.ico
+
+# ============================================
+# Frontend: generated/temp files in webapp root
+# ============================================
 frontend/webapp/build/
 frontend/webapp/coverage/
+frontend/webapp/coverage-services/
 frontend/webapp/.env*
 frontend/webapp/test-results/
-frontend/webapp/*.log
-frontend/webapp-build/
-
-# Backend specific
-backend/node_modules/
-backend/dist/
-backend/.env*
-!backend/.env.example
-backend/*.log
-backend/.serverless/
-backend/deploy.log
-
-# 内部ドキュメント（機密情報を含む可能性があるため）
-/document/message/
-/frontend/webapp/document/message/
-/backend/document/message/
-/backend/document/frontend/message/
-/backend/document/backend/message/
-
-# E2E test reports
-e2e-report/
-e2e-results.xml
-playwright-report/
-
-# Custom reporter
-custom-reporter.js
-
-# Test data
-test-data/
-
-# Deployment scripts logs
-scripts/deployment/*.log
-
-# AWS DynamoDB local
-backend/dynamodb-local/
-backend/dynamodb-local-metadata.json
-backend-deploy/dynamodb-local/
-backend-deploy/dynamodb-local-metadata.json
-
-# Development and test files
-*.spec.js
-*.test.js
-*.test.jsx
-test-*.js
-*-test.js
-e2e/*.spec.js
-frontend/webapp/e2e/*.spec.js
-!frontend/webapp/e2e/tests/core-flows.spec.ts
-!frontend/webapp/e2e/tests/visual-regression.spec.ts
-!frontend/webapp/e2e/tests/visual-regression.spec.ts-snapshots/
-!frontend/webapp/playwright.config.ts
 frontend/webapp/test-screenshots/
 frontend/webapp/test-results-production/
-frontend/webapp/*.png
-frontend/webapp/*.jpg
-frontend/webapp/comprehensive-*.js
-frontend/webapp/detailed-*.js
-frontend/webapp/simple-*.js
-frontend/webapp/quick-*.js
-frontend/webapp/final-*.js
-frontend/webapp/phase2-*.js
-frontend/webapp/atlassian-*.js
-frontend/webapp/dark-theme-*.js
-frontend/webapp/readability-*.js
-frontend/webapp/production-*.js
-frontend/webapp/tab-*.js
-frontend/webapp/accurate-*.js
-frontend/webapp/analyze-*.js
-frontend/webapp/browser-*.js
-frontend/webapp/font-*.js
-frontend/webapp/page-*.js
-frontend/webapp/playwright-*.js
-frontend/webapp/robust-*.js
-frontend/webapp/screenshot-*.js
-frontend/webapp/test-*.js
-frontend/webapp/user-*.js
-frontend/webapp/yaml-*.js
-
-# Large backup folders
-node_modules_backup_*/
-**/node_modules_backup_*/
-node_modules_old/
-build-backup-*/
-frontend/webapp/build-backup-*/
+frontend/webapp/test-deploy/
+frontend/webapp/images/
+frontend/webapp/tmp/
 frontend/webapp-build/
 
-# Report files
+# Frontend: temp JS/data files (analysis, debug, screenshots)
+frontend/webapp/*.js
+!frontend/webapp/postcss.config.js
+!frontend/webapp/tailwind.config.js
+!frontend/webapp/vite.config.js
+
+# Frontend: temp report/output files (keep only essential configs)
 frontend/webapp/*.md
 frontend/webapp/*.xml
 frontend/webapp/*.json
@@ -154,22 +87,52 @@ frontend/webapp/*.txt
 !frontend/webapp/README.md
 !frontend/webapp/CLAUDE.md
 
-# Analysis and test screenshots
-frontend/webapp/atlassian-design-screenshots/
-frontend/webapp/dark-theme-screenshots/
-frontend/webapp/e2e-screenshots/
-frontend/webapp/new-deployment-analysis/
-frontend/webapp/phase2-analysis-results/
-frontend/webapp/phase2-final-results/
+# Frontend: temp screenshot/analysis folders
+frontend/webapp/*-screenshots/
+frontend/webapp/*-analysis*/
+frontend/webapp/*-results*/
 frontend/webapp/playwright-report-production/
-
-# Emergency directories
-emergency-build/
-emergency-deploy/
 frontend/webapp/emergency-build/
 frontend/webapp/emergency-deploy/
+frontend/webapp/build-backup-*/
 
+# E2E tests (canonical location: frontend/webapp/e2e/)
+frontend/webapp/e2e/*.spec.js
+!frontend/webapp/e2e/tests/core-flows.spec.ts
+!frontend/webapp/e2e/tests/visual-regression.spec.ts
+!frontend/webapp/e2e/tests/visual-regression.spec.ts-snapshots/
+!frontend/webapp/playwright.config.ts
+frontend/webapp/e2e/.auth/
+
+# ============================================
+# Backend specific
+# ============================================
+backend/node_modules/
+backend/dist/
+backend/.env*
+!backend/.env.example
+backend/.serverless/
+backend/deploy.log
+backend/dynamodb-local/
+backend/dynamodb-local-metadata.json
+backend/package-lock.json
+
+# ============================================
+# Build & deploy artifacts
+# ============================================
+node_modules_backup_*/
+**/node_modules_backup_*/
+node_modules_old/
+build-backup-*/
+emergency-build/
+emergency-deploy/
+auto-deploy.sh
+deploy-script.sh
+force-build.js
+
+# ============================================
 # IDE and tool files
+# ============================================
 .claude/*
 !.claude/commands/
 .mcp.json
@@ -177,41 +140,22 @@ frontend/webapp/emergency-deploy/
 .wrangler/
 frontend/webapp/.wrangler/
 frontend/webapp/.claude/
-
-# Claude analysis files
 Claude-Code-Communication/
+
+# Hosting (legacy, no longer used)
+.netlify
+
+# ============================================
+# Documents - generated/sensitive
+# ============================================
 documents/ai_coding_principles.yaml
-documents/auth-refactoring-summary.md
-documents/aws-secrets-manager-implementation-guide.md
-documents/claude-code-deployment-automation.md
-documents/deployment-failure-analysis.md
-documents/deployment-guide.md
-documents/google-auth-error-resolution-guide.md
-documents/troubleshooting-guide.md
+/documents/message/
+/frontend/webapp/document/message/
+/backend/document/message/
 
-# Backend test files (large number)
-backend/__tests__/
-backend/package-lock.json
-backend/src/function/auth/basicGoogleLogin.js
-backend/src/function/auth/statelessGoogleLogin.js
-backend/src/function/auth/temporaryGoogleLogin.js
-backend/src/function/updateFallbackData.js
-
-# Image files
-*.png
-*.jpg
-*.jpeg
-*.gif
-!frontend/webapp/public/*.png
-!frontend/webapp/public/*.ico
-
-# Temporary analysis folders
-frontend/webapp/tmp/
-
-# Auto deploy scripts
-auto-deploy.sh
-deploy-script.sh
-force-build.js
-
-# E2E auth folder
-e2e/.auth/
+# ============================================
+# Misc generated files
+# ============================================
+custom-reporter.js
+test-data/
+scripts/deployment/*.log

@@ -66,7 +66,7 @@ import {
   useMarkAllNotificationsRead,
   useDeleteNotification,
   notificationKeys,
-} from '../../../hooks/queries/useNotifications';
+} from '../../../hooks/queries/useNotificationQueries';
 
 // ── Import mocked service functions ────────────────
 import { fetchExchangeRate, fetchMultipleStocks } from '../../../services/marketDataService';
