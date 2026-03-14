@@ -89,7 +89,7 @@ vi.mock('../../../stores/engagementStore', () => ({
 // Mock getIsPremiumFromCache
 const mockGetIsPremiumFromCache = vi.fn(() => false);
 vi.mock('../../../hooks/queries', () => ({
-  getIsPremiumFromCache: (...args: any[]) => mockGetIsPremiumFromCache(...args),
+  getIsPremiumFromCache: (...args: any[]) => mockGetIsPremiumFromCache(...(args as []))  ,
 }));
 
 // Now import the store and dependencies
@@ -1234,6 +1234,8 @@ describe('portfolioStore', () => {
           price: 100,
           holdings: 1,
           currency: 'USD',
+          fundType: 'etf_us',
+          annualFee: 0.03,
         })),
       });
 
@@ -1257,6 +1259,8 @@ describe('portfolioStore', () => {
         price: 100,
         holdings: 1,
         currency: 'USD',
+        fundType: 'etf_us',
+        annualFee: 0.03,
       }));
       usePortfolioStore.setState({
         targetPortfolio: [],
@@ -1282,6 +1286,8 @@ describe('portfolioStore', () => {
         price: 100,
         holdings: 1,
         currency: 'USD',
+        fundType: 'etf_us',
+        annualFee: 0.03,
       }));
       usePortfolioStore.setState({
         targetPortfolio: [],

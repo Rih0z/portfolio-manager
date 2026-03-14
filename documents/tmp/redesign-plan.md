@@ -1,6 +1,6 @@
 # PortfolioWise 統合改善計画書
 
-**作成日**: 2026-03-08 → **最終更新**: 2026-03-12 (9-BY/9-BY-S/9-BY-100 完了・レビュー S評価91点・9-C を次フェーズに設定)
+**作成日**: 2026-03-08 → **最終更新**: 2026-03-13 (9-C 完了・Phase 10-A/B/C 受け入れ基準追加・メトリクス更新)
 **ペルソナ**: テック系長期投資家 タケシ（28-42歳, IT企業勤務, 日米分散投資）
 **目標**: ペルソナに完全適合するプロダクト品質 + 収益化基盤
 
@@ -44,11 +44,11 @@
 | EN/JP混在箇所 | 50+ | 0 | 0 | ✅ |
 | ハードコード色値 | 35+ | 4 | ≤4 | ✅ |
 | テスト品質 | 脆弱 | 堅牢 | 堅牢 | ✅ |
-| ユニットテスト | 2254 PASS | 2277 PASS / 15 skip | 全PASS | ✅ |
-| テストカバレッジ（statements） | 77.85% | 81.45% | ≥80% | ✅ |
-| テストカバレッジ（branches） | — | 72.47% | ≥70% | ✅ |
-| テストカバレッジ（functions） | — | 79.68% | ≥75% | ✅ |
-| テストカバレッジ（lines） | — | 82.71% | ≥80% | ✅ |
+| ユニットテスト | 2254 PASS | 2434 PASS / 15 skip | 全PASS | ✅ |
+| テストカバレッジ（statements） | 77.85% | 81.97% | ≥80% | ✅ |
+| テストカバレッジ（branches） | — | 73.19% | ≥70% | ✅ |
+| テストカバレッジ（functions） | — | 80.41% | ≥75% | ✅ |
+| テストカバレッジ（lines） | — | 82.95% | ≥80% | ✅ |
 | TypeScript エラー数 | — | 0 | 0 | ✅ |
 | any 残存数（本番コード） | 304 | 195 | ≤100 | ⚠️ |
 | 通貨換算バグ既知数 | — | 0（A〜F 全修正済み） | 0 | ✅ |
@@ -390,7 +390,7 @@ Phase R〜8-D と並行して実装された機能基盤。Phase 9 の UI 改善
 - 弱いアサーション（`toBeGreaterThan(0)`）を精確な値検証（`toBe(2025000)`, `toBeCloseTo(2666.67, 1)`）に修正
 - USD/JPY混在・`currency: undefined` シナリオのテスト追加
 - Bug A〜E のリグレッションテスト追加
-- テスト総数: 2254 → 2277（+23件）
+- テスト総数: 2254 → 2434（+180件）
 
 **再発防止体制:**
 - `/test-quality-review` スキル作成（`~/.claude/commands/test-quality-review.md`）
@@ -521,7 +521,7 @@ expect(result.totalValue).toBeCloseTo(2000, 1);
 | 1 | 5銘柄制限到達 | ✅ 実装済み | `UpgradePrompt`（Holdings設定画面）|
 | 2 | シミュレーション月3回使用 | ✅ 実装済み | `UpgradePrompt`（シミュレーション画面）|
 | 3 | 取得単価入力ロック | ✅ 実装済み | HoldingCard（`useCanUseFeature('purchasePrice')`）|
-| 4 | PDF エクスポートロック | ⚠️ 9-C で実装 | `UpgradePrompt`（ExportOptions）|
+| 4 | PDF エクスポートロック | ✅ 実装済み | `UpgradePrompt`（ExportOptions）|
 | 5 | アラートルール制限（Free: 設定不可）| ✅ 実装済み | `UpgradePrompt`（AlertRulesManager）|
 | 6 | 目標管理（Free: 1目標, Standard: 5目標）| ✅ 実装済み | `UpgradePrompt`（GoalDialog）|
 | 7 | 詳細スコア 8指標（Free: 3指標）| ✅ 実装済み | `UpgradePrompt`（PortfolioScoreCard）|
@@ -537,7 +537,7 @@ expect(result.totalValue).toBeCloseTo(2000, 1);
 |---|---------|------|---------|---------|
 | P1 | ロック指標のblur値チラ見せ | Curiosity Gap | 「見たい」 | ✅ 9-BY |
 | P2 | スコア変動通知「Standardユーザーの平均は87点」 | Social Proof | 「自分も」 | ⚠️ Phase 10 |
-| P3 | PDFエクスポートのプレビュー表示（DL時にUpgrade） | Preview | 「もう少しで手に入る」 | ⚠️ 9-C |
+| P3 | PDFエクスポートのプレビュー表示（DL時にUpgrade） | Preview | 「もう少しで手に入る」 | ✅ 9-C |
 | P4 | 目標達成セレブレーション + 「次の目標はStandardで」 | Achievement | ゲーム的進行 | ✅ 9-BY (部分) |
 
 ---
@@ -650,19 +650,49 @@ expect(result.totalValue).toBeCloseTo(2000, 1);
 
 ### 10-A: 配当カレンダー詳細ビュー
 
-**ターゲット**: 43juniの元ユーザーが最も愛用した機能を完全再現
+**ターゲット**: 43juniの元ユーザーが最も愛用した配当カレンダー機能を完全再現
 **現状**: DividendForecast（9-BY）で年間予測+月別バーチャートは実装済み
+**詳細計画**: `documents/tmp/phase-10a-plan.md`
+**工数見積もり**: 1〜2日
+**優先度**: 高（43juni移行ユーザーの差別化機能）
+
+**アプローチ**: 既存 DividendForecast.tsx を shadcn/ui Tabs で拡張（新ファイル不要）
 
 **追加実装:**
-- 月別配当詳細テーブル（銘柄ごとの配当額・支払月）
-- 配当利回りランキング
-- 税引前/税引後切替表示
-- 配当推移グラフ（過去12ヶ月）
+- タブ1「サマリー」: 既存の月別バーチャート+トップ銘柄（変更なし）
+- タブ2「月別詳細」: `MonthlyDetail` テーブル（月→銘柄→金額→頻度、月合計行付き）
+- タブ3「利回りランキング」: 配当利回り%降順で全配当銘柄を表示
+
+**追加する型:**
+```typescript
+interface MonthlyDetail {
+  month: number;
+  label: string;
+  assets: { ticker: string; name: string; amount: number; frequency: string; }[];
+  total: number;
+}
+```
+
+**受け入れ基準:**
+- [ ] タブ切り替えで「サマリー」「月別詳細」「ランキング」が表示される
+- [ ] 月別詳細: 各月に配当がある銘柄名・金額・頻度が表示される
+- [ ] 月別詳細: 各月の合計金額が正確（`convertToBaseCurrency` 経由、通貨換算済み）
+- [ ] 利回りランキング: 利回り%降順で全配当銘柄が表示される
+- [ ] 通貨換算: baseCurrency=JPY/USD 両方で正確な金額表示
+- [ ] 配当なし資産のみの場合: コンポーネント非表示（既存動作維持）
+- [ ] モバイル: テーブルが横スクロールせず、カード形式で表示
+- [ ] テスト: 月別詳細・ランキング・タブ切替のテスト追加（USD/JPY混在含む）
+- [ ] フィンテック信頼感デザイン: font-mono tabular-nums で金額表示
+- [ ] ビルド成功 + 全テスト通過
+- [ ] `/test-quality-review` 実行済み
 
 ### 10-B: セクター分析
 
 **ターゲット**: 43juniのセクター円グラフ機能を取り入れ
 **現状**: Asset型に `region?: string` のみ。セクター未対応。
+**工数見積もり**: 2〜3日
+**優先度**: 高（ポートフォリオ分散度の可視化、Standard 価値向上）
+**依存関係**: なし（10-A と独立して実装可能）
 
 **実装計画:**
 - `portfolio.types.ts`: `sector?: string` フィールド追加
@@ -671,9 +701,22 @@ expect(result.totalValue).toBeCloseTo(2000, 1);
 - UI: セクター別円グラフ（Recharts PieChart）
 - ダッシュボードにセクター分析カードを追加
 
+**受け入れ基準:**
+- [ ] Asset型に `sector` フィールドが追加され、既存データとの後方互換性あり
+- [ ] 主要100銘柄のセクター自動判定が動作する
+- [ ] ダッシュボードにセクター別円グラフが表示される
+- [ ] セクター分散度スコアがポートフォリオスコアに統合される
+- [ ] 通貨換算: 各セクターの評価額が baseCurrency に換算されて表示される
+- [ ] セクター未設定の銘柄は「その他」として分類される
+- [ ] テスト: セクター判定・スコア計算・円グラフ表示のテスト追加
+- [ ] ビルド成功 + 全テスト通過
+
 ### 10-C: ユーザー獲得戦略
 
 **問題**: MAU 500 達成のためのチャネルが未定義
+**工数見積もり**: 1週間（技術実装+コンテンツ作成）
+**優先度**: 中（10-A/10-B の機能充実後に実施が効果的）
+**依存関係**: 10-A, 10-B 完了後が望ましい（訴求機能が増える）
 
 **施策:**
 1. **SEO**: 「ポートフォリオ管理 無料」「43juni 代わり」「投資管理 アプリ 日本語」でのランディング
@@ -681,6 +724,13 @@ expect(result.totalValue).toBeCloseTo(2000, 1);
 3. **Reddit**: r/japanfinance, r/JapanLife での紹介
 4. **Landing SEO強化**: メタデータ、OGP、構造化データ追加
 5. **43juni移行ガイド**: 「43juniをお使いだった方へ」専用ページ
+
+**受け入れ基準:**
+- [ ] Landing ページに適切な SEO メタデータ（title, description, OGP, 構造化データ）が設定される
+- [ ] 「43juniをお使いだった方へ」セクションまたは専用ページが存在する
+- [ ] Google Search Console でインデックス登録が確認できる
+- [ ] OGP プレビューが X(Twitter) / LINE で正しく表示される
+- [ ] Lighthouse SEO スコア 90+ を達成する
 
 ---
 
@@ -715,11 +765,11 @@ expect(result.totalValue).toBeCloseTo(2000, 1);
 - [x] AIAdvisor: 3ステップ（profile/investment/analysis）+ クイック分析ボタン → コード検証済み
 - [x] NPS: フローティングカード（非ブロッキング） → 対応不要確認済み
 - [x] ShareDialog: ageGroupオプション
-- [x] 全テスト合格: 111ファイル / 2251 PASS / 0 failures
+- [x] 全テスト合格: 120ファイル / 2434 PASS / 0 failures
 - [x] ビルド成功 + デプロイ: https://portfolio-wise.com/ (commit 6e07650f)
 
 ### Phase 8 完了基準（2026-03-10 確認済み）
-- [x] テストカバレッジ: statements 81.45% / branches 72.47% / functions 79.68% / lines 82.71% ✅
+- [x] テストカバレッジ: statements 81.97% / branches 73.19% / functions 80.41% / lines 82.95% ✅
 - [x] TanStack Query: 26フック + 全7ストアのコンポーネント統合完了 ✅
 - [x] Zustand persist: 全ストア統一（8-C 完了、commit 15476ee4）✅
 - [x] TypeScript: strict: true + 0 errors ✅

@@ -43,20 +43,28 @@ const formatPercent = (value: number | null): string => {
 
 // ─── Font Cache ────────────────────────────────────────────
 
-let fontCache: ArrayBuffer | null = null;
+let fontCache: string | null = null;
 
 /**
  * NotoSansJP フォントを動的にロードする。
  * public/fonts/ からフェッチし、メモリキャッシュで2回目以降は即座に返す。
  * フォント取得に失敗した場合は null を返す（helvetica フォールバック）。
  */
-async function loadJapaneseFont(): Promise<ArrayBuffer | null> {
-  if (fontCache) return fontCache;
+async function loadJapaneseFont(): Promise<string | null> {
+  if (fontCache) return fontCache as string;
   try {
     const response = await fetch('/fonts/NotoSansJP-Regular.ttf');
     if (!response.ok) return null;
-    fontCache = await response.arrayBuffer();
-    return fontCache;
+    const buffer = await response.arrayBuffer();
+    // jsPDF addFileToVFS requires base64 string
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    const base64 = btoa(binary);
+    fontCache = base64;
+    return base64;
   } catch {
     return null;
   }

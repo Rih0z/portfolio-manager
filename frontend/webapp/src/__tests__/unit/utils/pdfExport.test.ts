@@ -530,7 +530,7 @@ describe('generatePortfolioPDF', () => {
     await generatePortfolioPDF(params);
 
     expect(mockFetch).toHaveBeenCalledWith('/fonts/NotoSansJP-Regular.ttf');
-    expect(mockAddFileToVFS).toHaveBeenCalledWith('NotoSansJP-Regular.ttf', expect.any(ArrayBuffer));
+    expect(mockAddFileToVFS).toHaveBeenCalledWith('NotoSansJP-Regular.ttf', expect.any(String));
     expect(mockAddFont).toHaveBeenCalledWith('NotoSansJP-Regular.ttf', 'NotoSansJP', 'normal');
     // Font should be used in autoTable
     const summaryCall = mockAutoTable.mock.calls[0][1];
