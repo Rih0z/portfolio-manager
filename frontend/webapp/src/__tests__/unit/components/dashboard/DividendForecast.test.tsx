@@ -137,12 +137,14 @@ describe('DividendForecast', () => {
     expect(screen.queryByText('AAPL')).not.toBeInTheDocument();
   });
 
-  it('should display weighted yield percentage', () => {
+  it('should display weighted yield percentage with correct value', () => {
+    // VYM only: all portfolio value has 3% yield → weighted yield = 3.00%
     mockPortfolioContext.currentAssets = [
       makeAsset({ ticker: 'VYM', name: 'VYM' }),
     ];
     render(<DividendForecast />);
-    expect(screen.getByText(/加重平均配当利回り/)).toBeInTheDocument();
+    const yieldText = screen.getByText(/加重平均配当利回り/);
+    expect(yieldText.textContent).toContain('3.00%');
   });
 
   it('should default frequency to quarterly when not specified', () => {
@@ -293,13 +295,14 @@ describe('DividendForecast', () => {
 
     await user.click(screen.getByRole('tab', { name: '月別詳細' }));
 
-    const detail = screen.getByTestId('monthly-detail');
-    // quarterly = 3月, 6月, 9月, 12月 → 4ヶ月分のカードが表示
-    const monthCards = detail.querySelectorAll('.border.border-border');
-    expect(monthCards.length).toBe(4);
+    // quarterly = 3月(2), 6月(5), 9月(8), 12月(11) → 4ヶ月分のカードが表示
+    expect(screen.getByTestId('month-card-2')).toBeInTheDocument();
+    expect(screen.getByTestId('month-card-5')).toBeInTheDocument();
+    expect(screen.getByTestId('month-card-8')).toBeInTheDocument();
+    expect(screen.getByTestId('month-card-11')).toBeInTheDocument();
 
     // 3月カードに VYM と SCHD が含まれる
-    const marchCard = monthCards[0];
+    const marchCard = screen.getByTestId('month-card-2');
     expect(marchCard.textContent).toContain('3月');
     expect(marchCard.textContent).toContain('VYM');
     expect(marchCard.textContent).toContain('SCHD');
@@ -355,10 +358,11 @@ describe('DividendForecast', () => {
 
     await user.click(screen.getByRole('tab', { name: '月別詳細' }));
 
-    const detail = screen.getByTestId('monthly-detail');
-    const monthCards = detail.querySelectorAll('.border.border-border');
-    expect(monthCards.length).toBe(1);
-    expect(monthCards[0].textContent).toContain('12月');
+    // annual = 12月(11)のみ
+    expect(screen.getByTestId('month-card-11')).toBeInTheDocument();
+    expect(screen.getByTestId('month-card-11').textContent).toContain('12月');
+    // 他の月カードは存在しない
+    expect(screen.queryByTestId('month-card-2')).not.toBeInTheDocument();
   });
 
   it('should show correct per-payment amount for each asset', async () => {
@@ -444,17 +448,16 @@ describe('DividendForecast', () => {
 
     await user.click(screen.getByRole('tab', { name: '利回りランキング' }));
 
-    const ranking = screen.getByTestId('yield-ranking');
-    const items = ranking.querySelectorAll('.flex.items-center.justify-between');
-    expect(items.length).toBe(3);
-
     // 順序: SCHD (4%) > VYM (3%) > 7203 (2%)
-    expect(items[0].textContent).toContain('SCHD');
-    expect(items[0].textContent).toContain('4.00%');
-    expect(items[1].textContent).toContain('VYM');
-    expect(items[1].textContent).toContain('3.00%');
-    expect(items[2].textContent).toContain('7203');
-    expect(items[2].textContent).toContain('2.00%');
+    const item0 = screen.getByTestId('ranking-item-0');
+    const item1 = screen.getByTestId('ranking-item-1');
+    const item2 = screen.getByTestId('ranking-item-2');
+    expect(item0.textContent).toContain('SCHD');
+    expect(item0.textContent).toContain('4.00%');
+    expect(item1.textContent).toContain('VYM');
+    expect(item1.textContent).toContain('3.00%');
+    expect(item2.textContent).toContain('7203');
+    expect(item2.textContent).toContain('2.00%');
   });
 
   it('should show ranking numbers (1., 2., 3.)', async () => {
@@ -500,10 +503,9 @@ describe('DividendForecast', () => {
 
     await user.click(screen.getByRole('tab', { name: '利回りランキング' }));
 
-    const ranking = screen.getByTestId('yield-ranking');
-    const items = ranking.querySelectorAll('.flex.items-center.justify-between');
     // ランキングは全6件表示（サマリーの上位5件とは異なる）
-    expect(items.length).toBe(6);
+    expect(screen.getByTestId('ranking-item-0')).toBeInTheDocument();
+    expect(screen.getByTestId('ranking-item-5')).toBeInTheDocument();
   });
 
   // ──────────────────────────────────────
@@ -670,7 +672,7 @@ describe('DividendForecast', () => {
     expect(rankingTab).toHaveAttribute('tabindex', '-1');
   });
 
-  it('should have ARIA table roles in monthly detail for screen readers', async () => {
+  it('should have native table elements in monthly detail for screen readers', async () => {
     const user = userEvent.setup();
     mockPortfolioContext.currentAssets = [
       makeAsset({ ticker: 'VYM', name: 'VYM' }),
@@ -680,17 +682,155 @@ describe('DividendForecast', () => {
 
     await user.click(screen.getByRole('tab', { name: '月別詳細' }));
 
-    // 月別カードにtable roleが付与されている
+    // 月別カードにnative table要素が存在
     const tables = screen.getAllByRole('table');
     expect(tables.length).toBe(4); // quarterly = 4ヶ月
 
-    // 各テーブルにaria-labelが付与されている
-    expect(tables[0]).toHaveAttribute('aria-label', '3月の配当内訳');
+    // テーブルにaria-labelが付与されている
+    expect(tables[0]).toHaveAttribute('aria-label', '3月の配当銘柄一覧');
 
-    // 行とセルのロールが存在する
+    // sr-onlyのヘッダー行 + データ行が存在
     const rows = within(tables[0]).getAllByRole('row');
-    expect(rows.length).toBeGreaterThanOrEqual(2); // header + assets
+    expect(rows.length).toBeGreaterThanOrEqual(3); // 1 header + 2 assets (VYM, SCHD)
+
+    // セルが存在（各行3セル: ticker, frequency, amount）
     const cells = within(tables[0]).getAllByRole('cell');
-    expect(cells.length).toBeGreaterThanOrEqual(3); // ticker + frequency + amount per asset
+    expect(cells.length).toBe(6); // 2 assets × 3 cells
+  });
+
+  it('should have tab button ids matching aria-labelledby on panels', async () => {
+    const user = userEvent.setup();
+    mockPortfolioContext.currentAssets = [
+      makeAsset({ ticker: 'VYM', name: 'VYM' }),
+    ];
+    render(<DividendForecast />);
+
+    // tab buttonにidが付与されている
+    const summaryTab = screen.getByRole('tab', { name: 'サマリー' });
+    expect(summaryTab).toHaveAttribute('id', 'tab-summary');
+
+    // tabpanelのaria-labelledbyがtab idを参照している
+    const panel = document.getElementById('tabpanel-summary');
+    expect(panel).toHaveAttribute('aria-labelledby', 'tab-summary');
+  });
+
+  it('should make tabpanel focusable', () => {
+    mockPortfolioContext.currentAssets = [
+      makeAsset({ ticker: 'VYM', name: 'VYM' }),
+    ];
+    render(<DividendForecast />);
+
+    const panel = document.getElementById('tabpanel-summary');
+    expect(panel).toHaveAttribute('tabindex', '0');
+  });
+
+  // ──────────────────────────────────────
+  // フォールバックパステスト
+  // ──────────────────────────────────────
+
+  it('should handle unknown currency pair (pass through without conversion)', () => {
+    mockPortfolioContext.currentAssets = [
+      makeAsset({ ticker: 'EURO', name: 'Euro Asset', currency: 'EUR', dividendYield: 4.0 }),
+    ];
+    render(<DividendForecast />);
+    // EUR → JPY 変換ルールがないため、value がそのまま返される
+    // 100 * 10 = 1000 EUR → 1000 (unconverted) → 4% = 40
+    expect(screen.getByTestId('dividend-forecast')).toBeInTheDocument();
+  });
+
+  it('should handle unknown dividendFrequency by defaulting to quarterly', async () => {
+    const user = userEvent.setup();
+    mockPortfolioContext.currentAssets = [
+      makeAsset({ ticker: 'UNK', name: 'Unknown Freq', dividendFrequency: 'biweekly' }),
+    ];
+    render(<DividendForecast />);
+
+    await user.click(screen.getByRole('tab', { name: '月別詳細' }));
+
+    // unknown frequency → quarterly fallback → 4ヶ月分のカード
+    expect(screen.getByTestId('month-card-2')).toBeInTheDocument();
+    expect(screen.getByTestId('month-card-5')).toBeInTheDocument();
+    expect(screen.getByTestId('month-card-8')).toBeInTheDocument();
+    expect(screen.getByTestId('month-card-11')).toBeInTheDocument();
+    // 頻度ラベルは「四半期」にフォールバック
+    expect(screen.getByTestId('month-card-2').textContent).toContain('四半期');
+  });
+
+  it('should use ticker as name when name is undefined', () => {
+    mockPortfolioContext.currentAssets = [
+      makeAsset({ ticker: 'NONAME', name: undefined, dividendYield: 3.0 }),
+    ];
+    render(<DividendForecast />);
+    // aria-label should fallback to ticker
+    const tickerSpan = document.querySelector('[aria-label="NONAME"]');
+    expect(tickerSpan).toBeInTheDocument();
+  });
+
+  it('should default currency to USD when undefined', () => {
+    mockPortfolioContext.currentAssets = [
+      makeAsset({ ticker: 'NOCURR', name: 'No Currency', currency: undefined, dividendYield: 3.0 }),
+    ];
+    render(<DividendForecast />);
+    // currency=undefined → 'USD' fallback → 100*10=1000 USD → 150,000 JPY → 3% = 4,500
+    const badge = screen.getByText(/年間/).closest('[class]')!;
+    expect(badge.textContent).toContain('4,500');
+  });
+
+  it('should limit summary top assets to 5 even with more dividend assets', () => {
+    mockPortfolioContext.currentAssets = [
+      makeAsset({ ticker: 'A1', name: 'A1', dividendYield: 6.0 }),
+      makeAsset({ ticker: 'A2', name: 'A2', dividendYield: 5.0 }),
+      makeAsset({ ticker: 'A3', name: 'A3', dividendYield: 4.0 }),
+      makeAsset({ ticker: 'A4', name: 'A4', dividendYield: 3.0 }),
+      makeAsset({ ticker: 'A5', name: 'A5', dividendYield: 2.0 }),
+      makeAsset({ ticker: 'A6', name: 'A6', dividendYield: 1.0 }),
+      makeAsset({ ticker: 'A7', name: 'A7', dividendYield: 0.5 }),
+    ];
+    render(<DividendForecast />);
+    // サマリータブの配当上位銘柄は5件に制限
+    const summarySection = screen.getByText('配当上位銘柄').parentElement!;
+    // A1〜A5は表示、A6,A7は非表示（サマリータブ内）
+    expect(summarySection.textContent).toContain('A1');
+    expect(summarySection.textContent).toContain('A5');
+    expect(summarySection.textContent).not.toContain('A6');
+  });
+
+  it('should display ticker truncation with ellipsis for long tickers', () => {
+    mockPortfolioContext.currentAssets = [
+      makeAsset({ ticker: 'LONGTICKERXYZ', name: 'Long Ticker Asset' }),
+    ];
+    render(<DividendForecast />);
+    // 6文字 + '...' に切り詰め
+    expect(screen.getByText('LONGTI...')).toBeInTheDocument();
+  });
+
+  it('should navigate to first tab with Home key', async () => {
+    const user = userEvent.setup();
+    mockPortfolioContext.currentAssets = [
+      makeAsset({ ticker: 'VYM', name: 'VYM' }),
+    ];
+    render(<DividendForecast />);
+
+    // まず利回りランキングに移動
+    await user.click(screen.getByRole('tab', { name: '利回りランキング' }));
+    expect(screen.getByTestId('yield-ranking')).toBeInTheDocument();
+
+    // Homeキーでサマリーに戻る
+    screen.getByRole('tab', { name: '利回りランキング' }).focus();
+    await user.keyboard('{Home}');
+    expect(screen.getByText('月別配当スケジュール')).toBeInTheDocument();
+  });
+
+  it('should navigate to last tab with End key', async () => {
+    const user = userEvent.setup();
+    mockPortfolioContext.currentAssets = [
+      makeAsset({ ticker: 'VYM', name: 'VYM' }),
+    ];
+    render(<DividendForecast />);
+
+    // Endキーで利回りランキングに移動
+    screen.getByRole('tab', { name: 'サマリー' }).focus();
+    await user.keyboard('{End}');
+    expect(screen.getByTestId('yield-ranking')).toBeInTheDocument();
   });
 });

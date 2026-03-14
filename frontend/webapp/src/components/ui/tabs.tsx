@@ -68,11 +68,13 @@ function Tabs({
         className
       )}
       role="tablist"
+      aria-orientation="horizontal"
       onKeyDown={handleKeyDown}
     >
       {tabs.map((tab) => (
         <button
           key={tab.id}
+          id={`tab-${tab.id}`}
           role="tab"
           aria-selected={activeTab === tab.id}
           aria-controls={`tabpanel-${tab.id}`}
@@ -80,7 +82,7 @@ function Tabs({
           disabled={tab.disabled}
           onClick={() => onTabChange(tab.id)}
           className={cn(
-            'flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors',
+            'flex items-center gap-2 px-4 py-3 min-h-[44px] text-sm font-medium transition-colors',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
             'disabled:pointer-events-none disabled:opacity-50',
             variant === 'default'
@@ -118,8 +120,9 @@ function TabPanel({ tabId, activeTab, className, children, ...props }: TabPanelP
     <div
       id={`tabpanel-${tabId}`}
       role="tabpanel"
-      aria-labelledby={tabId}
-      className={cn('mt-4', className)}
+      tabIndex={0}
+      aria-labelledby={`tab-${tabId}`}
+      className={cn('mt-4 focus-visible:outline-none', className)}
       {...props}
     >
       {children}

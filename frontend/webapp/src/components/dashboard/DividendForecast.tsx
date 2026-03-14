@@ -252,28 +252,37 @@ const DividendForecast: React.FC = () => {
         <TabPanel tabId="monthly-detail" activeTab={activeTab}>
           <div className="space-y-3" data-testid="monthly-detail">
             {monthlyDetails.filter(m => m.assets.length > 0).map(month => (
-              <div key={month.month} className="border border-border rounded-lg p-3" role="table" aria-label={`${month.label}の配当内訳`}>
-                <div className="flex items-center justify-between mb-2" role="row">
-                  <h4 className="text-sm font-semibold text-foreground" role="columnheader">{month.label}</h4>
-                  <span className="font-mono text-sm font-semibold text-success-600 dark:text-success-400 tabular-nums" role="columnheader" aria-label={`合計 ${formatCurrency(month.total, baseCurrency)}`}>
+              <div key={month.month} className="border border-border rounded-lg p-3" data-testid={`month-card-${month.month}`} aria-label={`${month.label}の配当内訳`}>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-sm font-semibold text-foreground">{month.label}</h4>
+                  <span className="font-mono text-sm font-semibold text-success-600 dark:text-success-400 tabular-nums" aria-label={`合計 ${formatCurrency(month.total, baseCurrency)}`}>
                     {formatCurrency(month.total, baseCurrency)}
                   </span>
                 </div>
-                <div className="space-y-1" role="rowgroup">
-                  {month.assets.map(asset => (
-                    <div key={asset.ticker} className="flex items-center justify-between text-xs" role="row">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="font-mono font-medium text-foreground w-12 shrink-0" role="cell" aria-label={asset.name}>
-                          {asset.ticker.length > 6 ? asset.ticker.slice(0, 6) + '...' : asset.ticker}
-                        </span>
-                        <span className="text-muted-foreground" role="cell">{asset.frequency}</span>
-                      </div>
-                      <span className="font-mono font-medium tabular-nums" role="cell">
-                        {formatCurrency(asset.amount, baseCurrency)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                <table className="w-full" role="table" aria-label={`${month.label}の配当銘柄一覧`}>
+                  <thead className="sr-only">
+                    <tr>
+                      <th>銘柄</th>
+                      <th>頻度</th>
+                      <th>金額</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {month.assets.map(asset => (
+                      <tr key={asset.ticker} className="text-xs" data-testid={`dividend-row-${asset.ticker}`}>
+                        <td className="py-0.5">
+                          <span className="font-mono font-medium text-foreground w-12 inline-block" aria-label={asset.name}>
+                            {asset.ticker.length > 6 ? asset.ticker.slice(0, 6) + '...' : asset.ticker}
+                          </span>
+                        </td>
+                        <td className="text-muted-foreground py-0.5">{asset.frequency}</td>
+                        <td className="font-mono font-medium tabular-nums text-right py-0.5">
+                          {formatCurrency(asset.amount, baseCurrency)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             ))}
             {monthlyDetails.filter(m => m.assets.length > 0).length === 0 && (
@@ -286,9 +295,9 @@ const DividendForecast: React.FC = () => {
         <TabPanel tabId="yield-ranking" activeTab={activeTab}>
           <div className="space-y-2" data-testid="yield-ranking">
             {yieldRanking.map((asset, index) => (
-              <div key={asset.ticker} className="flex items-center justify-between text-sm">
+              <div key={asset.ticker} className="flex items-center justify-between text-sm" data-testid={`ranking-item-${index}`}>
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className="font-mono text-xs font-bold text-muted-foreground w-5 shrink-0">
+                  <span className="font-mono text-xs font-bold text-muted-foreground w-5 shrink-0" aria-label={`第${index + 1}位`}>
                     {index + 1}.
                   </span>
                   <span className="font-mono text-xs font-medium text-foreground w-12 shrink-0" aria-label={asset.name}>
