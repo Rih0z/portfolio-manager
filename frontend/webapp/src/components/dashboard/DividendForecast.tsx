@@ -75,7 +75,7 @@ const formatCurrency = (value: number, currency: string): string => {
   if (currency === 'JPY') {
     return `¥${Math.round(value).toLocaleString()}`;
   }
-  return `$${value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+  return `$${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
 const DividendForecast: React.FC = () => {
@@ -216,7 +216,7 @@ const DividendForecast: React.FC = () => {
                       }`}
                       style={{ height: `${Math.max(heightPercent, 4)}%`, minHeight: '2px' }}
                     />
-                    <span className="text-[10px] sm:text-xs text-muted-foreground leading-none" aria-label={d.label}>
+                    <span className="text-[11px] sm:text-xs text-muted-foreground leading-none" aria-label={d.label}>
                       {d.month + 1}
                     </span>
                   </div>

@@ -108,9 +108,9 @@ describe('DividendForecast', () => {
       }),
     ];
     render(<DividendForecast />);
-    // 300,000 JPY / 150 = 2,000 USD, 3% = $60
+    // 300,000 JPY / 150 = 2,000 USD, 3% = $60.00
     const badge = screen.getByText(/年間/).closest('[class]')!;
-    expect(badge.textContent).toContain('$60');
+    expect(badge.textContent).toContain('$60.00');
   });
 
   // ──────────────────────────────────────
@@ -422,11 +422,11 @@ describe('DividendForecast', () => {
     await user.click(screen.getByRole('tab', { name: '月別詳細' }));
 
     const detail = screen.getByTestId('monthly-detail');
-    // VYM: 1000 USD, 3% = 30/year, semi-annual = $15/payment
-    // トヨタ: 300,000 JPY / 150 = 2,000 USD, 3% = 60/year, semi-annual = $30/payment
-    expect(detail.textContent).toContain('$15');
-    expect(detail.textContent).toContain('$30');
-    expect(detail.textContent).toContain('$45');
+    // VYM: 1000 USD, 3% = 30/year, semi-annual = $15.00/payment
+    // トヨタ: 300,000 JPY / 150 = 2,000 USD, 3% = 60/year, semi-annual = $30.00/payment
+    expect(detail.textContent).toContain('$15.00');
+    expect(detail.textContent).toContain('$30.00');
+    expect(detail.textContent).toContain('$45.00');
   });
 
   // ──────────────────────────────────────
@@ -523,8 +523,8 @@ describe('DividendForecast', () => {
     await user.click(screen.getByRole('tab', { name: '利回りランキング' }));
 
     const ranking = screen.getByTestId('yield-ranking');
-    // VYM: 100*10 = 1000 USD (same currency), 3% = $30
-    expect(ranking.textContent).toContain('$30');
+    // VYM: 100*10 = 1000 USD (same currency), 3% = $30.00
+    expect(ranking.textContent).toContain('$30.00');
   });
 
   // ──────────────────────────────────────
