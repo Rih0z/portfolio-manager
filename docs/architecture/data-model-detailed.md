@@ -201,6 +201,25 @@ Tables:
           SortKey: gsi3sk
 ```
 
+### 2.1.1 物理テーブル一覧（serverless.yml定義）
+
+| # | テーブル名 | 用途 | キー構造 |
+|---|-----------|------|---------|
+| 1 | `pfwise-api-{stage}-cache` | 市場データキャッシュ | PK: key, TTL付き |
+| 2 | `pfwise-api-{stage}-sessions` | セッション・JWT管理 | PK: sessionId, TTL付き |
+| 3 | `pfwise-api-{stage}-scraping-blacklist` | 失敗シンボル追跡 | PK: symbol, TTL付き |
+| 4 | `pfwise-api-{stage}-rate-limits` | レートリミット | PK: identifier, SK: timestamp |
+| 5 | `pfwise-api-{stage}-users` | ユーザー情報 | PK: userId |
+| 6 | `pfwise-api-{stage}-subscriptions` | サブスクリプション | PK: userId, GSI: stripeCustomerId |
+| 7 | `pfwise-api-{stage}-usage` | API使用量追跡 | PK: userId, SK: date |
+| 8 | `pfwise-api-{stage}-price-history` | 価格履歴 | PK: symbol, SK: date |
+| 9 | `pfwise-api-{stage}-portfolios` | ポートフォリオデータ | PK: userId |
+| 10 | `pfwise-api-{stage}-notifications` | 通知 | PK: userId, SK: notificationId |
+| 11 | `pfwise-api-{stage}-alert-rules` | アラートルール | PK: userId, SK: ruleId |
+| 12 | `pfwise-api-{stage}-shared-portfolios` | 共有ポートフォリオ | PK: shareId, GSI: userId |
+| 13 | `pfwise-api-{stage}-referrals` | リファラルコード | PK: userId, GSI: referralCode |
+| 14 | `pfwise-api-{stage}-referral-events` | リファラルイベント | PK: referralCode, SK: eventId |
+
 ### 2.2 Single Table Design パターン
 
 ```mermaid

@@ -41,7 +41,7 @@
 **主要依存関係**:
 - **UI Framework**: React + shadcn/ui + Radix UI
 - **Styling**: TailwindCSS (CSS変数ベース、ライト/ダーク/システム 3モード)
-- **State Management**: Zustand 5.x (authStore, portfolioStore, uiStore, subscriptionStore)
+- **State Management**: Zustand 5.x (authStore, portfolioStore, uiStore, engagementStore, goalStore, notificationStore, referralStore, socialStore)
 - **Server State**: TanStack Query 5.x
 - **Charts**: Recharts
 - **API Client**: Axios with retry logic
