@@ -56,7 +56,7 @@
 2. `browser_evaluate` でCSS変数・コントラスト比を計測
 3. `browser_take_screenshot` で各セクションの視覚確認
 4. 上記チェックリストを順に確認
-5. 問題があれば `documents/tmp/` に報告書を作成
+5. 問題があれば `docs/tmp/` に報告書を作成
 
 ## カラー基準値（ライトモード）
 

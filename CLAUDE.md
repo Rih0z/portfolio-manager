@@ -52,28 +52,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### 作業完了後
 - [ ] 全宣言との整合性確認
-- [ ] レビューガイド該当領域の実行（[documents/review-guide.md](documents/review-guide.md) 参照）
+- [ ] レビューガイド該当領域の実行（[docs/review-guide.md](docs/review-guide.md) 参照）
 - [ ] ビルド実行とテスト
 - [ ] ビルド完了後必ずGitHubへのpush
 - [ ] tmpフォルダのクリーンアップ
 - [ ] 完了報告
 
 ## 長期計画
-- **収益化・再設計計画書**: [documents/planning/redesign-plan.md](documents/planning/redesign-plan.md) — Phase管理・ロードマップ・収益モデル・アーキテクチャ設計の全体計画。新機能実装や方針判断時に必ず参照すること。
+- **収益化・再設計計画書**: [docs/planning/redesign-plan.md](docs/planning/redesign-plan.md) — Phase管理・ロードマップ・収益モデル・アーキテクチャ設計の全体計画。新機能実装や方針判断時に必ず参照すること。
 
 ## レビューガイド
-- **包括レビューガイド**: [documents/review-guide.md](documents/review-guide.md) — 以下5領域のレビュー手順・チェックリスト。機能実装・修正時に該当領域を必ず実行すること。
+- **包括レビューガイド**: [docs/review-guide.md](docs/review-guide.md) — 以下5領域のレビュー手順・チェックリスト。機能実装・修正時に該当領域を必ず実行すること。
   1. **テスト品質レビュー** — テストがビジネスロジックを正しく検証しているか
   2. **処理正確性レビュー** — 金融計算・状態管理・API連携の正確性
   3. **マネタイズ整合性レビュー** — Free/Standard プラン制限と収益フローの完全性
-  4. **デザインレビュー** — shadcn/ui準拠・アクセシビリティ・フィンテック信頼感（詳細: [documents/ui-review-checklist.md](documents/ui-review-checklist.md)）
+  4. **デザインレビュー** — shadcn/ui準拠・アクセシビリティ・フィンテック信頼感（詳細: [docs/ui-review-checklist.md](docs/ui-review-checklist.md)）
   5. **ペルソナ整合性レビュー** — ターゲット「タケシ」のペイン解決・UXフロー・アップグレード動機
 
 ## ファイル組織ルール
 - **スクリプト**: scriptsフォルダ
 - **ドキュメント**: documentsフォルダ
 - **一時ファイル**: 各フォルダ/tmpサブフォルダ（使用後削除）
-- **バグ報告**: documents/tmpフォルダ（解決まで保持）
+- **バグ報告**: docs/tmpフォルダ（解決まで保持）
 
 ## Important Workflow Guidelines
 
@@ -232,7 +232,7 @@ wrangler pages deploy build --project-name=pfwise-portfolio-manager \
   --commit-hash=$(git rev-parse HEAD) \
   --commit-message="Deploy updates"
 
-# デプロイに失敗する場合は documents/DEPLOYMENT_TROUBLESHOOTING.md を参照
+# デプロイに失敗する場合は docs/DEPLOYMENT_TROUBLESHOOTING.md を参照
 ```
 
 ### Backend Deployment to AWS

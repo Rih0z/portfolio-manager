@@ -145,7 +145,7 @@ portfolio-manager/
 │   ├── __tests__/                # テストファイル
 │   └── serverless.yml            # AWS設定
 │
-├── documents/                     # プロジェクトドキュメント
+├── docs/                     # プロジェクトドキュメント
 ├── document/                      # 技術ドキュメント
 ├── docs/                         # デプロイ関連ドキュメント
 └── scripts/                      # プロジェクトスクリプト

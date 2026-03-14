@@ -187,7 +187,7 @@ const DividendForecast: React.FC = () => {
           </Badge>
         </div>
         <p className="text-xs text-muted-foreground mt-1">
-          加重平均配当利回り: <span className="font-mono font-semibold">{weightedYield.toFixed(2)}%</span>
+          加重平均配当利回り: <span className="font-mono font-semibold tabular-nums">{weightedYield.toFixed(2)}%</span>
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -216,7 +216,7 @@ const DividendForecast: React.FC = () => {
                       }`}
                       style={{ height: `${Math.max(heightPercent, 4)}%`, minHeight: '2px' }}
                     />
-                    <span className="text-[9px] text-muted-foreground leading-none">
+                    <span className="text-[10px] sm:text-xs text-muted-foreground leading-none" aria-label={d.label}>
                       {d.month + 1}
                     </span>
                   </div>
@@ -232,7 +232,7 @@ const DividendForecast: React.FC = () => {
               {topAssets.map(asset => (
                 <div key={asset.ticker} className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="font-mono text-xs font-medium text-foreground w-12 shrink-0">
+                    <span className="font-mono text-xs font-medium text-foreground w-12 shrink-0" aria-label={asset.name}>
                       {asset.ticker.length > 6 ? asset.ticker.slice(0, 6) + '...' : asset.ticker}
                     </span>
                     <span className="text-xs text-muted-foreground truncate">
@@ -263,7 +263,7 @@ const DividendForecast: React.FC = () => {
                   {month.assets.map(asset => (
                     <div key={asset.ticker} className="flex items-center justify-between text-xs">
                       <div className="flex items-center gap-2 min-w-0">
-                        <span className="font-mono font-medium text-foreground w-12 shrink-0">
+                        <span className="font-mono font-medium text-foreground w-12 shrink-0" aria-label={asset.name}>
                           {asset.ticker.length > 6 ? asset.ticker.slice(0, 6) + '...' : asset.ticker}
                         </span>
                         <span className="text-muted-foreground">{asset.frequency}</span>
@@ -291,7 +291,7 @@ const DividendForecast: React.FC = () => {
                   <span className="font-mono text-xs font-bold text-muted-foreground w-5 shrink-0">
                     {index + 1}.
                   </span>
-                  <span className="font-mono text-xs font-medium text-foreground w-12 shrink-0">
+                  <span className="font-mono text-xs font-medium text-foreground w-12 shrink-0" aria-label={asset.name}>
                     {asset.ticker.length > 6 ? asset.ticker.slice(0, 6) + '...' : asset.ticker}
                   </span>
                   <Badge variant="outline" className="font-mono text-xs tabular-nums">

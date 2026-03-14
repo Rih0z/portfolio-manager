@@ -7,11 +7,11 @@
 ## 必須: プロジェクトドキュメント読み込み（最初に実行）
 
 1. **`CLAUDE.md`** — コーディング原則・アーキテクチャ・技術スタック
-2. **`documents/planning/redesign-plan.md`** — ペルソナ定義（タケシ）・収益モデル
-3. **`documents/tmp/competitor-analysis-dopamine-design.md`** — 競合分析・ドーパミン設計原則
-4. **`documents/tmp/phase-dopamine-ux-plan.md`** — ダッシュボード再設計計画
-5. **`documents/review-guide.md`** — レビュー基準
-6. **`documents/ui-review-checklist.md`** — デザインチェックリスト
+2. **`docs/planning/redesign-plan.md`** — ペルソナ定義（タケシ）・収益モデル
+3. **`docs/tmp/competitor-analysis-dopamine-design.md`** — 競合分析・ドーパミン設計原則
+4. **`docs/tmp/phase-dopamine-ux-plan.md`** — ダッシュボード再設計計画
+5. **`docs/review-guide.md`** — レビュー基準
+6. **`docs/ui-review-checklist.md`** — デザインチェックリスト
 
 ---
 
@@ -24,7 +24,7 @@
 
 ## STEP 1: ペルソナ「タケシ」プロファイル確認
 
-`documents/planning/redesign-plan.md` から以下を確認：
+`docs/planning/redesign-plan.md` から以下を確認：
 
 - **年齢**: 28〜42歳、IT企業勤務（エンジニアまたはPM）
 - **投資歴**: 2〜7年、運用額500万〜5,000万円
@@ -234,8 +234,8 @@ Serena MCP を使って対象コンポーネントを調査：
 
 ## レビュー後の作業
 
-- **改善提案はdocuments/tmp/に保存**: `documents/tmp/persona-ux-review-{日付}.md`
+- **改善提案はdocs/tmp/に保存**: `docs/tmp/persona-ux-review-{日付}.md`
 - **改善実装後**: 再度このスキルを実行してスコア変動を確認
-- **パターン化した問題**: `documents/review-guide.md` のペルソナ整合性セクションに追記
+- **パターン化した問題**: `docs/review-guide.md` のペルソナ整合性セクションに追記
 
 ARGUMENTS: （レビュー対象コンポーネントやページを指定可能。省略時はダッシュボード全体）

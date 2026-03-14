@@ -1,14 +1,14 @@
 # PFWise 長期計画品質レビュー
 
-`documents/planning/redesign-plan.md` の計画内容をコードベース実測値と照合し、計画の精度・完全性・整合性を 5軸で評価します。
+`docs/planning/redesign-plan.md` の計画内容をコードベース実測値と照合し、計画の精度・完全性・整合性を 5軸で評価します。
 
 ---
 
 ## 必須: プロジェクトドキュメント読み込み（最初に実行）
 
 1. **`CLAUDE.md`（プロジェクトルート）** — コーディング原則・アーキテクチャ・技術スタック
-2. **`documents/planning/redesign-plan.md`** — 計画本体（評価対象）
-3. **`documents/review-guide.md`** — 5領域のレビュー基準
+2. **`docs/planning/redesign-plan.md`** — 計画本体（評価対象）
+3. **`docs/review-guide.md`** — 5領域のレビュー基準
 
 ---
 
@@ -154,7 +154,7 @@ grep -rn "#[0-9A-Fa-f]\{6\}\|#[0-9A-Fa-f]\{3\}" src/ --include="*.tsx" | grep -v
 
 ## 基本情報
 - レビュー日：
-- 計画ファイル：documents/planning/redesign-plan.md
+- 計画ファイル：docs/planning/redesign-plan.md
 - 最終更新日：（ファイルヘッダーより）
 - レビューベースコミット：（git log HEAD で確認）
 
@@ -226,8 +226,8 @@ grep -rn "#[0-9A-Fa-f]\{6\}\|#[0-9A-Fa-f]\{3\}" src/ --include="*.tsx" | grep -v
 
 ## レビュー後の作業
 
-- **計画更新が必要な場合**: `documents/planning/redesign-plan.md` を直接修正する
-- **クリティカルな乖離がある場合**: `documents/tmp/plan-review-{日付}.md` に詳細報告書を作成
-- **パターン化した問題**: `documents/review-guide.md` の「計画品質」セクションに追記
+- **計画更新が必要な場合**: `docs/planning/redesign-plan.md` を直接修正する
+- **クリティカルな乖離がある場合**: `docs/tmp/plan-review-{日付}.md` に詳細報告書を作成
+- **パターン化した問題**: `docs/review-guide.md` の「計画品質」セクションに追記
 
 ARGUMENTS: （レビュー対象フェーズ番号や日付を指定可能。省略時は計画全体をレビュー）

@@ -2,7 +2,7 @@
  * Tabs コンポーネント（shadcn/ui スタイル）
  * @file src/components/ui/tabs.tsx
  */
-import React, { useState } from 'react';
+import React, { useCallback, useRef } from 'react';
 import { cn } from '../../lib/utils';
 
 interface Tab {
@@ -27,8 +27,39 @@ function Tabs({
   className,
   variant = 'default',
 }: TabsProps) {
+  const tablistRef = useRef<HTMLDivElement>(null);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      const enabledTabs = tabs.filter((t) => !t.disabled);
+      const currentIndex = enabledTabs.findIndex((t) => t.id === activeTab);
+      if (currentIndex === -1) return;
+
+      let nextIndex: number | null = null;
+
+      if (e.key === 'ArrowRight') {
+        nextIndex = (currentIndex + 1) % enabledTabs.length;
+      } else if (e.key === 'ArrowLeft') {
+        nextIndex = (currentIndex - 1 + enabledTabs.length) % enabledTabs.length;
+      } else if (e.key === 'Home') {
+        nextIndex = 0;
+      } else if (e.key === 'End') {
+        nextIndex = enabledTabs.length - 1;
+      }
+
+      if (nextIndex !== null) {
+        e.preventDefault();
+        onTabChange(enabledTabs[nextIndex].id);
+        const buttons = tablistRef.current?.querySelectorAll<HTMLButtonElement>('[role="tab"]:not(:disabled)');
+        buttons?.[nextIndex]?.focus();
+      }
+    },
+    [tabs, activeTab, onTabChange]
+  );
+
   return (
     <div
+      ref={tablistRef}
       className={cn(
         'flex',
         variant === 'default'
@@ -37,6 +68,7 @@ function Tabs({
         className
       )}
       role="tablist"
+      onKeyDown={handleKeyDown}
     >
       {tabs.map((tab) => (
         <button
@@ -44,6 +76,7 @@ function Tabs({
           role="tab"
           aria-selected={activeTab === tab.id}
           aria-controls={`tabpanel-${tab.id}`}
+          tabIndex={activeTab === tab.id ? 0 : -1}
           disabled={tab.disabled}
           onClick={() => onTabChange(tab.id)}
           className={cn(

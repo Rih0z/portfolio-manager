@@ -8,9 +8,9 @@
 ## 必須: プロジェクトドキュメント読み込み（最初に実行）
 
 1. **`CLAUDE.md`** — コーディング原則・アーキテクチャ
-2. **`documents/tmp/competitor-analysis-dopamine-design.md`** — 競合分析（7アプリ）・ドーパミン設計6原則
-3. **`documents/tmp/phase-dopamine-ux-plan.md`** — ダッシュボード再設計計画
-4. **`documents/ui-review-checklist.md`** — デザインチェックリスト
+2. **`docs/tmp/competitor-analysis-dopamine-design.md`** — 競合分析（7アプリ）・ドーパミン設計6原則
+3. **`docs/tmp/phase-dopamine-ux-plan.md`** — ダッシュボード再設計計画
+4. **`docs/ui-review-checklist.md`** — デザインチェックリスト
 
 ---
 
@@ -254,8 +254,8 @@ Robinhood: ● (比較)
 
 ## レビュー後の作業
 
-- **改善提案はdocuments/tmp/に保存**: `documents/tmp/dopamine-ux-review-{日付}.md`
+- **改善提案はdocs/tmp/に保存**: `docs/tmp/dopamine-ux-review-{日付}.md`
 - **改善実装後**: 再度このスキルを実行してスコア変動を確認
-- **パターン化した問題**: `documents/review-guide.md` に追記
+- **パターン化した問題**: `docs/review-guide.md` に追記
 
 ARGUMENTS: （レビュー対象コンポーネントを指定可能。省略時はダッシュボード全体+マイルストーンシステム）

@@ -4,7 +4,7 @@
 
 [![Live Demo](https://img.shields.io/badge/Live-portfolio--wise.com-success)](https://portfolio-wise.com)
 [![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
-[![Docs](https://img.shields.io/badge/Docs-Available-green)](./documents/)
+[![Docs](https://img.shields.io/badge/Docs-Available-green)](./docs/)
 
 ## 🚀 クイックスタート
 
@@ -34,13 +34,13 @@ npm run dev
 
 | カテゴリ | 説明 | リンク |
 |---------|------|--------|
-| **ユーザーガイド** | 使い方・日本市場対応表 | [USER_GUIDE.md](./documents/USER_GUIDE.md) |
-| **API仕様** | エンドポイント一覧 | [api-specification.md](./documents/api-specification.md) |
-| **技術仕様** | アーキテクチャ詳細 | [TECHNICAL.md](./documents/TECHNICAL.md) |
-| **デプロイメント** | 環境構築手順 | [DEPLOYMENT.md](./documents/DEPLOYMENT.md) |
-| **トラブルシューティング** | デプロイエラー対処法 | [DEPLOYMENT_TROUBLESHOOTING.md](./documents/DEPLOYMENT_TROUBLESHOOTING.md) |
+| **ユーザーガイド** | 使い方・日本市場対応表 | [USER_GUIDE.md](./docs/USER_GUIDE.md) |
+| **API仕様** | エンドポイント一覧 | [api-specification.md](./docs/api-specification.md) |
+| **技術仕様** | アーキテクチャ詳細 | [TECHNICAL.md](./docs/TECHNICAL.md) |
+| **デプロイメント** | 環境構築手順 | [DEPLOYMENT.md](./docs/DEPLOYMENT.md) |
+| **トラブルシューティング** | デプロイエラー対処法 | [DEPLOYMENT_TROUBLESHOOTING.md](./docs/DEPLOYMENT_TROUBLESHOOTING.md) |
 | **開発ガイド** | 開発者向け情報 | [CLAUDE.md](./CLAUDE.md) |
-| **アーキテクチャ** | システム設計 | [architecture-docs/](./documents/architecture-docs/) |
+| **アーキテクチャ** | システム設計 | [architecture-docs/](./docs/architecture-docs/) |
 
 ## 🛠️ 技術スタック
 
@@ -58,7 +58,7 @@ REACT_APP_API_BASE_URL=https://your-api.amazonaws.com/prod
 REACT_APP_DEFAULT_EXCHANGE_RATE=150.0
 ```
 
-詳細は[デプロイメントガイド](./documents/DEPLOYMENT.md)参照
+詳細は[デプロイメントガイド](./docs/DEPLOYMENT.md)参照
 
 ## 🔧 開発
 
@@ -95,4 +95,4 @@ MIT © 2025 PortfolioWise - [LICENSE](./LICENSE)
 
 ---
 
-**開発中の機能**: ソーシャル・ポートフォリオ（匿名共有）、PWA対応 - [ロードマップ](./documents/TECHNICAL.md#future-enhancements)参照
+**開発中の機能**: ソーシャル・ポートフォリオ（匿名共有）、PWA対応 - [ロードマップ](./docs/TECHNICAL.md#future-enhancements)参照

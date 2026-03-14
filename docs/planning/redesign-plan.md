@@ -652,7 +652,7 @@ expect(result.totalValue).toBeCloseTo(2000, 1);
 
 **ターゲット**: 43juniの元ユーザーが最も愛用した配当カレンダー機能を完全再現
 **現状**: DividendForecast（9-BY）で年間予測+月別バーチャートは実装済み
-**詳細計画**: `documents/tmp/phase-10a-plan.md`
+**詳細計画**: `docs/tmp/phase-10a-plan.md`
 **工数見積もり**: 1〜2日
 **優先度**: 高（43juni移行ユーザーの差別化機能）
 

@@ -80,7 +80,7 @@
    → npm run test:coverage で全体カバレッジ
    → 対象ファイルの行カバレッジを確認
 
-5. 問題があれば documents/tmp/ に報告
+5. 問題があれば docs/tmp/ に報告
 ```
 
 ---
@@ -119,7 +119,7 @@
 
 ### 2-C. API連携の正確性
 
-- [ ] **リクエスト形式**: バックエンドAPIスペック（`documents/api-specification.md`）と一致
+- [ ] **リクエスト形式**: バックエンドAPIスペック（`docs/api-specification.md`）と一致
 - [ ] **認証ヘッダー**: JWT Bearer Token が全APIリクエストに付与（`withCredentials: true`）
 - [ ] **エラーレスポンス**: 401→トークンリフレッシュ→リトライ、403→UpgradePrompt、5xx→graceful degradation
 - [ ] **レート制限**: Free(30/h) / Standard(300/h) の制限に対するUI側のフィードバック
@@ -143,7 +143,7 @@
 4. テストとの対応を確認
    → 各エッジケースに対応するテストが存在するか
 
-5. 問題があれば documents/tmp/ に報告
+5. 問題があれば docs/tmp/ に報告
 ```
 
 ---
@@ -194,7 +194,7 @@
 
 ```
 1. redesign-plan.md のプラン定義を確認
-   → documents/planning/redesign-plan.md の「料金プラン」セクション
+   → docs/planning/redesign-plan.md の「料金プラン」セクション
 
 2. subscriptionStore の機能制限を検証
    → find_symbol で canUseFeature / isPremium を読む
@@ -210,14 +210,14 @@
 
 5. Pricing ページとLP の表示一致を確認
 
-6. 問題があれば documents/tmp/ に報告
+6. 問題があれば docs/tmp/ に報告
 ```
 
 ---
 
 ## 4. デザインレビュー
 
-> 詳細チェックリスト: [documents/ui-review-checklist.md](ui-review-checklist.md)
+> 詳細チェックリスト: [docs/ui-review-checklist.md](ui-review-checklist.md)
 
 ### 4-A. 追加チェック項目（ui-review-checklist.md を補完）
 
@@ -260,7 +260,7 @@
 
 4. ui-review-checklist.md + 上記追加項目を順に確認
 
-5. 問題があれば documents/tmp/ に報告
+5. 問題があれば docs/tmp/ に報告
 ```
 
 ---
@@ -348,7 +348,7 @@
 
 ```
 1. redesign-plan.md のペルソナ定義を再確認
-   → documents/planning/redesign-plan.md の「ペルソナ」セクション
+   → docs/planning/redesign-plan.md の「ペルソナ」セクション
 
 2. ユーザージャーニーを実際に追体験
    → Playwright MCP で LP → ログイン → 初回セットアップ → ダッシュボード を操作
@@ -362,7 +362,7 @@
    → MoneyForward に対する差別化ポイントが明確か
    → 「タケシ」が乗り換える動機が十分か
 
-5. 問題があれば documents/tmp/ に報告
+5. 問題があれば docs/tmp/ に報告
 ```
 
 ---
@@ -382,7 +382,7 @@
 
 ### レビュー結果の記録
 
-- **問題発見時**: `documents/tmp/review-{領域}-{日付}.md` に報告書を作成
+- **問題発見時**: `docs/tmp/review-{領域}-{日付}.md` に報告書を作成
 - **問題解決後**: 報告書を削除
 - **パターン化した問題**: このレビューガイドにアンチパターンとして追記
 

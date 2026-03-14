@@ -539,4 +539,134 @@ describe('DividendForecast', () => {
     expect(screen.getByRole('tab', { name: '月別詳細' })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: '利回りランキング' })).toBeInTheDocument();
   });
+
+  // ──────────────────────────────────────
+  // エッジケーステスト
+  // ──────────────────────────────────────
+
+  it('should handle null exchangeRate gracefully', () => {
+    mockPortfolioContext.exchangeRate = null as any;
+    mockPortfolioContext.currentAssets = [
+      makeAsset({ ticker: 'VYM', name: 'VYM' }),
+    ];
+    render(<DividendForecast />);
+    // フォールバックレート150が使われ、正常にレンダリングされる
+    expect(screen.getByTestId('dividend-forecast')).toBeInTheDocument();
+    // 100*10=1000 USD → 150,000 JPY → 3% = ¥4,500
+    const badge = screen.getByText(/年間/).closest('[class]')!;
+    expect(badge.textContent).toContain('4,500');
+  });
+
+  it('should handle undefined exchangeRate gracefully', () => {
+    mockPortfolioContext.exchangeRate = undefined as any;
+    mockPortfolioContext.currentAssets = [
+      makeAsset({ ticker: 'VYM', name: 'VYM' }),
+    ];
+    render(<DividendForecast />);
+    expect(screen.getByTestId('dividend-forecast')).toBeInTheDocument();
+  });
+
+  it('should handle assets with zero price', () => {
+    mockPortfolioContext.currentAssets = [
+      makeAsset({ ticker: 'ZERO', name: 'Zero Price', price: 0, dividendYield: 5.0 }),
+      makeAsset({ ticker: 'VYM', name: 'VYM' }),
+    ];
+    render(<DividendForecast />);
+    // price=0 → assetValue=0 → annualAmount=0 → dividendYield>0 なので配当資産に含まれるが金額0
+    // VYMのみ実質的に表示される
+    expect(screen.getByTestId('dividend-forecast')).toBeInTheDocument();
+  });
+
+  it('should handle assets with zero holdings', () => {
+    mockPortfolioContext.currentAssets = [
+      makeAsset({ ticker: 'EMPTY', name: 'No Holdings', holdings: 0, dividendYield: 4.0 }),
+      makeAsset({ ticker: 'VYM', name: 'VYM' }),
+    ];
+    render(<DividendForecast />);
+    // holdings=0 → assetValue=0 → annualAmount=0
+    expect(screen.getByTestId('dividend-forecast')).toBeInTheDocument();
+  });
+
+  it('should skip assets with negative dividendYield', () => {
+    mockPortfolioContext.currentAssets = [
+      makeAsset({ ticker: 'NEG', name: 'Negative Yield', dividendYield: -2.0 }),
+      makeAsset({ ticker: 'VYM', name: 'VYM' }),
+    ];
+    render(<DividendForecast />);
+    // yield <= 0 はスキップ
+    expect(screen.queryByText('NEG')).not.toBeInTheDocument();
+    expect(screen.getByText('VYM')).toBeInTheDocument();
+  });
+
+  // ──────────────────────────────────────
+  // キーボードナビゲーションテスト
+  // ──────────────────────────────────────
+
+  it('should switch tabs with ArrowRight key', async () => {
+    const user = userEvent.setup();
+    mockPortfolioContext.currentAssets = [
+      makeAsset({ ticker: 'VYM', name: 'VYM' }),
+    ];
+    render(<DividendForecast />);
+
+    const summaryTab = screen.getByRole('tab', { name: 'サマリー' });
+    summaryTab.focus();
+    await user.keyboard('{ArrowRight}');
+
+    // 月別詳細タブに移動
+    expect(screen.getByTestId('monthly-detail')).toBeInTheDocument();
+    expect(screen.queryByText('月別配当スケジュール')).not.toBeInTheDocument();
+  });
+
+  it('should switch tabs with ArrowLeft key (wrap around)', async () => {
+    const user = userEvent.setup();
+    mockPortfolioContext.currentAssets = [
+      makeAsset({ ticker: 'VYM', name: 'VYM' }),
+    ];
+    render(<DividendForecast />);
+
+    const summaryTab = screen.getByRole('tab', { name: 'サマリー' });
+    summaryTab.focus();
+    await user.keyboard('{ArrowLeft}');
+
+    // ラップアラウンドで利回りランキングタブに移動
+    expect(screen.getByTestId('yield-ranking')).toBeInTheDocument();
+  });
+
+  // ──────────────────────────────────────
+  // アクセシビリティテスト
+  // ──────────────────────────────────────
+
+  it('should have aria-label on abbreviated tickers', async () => {
+    const user = userEvent.setup();
+    mockPortfolioContext.currentAssets = [
+      makeAsset({ ticker: 'LONGTICKERX', name: 'Long Ticker Asset' }),
+    ];
+    render(<DividendForecast />);
+
+    // サマリータブのティッカーにaria-label
+    const tickerSpans = document.querySelectorAll('[aria-label="Long Ticker Asset"]');
+    expect(tickerSpans.length).toBeGreaterThanOrEqual(1);
+
+    // 利回りランキングタブでも確認
+    await user.click(screen.getByRole('tab', { name: '利回りランキング' }));
+    const rankingTickerSpans = document.querySelectorAll('[aria-label="Long Ticker Asset"]');
+    expect(rankingTickerSpans.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('should set tabIndex=-1 on inactive tabs for roving tabindex', () => {
+    mockPortfolioContext.currentAssets = [
+      makeAsset({ ticker: 'VYM', name: 'VYM' }),
+    ];
+    render(<DividendForecast />);
+
+    const summaryTab = screen.getByRole('tab', { name: 'サマリー' });
+    const detailTab = screen.getByRole('tab', { name: '月別詳細' });
+    const rankingTab = screen.getByRole('tab', { name: '利回りランキング' });
+
+    // アクティブタブは tabIndex=0、非アクティブは tabIndex=-1
+    expect(summaryTab).toHaveAttribute('tabindex', '0');
+    expect(detailTab).toHaveAttribute('tabindex', '-1');
+    expect(rankingTab).toHaveAttribute('tabindex', '-1');
+  });
 });

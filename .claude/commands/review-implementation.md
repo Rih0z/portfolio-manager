@@ -9,9 +9,9 @@
 レビュー開始前に以下のファイルを必ず読み込んでください：
 
 1. **`CLAUDE.md`（プロジェクトルート）** — コーディング原則（第1条〜第10条）・アーキテクチャ概要・技術スタック・デプロイ手順
-2. **`documents/review-guide.md`** — 5領域の詳細チェックリスト（テスト品質・処理正確性・マネタイズ・デザイン・ペルソナ）
-3. **`documents/planning/redesign-plan.md`** — ペルソナ定義（タケシ）・収益モデル（Free/Standard）・Phase管理・ロードマップ
-4. **`documents/ui-review-checklist.md`** — shadcn/ui準拠・アクセシビリティ・フィンテック信頼感デザイン詳細チェック
+2. **`docs/review-guide.md`** — 5領域の詳細チェックリスト（テスト品質・処理正確性・マネタイズ・デザイン・ペルソナ）
+3. **`docs/planning/redesign-plan.md`** — ペルソナ定義（タケシ）・収益モデル（Free/Standard）・Phase管理・ロードマップ
+4. **`docs/ui-review-checklist.md`** — shadcn/ui準拠・アクセシビリティ・フィンテック信頼感デザイン詳細チェック
 
 これらのドキュメントがレビューの判断基準となります。読み込み後にレビューを開始してください。
 
@@ -29,12 +29,12 @@
 以下のファイルから必要な情報を収集してください：
 
 ### ペルソナ定義
-`documents/planning/redesign-plan.md` の「ペルソナ」セクションを読む。
+`docs/planning/redesign-plan.md` の「ペルソナ」セクションを読む。
 - プライマリ: タケシ（28〜42歳, ITエンジニア, 投資歴2〜7年, 500万〜5,000万円運用）
 - ペイン: ①複数口座統合 ②リバランス計算 ③投資判断の不安
 
 ### 収益モデル
-`documents/planning/redesign-plan.md` の「料金プラン」セクション：
+`docs/planning/redesign-plan.md` の「料金プラン」セクション：
 - Free: 5銘柄, 3回/日取得, 3回/月シミュレーション, 3指標スコア, 1回/月AI
 - Standard (¥700/月 or ¥7,000/年): 無制限銘柄, リアルタイム, 8指標, 無制限AI
 
@@ -47,7 +47,7 @@
 - Vite 7.x, Cloudflare Pages, AWS Lambda
 
 ### レビューガイド参照
-`documents/review-guide.md` の詳細チェックリストを5軸レビューの補完情報として使用する。
+`docs/review-guide.md` の詳細チェックリストを5軸レビューの補完情報として使用する。
 
 ---
 
@@ -295,6 +295,6 @@ Serena MCP を使って対象コードを調査：
 
 ## レビュー後の作業
 
-- **問題発見時**: `documents/tmp/review-{日付}.md` に詳細報告書を作成
+- **問題発見時**: `docs/tmp/review-{日付}.md` に詳細報告書を作成
 - **問題解決後**: 報告書を削除
-- **パターン化した問題**: `documents/review-guide.md` にアンチパターンとして追記
+- **パターン化した問題**: `docs/review-guide.md` にアンチパターンとして追記

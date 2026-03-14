@@ -1,7 +1,7 @@
 # Phase 9-C': ドーパミンダッシュボード再設計 + ペルソナUXレビュースキル
 
 **作成日**: 2026-03-11
-**依存**: 競合分析 → `documents/tmp/competitor-analysis-dopamine-design.md`
+**依存**: 競合分析 → `docs/tmp/competitor-analysis-dopamine-design.md`
 **目的**: タケシが毎日開きたくなるダッシュボード + レビュー品質の向上
 
 ---

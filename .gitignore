@@ -148,8 +148,8 @@ Claude-Code-Communication/
 # ============================================
 # Documents - generated/sensitive
 # ============================================
-documents/ai_coding_principles.yaml
-/documents/message/
+docs/ai_coding_principles.yaml
+/docs/message/
 /frontend/webapp/document/message/
 /backend/document/message/
 
