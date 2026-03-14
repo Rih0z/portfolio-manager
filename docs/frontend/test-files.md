@@ -1,24 +1,27 @@
 # テストファイル構成
 
-このドキュメントでは、本プロジェクトにおけるテストコードの配置場所と役割を簡潔にまとめます。`npm run test:all` または `scripts/run-tests.sh all` で全てのテストが実行されます。
+このドキュメントでは、本プロジェクトにおけるテストコードの配置場所と役割を簡潔にまとめます。`npm test`（vitest run）で全テストが実行されます。
 
 ## ディレクトリ構成
 
 ```
-__tests__/
-├── unit/            # ユニットテスト
-│   ├── components/  # コンポーネントのテスト
-│   ├── hooks/       # カスタムフックのテスト
-│   ├── services/    # サービス層のテスト
-│   ├── utils/       # ユーティリティのテスト
-│   └── pages/       # ページコンポーネントのテスト
-├── integration/     # 統合テスト
-└── e2e/             # E2E テスト
+src/__tests__/
+├── mocks/           # MSW ハンドラー・i18n モック
+└── unit/            # ユニットテスト
+    ├── components/  # コンポーネントのテスト（ai/, common/, dashboard/, settings/, simulation/）
+    ├── hooks/       # カスタムフック・TanStack Queryフックのテスト
+    ├── pages/       # ページコンポーネントのテスト
+    ├── services/    # サービス層のテスト
+    ├── stores/      # Zustandストアのテスト
+    └── utils/       # ユーティリティのテスト
+
+e2e/tests/           # E2E テスト（Playwright）
+├── core-flows.spec.ts
+└── visual-regression.spec.ts
 ```
 
-- **unit**: 各モジュールを単体で検証します。今回 `pages` サブディレクトリを追加し、ページコンポーネントもテスト対象になりました。
-- **integration**: モジュール間の連携を確認するテストを配置します（現状は空です）。
-- **e2e**: 画面操作を通じた総合テストを配置します（現状は空です）。
+- **unit**: Vitest + React Testing Library で各モジュールを単体検証。
+- **e2e**: Playwright で本番URL（portfolio-wise.com）に対するE2Eテスト。
 
 ## 実行方法
 

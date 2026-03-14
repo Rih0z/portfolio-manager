@@ -35,12 +35,12 @@ npm run dev
 | カテゴリ | 説明 | リンク |
 |---------|------|--------|
 | **ユーザーガイド** | 使い方・日本市場対応表 | [USER_GUIDE.md](./docs/USER_GUIDE.md) |
-| **API仕様** | エンドポイント一覧 | [api-specification.md](./docs/api-specification.md) |
+| **API仕様** | エンドポイント一覧 | [openapi.yaml](./docs/openapi.yaml) |
 | **技術仕様** | アーキテクチャ詳細 | [TECHNICAL.md](./docs/TECHNICAL.md) |
 | **デプロイメント** | 環境構築手順 | [DEPLOYMENT.md](./docs/DEPLOYMENT.md) |
 | **トラブルシューティング** | デプロイエラー対処法 | [DEPLOYMENT_TROUBLESHOOTING.md](./docs/DEPLOYMENT_TROUBLESHOOTING.md) |
 | **開発ガイド** | 開発者向け情報 | [CLAUDE.md](./CLAUDE.md) |
-| **アーキテクチャ** | システム設計 | [architecture-docs/](./docs/architecture-docs/) |
+| **アーキテクチャ** | システム設計 | [architecture/](./docs/architecture/) |
 
 ## 🛠️ 技術スタック
 

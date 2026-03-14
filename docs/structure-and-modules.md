@@ -14,10 +14,16 @@ portfolio-manager/           # プロジェクトルート
 ├── frontend/               # フロントエンドアプリケーション
 │   └── webapp/            # React Webアプリケーション
 ├── backend/               # バックエンドAPIサービス
-├── document/              # プロジェクトドキュメント
+├── docs/                  # プロジェクトドキュメント
+│   ├── architecture/      # アーキテクチャ設計
+│   ├── backend/           # バックエンド関連ドキュメント
 │   ├── frontend/          # フロントエンド関連ドキュメント
-│   └── backend/           # バックエンド関連ドキュメント
+│   ├── planning/          # 計画・分析ドキュメント
+│   └── tmp/               # 一時ドキュメント（バグレポート等）
+├── scripts/               # ビルド・デプロイ・テストスクリプト
+├── .claude/commands/      # Claude Code レビュースキル
 ├── README.md              # プロジェクト全体のREADME
+├── CLAUDE.md              # AI開発ガイドライン
 └── .gitignore            # Git無視ファイル設定
 ```
 

@@ -70,10 +70,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   5. **ペルソナ整合性レビュー** — ターゲット「タケシ」のペイン解決・UXフロー・アップグレード動機
 
 ## ファイル組織ルール
-- **スクリプト**: scriptsフォルダ
-- **ドキュメント**: documentsフォルダ
+- **スクリプト**: scripts/フォルダ
+- **ドキュメント**: docs/フォルダ
 - **一時ファイル**: 各フォルダ/tmpサブフォルダ（使用後削除）
-- **バグ報告**: docs/tmpフォルダ（解決まで保持）
+- **バグ報告**: docs/tmp/フォルダ（解決まで保持）
 
 ## Important Workflow Guidelines
 
@@ -162,7 +162,7 @@ This is a React-based portfolio management application with AI-powered investmen
 - **React 18** with functional components and hooks
 - **TypeScript 5.x** (strict: false, allowJs: true — インクリメンタル移行中)
 - **Vite 7.x** for build and dev server
-- **Zustand 5.x** for client state management (authStore, portfolioStore, uiStore, subscriptionStore, engagementStore)
+- **Zustand 5.x** for client state management (authStore, portfolioStore, uiStore, engagementStore, goalStore, notificationStore, referralStore, socialStore)
 - **TanStack Query 5.x** for server state caching
 - **TailwindCSS** + **shadcn/ui** for styling (CSS変数ベース、ライト/ダーク切替)
 - **Recharts** for data visualization
@@ -183,12 +183,15 @@ This is a React-based portfolio management application with AI-powered investmen
    - `marketDataService.ts`: Market data fetching with fallbacks
    - `subscriptionService.ts`: Stripe subscription management
 
-2. **Zustand Store Pattern**: 5 stores with cross-store communication via `getState()`
+2. **Zustand Store Pattern**: 8 stores with cross-store communication via `getState()`
    - `authStore.ts`: 認証・JWT管理
    - `portfolioStore.ts`: ポートフォリオデータ・Google Drive連携
-   - `uiStore.ts`: 通知・テーマ管理
-   - `subscriptionStore.ts`: サブスクリプション・プラン制限
+   - `uiStore.ts`: テーマ管理
    - `engagementStore.ts`: エンゲージメント追跡（ストリーク・スコア履歴・トライアル・Freeze）
+   - `goalStore.ts`: 投資目標管理
+   - `notificationStore.ts`: 通知・アラート管理
+   - `referralStore.ts`: リファラルプログラム
+   - `socialStore.ts`: ソーシャル共有
 
 3. **Environment Configuration**: All API settings are dynamically fetched from AWS
    - No API URLs or keys stored in client
@@ -343,7 +346,7 @@ API configurations are fetched dynamically from AWS. The following environment v
 1. **Local Testing**:
    ```bash
    # First time setup
-   cp .env.test.example .env.test
+   cp .env.example .env.test
    # Edit .env.test and replace YOUR_AWS_API_URL_HERE with actual URL
    
    # Run tests
