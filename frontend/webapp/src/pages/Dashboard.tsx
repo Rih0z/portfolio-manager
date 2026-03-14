@@ -145,15 +145,18 @@ const Dashboard = () => {
         </div>
       </div>
 
+      {/* Hero: PnL Summary - Full Width */}
+      <PnLSummary />
+
       {/* Main Grid - 2 columns on desktop */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Left Column: Key Metrics */}
         <div className="space-y-4 sm:space-y-6">
-          <PnLSummary />
           {enrichedData && (
             <StrengthsWeaknessCard enrichedData={enrichedData} />
           )}
           <PortfolioScoreCard />
+          <DividendForecast />
         </div>
 
         {/* Right Column: Charts & Goals */}
@@ -162,7 +165,6 @@ const Dashboard = () => {
             totalValue={enrichedData?.holdings?.totalValue || 0}
             baseCurrency={baseCurrency}
           />
-          <DividendForecast />
           <WeeklyRebalanceCard />
           <PortfolioSummary />
           <PortfolioCharts />
